@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download } from 'lucide-react';
 
-const SETLISTFM_API_KEY = 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ'; // Replace with your setlist.fm API key
+const SETLISTFM_API_KEY = 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ';
 
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
@@ -284,69 +284,47 @@ function SetlistSearch({ onImport, onCancel }) {
   const [error, setError] = useState('');
 
   const searchSetlists = async () => {
-  if (!artistName.trim()) return;
-  
-  setIsSearching(true);
-  setError('');
-  
-  try {
-    const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
+    if (!artistName.trim()) return;
     
-    // Use corsproxy.io which better handles custom headers
-    const proxyUrl = 'https://corsproxy.io/?';
-    const fullUrl = proxyUrl + encodeURIComponent(apiUrl);
+    setIsSearching(true);
+    setError('');
     
-    const response = await fetch(fullUrl, {
-      headers: {
-        'x-api-key': SETLISTFM_API_KEY,
-        'Accept': 'application/json'
+    try {
+      const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
+      
+      // Use corsproxy.io which better handles custom headers
+      const proxyUrl = 'https://corsproxy.io/?';
+      const fullUrl = proxyUrl + encodeURIComponent(apiUrl);
+      
+      const response = await fetch(fullUrl, {
+        headers: {
+          'x-api-key': SETLISTFM_API_KEY,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error('Failed to fetch setlists. Please check your API key and try again.');
       }
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', errorText);
-      throw new Error('Failed to fetch setlists. Please check your API key and try again.');
-    }
-
-    const data = await response.json();
-    
-    if (!data.setlist || data.setlist.length === 0) {
-      setError('No setlists found. Try a different artist name.');
+      const data = await response.json();
+      
+      if (!data.setlist || data.setlist.length === 0) {
+        setError('No setlists found. Try a different artist name.');
+        setResults([]);
+      } else {
+        setResults(data.setlist);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError(err.message || 'An error occurred while searching. Please try again.');
       setResults([]);
-    } else {
-      setResults(data.setlist);
+    } finally {
+      setIsSearching(false);
     }
-  } catch (err) {
-    console.error('Search error:', err);
-    setError(err.message || 'An error occurred while searching. Please try again.');
-    setResults([]);
-  } finally {
-    setIsSearching(false);
-  }
-};
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', errorText);
-      throw new Error('Failed to fetch setlists. Please check your API key and try again.');
-    }
-
-    const data = await response.json();
-    
-    if (!data.setlist || data.setlist.length === 0) {
-      setError('No setlists found. Try a different artist name.');
-      setResults([]);
-    } else {
-      setResults(data.setlist);
-    }
-  } catch (err) {
-    console.error('Search error:', err);
-    setError(err.message || 'An error occurred while searching. Please try again.');
-    setResults([]);
-  } finally {
-    setIsSearching(false);
-  }
-};
+  };
 
   const importSetlist = (setlist) => {
     const songs = [];
