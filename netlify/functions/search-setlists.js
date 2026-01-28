@@ -9,8 +9,8 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const artistName = event.queryStringParameters.artistName;
-  
+  const { artistName, year, venueName } = event.queryStringParameters || {};
+
   if (!artistName) {
     return {
       statusCode: 400,
@@ -18,10 +18,14 @@ exports.handler = async function(event, context) {
     };
   }
 
+  const params = new URLSearchParams({ artistName, p: '1' });
+  if (year) params.set('year', year);
+  if (venueName) params.set('venueName', venueName);
+
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'api.setlist.fm',
-      path: `/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`,
+      path: `/rest/1.0/search/setlists?${params.toString()}`,
       method: 'GET',
       headers: {
         'x-api-key': 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ',
