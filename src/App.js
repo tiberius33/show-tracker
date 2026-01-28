@@ -123,6 +123,16 @@ export default function ShowTracker() {
     }
   };
 
+  const updateShowComment = (showId, comment) => {
+    const updatedShows = shows.map(show =>
+      show.id === showId ? { ...show, comment } : show
+    );
+    saveShows(updatedShows);
+    if (selectedShow?.id === showId) {
+      setSelectedShow(updatedShows.find(s => s.id === showId));
+    }
+  };
+
   const addSongToShow = (showId, songData) => {
     const updatedShows = shows.map(show => {
       if (show.id === showId) {
@@ -213,6 +223,8 @@ export default function ShowTracker() {
         songMap[song.name].count++;
         if (song.rating) songMap[song.name].ratings.push(song.rating);
         songMap[song.name].shows.push({
+          showId: show.id,
+          songId: song.id,
           date: show.date,
           artist: show.artist,
           venue: show.venue,
@@ -518,6 +530,7 @@ export default function ShowTracker() {
                 onCommentSong={(songId, comment) => updateSongComment(selectedShow.id, songId, comment)}
                 onDeleteSong={(songId) => deleteSong(selectedShow.id, songId)}
                 onRateShow={(rating) => updateShowRating(selectedShow.id, rating)}
+                onCommentShow={(comment) => updateShowComment(selectedShow.id, comment)}
                 onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
                 onClose={() => setSelectedShow(null)}
               />
@@ -532,6 +545,7 @@ export default function ShowTracker() {
             artistStats={getArtistStats()}
             venueStats={getVenueStats()}
             topRatedShows={getTopRatedShows()}
+            onRateSong={updateSongRating}
           />
         )}
       </div>
@@ -924,6 +938,12 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                         {show.tour && (
                           <div className="text-xs text-emerald-600 font-medium mt-1">Tour: {show.tour}</div>
                         )}
+                        {show.comment && (
+                          <div className="flex items-start gap-1.5 mt-1 text-xs text-gray-500 italic">
+                            <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            {show.comment}
+                          </div>
+                        )}
                         <div className="flex items-center gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
                           <RatingSelect value={show.rating} onChange={(r) => onRateShow(show.id, r)} label="Show:" />
                           {songAvg && (
@@ -952,11 +972,13 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
   );
 }
 
-function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onBatchRate, onClose }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const [editingShowComment, setEditingShowComment] = useState(false);
+  const [showCommentText, setShowCommentText] = useState(show.comment || '');
 
   const handleAddSong = (e) => {
     e.preventDefault();
@@ -1003,6 +1025,56 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               <div className="mt-3">
                 <RatingSelect value={show.rating} onChange={onRateShow} label="Show rating:" />
               </div>
+              {!editingShowComment && (
+                <div className="mt-2">
+                  {show.comment ? (
+                    <div
+                      className="text-sm text-gray-500 italic bg-gray-50 p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => { setEditingShowComment(true); setShowCommentText(show.comment || ''); }}
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-400" />
+                        <span>{show.comment}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setEditingShowComment(true); setShowCommentText(''); }}
+                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      Add show note
+                    </button>
+                  )}
+                </div>
+              )}
+              {editingShowComment && (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="text"
+                    value={showCommentText}
+                    onChange={(e) => setShowCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }
+                    }}
+                    placeholder="Add a note about this show..."
+                    className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingShowComment(false)}
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
             <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
               <X className="w-5 h-5" />
@@ -1121,7 +1193,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   );
 }
 
-function SongStatsRow({ song, index }) {
+function SongStatsRow({ song, index, onRateSong }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -1179,11 +1251,12 @@ function SongStatsRow({ song, index }) {
                         </div>
                       )}
                     </div>
-                    {performance.rating && (
-                      <span className="text-sm font-semibold text-emerald-600">
-                        {performance.rating}/10
-                      </span>
-                    )}
+                    <div className="flex-shrink-0 ml-2">
+                      <RatingSelect
+                        value={performance.rating}
+                        onChange={(r) => onRateSong(performance.showId, performance.songId, r)}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1195,7 +1268,7 @@ function SongStatsRow({ song, index }) {
   );
 }
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong }) {
   const [tab, setTab] = useState('songs');
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
@@ -1233,6 +1306,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows })
         songMap[song.name].count++;
         if (song.rating) songMap[song.name].ratings.push(song.rating);
         songMap[song.name].shows.push({
+          showId: show.id,
+          songId: song.id,
           date: show.date,
           artist: show.artist,
           venue: show.venue,
@@ -1323,7 +1398,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows })
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredSongStats.map((song, i) => (
-                    <SongStatsRow key={song.name} song={song} index={i} />
+                    <SongStatsRow key={song.name} song={song} index={i} onRateSong={onRateSong} />
                   ))}
                 </tbody>
               </table>
