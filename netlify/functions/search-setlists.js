@@ -1,3 +1,5 @@
+const https = require('https');
+
 exports.handler = async function(event, context) {
   // Only allow GET requests
   if (event.httpMethod !== 'GET') {
@@ -16,34 +18,45 @@ exports.handler = async function(event, context) {
     };
   }
 
-  try {
-    const response = await fetch(
-      `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`,
-      {
-        headers: {
-          'x-api-key': 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ',
-          'Accept': 'application/json'
-        }
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.setlist.fm',
+      path: `/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`,
+      method: 'GET',
+      headers: {
+        'x-api-key': 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ',
+        'Accept': 'application/json',
+        'User-Agent': 'ShowTrackerApp/1.0'
       }
-    );
-
-    const data = await response.json();
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify(data)
     };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ error: 'Failed to fetch setlists', details: error.message })
-    };
-  }
-};
+
+    const req = https.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          const parsedData = JSON.parse(data);
+          resolve({
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify(parsedData)
+          });
+        } catch (error) {
+          resolve({
+            statusCode: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ error: 'Failed to parse response', details: error.message })
+          });
+        }
+      });
+    });
