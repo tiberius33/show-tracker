@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download} from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, Edit3 } from 'lucide-react';
 
-const SETLISTFM_API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your setlist.fm API key
+const SETLISTFM_API_KEY = VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ; // Replace with your setlist.fm API key
 
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
@@ -290,8 +290,11 @@ function SetlistSearch({ onImport, onCancel }) {
     setError('');
     
     try {
+      const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
+      
+      // Using allorigins as a CORS proxy
       const response = await fetch(
-        `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
         {
           headers: {
             'x-api-key': SETLISTFM_API_KEY,
@@ -301,7 +304,7 @@ function SetlistSearch({ onImport, onCancel }) {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch setlists. Check your API key.');
+        throw new Error('Failed to fetch setlists. Please try again.');
       }
 
       const data = await response.json();
@@ -311,7 +314,7 @@ function SetlistSearch({ onImport, onCancel }) {
         setError('No setlists found. Try a different artist name.');
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'An error occurred while searching.');
       setResults([]);
     } finally {
       setIsSearching(false);
