@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, Edit3 } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download} from 'lucide-react';
 
 const SETLISTFM_API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your setlist.fm API key
 
