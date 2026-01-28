@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare } from 'lucide-react';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -25,7 +25,7 @@ function artistColor(name) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 60%)`;
+  return `hsl(${hue}, 70%, 45%)`;
 }
 
 function avgSongRating(setlist) {
@@ -34,19 +34,25 @@ function avgSongRating(setlist) {
   return (rated.reduce((a, s) => a + s.rating, 0) / rated.length).toFixed(1);
 }
 
-function RatingSelect({ value, onChange, max = 10 }) {
+function RatingSelect({ value, onChange, max = 10, label }) {
   return (
-    <select
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-      onClick={(e) => e.stopPropagation()}
-      className="px-2 py-1 bg-green-50 border border-green-200 rounded text-sm text-gray-900 focus:outline-none focus:border-green-500"
-    >
-      <option value="">—</option>
-      {Array.from({ length: max }, (_, i) => i + 1).map(n => (
-        <option key={n} value={n}>{n}</option>
-      ))}
-    </select>
+    <div className="flex items-center gap-2">
+      {label && <span className="text-xs font-medium text-gray-500">{label}</span>}
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+        onClick={(e) => e.stopPropagation()}
+        className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
+      >
+        <option value="">--</option>
+        {Array.from({ length: max }, (_, i) => i + 1).map(n => (
+          <option key={n} value={n}>{n}</option>
+        ))}
+      </select>
+      {value && (
+        <span className="text-sm font-semibold text-emerald-600">{value}/10</span>
+      )}
+    </div>
   );
 }
 
@@ -286,7 +292,7 @@ export default function ShowTracker() {
       recentShows: shows.slice(-5).reverse()
     };
 
-    const shareText = `🎵 My Concert Collection\n\n${shareData.totalShows} shows • ${shareData.totalSongs} songs${avgShowRating ? ` • Avg show rating: ${avgShowRating}/5` : ''}\n\nTop Songs:\n${shareData.topSongs.slice(0, 5).map((s, i) => `${i + 1}. ${s.name} (${s.count}x)`).join('\n')}`;
+    const shareText = `My Concert Collection\n\n${shareData.totalShows} shows | ${shareData.totalSongs} songs${avgShowRating ? ` | Avg show rating: ${avgShowRating}/10` : ''}\n\nTop Songs:\n${shareData.topSongs.slice(0, 5).map((s, i) => `${i + 1}. ${s.name} (${s.count}x)`).join('\n')}`;
 
     try {
       await navigator.clipboard.writeText(shareText);
@@ -339,26 +345,29 @@ export default function ShowTracker() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-green-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading your shows...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500 font-medium">Loading your shows...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-green-50 text-gray-900">
-      <div className="bg-white border-b border-green-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-md">
+        <div className="max-w-4xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <Music className="w-8 h-8 text-green-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Show Tracker</h1>
+              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
+                <Music className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Show Tracker</h1>
             </div>
             <button
               onClick={shareCollection}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
             >
-              {shareSuccess ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+              {shareSuccess ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
               {shareSuccess ? 'Copied!' : 'Share'}
             </button>
           </div>
@@ -366,8 +375,8 @@ export default function ShowTracker() {
           <div className="flex gap-2">
             <button
               onClick={() => { setActiveView('shows'); setSelectedArtist(null); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                activeView === 'shows' ? 'bg-green-600 text-white' : 'bg-green-100 hover:bg-green-200 text-green-800'
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+                activeView === 'shows' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
             >
               <List className="w-4 h-4" />
@@ -375,8 +384,8 @@ export default function ShowTracker() {
             </button>
             <button
               onClick={() => setActiveView('stats')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                activeView === 'stats' ? 'bg-green-600 text-white' : 'bg-green-100 hover:bg-green-200 text-green-800'
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+                activeView === 'stats' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
@@ -389,73 +398,75 @@ export default function ShowTracker() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {activeView === 'shows' && (
           <>
+            {/* Summary stats */}
             {shows.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                <div className="bg-white border border-green-200 rounded-lg p-3 text-center shadow-sm">
-                  <div className="text-2xl font-bold text-green-600">{shows.length}</div>
-                  <div className="text-xs text-gray-500">Shows</div>
-                </div>
-                <div className="bg-white border border-green-200 rounded-lg p-3 text-center shadow-sm">
-                  <div className="text-2xl font-bold text-green-600">{summaryStats.totalSongs}</div>
-                  <div className="text-xs text-gray-500">Songs</div>
-                </div>
-                <div className="bg-white border border-green-200 rounded-lg p-3 text-center shadow-sm">
-                  <div className="text-2xl font-bold text-green-600">{summaryStats.uniqueArtists}</div>
-                  <div className="text-xs text-gray-500">Artists</div>
-                </div>
-                <div className="bg-white border border-green-200 rounded-lg p-3 text-center shadow-sm">
-                  <div className="text-2xl font-bold text-green-600">{summaryStats.avgRating || '—'}</div>
-                  <div className="text-xs text-gray-500">Avg Rating</div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-3 mb-4">
-              <input
-                type="text"
-                placeholder="Search shows..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-4 py-2 bg-white border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-gray-900 placeholder-gray-400"
-              />
-              <button
-                onClick={() => setShowSearch(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors whitespace-nowrap"
-              >
-                <Search className="w-5 h-5" />
-                Search Setlists
-              </button>
-              <button
-                onClick={() => setShowForm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-green-200 hover:bg-green-50 text-green-800 rounded-lg transition-colors whitespace-nowrap"
-              >
-                <Plus className="w-5 h-5" />
-                Manual Add
-              </button>
-            </div>
-
-            {shows.length > 1 && (
-              <div className="flex items-center gap-2 mb-4">
-                <ArrowUpDown className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-500">Sort:</span>
-                {['date', 'artist', 'rating'].map(opt => (
-                  <button
-                    key={opt}
-                    onClick={() => setSortBy(opt)}
-                    className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sortBy === opt ? 'bg-green-600 text-white' : 'bg-white border border-green-200 text-gray-600 hover:bg-green-50'
-                    }`}
-                  >
-                    {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                  </button>
+                {[
+                  { label: 'Shows', value: shows.length },
+                  { label: 'Songs', value: summaryStats.totalSongs },
+                  { label: 'Artists', value: summaryStats.uniqueArtists },
+                  { label: 'Avg Rating', value: summaryStats.avgRating || '--' },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-white border border-gray-200 border-t-4 border-t-emerald-500 rounded-xl p-4 text-center shadow-sm">
+                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">{stat.label}</div>
+                  </div>
                 ))}
               </div>
             )}
 
+            {/* Search & actions */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search shows..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 placeholder-gray-400"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors whitespace-nowrap shadow-sm"
+                >
+                  <Search className="w-4 h-4" />
+                  Search Setlists
+                </button>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl font-medium transition-colors whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  Manual Add
+                </button>
+              </div>
+
+              {shows.length > 1 && (
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-500">Sort:</span>
+                  {['date', 'artist', 'rating'].map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setSortBy(opt)}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                        sortBy === opt ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {sortedFilteredShows.length === 0 && !showForm && !showSearch && (
-              <div className="text-center py-12 text-gray-400">
-                <Music className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">No shows yet</p>
+              <div className="text-center py-16 text-gray-400">
+                <Music className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-medium mb-1">No shows yet</p>
                 <p className="text-sm">Search setlist.fm or add a show manually!</p>
               </div>
             )}
@@ -469,27 +480,25 @@ export default function ShowTracker() {
               />
             )}
 
+            {/* Artist groups */}
             <div className="space-y-4">
               {artistGroups.map(([artist, artistShows]) => (
-                <div key={artist} className="bg-white border border-green-200 rounded-lg shadow-sm overflow-hidden">
+                <div key={artist} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                   <button
                     onClick={() => setSelectedArtist(selectedArtist === artist ? null : artist)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-green-50 transition-colors"
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist) }} />
                       <h3 className="text-lg font-semibold" style={{ color: artistColor(artist) }}>{artist}</h3>
-                      <span className="text-sm text-gray-500 bg-green-100 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
                         {artistShows.length} show{artistShows.length !== 1 ? 's' : ''}
                       </span>
                     </div>
-                    {selectedArtist === artist
-                      ? <ChevronUp className="w-5 h-5 text-gray-400" />
-                      : <ChevronDown className="w-5 h-5 text-gray-400" />
-                    }
+                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${selectedArtist === artist ? 'rotate-180' : ''}`} />
                   </button>
                   {selectedArtist === artist && (
-                    <div className="border-t border-green-100 p-3 space-y-3 bg-green-50/50">
+                    <div className="border-t border-gray-100 p-3 space-y-3 bg-gray-50/50">
                       {artistShows.map(show => (
                         <ShowCard
                           key={show.id}
@@ -634,13 +643,13 @@ function SetlistSearch({ onImport, onCancel, importedIds }) {
   const isImported = (id) => importedIds.has(id) || imported.has(id);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-20">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
-        <div className="p-6 border-b border-green-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-20">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-2xl font-bold text-gray-900">Search Setlist.fm</h2>
-            <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
-              <X className="w-6 h-6" />
+            <button onClick={onCancel} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -652,12 +661,12 @@ function SetlistSearch({ onImport, onCancel, importedIds }) {
                 value={artistName}
                 onChange={(e) => setArtistName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="flex-1 px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-gray-900"
+                className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
               />
               <button
                 onClick={() => searchSetlists(1)}
                 disabled={isSearching}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 shadow-sm"
               >
                 {isSearching ? 'Searching...' : 'Search'}
               </button>
@@ -669,7 +678,7 @@ function SetlistSearch({ onImport, onCancel, importedIds }) {
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="w-32 px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-sm text-gray-900"
+                className="w-32 px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-gray-900"
               />
               <input
                 type="text"
@@ -677,7 +686,7 @@ function SetlistSearch({ onImport, onCancel, importedIds }) {
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="flex-1 px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-sm text-gray-900"
+                className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-gray-900"
               />
               <input
                 type="text"
@@ -685,60 +694,60 @@ function SetlistSearch({ onImport, onCancel, importedIds }) {
                 value={cityName}
                 onChange={(e) => setCityName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="flex-1 px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-sm text-gray-900"
+                className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-gray-900"
               />
             </div>
           </div>
 
           {error && (
-            <div className="mt-3 text-red-500 text-sm">{error}</div>
+            <div className="mt-3 text-red-500 text-sm font-medium">{error}</div>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-green-50/50">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
           {results.length === 0 && !isSearching && !error && (
-            <p className="text-center text-gray-400 py-8">
+            <p className="text-center text-gray-400 py-8 font-medium">
               Search for an artist to see their recent setlists
             </p>
           )}
 
           <div className="space-y-3">
             {results.map((setlist) => (
-              <div key={setlist.id} className={`bg-white rounded-lg p-4 border ${isImported(setlist.id) ? 'border-green-400' : 'border-green-200'}`}>
+              <div key={setlist.id} className={`bg-white rounded-xl p-4 border shadow-sm transition-colors ${isImported(setlist.id) ? 'border-emerald-400' : 'border-gray-200'}`}>
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-green-700">
+                    <h3 className="font-semibold text-lg" style={{ color: artistColor(setlist.artist.name) }}>
                       {setlist.artist.name}
                     </h3>
-                    <div className="text-sm text-gray-500 mt-1 space-y-1">
+                    <div className="text-sm text-gray-500 mt-1.5 space-y-1">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-4 h-4 text-gray-400" />
                         {setlist.eventDate}
                       </div>
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
+                        <MapPin className="w-4 h-4 text-gray-400" />
                         {setlist.venue.name}, {setlist.venue.city.name}, {setlist.venue.city.country.name}
                       </div>
                       {setlist.tour && (
-                        <div className="text-green-600">
+                        <div className="text-emerald-600 font-medium">
                           Tour: {setlist.tour.name}
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <Music className="w-4 h-4" />
+                        <Music className="w-4 h-4 text-gray-400" />
                         {setlist.sets?.set?.reduce((acc, s) => acc + (s.song?.length || 0), 0) || 0} songs
                       </div>
                     </div>
                   </div>
                   {isImported(setlist.id) ? (
-                    <span className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm">
+                    <span className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-medium">
                       <Check className="w-4 h-4" />
                       Imported
                     </span>
                   ) : (
                     <button
                       onClick={() => importSetlist(setlist)}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors shadow-sm"
                     >
                       <Download className="w-4 h-4" />
                       Import
@@ -748,21 +757,21 @@ function SetlistSearch({ onImport, onCancel, importedIds }) {
 
                 {setlist.sets?.set && (
                   <details className="mt-3 text-sm">
-                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700 font-medium">
                       Preview setlist
                     </summary>
                     <div className="mt-2 pl-4 space-y-1 text-gray-500">
                       {setlist.sets.set.map((set, setIdx) => (
                         <div key={setIdx}>
                           {setIdx > 0 || setlist.sets.set.length > 1 ? (
-                            <div className="text-green-700 font-semibold mt-2 mb-1">
+                            <div className="text-emerald-700 font-semibold mt-2 mb-1">
                               {set.encore ? `Encore${set.encore > 1 ? ` ${set.encore}` : ''}` : `Set ${setIdx + 1}`}
                             </div>
                           ) : null}
                           {set.song?.map((song, songIdx) => (
                             <div key={songIdx}>
                               {songIdx + 1}. {song.name}
-                              {song.cover && <span className="text-green-600 ml-2">({song.cover.name} cover)</span>}
+                              {song.cover && <span className="text-emerald-600 ml-2">({song.cover.name} cover)</span>}
                             </div>
                           ))}
                         </div>
@@ -779,16 +788,16 @@ function SetlistSearch({ onImport, onCancel, importedIds }) {
               <button
                 onClick={() => searchSetlists(page - 1)}
                 disabled={page <= 1 || isSearching}
-                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-green-200 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl font-medium text-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Prev
               </button>
-              <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
+              <span className="text-sm font-medium text-gray-500">Page {page} of {totalPages}</span>
               <button
                 onClick={() => searchSetlists(page + 1)}
                 disabled={page >= totalPages || isSearching}
-                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-green-200 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl font-medium text-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
               >
                 Next
                 <ChevronRight className="w-4 h-4" />
@@ -816,7 +825,7 @@ function ShowForm({ onSubmit, onCancel }) {
   };
 
   return (
-    <div className="bg-white border border-green-200 rounded-lg p-4 mb-4 shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4 shadow-sm">
       <h3 className="text-lg font-semibold mb-4 text-gray-900">Add Show Manually</h3>
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
@@ -824,7 +833,7 @@ function ShowForm({ onSubmit, onCancel }) {
           placeholder="Artist/Band"
           value={formData.artist}
           onChange={(e) => setFormData({...formData, artist: e.target.value})}
-          className="w-full px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-gray-900"
+          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
           required
         />
         <input
@@ -832,21 +841,21 @@ function ShowForm({ onSubmit, onCancel }) {
           placeholder="Venue"
           value={formData.venue}
           onChange={(e) => setFormData({...formData, venue: e.target.value})}
-          className="w-full px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-gray-900"
+          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
           required
         />
         <input
           type="date"
           value={formData.date}
           onChange={(e) => setFormData({...formData, date: e.target.value})}
-          className="w-full px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-gray-900"
+          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
           required
         />
-        <div className="flex gap-2">
-          <button type="submit" className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+        <div className="flex gap-2 pt-1">
+          <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors shadow-sm">
             Add Show
           </button>
-          <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+          <button type="button" onClick={onCancel} className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors">
             Cancel
           </button>
         </div>
@@ -860,8 +869,8 @@ function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
 
   return (
     <div
-      className={`bg-white border rounded-lg p-4 cursor-pointer transition-all ${
-        isSelected ? 'border-green-500 ring-2 ring-green-500/50' : 'border-green-200 hover:border-green-400'
+      className={`group bg-white border rounded-xl p-4 cursor-pointer transition-all ${
+        isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
       }`}
       onClick={onSelect}
     >
@@ -869,54 +878,35 @@ function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             {!show.isManual && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+              <span className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
                 setlist.fm
               </span>
             )}
           </div>
-          <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+          <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500">
             <span className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
+              <Calendar className="w-4 h-4 text-gray-400" />
               {formatDate(show.date)}
             </span>
             <span className="flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
+              <MapPin className="w-4 h-4 text-gray-400" />
               {show.venue}
               {show.city && `, ${show.city}`}
             </span>
             <span className="flex items-center gap-1">
-              <Music className="w-4 h-4" />
+              <Music className="w-4 h-4 text-gray-400" />
               {show.setlist.length} songs
             </span>
           </div>
           {show.tour && (
-            <div className="text-sm text-green-700 mt-1">
+            <div className="text-sm text-emerald-600 font-medium mt-1">
               Tour: {show.tour}
             </div>
           )}
-          <div className="flex items-center gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map(rating => (
-                <button
-                  key={rating}
-                  onClick={() => onRate(rating)}
-                  className="p-0.5 hover:scale-110 transition-transform"
-                >
-                  <Star
-                    className={`w-4 h-4 ${
-                      show.rating >= rating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-gray-300'
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            {show.rating && (
-              <span className="text-sm font-bold text-yellow-500">{show.rating}/5</span>
-            )}
+          <div className="flex items-center gap-4 mt-2.5" onClick={(e) => e.stopPropagation()}>
+            <RatingSelect value={show.rating} onChange={onRate} label="Show:" />
             {songAvg && (
-              <span className="text-xs text-gray-400">Songs avg: {songAvg}/10</span>
+              <span className="text-xs font-medium text-gray-400">Songs avg: {songAvg}/10</span>
             )}
           </div>
         </div>
@@ -925,7 +915,7 @@ function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
             e.stopPropagation();
             onDelete();
           }}
-          className="text-gray-300 hover:text-red-400 transition-colors"
+          className="text-gray-300 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
         >
           <X className="w-5 h-5" />
         </button>
@@ -962,47 +952,32 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const unratedCount = show.setlist.filter(s => !s.rating).length;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-20">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
-        <div className="p-6 border-b border-green-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-20">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-start mb-4">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-bold" style={{ color: artistColor(show.artist) }}>{show.artist}</h2>
                 {!show.isManual && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                  <span className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
                     setlist.fm
                   </span>
                 )}
               </div>
               <p className="text-gray-500 mt-1">
-                {formatDate(show.date)} • {show.venue}
+                {formatDate(show.date)} &middot; {show.venue}
                 {show.city && `, ${show.city}`}
               </p>
               {show.tour && (
-                <p className="text-green-700 text-sm mt-1">Tour: {show.tour}</p>
+                <p className="text-emerald-600 text-sm font-medium mt-1">Tour: {show.tour}</p>
               )}
-              <div className="flex items-center gap-1 mt-2">
-                <span className="text-sm text-gray-500 mr-1">Show rating:</span>
-                {[1, 2, 3, 4, 5].map(rating => (
-                  <button
-                    key={rating}
-                    onClick={() => onRateShow(rating)}
-                    className="p-0.5 hover:scale-110 transition-transform"
-                  >
-                    <Star
-                      className={`w-5 h-5 ${
-                        show.rating >= rating
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  </button>
-                ))}
+              <div className="mt-3">
+                <RatingSelect value={show.rating} onChange={onRateShow} label="Show rating:" />
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="w-6 h-6" />
+            <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -1012,20 +987,20 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               placeholder="Add song to setlist..."
               value={songName}
               onChange={(e) => setSongName(e.target.value)}
-              className="flex-1 px-4 py-2 bg-green-50 border border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-gray-900"
+              className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
             />
-            <button type="submit" className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+            <button type="submit" className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors shadow-sm">
               <Plus className="w-5 h-5" />
             </button>
           </form>
 
           {unratedCount > 0 && (
-            <div className="flex items-center gap-2 mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
-              <span className="text-xs text-gray-500">Rate {unratedCount} unrated:</span>
+            <div className="flex items-center gap-2 mt-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+              <span className="text-xs font-medium text-gray-500">Rate {unratedCount} unrated:</span>
               <RatingSelect value={batchRating} onChange={(v) => setBatchRating(v || 5)} />
               <button
                 onClick={() => onBatchRate(batchRating)}
-                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors shadow-sm"
               >
                 Apply
               </button>
@@ -1033,49 +1008,43 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-green-50/50">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
           {show.setlist.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">No songs in setlist</p>
+            <p className="text-center text-gray-400 py-8 font-medium">No songs in setlist</p>
           ) : (
             <div className="space-y-3">
               {show.setlist.map((song, index) => (
                 <React.Fragment key={song.id}>
                   {song.setBreak && (
-                    <div className="text-green-700 font-semibold text-sm pt-2 pb-1 border-t border-green-200 mt-2">
+                    <div className="text-emerald-700 font-semibold text-sm pt-2 pb-1 border-t border-gray-200 mt-2">
                       {song.setBreak}
                     </div>
                   )}
-                  <div className="bg-white border border-green-100 rounded-lg p-4">
+                  <div className="group bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-start gap-3 flex-1">
                         <span className="text-gray-400 font-mono text-sm mt-1">{index + 1}.</span>
                         <div className="flex-1">
                           <span className="font-medium text-gray-900">{song.name}</span>
                           {song.cover && (
-                            <span className="text-sm text-green-600 ml-2">({song.cover})</span>
+                            <span className="text-sm text-emerald-600 ml-2">({song.cover})</span>
                           )}
                         </div>
                       </div>
                       <button
                         onClick={() => onDeleteSong(song.id)}
-                        className="text-gray-300 hover:text-red-400 transition-colors"
+                        className="text-gray-300 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                     <div className="flex items-center gap-3 ml-8">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-400">Rating:</span>
-                        <RatingSelect value={song.rating} onChange={(v) => onRateSong(song.id, v)} />
-                        {song.rating && (
-                          <span className="text-sm font-bold text-yellow-500">{song.rating}/10</span>
-                        )}
-                      </div>
+                      <RatingSelect value={song.rating} onChange={(v) => onRateSong(song.id, v)} label="Rating:" />
                       <button
                         onClick={() => startEditComment(song)}
-                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${
+                        className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg transition-colors ${
                           song.comment
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                             : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
                         }`}
                       >
@@ -1084,7 +1053,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                       </button>
                     </div>
                     {song.comment && editingComment !== song.id && (
-                      <div className="ml-8 mt-2 text-sm text-gray-500 italic bg-green-50 p-2 rounded">
+                      <div className="ml-8 mt-2 text-sm text-gray-500 italic bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                         {song.comment}
                       </div>
                     )}
@@ -1096,18 +1065,18 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                           onChange={(e) => setCommentText(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && saveComment(song.id)}
                           placeholder="Add a note about this song..."
-                          className="flex-1 px-3 py-1.5 bg-green-50 border border-green-200 rounded text-sm focus:outline-none focus:border-green-500 text-gray-900"
+                          className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
                           autoFocus
                         />
                         <button
                           onClick={() => saveComment(song.id)}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors"
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setEditingComment(null)}
-                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs transition-colors"
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium transition-colors"
                         >
                           Cancel
                         </button>
@@ -1130,47 +1099,43 @@ function SongStatsRow({ song, index }) {
   return (
     <>
       <tr
-        className={`border-b border-green-100 cursor-pointer hover:bg-green-50 ${index % 2 === 0 ? 'bg-white' : 'bg-green-50/50'}`}
+        className="border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            {expanded
-              ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            }
+            <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
             <span className="font-medium text-gray-900">{song.name}</span>
           </div>
         </td>
         <td className="px-4 py-3 text-center">
-          <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm font-semibold">
+          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-sm font-semibold">
             {song.count}x
           </span>
         </td>
         <td className="px-4 py-3 text-center">
           {song.avgRating ? (
-            <span className="flex items-center justify-center gap-1 text-yellow-500">
-              <Star className="w-4 h-4 fill-current" />
-              {song.avgRating}
+            <span className="text-sm font-semibold text-emerald-600">
+              {song.avgRating}/10
             </span>
           ) : (
-            <span className="text-gray-300">—</span>
+            <span className="text-gray-300">--</span>
           )}
         </td>
       </tr>
       {expanded && (
         <tr>
           <td colSpan={3} className="px-4 py-0">
-            <div className="py-3 pl-6 border-l-2 border-green-300 ml-2 mb-2">
+            <div className="py-3 pl-6 border-l-2 border-emerald-300 ml-2 mb-2">
               <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Performances</div>
               <div className="space-y-2">
                 {song.shows.map((performance, i) => (
-                  <div key={i} className="flex items-start justify-between bg-green-50 rounded-lg p-3">
+                  <div key={i} className="flex items-start justify-between bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
                         <span className="text-gray-700">{formatDate(performance.date)}</span>
-                        <span className="text-gray-400">•</span>
+                        <span className="text-gray-300">&middot;</span>
                         <span className="font-medium" style={{ color: artistColor(performance.artist) }}>
                           {performance.artist}
                         </span>
@@ -1187,8 +1152,7 @@ function SongStatsRow({ song, index }) {
                       )}
                     </div>
                     {performance.rating && (
-                      <span className="flex items-center gap-1 text-yellow-500 font-semibold text-sm">
-                        <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-semibold text-emerald-600">
                         {performance.rating}/10
                       </span>
                     )}
@@ -1218,8 +1182,8 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${
-              tab === id ? 'bg-green-600 text-white' : 'bg-white border border-green-200 hover:bg-green-50 text-gray-600'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors text-sm ${
+              tab === id ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 shadow-sm'
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -1232,18 +1196,18 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
         <div>
           <h2 className="text-xl font-bold mb-4 text-gray-900">Song Statistics</h2>
           {songStats.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">No songs tracked yet</p>
+            <p className="text-center text-gray-400 py-8 font-medium">No songs tracked yet</p>
           ) : (
-            <div className="bg-white border border-green-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-green-50 border-b border-green-200">
-                    <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Song</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Times Played</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Avg Rating</th>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Song</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Times Played</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Rating</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100">
                   {songStats.map((song, i) => (
                     <SongStatsRow key={song.name} song={song} index={i} />
                   ))}
@@ -1258,21 +1222,21 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
         <div>
           <h2 className="text-xl font-bold mb-4 text-gray-900">Artist Statistics</h2>
           {artistStats.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">No shows tracked yet</p>
+            <p className="text-center text-gray-400 py-8 font-medium">No shows tracked yet</p>
           ) : (
-            <div className="bg-white border border-green-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-green-50 border-b border-green-200">
-                    <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Artist</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Shows</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Total Songs</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Avg Rating</th>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artist</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Shows</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Songs</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Rating</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {artistStats.map((artist, i) => (
-                    <tr key={artist.name} className={`border-b border-green-100 ${i % 2 === 0 ? 'bg-white' : 'bg-green-50/50'}`}>
+                <tbody className="divide-y divide-gray-100">
+                  {artistStats.map((artist) => (
+                    <tr key={artist.name} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
@@ -1280,19 +1244,18 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm font-semibold">
+                        <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-sm font-semibold">
                           {artist.count}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center text-gray-600">{artist.totalSongs}</td>
                       <td className="px-4 py-3 text-center">
                         {artist.avgRating ? (
-                          <span className="flex items-center justify-center gap-1 text-yellow-500">
-                            <Star className="w-4 h-4 fill-current" />
-                            {artist.avgRating}
+                          <span className="text-sm font-semibold text-emerald-600">
+                            {artist.avgRating}/10
                           </span>
                         ) : (
-                          <span className="text-gray-300">—</span>
+                          <span className="text-gray-300">--</span>
                         )}
                       </td>
                     </tr>
@@ -1308,23 +1271,23 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
         <div>
           <h2 className="text-xl font-bold mb-4 text-gray-900">Venue Statistics</h2>
           {venueStats.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">No shows tracked yet</p>
+            <p className="text-center text-gray-400 py-8 font-medium">No shows tracked yet</p>
           ) : (
-            <div className="bg-white border border-green-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-green-50 border-b border-green-200">
-                    <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Venue</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Shows</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Artists</th>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Venue</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Shows</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artists</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {venueStats.map((venue, i) => (
-                    <tr key={venue.name} className={`border-b border-green-100 ${i % 2 === 0 ? 'bg-white' : 'bg-green-50/50'}`}>
+                <tbody className="divide-y divide-gray-100">
+                  {venueStats.map((venue) => (
+                    <tr key={venue.name} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-900">{venue.name}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm font-semibold">
+                        <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-sm font-semibold">
                           {venue.count}
                         </span>
                       </td>
@@ -1344,37 +1307,36 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
         <div>
           <h2 className="text-xl font-bold mb-4 text-gray-900">Top Rated Shows</h2>
           {topRatedShows.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">No rated shows yet</p>
+            <p className="text-center text-gray-400 py-8 font-medium">No rated shows yet</p>
           ) : (
-            <div className="bg-white border border-green-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-green-50 border-b border-green-200">
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600 w-12">#</th>
-                    <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Artist</th>
-                    <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Venue</th>
-                    <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Date</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Rating</th>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-12">#</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artist</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Venue</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Rating</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100">
                   {topRatedShows.map((show, i) => (
-                    <tr key={show.id} className={`border-b border-green-100 ${i % 2 === 0 ? 'bg-white' : 'bg-green-50/50'}`}>
-                      <td className="px-4 py-3 text-center text-lg font-bold text-gray-400">
+                    <tr key={show.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-center text-lg font-bold text-gray-300">
                         {i + 1}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium" style={{ color: artistColor(show.artist) }}>{show.artist}</div>
-                        {show.tour && <div className="text-xs text-green-600">{show.tour}</div>}
+                        {show.tour && <div className="text-xs text-emerald-600 font-medium">{show.tour}</div>}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         {show.venue}{show.city ? `, ${show.city}` : ''}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{formatDate(show.date)}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="flex items-center justify-center gap-1 text-yellow-500 font-bold">
-                          <Star className="w-5 h-5 fill-current" />
-                          {show.rating}
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold text-sm">
+                          {show.rating}/10
                         </span>
                       </td>
                     </tr>
