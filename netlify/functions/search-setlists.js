@@ -60,3 +60,18 @@ exports.handler = async function(event, context) {
         }
       });
     });
+
+    req.on('error', (error) => {
+      resolve({
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'Request failed', details: error.message })
+      });
+    });
+
+    req.end();
+  });
+};
