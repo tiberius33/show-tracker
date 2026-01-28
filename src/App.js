@@ -480,40 +480,35 @@ export default function ShowTracker() {
               />
             )}
 
-            {/* Artist groups */}
-            <div className="space-y-4">
-              {artistGroups.map(([artist, artistShows]) => (
-                <div key={artist} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                  <button
-                    onClick={() => setSelectedArtist(selectedArtist === artist ? null : artist)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist) }} />
-                      <h3 className="text-lg font-semibold" style={{ color: artistColor(artist) }}>{artist}</h3>
-                      <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
-                        {artistShows.length} show{artistShows.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${selectedArtist === artist ? 'rotate-180' : ''}`} />
-                  </button>
-                  {selectedArtist === artist && (
-                    <div className="border-t border-gray-100 p-3 space-y-3 bg-gray-50/50">
-                      {artistShows.map(show => (
-                        <ShowCard
-                          key={show.id}
-                          show={show}
-                          onSelect={() => setSelectedShow(show)}
-                          onDelete={() => deleteShow(show.id)}
-                          onRate={(rating) => updateShowRating(show.id, rating)}
-                          isSelected={selectedShow?.id === show.id}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            {/* Artist groups table */}
+            {sortedFilteredShows.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artist</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Shows</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Rating</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {artistGroups.map(([artist, artistShows]) => (
+                      <ArtistShowsRow
+                        key={artist}
+                        artist={artist}
+                        shows={artistShows}
+                        expanded={selectedArtist === artist}
+                        onToggle={() => setSelectedArtist(selectedArtist === artist ? null : artist)}
+                        onSelectShow={setSelectedShow}
+                        onDeleteShow={deleteShow}
+                        onRateShow={updateShowRating}
+                        selectedShowId={selectedShow?.id}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {selectedShow && (
               <SetlistEditor
@@ -864,63 +859,95 @@ function ShowForm({ onSubmit, onCancel }) {
   );
 }
 
-function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
-  const songAvg = avgSongRating(show.setlist);
+function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDeleteShow, onRateShow, selectedShowId }) {
+  const avgRating = (() => {
+    const rated = shows.filter(s => s.rating);
+    if (rated.length === 0) return null;
+    return (rated.reduce((a, s) => a + s.rating, 0) / rated.length).toFixed(1);
+  })();
 
   return (
-    <div
-      className={`group bg-white border rounded-xl p-4 cursor-pointer transition-all ${
-        isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-      }`}
-      onClick={onSelect}
-    >
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
+    <>
+      <tr
+        className="cursor-pointer hover:bg-gray-50 transition-colors"
+        onClick={onToggle}
+      >
+        <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            {!show.isManual && (
-              <span className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
-                setlist.fm
-              </span>
-            )}
+            <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist) }} />
+            <span className="font-medium" style={{ color: artistColor(artist) }}>{artist}</span>
           </div>
-          <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500">
-            <span className="flex items-center gap-1">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              {formatDate(show.date)}
-            </span>
-            <span className="flex items-center gap-1">
-              <MapPin className="w-4 h-4 text-gray-400" />
-              {show.venue}
-              {show.city && `, ${show.city}`}
-            </span>
-            <span className="flex items-center gap-1">
-              <Music className="w-4 h-4 text-gray-400" />
-              {show.setlist.length} songs
-            </span>
-          </div>
-          {show.tour && (
-            <div className="text-sm text-emerald-600 font-medium mt-1">
-              Tour: {show.tour}
-            </div>
+        </td>
+        <td className="px-4 py-3 text-center">
+          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-sm font-semibold">
+            {shows.length}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-center">
+          {avgRating ? (
+            <span className="text-sm font-semibold text-emerald-600">{avgRating}/10</span>
+          ) : (
+            <span className="text-gray-300">--</span>
           )}
-          <div className="flex items-center gap-4 mt-2.5" onClick={(e) => e.stopPropagation()}>
-            <RatingSelect value={show.rating} onChange={onRate} label="Show:" />
-            {songAvg && (
-              <span className="text-xs font-medium text-gray-400">Songs avg: {songAvg}/10</span>
-            )}
-          </div>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="text-gray-300 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr>
+          <td colSpan={3} className="px-4 py-0">
+            <div className="py-3 pl-6 border-l-2 border-emerald-300 ml-2 mb-2">
+              <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Shows</div>
+              <div className="space-y-2">
+                {shows.map(show => {
+                  const songAvg = avgSongRating(show.setlist);
+                  const isSelected = selectedShowId === show.id;
+                  return (
+                    <div
+                      key={show.id}
+                      className={`group flex items-start justify-between bg-white rounded-xl p-3 border cursor-pointer transition-all ${
+                        isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'
+                      }`}
+                      onClick={() => onSelectShow(show)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-gray-700">{formatDate(show.date)}</span>
+                          <span className="text-gray-300">&middot;</span>
+                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-gray-500">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                          <span className="text-gray-300">&middot;</span>
+                          <Music className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-gray-500">{show.setlist.length} songs</span>
+                        </div>
+                        {show.tour && (
+                          <div className="text-xs text-emerald-600 font-medium mt-1">Tour: {show.tour}</div>
+                        )}
+                        <div className="flex items-center gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
+                          <RatingSelect value={show.rating} onChange={(r) => onRateShow(show.id, r)} label="Show:" />
+                          {songAvg && (
+                            <span className="text-xs font-medium text-gray-400">Songs avg: {songAvg}/10</span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteShow(show.id);
+                        }}
+                        className="text-gray-300 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 ml-2"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
