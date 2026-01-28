@@ -293,33 +293,49 @@ function SetlistSearch({ onImport, onCancel }) {
       const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
       
       // Using allorigins as a CORS proxy
-      const response = await fetch(
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
-        {
-          headers: {
-            'x-api-key': SETLISTFM_API_KEY,
-            'Accept': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch setlists. Please try again.');
+      const searchSetlists = async () => {
+  if (!artistName.trim()) return;
+  
+  setIsSearching(true);
+  setError('');
+  
+  try {
+    // Build the API URL with the API key as a query parameter
+    const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
+    
+    // Use corsproxy.io which better handles custom headers
+    const proxyUrl = 'https://corsproxy.io/?';
+    const fullUrl = proxyUrl + encodeURIComponent(apiUrl);
+    
+    const response = await fetch(fullUrl, {
+      headers: {
+        'x-api-key': SETLISTFM_API_KEY,
+        'Accept': 'application/json'
       }
+    });
 
-      const data = await response.json();
-      setResults(data.setlist || []);
-      
-      if (!data.setlist || data.setlist.length === 0) {
-        setError('No setlists found. Try a different artist name.');
-      }
-    } catch (err) {
-      setError(err.message || 'An error occurred while searching.');
-      setResults([]);
-    } finally {
-      setIsSearching(false);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error:', errorText);
+      throw new Error('Failed to fetch setlists. Please check your API key and try again.');
     }
-  };
+
+    const data = await response.json();
+    
+    if (!data.setlist || data.setlist.length === 0) {
+      setError('No setlists found. Try a different artist name.');
+      setResults([]);
+    } else {
+      setResults(data.setlist);
+    }
+  } catch (err) {
+    console.error('Search error:', err);
+    setError(err.message || 'An error occurred while searching. Please try again.');
+    setResults([]);
+  } finally {
+    setIsSearching(false);
+  }
+};
 
   const importSetlist = (setlist) => {
     const songs = [];
