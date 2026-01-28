@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download } from 'lucide-react';
 
-const SETLISTFM_API_KEY = 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ';
-
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
   const [activeView, setActiveView] = useState('shows');
@@ -306,23 +304,12 @@ function SetlistSearch({ onImport, onCancel }) {
     setError('');
     
     try {
-      const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
-      
-      // Use corsproxy.io which better handles custom headers
-      const proxyUrl = 'https://corsproxy.io/?';
-      const fullUrl = proxyUrl + encodeURIComponent(apiUrl);
-      
-      const response = await fetch(fullUrl, {
-        headers: {
-          'x-api-key': SETLISTFM_API_KEY,
-          'Accept': 'application/json'
-        }
-      });
+      const response = await fetch(`/.netlify/functions/search-setlists?artistName=${encodeURIComponent(artistName)}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error('Failed to fetch setlists. Please check your API key and try again.');
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`Failed to fetch setlists (${response.status}). ${errorText}`);
       }
 
       const data = await response.json();
