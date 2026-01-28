@@ -527,6 +527,7 @@ export default function ShowTracker() {
 
         {activeView === 'stats' && (
           <StatsView
+            shows={shows}
             songStats={getSongStats()}
             artistStats={getArtistStats()}
             venueStats={getVenueStats()}
@@ -1194,8 +1195,65 @@ function SongStatsRow({ song, index }) {
   );
 }
 
-function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows }) {
   const [tab, setTab] = useState('songs');
+  const [filterArtist, setFilterArtist] = useState('');
+  const [filterVenue, setFilterVenue] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+
+  const uniqueArtists = useMemo(() =>
+    [...new Set(shows.map(s => s.artist))].sort(), [shows]);
+  const uniqueVenues = useMemo(() =>
+    [...new Set(shows.map(s => s.venue))].sort(), [shows]);
+  const uniqueYears = useMemo(() => {
+    const years = new Set();
+    shows.forEach(s => {
+      const d = parseDate(s.date);
+      if (d.getFullYear() > 1970) years.add(d.getFullYear());
+    });
+    return [...years].sort((a, b) => b - a);
+  }, [shows]);
+
+  const hasFilters = filterArtist || filterVenue || filterYear;
+
+  const filteredSongStats = useMemo(() => {
+    if (!hasFilters) return songStats;
+    const songMap = {};
+    shows.forEach(show => {
+      if (filterArtist && show.artist !== filterArtist) return;
+      if (filterVenue && show.venue !== filterVenue) return;
+      if (filterYear) {
+        const d = parseDate(show.date);
+        if (d.getFullYear() !== Number(filterYear)) return;
+      }
+      show.setlist.forEach(song => {
+        if (!songMap[song.name]) {
+          songMap[song.name] = { count: 0, ratings: [], shows: [] };
+        }
+        songMap[song.name].count++;
+        if (song.rating) songMap[song.name].ratings.push(song.rating);
+        songMap[song.name].shows.push({
+          date: show.date,
+          artist: show.artist,
+          venue: show.venue,
+          city: show.city,
+          rating: song.rating,
+          comment: song.comment
+        });
+      });
+    });
+    return Object.entries(songMap)
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        avgRating: data.ratings.length ?
+          (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : null,
+        shows: data.shows
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters]);
+
+  const selectClass = "px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer";
 
   return (
     <div className="space-y-4">
@@ -1222,8 +1280,37 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
       {tab === 'songs' && (
         <div>
           <h2 className="text-xl font-bold mb-4 text-gray-900">Song Statistics</h2>
-          {songStats.length === 0 ? (
-            <p className="text-center text-gray-400 py-8 font-medium">No songs tracked yet</p>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-medium text-gray-500">Filter:</span>
+              <select value={filterArtist} onChange={(e) => setFilterArtist(e.target.value)} className={selectClass}>
+                <option value="">All Artists</option>
+                {uniqueArtists.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <select value={filterVenue} onChange={(e) => setFilterVenue(e.target.value)} className={selectClass}>
+                <option value="">All Venues</option>
+                {uniqueVenues.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className={selectClass}>
+                <option value="">All Years</option>
+                {uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              {hasFilters && (
+                <button
+                  onClick={() => { setFilterArtist(''); setFilterVenue(''); setFilterYear(''); }}
+                  className="text-xs font-medium text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {filteredSongStats.length === 0 ? (
+            <p className="text-center text-gray-400 py-8 font-medium">
+              {hasFilters ? 'No songs match the current filters' : 'No songs tracked yet'}
+            </p>
           ) : (
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
               <table className="w-full">
@@ -1235,7 +1322,7 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {songStats.map((song, i) => (
+                  {filteredSongStats.map((song, i) => (
                     <SongStatsRow key={song.name} song={song} index={i} />
                   ))}
                 </tbody>
