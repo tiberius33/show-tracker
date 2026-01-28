@@ -59,6 +59,16 @@ export default function ShowTracker() {
     }
   };
 
+  const updateShowRating = (showId, rating) => {
+    const updatedShows = shows.map(show =>
+      show.id === showId ? { ...show, rating } : show
+    );
+    saveShows(updatedShows);
+    if (selectedShow?.id === showId) {
+      setSelectedShow(updatedShows.find(s => s.id === showId));
+    }
+  };
+
   const addSongToShow = (showId, songData) => {
     const updatedShows = shows.map(show => {
       if (show.id === showId) {
@@ -136,14 +146,18 @@ export default function ShowTracker() {
   };
 
   const shareCollection = async () => {
+    const ratedShows = shows.filter(s => s.rating);
+    const avgShowRating = ratedShows.length
+      ? (ratedShows.reduce((acc, s) => acc + s.rating, 0) / ratedShows.length).toFixed(1)
+      : null;
     const shareData = {
       totalShows: shows.length,
       totalSongs: shows.reduce((acc, show) => acc + show.setlist.length, 0),
       topSongs: getSongStats().slice(0, 10),
       recentShows: shows.slice(-5).reverse()
     };
-    
-    const shareText = `🎵 My Concert Collection\n\n${shareData.totalShows} shows • ${shareData.totalSongs} songs\n\nTop Songs:\n${shareData.topSongs.slice(0, 5).map((s, i) => `${i + 1}. ${s.name} (${s.count}x)`).join('\n')}`;
+
+    const shareText = `🎵 My Concert Collection\n\n${shareData.totalShows} shows • ${shareData.totalSongs} songs${avgShowRating ? ` • Avg show rating: ${avgShowRating}/5` : ''}\n\nTop Songs:\n${shareData.topSongs.slice(0, 5).map((s, i) => `${i + 1}. ${s.name} (${s.count}x)`).join('\n')}`;
     
     try {
       await navigator.clipboard.writeText(shareText);
@@ -254,6 +268,7 @@ export default function ShowTracker() {
                   show={show}
                   onSelect={() => setSelectedShow(show)}
                   onDelete={() => deleteShow(show.id)}
+                  onRate={(rating) => updateShowRating(show.id, rating)}
                   isSelected={selectedShow?.id === show.id}
                 />
               ))}
@@ -265,6 +280,7 @@ export default function ShowTracker() {
                 onAddSong={(song) => addSongToShow(selectedShow.id, song)}
                 onRateSong={(songId, rating) => updateSongRating(selectedShow.id, songId, rating)}
                 onDeleteSong={(songId) => deleteSong(selectedShow.id, songId)}
+                onRateShow={(rating) => updateShowRating(selectedShow.id, rating)}
                 onClose={() => setSelectedShow(null)}
               />
             )}
@@ -517,9 +533,9 @@ function ShowForm({ onSubmit, onCancel }) {
   );
 }
 
-function ShowCard({ show, onSelect, onDelete, isSelected }) {
+function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
   return (
-    <div 
+    <div
       className={`bg-gray-800 border rounded-lg p-4 cursor-pointer transition-all ${
         isSelected ? 'border-purple-500 ring-2 ring-purple-500/50' : 'border-gray-700 hover:border-gray-600'
       }`}
@@ -555,6 +571,26 @@ function ShowCard({ show, onSelect, onDelete, isSelected }) {
               Tour: {show.tour}
             </div>
           )}
+          <div className="flex items-center gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
+            {[1, 2, 3, 4, 5].map(rating => (
+              <button
+                key={rating}
+                onClick={() => onRate(rating)}
+                className="p-0.5 hover:scale-110 transition-transform"
+              >
+                <Star
+                  className={`w-4 h-4 ${
+                    show.rating >= rating
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-gray-600'
+                  }`}
+                />
+              </button>
+            ))}
+            {show.rating && (
+              <span className="text-xs text-gray-500 ml-1">{show.rating}/5</span>
+            )}
+          </div>
         </div>
         <button
           onClick={(e) => {
@@ -570,7 +606,7 @@ function ShowCard({ show, onSelect, onDelete, isSelected }) {
   );
 }
 
-function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onClose }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onRateShow, onClose }) {
   const [songName, setSongName] = useState('');
 
   const handleAddSong = (e) => {
@@ -602,12 +638,30 @@ function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onClose }) {
               {show.tour && (
                 <p className="text-purple-300 text-sm mt-1">Tour: {show.tour}</p>
               )}
+              <div className="flex items-center gap-1 mt-2">
+                <span className="text-sm text-gray-400 mr-1">Show rating:</span>
+                {[1, 2, 3, 4, 5].map(rating => (
+                  <button
+                    key={rating}
+                    onClick={() => onRateShow(rating)}
+                    className="p-0.5 hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={`w-5 h-5 ${
+                        show.rating >= rating
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-600'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
               <X className="w-6 h-6" />
             </button>
           </div>
-          
+
           <form onSubmit={handleAddSong} className="flex gap-2">
             <input
               type="text"
