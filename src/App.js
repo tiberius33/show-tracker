@@ -284,23 +284,12 @@ function SetlistSearch({ onImport, onCancel }) {
   const [error, setError] = useState('');
 
   const searchSetlists = async () => {
-    if (!artistName.trim()) return;
-    
-    setIsSearching(true);
-    setError('');
-    
-    try {
-      const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
-      
-      // Using allorigins as a CORS proxy
-      const searchSetlists = async () => {
   if (!artistName.trim()) return;
   
   setIsSearching(true);
   setError('');
   
   try {
-    // Build the API URL with the API key as a query parameter
     const apiUrl = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artistName)}&p=1`;
     
     // Use corsproxy.io which better handles custom headers
@@ -314,6 +303,28 @@ function SetlistSearch({ onImport, onCancel }) {
       }
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error:', errorText);
+      throw new Error('Failed to fetch setlists. Please check your API key and try again.');
+    }
+
+    const data = await response.json();
+    
+    if (!data.setlist || data.setlist.length === 0) {
+      setError('No setlists found. Try a different artist name.');
+      setResults([]);
+    } else {
+      setResults(data.setlist);
+    }
+  } catch (err) {
+    console.error('Search error:', err);
+    setError(err.message || 'An error occurred while searching. Please try again.');
+    setResults([]);
+  } finally {
+    setIsSearching(false);
+  }
+};
     if (!response.ok) {
       const errorText = await response.text();
       console.error('API Error:', errorText);
