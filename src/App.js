@@ -293,18 +293,23 @@ export default function ShowTracker() {
 
 function SetlistSearch({ onImport, onCancel }) {
   const [artistName, setArtistName] = useState('');
+  const [year, setYear] = useState('');
+  const [venueName, setVenueName] = useState('');
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
 
   const searchSetlists = async () => {
     if (!artistName.trim()) return;
-    
+
     setIsSearching(true);
     setError('');
-    
+
     try {
-      const response = await fetch(`/.netlify/functions/search-setlists?artistName=${encodeURIComponent(artistName)}`);
+      const params = new URLSearchParams({ artistName: artistName.trim() });
+      if (year.trim()) params.set('year', year.trim());
+      if (venueName.trim()) params.set('venueName', venueName.trim());
+      const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -371,22 +376,42 @@ function SetlistSearch({ onImport, onCancel }) {
             </button>
           </div>
           
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter artist name..."
-              value={artistName}
-              onChange={(e) => setArtistName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchSetlists()}
-              className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
-            />
-            <button
-              onClick={searchSetlists}
-              disabled={isSearching}
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isSearching ? 'Searching...' : 'Search'}
-            </button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Artist name..."
+                value={artistName}
+                onChange={(e) => setArtistName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchSetlists()}
+                className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
+              />
+              <button
+                onClick={searchSetlists}
+                disabled={isSearching}
+                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isSearching ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Year (optional)"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchSetlists()}
+                className="w-32 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 text-sm"
+              />
+              <input
+                type="text"
+                placeholder="Venue (optional)"
+                value={venueName}
+                onChange={(e) => setVenueName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchSetlists()}
+                className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 text-sm"
+              />
+            </div>
           </div>
           
           {error && (
