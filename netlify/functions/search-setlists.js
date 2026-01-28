@@ -41,7 +41,7 @@ exports.handler = async function(event, context) {
         try {
           const parsedData = JSON.parse(data);
           resolve({
-            statusCode: 200,
+            statusCode: res.statusCode,
             headers: {
               'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*'
@@ -50,12 +50,12 @@ exports.handler = async function(event, context) {
           });
         } catch (error) {
           resolve({
-            statusCode: 500,
+            statusCode: res.statusCode || 500,
             headers: {
               'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify({ error: 'Failed to parse response', details: error.message })
+            body: JSON.stringify({ error: 'Failed to parse response', details: error.message, raw: data })
           });
         }
       });

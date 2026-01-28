@@ -308,8 +308,8 @@ function SetlistSearch({ onImport, onCancel }) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error('Failed to fetch setlists. Please check your API key and try again.');
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`Failed to fetch setlists (${response.status}). ${errorText}`);
       }
 
       const data = await response.json();
