@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -32,6 +32,22 @@ function avgSongRating(setlist) {
   const rated = setlist.filter(s => s.rating);
   if (rated.length === 0) return null;
   return (rated.reduce((a, s) => a + s.rating, 0) / rated.length).toFixed(1);
+}
+
+function RatingSelect({ value, onChange, max = 10 }) {
+  return (
+    <select
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+      onClick={(e) => e.stopPropagation()}
+      className="px-2 py-1 bg-green-50 border border-green-200 rounded text-sm text-gray-900 focus:outline-none focus:border-green-500"
+    >
+      <option value="">—</option>
+      {Array.from({ length: max }, (_, i) => i + 1).map(n => (
+        <option key={n} value={n}>{n}</option>
+      ))}
+    </select>
+  );
 }
 
 export default function ShowTracker() {
@@ -135,6 +151,22 @@ export default function ShowTracker() {
     setSelectedShow(updatedShows.find(s => s.id === showId));
   };
 
+  const updateSongComment = (showId, songId, comment) => {
+    const updatedShows = shows.map(show => {
+      if (show.id === showId) {
+        return {
+          ...show,
+          setlist: show.setlist.map(song =>
+            song.id === songId ? { ...song, comment } : song
+          )
+        };
+      }
+      return show;
+    });
+    saveShows(updatedShows);
+    setSelectedShow(updatedShows.find(s => s.id === showId));
+  };
+
   const batchRateUnrated = (showId, rating) => {
     const updatedShows = shows.map(show => {
       if (show.id === showId) {
@@ -178,7 +210,9 @@ export default function ShowTracker() {
           date: show.date,
           artist: show.artist,
           venue: show.venue,
-          rating: song.rating
+          city: show.city,
+          rating: song.rating,
+          comment: song.comment
         });
       });
     });
@@ -477,6 +511,7 @@ export default function ShowTracker() {
                 show={selectedShow}
                 onAddSong={(song) => addSongToShow(selectedShow.id, song)}
                 onRateSong={(songId, rating) => updateSongRating(selectedShow.id, songId, rating)}
+                onCommentSong={(songId, comment) => updateSongComment(selectedShow.id, songId, comment)}
                 onDeleteSong={(songId) => deleteSong(selectedShow.id, songId)}
                 onRateShow={(rating) => updateShowRating(selectedShow.id, rating)}
                 onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
@@ -881,7 +916,7 @@ function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
               <span className="text-sm font-bold text-yellow-500">{show.rating}/5</span>
             )}
             {songAvg && (
-              <span className="text-xs text-gray-400">Songs avg: {songAvg}</span>
+              <span className="text-xs text-gray-400">Songs avg: {songAvg}/10</span>
             )}
           </div>
         </div>
@@ -899,9 +934,11 @@ function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
   );
 }
 
-function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onRateShow, onBatchRate, onClose }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onBatchRate, onClose }) {
   const [songName, setSongName] = useState('');
-  const [batchRating, setBatchRating] = useState(3);
+  const [batchRating, setBatchRating] = useState(5);
+  const [editingComment, setEditingComment] = useState(null);
+  const [commentText, setCommentText] = useState('');
 
   const handleAddSong = (e) => {
     e.preventDefault();
@@ -909,6 +946,17 @@ function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onRateShow, 
       onAddSong({ name: songName.trim() });
       setSongName('');
     }
+  };
+
+  const startEditComment = (song) => {
+    setEditingComment(song.id);
+    setCommentText(song.comment || '');
+  };
+
+  const saveComment = (songId) => {
+    onCommentSong(songId, commentText.trim());
+    setEditingComment(null);
+    setCommentText('');
   };
 
   const unratedCount = show.setlist.filter(s => !s.rating).length;
@@ -974,17 +1022,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onRateShow, 
           {unratedCount > 0 && (
             <div className="flex items-center gap-2 mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
               <span className="text-xs text-gray-500">Rate {unratedCount} unrated:</span>
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setBatchRating(r)}
-                    className="p-0.5"
-                  >
-                    <Star className={`w-4 h-4 ${batchRating >= r ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                  </button>
-                ))}
-              </div>
+              <RatingSelect value={batchRating} onChange={(v) => setBatchRating(v || 5)} />
               <button
                 onClick={() => onBatchRate(batchRating)}
                 className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
@@ -1025,23 +1063,56 @@ function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onRateShow, 
                         <X className="w-4 h-4" />
                       </button>
                     </div>
-                    <div className="flex items-center gap-1 ml-8">
-                      {[1, 2, 3, 4, 5].map(rating => (
-                        <button
-                          key={rating}
-                          onClick={() => onRateSong(song.id, rating)}
-                          className="p-1 hover:scale-110 transition-transform"
-                        >
-                          <Star
-                            className={`w-5 h-5 ${
-                              song.rating >= rating
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-3 ml-8">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400">Rating:</span>
+                        <RatingSelect value={song.rating} onChange={(v) => onRateSong(song.id, v)} />
+                        {song.rating && (
+                          <span className="text-sm font-bold text-yellow-500">{song.rating}/10</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => startEditComment(song)}
+                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${
+                          song.comment
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+                        }`}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        {song.comment ? 'Edit note' : 'Add note'}
+                      </button>
                     </div>
+                    {song.comment && editingComment !== song.id && (
+                      <div className="ml-8 mt-2 text-sm text-gray-500 italic bg-green-50 p-2 rounded">
+                        {song.comment}
+                      </div>
+                    )}
+                    {editingComment === song.id && (
+                      <div className="ml-8 mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && saveComment(song.id)}
+                          placeholder="Add a note about this song..."
+                          className="flex-1 px-3 py-1.5 bg-green-50 border border-green-200 rounded text-sm focus:outline-none focus:border-green-500 text-gray-900"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => saveComment(song.id)}
+                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingComment(null)}
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </React.Fragment>
               ))}
@@ -1050,6 +1121,85 @@ function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onRateShow, 
         </div>
       </div>
     </div>
+  );
+}
+
+function SongStatsRow({ song, index }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <>
+      <tr
+        className={`border-b border-green-100 cursor-pointer hover:bg-green-50 ${index % 2 === 0 ? 'bg-white' : 'bg-green-50/50'}`}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            {expanded
+              ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            }
+            <span className="font-medium text-gray-900">{song.name}</span>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-center">
+          <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm font-semibold">
+            {song.count}x
+          </span>
+        </td>
+        <td className="px-4 py-3 text-center">
+          {song.avgRating ? (
+            <span className="flex items-center justify-center gap-1 text-yellow-500">
+              <Star className="w-4 h-4 fill-current" />
+              {song.avgRating}
+            </span>
+          ) : (
+            <span className="text-gray-300">—</span>
+          )}
+        </td>
+      </tr>
+      {expanded && (
+        <tr>
+          <td colSpan={3} className="px-4 py-0">
+            <div className="py-3 pl-6 border-l-2 border-green-300 ml-2 mb-2">
+              <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Performances</div>
+              <div className="space-y-2">
+                {song.shows.map((performance, i) => (
+                  <div key={i} className="flex items-start justify-between bg-green-50 rounded-lg p-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-gray-700">{formatDate(performance.date)}</span>
+                        <span className="text-gray-400">•</span>
+                        <span className="font-medium" style={{ color: artistColor(performance.artist) }}>
+                          {performance.artist}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm mt-0.5 text-gray-500">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {performance.venue}{performance.city ? `, ${performance.city}` : ''}
+                      </div>
+                      {performance.comment && (
+                        <div className="flex items-start gap-1.5 mt-1 text-sm text-gray-500 italic">
+                          <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                          {performance.comment}
+                        </div>
+                      )}
+                    </div>
+                    {performance.rating && (
+                      <span className="flex items-center gap-1 text-yellow-500 font-semibold text-sm">
+                        <Star className="w-4 h-4 fill-current" />
+                        {performance.rating}/10
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -1095,24 +1245,7 @@ function StatsView({ songStats, artistStats, venueStats, topRatedShows }) {
                 </thead>
                 <tbody>
                   {songStats.map((song, i) => (
-                    <tr key={song.name} className={`border-b border-green-100 ${i % 2 === 0 ? 'bg-white' : 'bg-green-50/50'}`}>
-                      <td className="px-4 py-3 font-medium text-gray-900">{song.name}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm font-semibold">
-                          {song.count}x
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {song.avgRating ? (
-                          <span className="flex items-center justify-center gap-1 text-yellow-500">
-                            <Star className="w-4 h-4 fill-current" />
-                            {song.avgRating}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </td>
-                    </tr>
+                    <SongStatsRow key={song.name} song={song} index={i} />
                   ))}
                 </tbody>
               </table>
