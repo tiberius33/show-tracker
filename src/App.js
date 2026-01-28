@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download } from 'lucide-react';
 
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  // Handle dd-MM-yyyy from setlist.fm
+  const ddmmyyyy = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (ddmmyyyy) {
+    return new Date(`${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`).toLocaleDateString();
+  }
+  const d = new Date(dateStr);
+  return isNaN(d) ? dateStr : d.toLocaleDateString();
+}
+
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
   const [activeView, setActiveView] = useState('shows');
@@ -295,6 +306,7 @@ function SetlistSearch({ onImport, onCancel }) {
   const [artistName, setArtistName] = useState('');
   const [year, setYear] = useState('');
   const [venueName, setVenueName] = useState('');
+  const [cityName, setCityName] = useState('');
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
@@ -309,7 +321,14 @@ function SetlistSearch({ onImport, onCancel }) {
       const params = new URLSearchParams({ artistName: artistName.trim() });
       if (year.trim()) params.set('year', year.trim());
       if (venueName.trim()) params.set('venueName', venueName.trim());
+      if (cityName.trim()) params.set('cityName', cityName.trim());
       const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+
+      if (response.status === 404) {
+        setError('No setlists found. Try adjusting your search.');
+        setResults([]);
+        return;
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -318,9 +337,9 @@ function SetlistSearch({ onImport, onCancel }) {
       }
 
       const data = await response.json();
-      
+
       if (!data.setlist || data.setlist.length === 0) {
-        setError('No setlists found. Try a different artist name.');
+        setError('No setlists found. Try adjusting your search.');
         setResults([]);
       } else {
         setResults(data.setlist);
@@ -408,6 +427,14 @@ function SetlistSearch({ onImport, onCancel }) {
                 placeholder="Venue (optional)"
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchSetlists()}
+                className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 text-sm"
+              />
+              <input
+                type="text"
+                placeholder="City (optional)"
+                value={cityName}
+                onChange={(e) => setCityName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && searchSetlists()}
                 className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 text-sm"
               />
@@ -566,7 +593,7 @@ function ShowCard({ show, onSelect, onDelete, onRate, isSelected }) {
           <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
             <span className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              {new Date(show.date).toLocaleDateString()}
+              {formatDate(show.date)}
             </span>
             <span className="flex items-center gap-1">
               <MapPin className="w-4 h-4" />
@@ -644,7 +671,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onDeleteSong, onRateShow, 
                 )}
               </div>
               <p className="text-gray-400 mt-1">
-                {new Date(show.date).toLocaleDateString()} • {show.venue}
+                {formatDate(show.date)} • {show.venue}
                 {show.city && `, ${show.city}`}
               </p>
               {show.tour && (
@@ -771,7 +798,7 @@ function StatsView({ stats }) {
                 <div className="mt-2 space-y-1 pl-4">
                   {song.shows.map((performance, i) => (
                     <div key={i} className="flex justify-between items-center py-1">
-                      <span>{new Date(performance.date).toLocaleDateString()} - {performance.artist} @ {performance.venue}</span>
+                      <span>{formatDate(performance.date)} - {performance.artist} @ {performance.venue}</span>
                       {performance.rating && (
                         <span className="flex items-center gap-1">
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />

@@ -9,7 +9,7 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const { artistName, year, venueName } = event.queryStringParameters || {};
+  const { artistName, year, venueName, cityName } = event.queryStringParameters || {};
 
   if (!artistName) {
     return {
@@ -21,6 +21,7 @@ exports.handler = async function(event, context) {
   const params = new URLSearchParams({ artistName, p: '1' });
   if (year) params.set('year', year);
   if (venueName) params.set('venueName', venueName);
+  if (cityName) params.set('cityName', cityName);
 
   return new Promise((resolve, reject) => {
     const options = {
