@@ -586,15 +586,6 @@ export default function ShowTracker() {
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-sm text-gray-500">
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt=""
-                    className="w-8 h-8 rounded-full"
-                  />
-                ) : (
-                  <User className="w-8 h-8 p-1 bg-gray-200 rounded-full text-gray-500" />
-                )}
                 <span className="hidden sm:inline">{user.email}</span>
               </div>
               <button
@@ -642,18 +633,16 @@ export default function ShowTracker() {
           <>
             {/* Summary stats */}
             {shows.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                {[
-                  { label: 'Shows', value: shows.length },
-                  { label: 'Songs', value: summaryStats.totalSongs },
-                  { label: 'Artists', value: summaryStats.uniqueArtists },
-                  { label: 'Avg Rating', value: summaryStats.avgRating || '--' },
-                ].map(stat => (
-                  <div key={stat.label} className="bg-white border border-gray-200 border-t-4 border-t-emerald-500 rounded-xl p-4 text-center shadow-sm">
-                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">{stat.label}</div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-6 mb-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-gray-900">{shows.length}</span>
+                  <span className="text-sm font-medium text-gray-500">Shows</span>
+                </div>
+                <div className="w-px h-8 bg-gray-200" />
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-gray-900">{summaryStats.uniqueArtists}</span>
+                  <span className="text-sm font-medium text-gray-500">Artists</span>
+                </div>
               </div>
             )}
 
@@ -1503,6 +1492,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
   const [filterYear, setFilterYear] = useState('');
+  const [songSortBy, setSongSortBy] = useState('count');
 
   const uniqueArtists = useMemo(() =>
     [...new Set(shows.map(s => s.artist))].sort(), [shows]);
@@ -1547,16 +1537,32 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         });
       });
     });
-    return Object.entries(songMap)
+    const mapped = Object.entries(songMap)
       .map(([name, data]) => ({
         name,
         count: data.count,
         avgRating: data.ratings.length ?
           (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : null,
         shows: data.shows
-      }))
-      .sort((a, b) => b.count - a.count);
-  }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters]);
+      }));
+
+    if (songSortBy === 'rating-high') {
+      return mapped.sort((a, b) => {
+        if (!a.avgRating && !b.avgRating) return b.count - a.count;
+        if (!a.avgRating) return 1;
+        if (!b.avgRating) return -1;
+        return parseFloat(b.avgRating) - parseFloat(a.avgRating);
+      });
+    } else if (songSortBy === 'rating-low') {
+      return mapped.sort((a, b) => {
+        if (!a.avgRating && !b.avgRating) return b.count - a.count;
+        if (!a.avgRating) return 1;
+        if (!b.avgRating) return -1;
+        return parseFloat(a.avgRating) - parseFloat(b.avgRating);
+      });
+    }
+    return mapped.sort((a, b) => b.count - a.count);
+  }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters, songSortBy]);
 
   const selectClass = "px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer";
 
@@ -1609,6 +1615,25 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                   Clear filters
                 </button>
               )}
+            </div>
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+              <ArrowUpDown className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-500">Sort:</span>
+              {[
+                { id: 'count', label: 'Times Played' },
+                { id: 'rating-high', label: 'Rating (High to Low)' },
+                { id: 'rating-low', label: 'Rating (Low to High)' },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setSongSortBy(opt.id)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    songSortBy === opt.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
