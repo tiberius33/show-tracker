@@ -1094,11 +1094,17 @@ function ShowForm({ onSubmit, onCancel }) {
 }
 
 function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDeleteShow, onRateShow, selectedShowId }) {
+  const [expandedShowId, setExpandedShowId] = useState(null);
   const avgRating = (() => {
     const rated = shows.filter(s => s.rating);
     if (rated.length === 0) return null;
     return (rated.reduce((a, s) => a + s.rating, 0) / rated.length).toFixed(1);
   })();
+
+  const toggleShowSetlist = (showId, e) => {
+    e.stopPropagation();
+    setExpandedShowId(expandedShowId === showId ? null : showId);
+  };
 
   return (
     <>
@@ -1135,50 +1141,84 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                 {shows.map(show => {
                   const songAvg = avgSongRating(show.setlist);
                   const isSelected = selectedShowId === show.id;
+                  const isSetlistExpanded = expandedShowId === show.id;
                   return (
-                    <div
-                      key={show.id}
-                      className={`group flex items-start justify-between bg-white rounded-xl p-3 border cursor-pointer transition-all ${
-                        isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'
-                      }`}
-                      onClick={() => onSelectShow(show)}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-gray-700">{formatDate(show.date)}</span>
-                          <span className="text-gray-300">&middot;</span>
-                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-gray-500">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
-                          <span className="text-gray-300">&middot;</span>
-                          <Music className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-gray-500">{show.setlist.length} songs</span>
-                        </div>
-                        {show.tour && (
-                          <div className="text-xs text-emerald-600 font-medium mt-1">Tour: {show.tour}</div>
-                        )}
-                        {show.comment && (
-                          <div className="flex items-start gap-1.5 mt-1 text-xs text-gray-500 italic">
-                            <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                            {show.comment}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
-                          <RatingSelect value={show.rating} onChange={(r) => onRateShow(show.id, r)} label="Show:" />
-                          {songAvg && (
-                            <span className="text-xs font-medium text-gray-400">Songs avg: {songAvg}/10</span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteShow(show.id);
-                        }}
-                        className="text-gray-300 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 ml-2"
+                    <div key={show.id}>
+                      <div
+                        className={`group flex items-start justify-between bg-white rounded-xl p-3 border cursor-pointer transition-all ${
+                          isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'
+                        }`}
+                        onClick={() => onSelectShow(show)}
                       >
-                        <X className="w-4 h-4" />
-                      </button>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <button
+                              onClick={(e) => toggleShowSetlist(show.id, e)}
+                              className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
+                            >
+                              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSetlistExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-gray-700">{formatDate(show.date)}</span>
+                            <span className="text-gray-300">&middot;</span>
+                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-gray-500">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                            <span className="text-gray-300">&middot;</span>
+                            <Music className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-gray-500">{show.setlist.length} songs</span>
+                          </div>
+                          {show.tour && (
+                            <div className="text-xs text-emerald-600 font-medium mt-1 ml-6">Tour: {show.tour}</div>
+                          )}
+                          {show.comment && (
+                            <div className="flex items-start gap-1.5 mt-1 ml-6 text-xs text-gray-500 italic">
+                              <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                              {show.comment}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 ml-6" onClick={(e) => e.stopPropagation()}>
+                            <RatingSelect value={show.rating} onChange={(r) => onRateShow(show.id, r)} label="Show:" />
+                            {songAvg && (
+                              <span className="text-xs font-medium text-gray-400">Songs avg: {songAvg}/10</span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteShow(show.id);
+                          }}
+                          className="text-gray-300 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 ml-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {isSetlistExpanded && show.setlist.length > 0 && (
+                        <div className="ml-6 mt-2 mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Setlist</div>
+                          <div className="space-y-1">
+                            {show.setlist.map((song, idx) => (
+                              <div key={song.id} className="flex items-center gap-2 text-sm">
+                                {song.setBreak && (
+                                  <div className="w-full text-xs font-semibold text-emerald-600 mt-2 mb-1 border-t border-gray-200 pt-2">
+                                    {song.setBreak}
+                                  </div>
+                                )}
+                                {!song.setBreak && (
+                                  <>
+                                    <span className="text-gray-400 w-6 text-right">{idx + 1}.</span>
+                                    <span className="text-gray-700">{song.name}</span>
+                                    {song.cover && <span className="text-xs text-gray-400">({song.cover})</span>}
+                                    {song.rating && (
+                                      <span className="text-xs font-semibold text-emerald-600 ml-auto">{song.rating}/10</span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
