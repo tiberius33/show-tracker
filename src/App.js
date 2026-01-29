@@ -1459,71 +1459,53 @@ function SongStatsRow({ song, index, onRateSong }) {
 
   return (
     <>
-      <tr
-        className="border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+      <div
+        className="flex items-center px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
-            <span className="font-medium text-gray-900">{song.name}</span>
-          </div>
-        </td>
-        <td className="px-4 py-3 text-center">
-          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-sm font-semibold">
-            {song.count}x
-          </span>
-        </td>
-        <td className="px-4 py-3 text-center">
-          {song.avgRating ? (
-            <span className="text-sm font-semibold text-emerald-600">
-              {song.avgRating}/10
-            </span>
-          ) : (
-            <span className="text-gray-300">--</span>
-          )}
-        </td>
-      </tr>
+        <span className="w-8 text-gray-400 font-medium text-sm">{index + 1}.</span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 mr-2 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        <span className="flex-1 font-medium text-gray-800">{song.name}</span>
+        <span className="text-emerald-600 font-semibold mr-4">{song.count}x</span>
+        {song.avgRating ? (
+          <span className="text-sm font-semibold text-slate-600">{song.avgRating}/10</span>
+        ) : (
+          <span className="text-gray-300 text-sm">--</span>
+        )}
+      </div>
       {expanded && (
-        <tr>
-          <td colSpan={3} className="px-4 py-0">
-            <div className="py-3 pl-6 border-l-2 border-emerald-300 ml-2 mb-2">
-              <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Performances</div>
-              <div className="space-y-2">
-                {song.shows.map((performance, i) => (
-                  <div key={i} className="flex items-start justify-between bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-gray-700">{formatDate(performance.date)}</span>
-                        <span className="text-gray-300">&middot;</span>
-                        <span className="font-medium" style={{ color: artistColor(performance.artist) }}>
-                          {performance.artist}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm mt-0.5 text-gray-500">
-                        <MapPin className="w-3.5 h-3.5" />
-                        {performance.venue}{performance.city ? `, ${performance.city}` : ''}
-                      </div>
-                      {performance.comment && (
-                        <div className="flex items-start gap-1.5 mt-1 text-sm text-gray-500 italic">
-                          <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                          {performance.comment}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 ml-2">
-                      <RatingSelect
-                        value={performance.rating}
-                        onChange={(r) => onRateSong(performance.showId, performance.songId, r)}
-                      />
-                    </div>
+        <div className="bg-gray-50 border-t border-b border-gray-100 px-4 py-3">
+          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide ml-8">Performances</div>
+          <div className="space-y-2 ml-8">
+            {song.shows.map((performance, i) => (
+              <div key={i} className="flex items-start justify-between bg-white rounded-lg p-3 border border-gray-100">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: artistColor(performance.artist) }} />
+                    <span className="font-medium text-gray-800">{performance.artist}</span>
+                    <span className="text-gray-400">&middot;</span>
+                    <span className="text-gray-600">{formatDate(performance.date)}</span>
                   </div>
-                ))}
+                  <div className="text-sm text-gray-500 ml-4 mt-0.5">
+                    {performance.venue}{performance.city ? `, ${performance.city}` : ''}
+                  </div>
+                  {performance.comment && (
+                    <div className="flex items-start gap-1.5 mt-1 ml-4 text-sm text-gray-500 italic">
+                      <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                      {performance.comment}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-shrink-0 ml-2">
+                  <RatingSelect
+                    value={performance.rating}
+                    onChange={(r) => onRateSong(performance.showId, performance.songId, r)}
+                  />
+                </div>
               </div>
-            </div>
-          </td>
-        </tr>
+            ))}
+          </div>
+        </div>
       )}
     </>
   );
@@ -1649,7 +1631,7 @@ function VenueStatsTab({ venueStats }) {
 }
 
 function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong }) {
-  const [tab, setTab] = useState('songs');
+  const [tab, setTab] = useState('concerts');
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -1669,6 +1651,20 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
   }, [shows]);
 
   const hasFilters = filterArtist || filterVenue || filterYear;
+
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalSongs = shows.reduce((sum, s) => sum + s.setlist.length, 0);
+    const uniqueSongs = new Set();
+    shows.forEach(s => s.setlist.forEach(song => uniqueSongs.add(song.name)));
+    return {
+      totalShows: shows.length,
+      totalArtists: artistStats.length,
+      totalVenues: venueStats.length,
+      totalSongs,
+      uniqueSongs: uniqueSongs.size
+    };
+  }, [shows, artistStats, venueStats]);
 
   const filteredSongStats = useMemo(() => {
     if (!hasFilters) return songStats;
@@ -1725,35 +1721,163 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
     return mapped.sort((a, b) => b.count - a.count);
   }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters, songSortBy]);
 
-  const selectClass = "px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer";
+  const selectClass = "px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer";
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2 mb-4">
-        {[
-          { id: 'songs', label: 'Songs', icon: Music },
-          { id: 'artists', label: 'Artists', icon: Users },
-          { id: 'venues', label: 'Venues', icon: Building2 },
-          { id: 'top', label: 'Top Shows', icon: Star },
-        ].map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors text-sm ${
-              tab === id ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 shadow-sm'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        ))}
+    <div className="space-y-6">
+      {/* Summary Header - setlist.fm inspired */}
+      <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl p-6 text-white">
+        <h2 className="text-2xl font-bold mb-4">Concert Statistics</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div>
+            <div className="text-3xl font-bold">{summaryStats.totalShows}</div>
+            <div className="text-slate-300 text-sm">Concerts</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{summaryStats.totalArtists}</div>
+            <div className="text-slate-300 text-sm">Artists</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{summaryStats.totalVenues}</div>
+            <div className="text-slate-300 text-sm">Venues</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{summaryStats.totalSongs}</div>
+            <div className="text-slate-300 text-sm">Songs Heard</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{summaryStats.uniqueSongs}</div>
+            <div className="text-slate-300 text-sm">Unique Songs</div>
+          </div>
+        </div>
       </div>
+
+      {/* Tab Navigation - setlist.fm style */}
+      <div className="border-b border-gray-200">
+        <nav className="flex gap-0">
+          {[
+            { id: 'concerts', label: 'Concert Statistics' },
+            { id: 'songs', label: 'Song Statistics' },
+            { id: 'top', label: 'Top Rated' },
+          ].map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                tab === id
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {tab === 'concerts' && (
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Artists Section */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-slate-700 text-white px-4 py-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Artists
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">Sorted by times seen</p>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {artistStats.length === 0 ? (
+                <p className="text-center text-gray-400 py-8">No artists yet</p>
+              ) : (
+                artistStats.slice(0, 10).map((artist, i) => (
+                  <div key={artist.name} className="flex items-center px-4 py-2.5 hover:bg-gray-50">
+                    <span className="w-8 text-gray-400 font-medium text-sm">{i + 1}.</span>
+                    <div className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: artistColor(artist.name) }} />
+                    <span className="flex-1 font-medium text-gray-800">{artist.name}</span>
+                    <span className="text-emerald-600 font-semibold">{artist.count}x</span>
+                  </div>
+                ))
+              )}
+            </div>
+            {artistStats.length > 10 && (
+              <div className="px-4 py-2 bg-gray-50 text-center">
+                <span className="text-sm text-gray-500">+ {artistStats.length - 10} more artists</span>
+              </div>
+            )}
+          </div>
+
+          {/* Venues Section */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-slate-700 text-white px-4 py-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Venues
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">Sorted by visits</p>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {venueStats.length === 0 ? (
+                <p className="text-center text-gray-400 py-8">No venues yet</p>
+              ) : (
+                venueStats.slice(0, 10).map((venue, i) => (
+                  <div key={venue.name} className="flex items-center px-4 py-2.5 hover:bg-gray-50">
+                    <span className="w-8 text-gray-400 font-medium text-sm">{i + 1}.</span>
+                    <span className="flex-1 text-gray-800">{venue.name}</span>
+                    <span className="text-emerald-600 font-semibold">{venue.count}x</span>
+                  </div>
+                ))
+              )}
+            </div>
+            {venueStats.length > 10 && (
+              <div className="px-4 py-2 bg-gray-50 text-center">
+                <span className="text-sm text-gray-500">+ {venueStats.length - 10} more venues</span>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Shows Section */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden md:col-span-2">
+            <div className="bg-slate-700 text-white px-4 py-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Recent Concerts
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">Your latest shows</p>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {shows.length === 0 ? (
+                <p className="text-center text-gray-400 py-8">No shows yet</p>
+              ) : (
+                [...shows]
+                  .sort((a, b) => parseDate(b.date) - parseDate(a.date))
+                  .slice(0, 5)
+                  .map((show, i) => (
+                    <div key={show.id} className="flex items-center px-4 py-3 hover:bg-gray-50">
+                      <span className="w-8 text-gray-400 font-medium text-sm">{i + 1}.</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: artistColor(show.artist) }} />
+                          <span className="font-medium text-gray-800">{show.artist}</span>
+                        </div>
+                        <div className="text-sm text-gray-500 ml-4">
+                          {show.venue} &middot; {formatDate(show.date)}
+                        </div>
+                      </div>
+                      {show.rating && (
+                        <span className="text-emerald-600 font-semibold text-sm">{show.rating}/10</span>
+                      )}
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {tab === 'songs' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Song Statistics</h2>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-gray-500">Filter:</span>
               <select value={filterArtist} onChange={(e) => setFilterArtist(e.target.value)} className={selectClass}>
@@ -1771,25 +1895,24 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
               {hasFilters && (
                 <button
                   onClick={() => { setFilterArtist(''); setFilterVenue(''); setFilterYear(''); }}
-                  className="text-xs font-medium text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="text-xs font-medium text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
                 >
-                  Clear filters
+                  Clear
                 </button>
               )}
             </div>
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-              <ArrowUpDown className="w-4 h-4 text-gray-400" />
               <span className="text-sm font-medium text-gray-500">Sort:</span>
               {[
-                { id: 'count', label: 'Times Played' },
-                { id: 'rating-high', label: 'Rating (High to Low)' },
-                { id: 'rating-low', label: 'Rating (Low to High)' },
+                { id: 'count', label: 'Times Heard' },
+                { id: 'rating-high', label: 'Rating ↓' },
+                { id: 'rating-low', label: 'Rating ↑' },
               ].map(opt => (
                 <button
                   key={opt.id}
                   onClick={() => setSongSortBy(opt.id)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    songSortBy === opt.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    songSortBy === opt.id ? 'bg-slate-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
                   {opt.label}
@@ -1798,124 +1921,64 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
             </div>
           </div>
 
-          {filteredSongStats.length === 0 ? (
-            <p className="text-center text-gray-400 py-8 font-medium">
-              {hasFilters ? 'No songs match the current filters' : 'No songs tracked yet'}
-            </p>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Song</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Times Played</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Rating</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filteredSongStats.map((song, i) => (
-                    <SongStatsRow key={song.name} song={song} index={i} onRateSong={onRateSong} />
-                  ))}
-                </tbody>
-              </table>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-slate-700 text-white px-4 py-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Music className="w-4 h-4" />
+                Songs
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">
+                {filteredSongStats.length} unique songs {hasFilters && '(filtered)'}
+              </p>
             </div>
-          )}
+            {filteredSongStats.length === 0 ? (
+              <p className="text-center text-gray-400 py-8">
+                {hasFilters ? 'No songs match filters' : 'No songs yet'}
+              </p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {filteredSongStats.map((song, i) => (
+                  <SongStatsRow key={song.name} song={song} index={i} onRateSong={onRateSong} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-
-      {tab === 'artists' && (
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Artist Statistics</h2>
-          {artistStats.length === 0 ? (
-            <p className="text-center text-gray-400 py-8 font-medium">No shows tracked yet</p>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artist</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Shows</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Songs</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Rating</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {artistStats.map((artist) => (
-                    <tr key={artist.name} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
-                          <span className="font-medium" style={{ color: artistColor(artist.name) }}>{artist.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-sm font-semibold">
-                          {artist.count}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center text-gray-600">{artist.totalSongs}</td>
-                      <td className="px-4 py-3 text-center">
-                        {artist.avgRating ? (
-                          <span className="text-sm font-semibold text-emerald-600">
-                            {artist.avgRating}/10
-                          </span>
-                        ) : (
-                          <span className="text-gray-300">--</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'venues' && (
-        <VenueStatsTab venueStats={venueStats} />
       )}
 
       {tab === 'top' && (
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Top Rated Shows</h2>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-slate-700 text-white px-4 py-3">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Star className="w-4 h-4" />
+              Top Rated Shows
+            </h3>
+            <p className="text-xs text-slate-300 mt-1">Your highest rated concerts</p>
+          </div>
           {topRatedShows.length === 0 ? (
-            <p className="text-center text-gray-400 py-8 font-medium">No rated shows yet</p>
+            <p className="text-center text-gray-400 py-8">No rated shows yet</p>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-12">#</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artist</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Venue</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Rating</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {topRatedShows.map((show, i) => (
-                    <tr key={show.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-center text-lg font-bold text-gray-300">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium" style={{ color: artistColor(show.artist) }}>{show.artist}</div>
-                        {show.tour && <div className="text-xs text-emerald-600 font-medium">{show.tour}</div>}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {show.venue}{show.city ? `, ${show.city}` : ''}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(show.date)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold text-sm">
-                          {show.rating}/10
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-gray-100">
+              {topRatedShows.map((show, i) => (
+                <div key={show.id} className="flex items-center px-4 py-3 hover:bg-gray-50">
+                  <span className="w-8 text-2xl font-bold text-gray-300">{i + 1}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: artistColor(show.artist) }} />
+                      <span className="font-semibold text-gray-800">{show.artist}</span>
+                      {show.tour && (
+                        <span className="text-xs text-emerald-600 font-medium">({show.tour})</span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-500 ml-4">
+                      {show.venue}{show.city ? `, ${show.city}` : ''} &middot; {formatDate(show.date)}
+                    </div>
+                  </div>
+                  <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold">
+                    {show.rating}/10
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
