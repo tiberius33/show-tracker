@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -39,6 +39,33 @@ function avgSongRating(setlist) {
 function extractFirstName(displayName) {
   if (!displayName) return 'Anonymous';
   return displayName.split(' ')[0];
+}
+
+// Skeleton Loader Component
+function SkeletonCard() {
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 animate-pulse">
+      <div className="flex items-start gap-4">
+        <div className="w-14 h-14 bg-white/10 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-3">
+          <div className="h-5 bg-white/10 rounded-lg w-3/4" />
+          <div className="h-4 bg-white/10 rounded-lg w-1/2" />
+          <div className="h-3 bg-white/10 rounded-lg w-1/3" />
+        </div>
+        <div className="w-16 h-8 bg-white/10 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function ShowsListSkeleton() {
+  return (
+    <div className="space-y-3">
+      <SkeletonCard />
+      <SkeletonCard />
+      <SkeletonCard />
+    </div>
+  );
 }
 
 async function updateUserProfile(user, shows = []) {
@@ -1567,8 +1594,24 @@ export default function ShowTracker() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-white/50 font-medium">Loading your shows...</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="ml-0 md:ml-64 min-h-screen pt-14 md:pt-0">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 md:py-8">
+            {/* Skeleton header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="space-y-2">
+                <div className="h-7 w-32 bg-white/10 rounded-lg animate-pulse" />
+                <div className="h-4 w-48 bg-white/10 rounded-lg animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-12 w-40 bg-white/10 rounded-xl animate-pulse" />
+                <div className="h-12 w-40 bg-white/10 rounded-xl animate-pulse" />
+              </div>
+            </div>
+            {/* Skeleton cards */}
+            <ShowsListSkeleton />
+          </div>
+        </div>
       </div>
     );
   }
@@ -1657,8 +1700,11 @@ export default function ShowTracker() {
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => setActiveView('search')}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-emerald-500/25"
+                  className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-emerald-500/25 ${shows.length === 0 ? 'animate-pulse' : ''}`}
                 >
+                  {shows.length === 0 && (
+                    <span className="absolute inset-0 rounded-xl bg-emerald-400 animate-ping opacity-20" />
+                  )}
                   <Search className="w-4 h-4" />
                   Search for a Show
                 </button>
@@ -1707,19 +1753,26 @@ export default function ShowTracker() {
             </div>
 
             {sortedFilteredShows.length === 0 && !showForm && (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                  <Music className="w-10 h-10 text-white/30" />
+              <div className="text-center py-12 md:py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
+                  <Sparkles className="w-12 h-12 text-emerald-400" />
                 </div>
-                <p className="text-lg font-medium mb-1 text-white/70">No shows yet</p>
-                <p className="text-sm text-white/40 mb-6">Use Search in the sidebar to find and import setlists</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Your Concert Journey Starts Here</h2>
+                <p className="text-white/60 mb-8 max-w-md mx-auto">
+                  Search for shows you've attended and build your personal concert history with setlists, ratings, and stats.
+                </p>
                 <button
                   onClick={() => setActiveView('search')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-xl font-medium transition-colors border border-emerald-500/30"
+                  className="relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
                 >
-                  <Search className="w-4 h-4" />
-                  Search Setlist.fm
+                  {/* Pulsing ring animation */}
+                  <span className="absolute inset-0 rounded-xl bg-emerald-400 animate-ping opacity-20" />
+                  <Search className="w-5 h-5" />
+                  Search for Your First Show
                 </button>
+                <p className="text-sm text-white/40 mt-4">
+                  💡 Tip: Search by artist name to find setlists from setlist.fm
+                </p>
               </div>
             )}
 
