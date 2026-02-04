@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -189,6 +189,599 @@ function RatingSelect({ value, onChange, max = 10, label }) {
   );
 }
 
+// Sidebar Navigation Component
+function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName }) {
+  const navItems = [
+    { id: 'search', label: 'Search', icon: Search },
+    { id: 'shows', label: 'Shows', icon: List },
+    { id: 'stats', label: 'Stats', icon: BarChart3 },
+    { id: 'community', label: 'Community', icon: Users },
+    { id: 'invite', label: 'Invite', icon: Mail },
+    { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+  ];
+
+  return (
+    <div className="w-64 h-screen bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col fixed left-0 top-0">
+      {/* Logo */}
+      <div className="p-6 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <Music className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-lg font-semibold text-white">Show Tracker</span>
+        </div>
+      </div>
+
+      {/* User info */}
+      <div className="px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+            <User className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-sm text-white/70 truncate">{userName}</span>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1">
+        {navItems.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveView(id)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+              activeView === id
+                ? 'bg-white/10 text-white'
+                : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+            }`}
+          >
+            <Icon className={`w-5 h-5 ${activeView === id ? 'text-emerald-400' : ''}`} />
+            <span className="font-medium">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Bottom section */}
+      <div className="p-3 border-t border-white/5 space-y-1">
+        {isAdmin && (
+          <button
+            onClick={() => setActiveView('admin')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+              activeView === 'admin'
+                ? 'bg-rose-500/20 text-rose-400'
+                : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+            }`}
+          >
+            <Shield className={`w-5 h-5 ${activeView === 'admin' ? 'text-rose-400' : ''}`} />
+            <span className="font-medium">Admin</span>
+          </button>
+        )}
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-white/60 hover:bg-white/5 hover:text-white/80 transition-all"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Logout</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Invite View Component
+function InviteView() {
+  const [email, setEmail] = useState('');
+
+  const handleInvite = () => {
+    const subject = encodeURIComponent('Join me on Show Tracker!');
+    const body = encodeURIComponent(
+      `Hey!\n\nI've been using Show Tracker to keep track of all the concerts I've been to. You can save setlists, rate songs, and see your concert stats.\n\nCheck it out and join the community!\n\nhttps://show-tracker.netlify.app`
+    );
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  };
+
+  return (
+    <div className="max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold text-white mb-2">Invite Friends</h1>
+      <p className="text-white/60 mb-8">Share Show Tracker with your concert-going friends.</p>
+
+      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+        <label className="block text-sm font-medium text-white/70 mb-2">
+          Friend's Email Address
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="friend@example.com"
+          className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 mb-4"
+        />
+        <button
+          onClick={handleInvite}
+          disabled={!email.trim()}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25"
+        >
+          <Send className="w-4 h-4" />
+          Send Invitation
+        </button>
+      </div>
+
+      <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10">
+        <h3 className="text-sm font-medium text-white/70 mb-2">Or share this link:</h3>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            readOnly
+            value="https://show-tracker.netlify.app"
+            className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white/60"
+          />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText('https://show-tracker.netlify.app');
+            }}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-sm font-medium transition-colors"
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Feedback View Component
+function FeedbackView() {
+  const [feedback, setFeedback] = useState('');
+
+  const handleSubmit = () => {
+    const subject = encodeURIComponent('Show Tracker Feedback');
+    const body = encodeURIComponent(feedback);
+    window.location.href = `mailto:pdl33@icloud.com?subject=${subject}&body=${body}`;
+  };
+
+  return (
+    <div className="max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold text-white mb-2">Send Feedback</h1>
+      <p className="text-white/60 mb-8">We'd love to hear your thoughts, suggestions, or bug reports.</p>
+
+      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+        <label className="block text-sm font-medium text-white/70 mb-2">
+          Your Feedback
+        </label>
+        <textarea
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          placeholder="Tell us what you think..."
+          rows={6}
+          className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 mb-4 resize-none"
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={!feedback.trim()}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25"
+        >
+          <Send className="w-4 h-4" />
+          Send Feedback
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Community Stats View Component
+function CommunityStatsView({ communityStats }) {
+  if (!communityStats) {
+    return (
+      <div className="text-center py-16">
+        <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
+        <p className="text-white/40">Loading community stats...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-white mb-2">Community Stats</h1>
+      <p className="text-white/60 mb-8">See how you compare with other show-goers</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Show-Goers */}
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="font-semibold text-white text-lg">Top Show-Goers</h2>
+          </div>
+          <div className="space-y-3">
+            {(communityStats.topShowsAttended || []).slice(0, 10).map((user, i) => (
+              <div key={user.odubleserId} className="flex items-center gap-3">
+                <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-white/40'}`}>
+                  {i + 1}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white/80 flex-1">{user.firstName}</span>
+                <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-semibold">
+                  {user.count} shows
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Rated Shows */}
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-500 rounded-xl flex items-center justify-center">
+              <Star className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="font-semibold text-white text-lg">Top Raters</h2>
+          </div>
+          <div className="space-y-3">
+            {(communityStats.topSongsRated || []).slice(0, 10).map((user, i) => (
+              <div key={user.odubleserId} className="flex items-center gap-3">
+                <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-pink-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-pink-600' : 'text-white/40'}`}>
+                  {i + 1}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white/80 flex-1">{user.firstName}</span>
+                <span className="bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm font-semibold">
+                  {user.count} ratings
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Most Popular Songs */}
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="font-semibold text-white text-lg">Popular Songs</h2>
+          </div>
+          <div className="space-y-3">
+            {(communityStats.topSongsBySightings || []).slice(0, 10).map((song, i) => (
+              <div key={song.songName} className="flex items-center gap-3">
+                <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-violet-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-violet-600' : 'text-white/40'}`}>
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white/80 truncate">{song.songName}</div>
+                  <div className="text-white/40 text-xs truncate">{song.artists?.join(', ')}</div>
+                </div>
+                <span className="bg-violet-500/20 text-violet-400 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
+                  {song.userCount} fans
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Venue Explorers */}
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="font-semibold text-white text-lg">Venue Explorers</h2>
+          </div>
+          <div className="space-y-3">
+            {(communityStats.topVenuesVisited || []).slice(0, 10).map((user, i) => (
+              <div key={user.odubleserId} className="flex items-center gap-3">
+                <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-cyan-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-cyan-600' : 'text-white/40'}`}>
+                  {i + 1}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white/80 flex-1">{user.firstName}</span>
+                <span className="bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-full text-sm font-semibold">
+                  {user.count} venues
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Overall Stats */}
+      <div className="mt-8 grid grid-cols-3 gap-4">
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 text-center">
+          <div className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+            {communityStats.totalUsers || 0}
+          </div>
+          <div className="text-sm text-white/50 mt-1">Total Users</div>
+        </div>
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 text-center">
+          <div className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+            {communityStats.totalShows || 0}
+          </div>
+          <div className="text-sm text-white/50 mt-1">Total Shows</div>
+        </div>
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 text-center">
+          <div className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+            {communityStats.totalSongs || 0}
+          </div>
+          <div className="text-sm text-white/50 mt-1">Total Songs</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Search View Component (Full Page)
+function SearchView({ onImport, importedIds }) {
+  const [artistName, setArtistName] = useState('');
+  const [year, setYear] = useState('');
+  const [venueName, setVenueName] = useState('');
+  const [cityName, setCityName] = useState('');
+  const [results, setResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [imported, setImported] = useState(new Set());
+
+  const searchSetlists = async (pageNum = 1) => {
+    if (!artistName.trim()) return;
+
+    setIsSearching(true);
+    setError('');
+
+    try {
+      const params = new URLSearchParams({ artistName: artistName.trim(), p: pageNum.toString() });
+      if (year.trim()) params.set('year', year.trim());
+      if (venueName.trim()) params.set('venueName', venueName.trim());
+      if (cityName.trim()) params.set('cityName', cityName.trim());
+      const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+
+      if (response.status === 404) {
+        setError('No setlists found. Try adjusting your search.');
+        setResults([]);
+        setTotalPages(1);
+        return;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`Failed to fetch setlists (${response.status}). ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.setlist || data.setlist.length === 0) {
+        setError('No setlists found. Try adjusting your search.');
+        setResults([]);
+        setTotalPages(1);
+      } else {
+        setResults(data.setlist);
+        setPage(pageNum);
+        const total = data.total || 0;
+        const perPage = data.itemsPerPage || 20;
+        setTotalPages(Math.max(1, Math.ceil(total / perPage)));
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError(err.message || 'An error occurred while searching. Please try again.');
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const importSetlist = (setlist) => {
+    const songs = [];
+    let setIndex = 0;
+
+    if (setlist.sets && setlist.sets.set) {
+      setlist.sets.set.forEach(set => {
+        if (set.song) {
+          set.song.forEach(song => {
+            songs.push({
+              id: Date.now().toString() + Math.random(),
+              name: song.name,
+              cover: song.cover ? `${song.cover.name} cover` : null,
+              setBreak: setIndex > 0 && set.song.indexOf(song) === 0
+                ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
+                : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
+            });
+          });
+        }
+        setIndex++;
+      });
+    }
+
+    const showData = {
+      artist: setlist.artist.name,
+      venue: setlist.venue.name,
+      city: setlist.venue.city.name,
+      country: setlist.venue.city.country.name,
+      date: setlist.eventDate,
+      setlist: songs,
+      setlistfmId: setlist.id,
+      tour: setlist.tour ? setlist.tour.name : null
+    };
+
+    onImport(showData);
+    setImported(prev => new Set([...prev, setlist.id]));
+  };
+
+  const isImported = (id) => importedIds.has(id) || imported.has(id);
+
+  const formatSetlistDate = (dateStr) => {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toLocaleDateString();
+    }
+    return dateStr;
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-white mb-2">Search Shows</h1>
+      <p className="text-white/60 mb-8">Find and import setlists from Setlist.fm</p>
+
+      {/* Search Form */}
+      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Artist Name *</label>
+            <input
+              type="text"
+              placeholder="e.g., Radiohead"
+              value={artistName}
+              onChange={(e) => setArtistName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Year</label>
+            <input
+              type="text"
+              placeholder="e.g., 2024"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Venue</label>
+            <input
+              type="text"
+              placeholder="e.g., Madison Square Garden"
+              value={venueName}
+              onChange={(e) => setVenueName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">City</label>
+            <input
+              type="text"
+              placeholder="e.g., New York"
+              value={cityName}
+              onChange={(e) => setCityName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+            />
+          </div>
+        </div>
+        <button
+          onClick={() => searchSetlists(1)}
+          disabled={isSearching || !artistName.trim()}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/25"
+        >
+          <Search className="w-4 h-4" />
+          {isSearching ? 'Searching...' : 'Search Setlist.fm'}
+        </button>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Results */}
+      {results.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Search Results</h2>
+            <span className="text-sm text-white/50">Page {page} of {totalPages}</span>
+          </div>
+
+          {results.map((setlist) => (
+            <div
+              key={setlist.id}
+              className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-white">{setlist.artist.name}</div>
+                  <div className="text-sm text-white/60 mt-1">
+                    {setlist.venue.name} &middot; {setlist.venue.city.name}, {setlist.venue.city.country.name}
+                  </div>
+                  <div className="text-sm text-white/40 mt-1">
+                    {formatSetlistDate(setlist.eventDate)}
+                    {setlist.tour && <span className="text-emerald-400 ml-2">{setlist.tour.name}</span>}
+                  </div>
+                  {setlist.sets?.set && (
+                    <div className="text-xs text-white/30 mt-2">
+                      {setlist.sets.set.reduce((acc, s) => acc + (s.song?.length || 0), 0)} songs
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => importSetlist(setlist)}
+                  disabled={isImported(setlist.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    isImported(setlist.id)
+                      ? 'bg-emerald-500/20 text-emerald-400 cursor-default'
+                      : 'bg-white/10 hover:bg-white/20 text-white'
+                  }`}
+                >
+                  {isImported(setlist.id) ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Added
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Add Show
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <button
+                onClick={() => searchSetlists(page - 1)}
+                disabled={page === 1 || isSearching}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-white" />
+              </button>
+              <span className="text-sm text-white/60 px-4">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => searchSetlists(page + 1)}
+                disabled={page === totalPages || isSearching}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isSearching && results.length === 0 && !error && (
+        <div className="text-center py-16">
+          <Search className="w-12 h-12 text-white/20 mx-auto mb-4" />
+          <p className="text-white/40">Enter an artist name to search for setlists</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
   const [activeView, setActiveView] = useState('shows');
@@ -197,7 +790,6 @@ export default function ShowTracker() {
   const [searchTerm, setSearchTerm] = useState('');
   const [shareSuccess, setShareSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showSearch, setShowSearch] = useState(false);
   const [sortBy, setSortBy] = useState('date');
   const [selectedArtist, setSelectedArtist] = useState(null);
 
@@ -648,19 +1240,29 @@ export default function ShowTracker() {
     });
     return Object.entries(groups).sort((a, b) => {
       if (sortBy === 'artist') return a[0].localeCompare(b[0]);
+      if (sortBy === 'rating') {
+        // Sort by average rating of artist's shows (highest first)
+        const avgA = a[1].filter(s => s.rating).reduce((acc, s, _, arr) => acc + s.rating / arr.length, 0) || 0;
+        const avgB = b[1].filter(s => s.rating).reduce((acc, s, _, arr) => acc + s.rating / arr.length, 0) || 0;
+        return avgB - avgA;
+      }
       return b[1].length - a[1].length;
     });
   }, [sortedFilteredShows, sortBy]);
 
   const summaryStats = useMemo(() => {
-    const totalSongs = shows.reduce((acc, s) => acc + s.setlist.length, 0);
+    // Count unique songs (by name, case-insensitive)
+    const uniqueSongs = new Set();
+    shows.forEach(s => s.setlist.forEach(song => uniqueSongs.add(song.name.toLowerCase().trim())));
+    const uniqueSongCount = uniqueSongs.size;
+
     const ratedShows = shows.filter(s => s.rating);
     const avgRating = ratedShows.length
       ? (ratedShows.reduce((a, s) => a + s.rating, 0) / ratedShows.length).toFixed(1)
       : null;
     const uniqueArtists = new Set(shows.map(s => s.artist)).size;
     const uniqueVenues = new Set(shows.map(s => s.venue)).size;
-    return { totalSongs, avgRating, uniqueArtists, uniqueVenues };
+    return { totalSongs: uniqueSongCount, avgRating, uniqueArtists, uniqueVenues };
   }, [shows]);
 
   // Show loading state while checking auth
@@ -746,13 +1348,9 @@ export default function ShowTracker() {
                         <span className={`text-sm font-bold ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-white/40'}`}>
                           {i + 1}
                         </span>
-                        {user.photoURL ? (
-                          <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-                            <User className="w-4 h-4 text-white/60" />
-                          </div>
-                        )}
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
                         <span className="text-white/80 text-sm flex-1 truncate">{user.firstName}</span>
                         <span className="text-emerald-400 font-semibold text-sm">{user.count}</span>
                       </div>
@@ -774,13 +1372,9 @@ export default function ShowTracker() {
                         <span className={`text-sm font-bold ${i === 0 ? 'text-pink-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-pink-600' : 'text-white/40'}`}>
                           {i + 1}
                         </span>
-                        {user.photoURL ? (
-                          <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-                            <User className="w-4 h-4 text-white/60" />
-                          </div>
-                        )}
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
                         <span className="text-white/80 text-sm flex-1 truncate">{user.firstName}</span>
                         <span className="text-pink-400 font-semibold text-sm">{user.count}</span>
                       </div>
@@ -826,13 +1420,9 @@ export default function ShowTracker() {
                         <span className={`text-sm font-bold ${i === 0 ? 'text-cyan-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-cyan-600' : 'text-white/40'}`}>
                           {i + 1}
                         </span>
-                        {user.photoURL ? (
-                          <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-                            <User className="w-4 h-4 text-white/60" />
-                          </div>
-                        )}
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
                         <span className="text-white/80 text-sm flex-1 truncate">{user.firstName}</span>
                         <span className="text-cyan-400 font-semibold text-sm">{user.count}</span>
                       </div>
@@ -889,101 +1479,23 @@ export default function ShowTracker() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-white/10 sticky top-0 z-10 shadow-xl">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <Music className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">Show Tracker</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* User Rank Badge */}
-              {userRank && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full">
-                  <Crown className="w-4 h-4 text-amber-400" />
-                  <span className="text-amber-200 text-sm font-medium">
-                    #{userRank.rank} of {userRank.total}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-sm text-white/70">
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt=""
-                    className="w-9 h-9 rounded-full ring-2 ring-white/20"
-                  />
-                ) : (
-                  <User className="w-9 h-9 p-1.5 bg-white/10 rounded-full text-white/70" />
-                )}
-                <span className="hidden sm:inline">{extractFirstName(user.displayName)}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-              <button
-                onClick={shareCollection}
-                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors"
-              >
-                {shareSuccess ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-                {shareSuccess ? 'Copied!' : 'Share'}
-              </button>
-            </div>
-          </div>
+      {/* Sidebar */}
+      <Sidebar
+        activeView={activeView}
+        setActiveView={(view) => { setActiveView(view); setSelectedArtist(null); }}
+        isAdmin={isAdmin}
+        onLogout={handleLogout}
+        userName={extractFirstName(user.displayName)}
+      />
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setActiveView('shows'); setSelectedArtist(null); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-medium transition-all ${
-                activeView === 'shows'
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
-                  : 'bg-white/10 hover:bg-white/20 text-white/70'
-              }`}
-            >
-              <List className="w-4 h-4" />
-              Shows ({shows.length})
-            </button>
-            <button
-              onClick={() => setActiveView('stats')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-medium transition-all ${
-                activeView === 'stats'
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
-                  : 'bg-white/10 hover:bg-white/20 text-white/70'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              Stats
-            </button>
-            {isAdmin && (
-              <button
-                onClick={() => setActiveView('admin')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-medium transition-all ${
-                  activeView === 'admin'
-                    ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30'
-                    : 'bg-white/10 hover:bg-white/20 text-white/70'
-                }`}
-              >
-                <Shield className="w-4 h-4" />
-                Admin
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {activeView === 'shows' && (
+      {/* Main Content Area */}
+      <div className="ml-64 min-h-screen">
+        <div className="max-w-5xl mx-auto px-8 py-8">
+          {activeView === 'shows' && (
           <>
             {/* Summary stats */}
             {shows.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
                 {[
                   { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400' },
                   { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400' },
@@ -995,77 +1507,86 @@ export default function ShowTracker() {
                     <div className="text-xs font-medium text-white/50 uppercase tracking-wide mt-1">{stat.label}</div>
                   </div>
                 ))}
+                {/* User Rank */}
+                {userRank && (
+                  <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-5 text-center hover:from-amber-500/30 hover:to-orange-500/30 transition-all">
+                    <div className="flex items-center justify-center gap-2">
+                      <Crown className="w-6 h-6 text-amber-400" />
+                      <div className="text-3xl font-bold text-amber-400">#{userRank.rank}</div>
+                    </div>
+                    <div className="text-xs font-medium text-amber-200/70 uppercase tracking-wide mt-1">of {userRank.total} users</div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Search & actions */}
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-4">
-              <div className="flex gap-3 flex-wrap">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-white mb-1">My Shows</h1>
+                <p className="text-white/60">All the concerts you've attended</p>
+              </div>
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-emerald-500/25"
+              >
+                <Plus className="w-4 h-4" />
+                Add Show
+              </button>
+            </div>
+
+            {/* Search & Sort */}
+            <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-6">
+              <div className="flex gap-3 flex-wrap items-center">
                 <div className="flex-1 min-w-[200px] relative">
                   <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search shows..."
+                    placeholder="Filter shows..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                    className="w-full pl-11 pr-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
                   />
                 </div>
-                <button
-                  onClick={() => setShowSearch(true)}
-                  className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-emerald-500/25"
-                >
-                  <Search className="w-4 h-4" />
-                  Search Setlists
-                </button>
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 border border-white/10 text-white/80 rounded-xl font-medium transition-colors whitespace-nowrap"
-                >
-                  <Plus className="w-4 h-4" />
-                  Manual Add
-                </button>
+                {shows.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white/50">Sort:</span>
+                    {['date', 'artist', 'rating'].map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => setSortBy(opt)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                          sortBy === opt
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                        }`}
+                      >
+                        {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {shows.length > 1 && (
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/10">
-                  <ArrowUpDown className="w-4 h-4 text-white/40" />
-                  <span className="text-sm font-medium text-white/50">Sort:</span>
-                  {['date', 'artist', 'rating'].map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => setSortBy(opt)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        sortBy === opt
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                      }`}
-                    >
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {sortedFilteredShows.length === 0 && !showForm && !showSearch && (
+            {sortedFilteredShows.length === 0 && !showForm && (
               <div className="text-center py-16">
                 <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
                   <Music className="w-10 h-10 text-white/30" />
                 </div>
                 <p className="text-lg font-medium mb-1 text-white/70">No shows yet</p>
-                <p className="text-sm text-white/40">Search setlist.fm or add a show manually!</p>
+                <p className="text-sm text-white/40 mb-6">Use Search in the sidebar to find and import setlists</p>
+                <button
+                  onClick={() => setActiveView('search')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-xl font-medium transition-colors border border-emerald-500/30"
+                >
+                  <Search className="w-4 h-4" />
+                  Search Setlist.fm
+                </button>
               </div>
             )}
 
             {showForm && <ShowForm onSubmit={addShow} onCancel={() => setShowForm(false)} />}
-            {showSearch && (
-              <SetlistSearch
-                onImport={addShow}
-                onCancel={() => setShowSearch(false)}
-                importedIds={importedIds}
-              />
-            )}
 
             {/* Artist groups table */}
             {sortedFilteredShows.length > 0 && (
@@ -1124,275 +1645,28 @@ export default function ShowTracker() {
           />
         )}
 
+        {activeView === 'search' && (
+          <SearchView
+            onImport={addShow}
+            importedIds={importedIds}
+          />
+        )}
+
+        {activeView === 'invite' && (
+          <InviteView />
+        )}
+
+        {activeView === 'feedback' && (
+          <FeedbackView />
+        )}
+
+        {activeView === 'community' && (
+          <CommunityStatsView communityStats={communityStats} />
+        )}
+
         {activeView === 'admin' && isAdmin && (
           <AdminView />
         )}
-      </div>
-    </div>
-  );
-}
-
-function SetlistSearch({ onImport, onCancel, importedIds }) {
-  const [artistName, setArtistName] = useState('');
-  const [year, setYear] = useState('');
-  const [venueName, setVenueName] = useState('');
-  const [cityName, setCityName] = useState('');
-  const [results, setResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [imported, setImported] = useState(new Set());
-
-  const searchSetlists = async (pageNum = 1) => {
-    if (!artistName.trim()) return;
-
-    setIsSearching(true);
-    setError('');
-
-    try {
-      const params = new URLSearchParams({ artistName: artistName.trim(), p: pageNum.toString() });
-      if (year.trim()) params.set('year', year.trim());
-      if (venueName.trim()) params.set('venueName', venueName.trim());
-      if (cityName.trim()) params.set('cityName', cityName.trim());
-      const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
-
-      if (response.status === 404) {
-        setError('No setlists found. Try adjusting your search.');
-        setResults([]);
-        setTotalPages(1);
-        return;
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        throw new Error(`Failed to fetch setlists (${response.status}). ${errorText}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.setlist || data.setlist.length === 0) {
-        setError('No setlists found. Try adjusting your search.');
-        setResults([]);
-        setTotalPages(1);
-      } else {
-        setResults(data.setlist);
-        setPage(pageNum);
-        const total = data.total || 0;
-        const perPage = data.itemsPerPage || 20;
-        setTotalPages(Math.max(1, Math.ceil(total / perPage)));
-      }
-    } catch (err) {
-      console.error('Search error:', err);
-      setError(err.message || 'An error occurred while searching. Please try again.');
-      setResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const importSetlist = (setlist) => {
-    const songs = [];
-    let setIndex = 0;
-
-    if (setlist.sets && setlist.sets.set) {
-      setlist.sets.set.forEach(set => {
-        if (set.song) {
-          set.song.forEach(song => {
-            songs.push({
-              id: Date.now().toString() + Math.random(),
-              name: song.name,
-              cover: song.cover ? `${song.cover.name} cover` : null,
-              setBreak: setIndex > 0 && set.song.indexOf(song) === 0
-                ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
-                : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
-            });
-          });
-        }
-        setIndex++;
-      });
-    }
-
-    const showData = {
-      artist: setlist.artist.name,
-      venue: setlist.venue.name,
-      city: setlist.venue.city.name,
-      country: setlist.venue.city.country.name,
-      date: setlist.eventDate,
-      setlist: songs,
-      setlistfmId: setlist.id,
-      tour: setlist.tour ? setlist.tour.name : null
-    };
-
-    onImport(showData);
-    setImported(prev => new Set([...prev, setlist.id]));
-  };
-
-  const isImported = (id) => importedIds.has(id) || imported.has(id);
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-20">
-      <div className="bg-slate-900 border border-white/10 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        <div className="p-6 border-b border-white/10">
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-2xl font-bold text-white">Search Setlist.fm</h2>
-            <button onClick={onCancel} className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                placeholder="Artist name..."
-                value={artistName}
-                onChange={(e) => setArtistName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="flex-1 px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
-              />
-              <button
-                onClick={() => searchSetlists(1)}
-                disabled={isSearching}
-                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/25"
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                placeholder="Year (optional)"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="w-32 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm text-white placeholder-white/40"
-              />
-              <input
-                type="text"
-                placeholder="Venue (optional)"
-                value={venueName}
-                onChange={(e) => setVenueName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm text-white placeholder-white/40"
-              />
-              <input
-                type="text"
-                placeholder="City (optional)"
-                value={cityName}
-                onChange={(e) => setCityName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-                className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm text-white placeholder-white/40"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="mt-3 text-red-400 text-sm font-medium">{error}</div>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-900/50">
-          {results.length === 0 && !isSearching && !error && (
-            <p className="text-center text-white/40 py-8 font-medium">
-              Search for an artist to see their recent setlists
-            </p>
-          )}
-
-          <div className="space-y-3">
-            {results.map((setlist) => (
-              <div key={setlist.id} className={`bg-white/5 rounded-2xl p-4 border transition-all ${isImported(setlist.id) ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-white/10 hover:bg-white/10'}`}>
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg" style={{ color: artistColor(setlist.artist.name) }}>
-                      {setlist.artist.name}
-                    </h3>
-                    <div className="text-sm text-white/50 mt-2 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-white/40" />
-                        {setlist.eventDate}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-white/40" />
-                        {setlist.venue.name}, {setlist.venue.city.name}, {setlist.venue.city.country.name}
-                      </div>
-                      {setlist.tour && (
-                        <div className="text-emerald-400 font-medium">
-                          Tour: {setlist.tour.name}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <Music className="w-4 h-4 text-white/40" />
-                        {setlist.sets?.set?.reduce((acc, s) => acc + (s.song?.length || 0), 0) || 0} songs
-                      </div>
-                    </div>
-                  </div>
-                  {isImported(setlist.id) ? (
-                    <span className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-medium">
-                      <Check className="w-4 h-4" />
-                      Imported
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => importSetlist(setlist)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25"
-                    >
-                      <Download className="w-4 h-4" />
-                      Import
-                    </button>
-                  )}
-                </div>
-
-                {setlist.sets?.set && (
-                  <details className="mt-3 text-sm">
-                    <summary className="cursor-pointer text-white/50 hover:text-white/70 font-medium">
-                      Preview setlist
-                    </summary>
-                    <div className="mt-2 pl-4 space-y-1 text-white/50">
-                      {setlist.sets.set.map((set, setIdx) => (
-                        <div key={setIdx}>
-                          {setIdx > 0 || setlist.sets.set.length > 1 ? (
-                            <div className="text-emerald-400 font-semibold mt-2 mb-1">
-                              {set.encore ? `Encore${set.encore > 1 ? ` ${set.encore}` : ''}` : `Set ${setIdx + 1}`}
-                            </div>
-                          ) : null}
-                          {set.song?.map((song, songIdx) => (
-                            <div key={songIdx}>
-                              {songIdx + 1}. {song.name}
-                              {song.cover && <span className="text-emerald-400 ml-2">({song.cover.name} cover)</span>}
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {results.length > 0 && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <button
-                onClick={() => searchSetlists(page - 1)}
-                disabled={page <= 1 || isSearching}
-                className="flex items-center gap-1 px-4 py-2 bg-white/10 border border-white/10 hover:bg-white/20 rounded-xl font-medium text-sm text-white/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Prev
-              </button>
-              <span className="text-sm font-medium text-white/50">Page {page} of {totalPages}</span>
-              <button
-                onClick={() => searchSetlists(page + 1)}
-                disabled={page >= totalPages || isSearching}
-                className="flex items-center gap-1 px-4 py-2 bg-white/10 border border-white/10 hover:bg-white/20 rounded-xl font-medium text-sm text-white/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -1852,6 +2126,9 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
   const [filterYear, setFilterYear] = useState('');
+  const [expandedVenue, setExpandedVenue] = useState(null);
+  const [expandedYear, setExpandedYear] = useState(null);
+  const [expandedShow, setExpandedShow] = useState(null);
 
   const uniqueArtists = useMemo(() =>
     [...new Set(shows.map(s => s.artist))].sort(), [shows]);
@@ -1864,6 +2141,37 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
       if (d.getFullYear() > 1970) years.add(d.getFullYear());
     });
     return [...years].sort((a, b) => b - a);
+  }, [shows]);
+
+  // Venue details: grouped by venue -> year -> shows
+  const venueDetails = useMemo(() => {
+    const details = {};
+    shows.forEach(show => {
+      const venueName = show.venue + (show.city ? `, ${show.city}` : '');
+      if (!details[venueName]) {
+        details[venueName] = { years: {}, artistSet: new Set() };
+      }
+      const year = parseDate(show.date).getFullYear();
+      if (!details[venueName].years[year]) {
+        details[venueName].years[year] = [];
+      }
+      details[venueName].years[year].push(show);
+      details[venueName].artistSet.add(show.artist);
+    });
+    // Convert to sorted array
+    return Object.entries(details)
+      .map(([name, data]) => ({
+        name,
+        showCount: Object.values(data.years).flat().length,
+        artistCount: data.artistSet.size,
+        years: Object.entries(data.years)
+          .map(([year, yearShows]) => ({
+            year: Number(year),
+            shows: yearShows.sort((a, b) => parseDate(b.date) - parseDate(a.date))
+          }))
+          .sort((a, b) => b.year - a.year)
+      }))
+      .sort((a, b) => b.showCount - a.showCount);
   }, [shows]);
 
   const hasFilters = filterArtist || filterVenue || filterYear;
@@ -2040,34 +2348,102 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
       {tab === 'venues' && (
         <div>
           <h2 className="text-xl font-bold mb-4 text-white">Venue Statistics</h2>
-          {venueStats.length === 0 ? (
+          {venueDetails.length === 0 ? (
             <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
           ) : (
-            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Venue</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Artists</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {venueStats.map((venue) => (
-                    <tr key={venue.name} className="hover:bg-white/5 transition-colors">
-                      <td className="px-4 py-4 font-medium text-white">{venue.name}</td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
-                          {venue.count}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-center text-white/60">
-                        {venue.artists}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {venueDetails.map((venue) => (
+                <div key={venue.name} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                  {/* Venue Header */}
+                  <button
+                    onClick={() => setExpandedVenue(expandedVenue === venue.name ? null : venue.name)}
+                    className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ChevronDown className={`w-5 h-5 text-white/40 transition-transform ${expandedVenue === venue.name ? 'rotate-180' : ''}`} />
+                      <span className="font-medium text-white">{venue.name}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                        {venue.showCount} shows
+                      </span>
+                      <span className="text-white/50 text-sm">{venue.artistCount} artists</span>
+                    </div>
+                  </button>
+
+                  {/* Expanded Years */}
+                  {expandedVenue === venue.name && (
+                    <div className="border-t border-white/10 bg-white/5">
+                      {venue.years.map(({ year, shows: yearShows }) => (
+                        <div key={year}>
+                          {/* Year Header */}
+                          <button
+                            onClick={() => setExpandedYear(expandedYear === `${venue.name}-${year}` ? null : `${venue.name}-${year}`)}
+                            className="w-full flex items-center justify-between px-6 py-3 hover:bg-white/5 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedYear === `${venue.name}-${year}` ? 'rotate-180' : ''}`} />
+                              <span className="font-medium text-amber-400">{year}</span>
+                            </div>
+                            <span className="text-white/50 text-sm">{yearShows.length} shows</span>
+                          </button>
+
+                          {/* Expanded Shows */}
+                          {expandedYear === `${venue.name}-${year}` && (
+                            <div className="bg-white/5">
+                              {yearShows.map((show) => (
+                                <div key={show.id}>
+                                  {/* Show Header */}
+                                  <button
+                                    onClick={() => setExpandedShow(expandedShow === show.id ? null : show.id)}
+                                    className="w-full flex items-center justify-between px-8 py-2 hover:bg-white/5 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <ChevronDown className={`w-3 h-3 text-white/40 transition-transform ${expandedShow === show.id ? 'rotate-180' : ''}`} />
+                                      <span className="text-white/80">{formatDate(show.date)}</span>
+                                      <span className="text-white/40">-</span>
+                                      <span style={{ color: artistColor(show.artist) }}>{show.artist}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {show.rating && (
+                                        <span className="text-emerald-400 text-sm font-medium">{show.rating}/10</span>
+                                      )}
+                                      <span className="text-white/40 text-sm">{show.setlist.length} songs</span>
+                                    </div>
+                                  </button>
+
+                                  {/* Expanded Setlist */}
+                                  {expandedShow === show.id && (
+                                    <div className="bg-white/5 px-10 py-3 border-t border-white/5">
+                                      {show.tour && (
+                                        <div className="text-emerald-400 text-sm font-medium mb-2">{show.tour}</div>
+                                      )}
+                                      <div className="space-y-1">
+                                        {show.setlist.map((song, idx) => (
+                                          <div key={song.id || idx} className="flex items-center gap-2 text-sm">
+                                            {song.setBreak && (
+                                              <div className="text-emerald-400 font-semibold text-xs mt-2 mb-1 w-full">{song.setBreak}</div>
+                                            )}
+                                            <span className="text-white/40 w-6">{idx + 1}.</span>
+                                            <span className="text-white/80">{song.name}</span>
+                                            {song.rating && (
+                                              <span className="text-amber-400 text-xs">({song.rating}/10)</span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -2227,13 +2603,9 @@ function AdminView() {
               <tr key={user.id} className="hover:bg-white/5 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    {user.photoURL ? (
-                      <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full ring-2 ring-white/10" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                        <User className="w-5 h-5 text-white/50" />
-                      </div>
-                    )}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
                     <div>
                       <div className="font-medium text-white">{user.firstName || 'Anonymous'}</div>
                       <div className="text-sm text-white/40 md:hidden">{user.email}</div>
