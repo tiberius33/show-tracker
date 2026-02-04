@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
@@ -820,6 +820,59 @@ export default function ShowTracker() {
     return () => unsubscribe();
   }, []);
 
+  const checkForLocalData = useCallback(() => {
+    try {
+      const stored = localStorage.getItem('concert-shows');
+      if (stored) {
+        const localShows = JSON.parse(stored);
+        if (localShows && localShows.length > 0) {
+          setLocalShowsToMigrate(localShows);
+          setShowMigrationPrompt(true);
+        }
+      }
+    } catch (error) {
+      console.log('No local data to migrate');
+    }
+  }, []);
+
+  const calculateUserRank = useCallback(async (userId) => {
+    try {
+      const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
+      const profiles = profilesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const sorted = profiles.sort((a, b) => (b.showCount || 0) - (a.showCount || 0));
+      const rank = sorted.findIndex(p => p.id === userId) + 1;
+      setUserRank({ rank, total: profiles.length });
+    } catch (error) {
+      console.error('Failed to calculate rank:', error);
+    }
+  }, []);
+
+  const loadShows = useCallback(async (userId) => {
+    setIsLoading(true);
+    try {
+      const showsRef = collection(db, 'users', userId, 'shows');
+      const snapshot = await getDocs(showsRef);
+      const loadedShows = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setShows(loadedShows);
+
+      // Update user profile with current stats
+      if (auth.currentUser) {
+        await updateUserProfile(auth.currentUser, loadedShows);
+        // Update community stats in background
+        updateCommunityStats();
+        // Calculate user rank
+        calculateUserRank(userId);
+      }
+    } catch (error) {
+      console.error('Failed to load shows:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [calculateUserRank]);
+
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -836,23 +889,7 @@ export default function ShowTracker() {
     });
 
     return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const checkForLocalData = () => {
-    try {
-      const stored = localStorage.getItem('concert-shows');
-      if (stored) {
-        const localShows = JSON.parse(stored);
-        if (localShows && localShows.length > 0) {
-          setLocalShowsToMigrate(localShows);
-          setShowMigrationPrompt(true);
-        }
-      }
-    } catch (error) {
-      console.log('No local data to migrate');
-    }
-  };
+  }, [checkForLocalData, loadShows]);
 
   const handleMigrateData = async () => {
     if (!user || localShowsToMigrate.length === 0) return;
@@ -899,44 +936,6 @@ export default function ShowTracker() {
       setSelectedShow(null);
     } catch (error) {
       console.error('Logout failed:', error);
-    }
-  };
-
-  const loadShows = async (userId) => {
-    setIsLoading(true);
-    try {
-      const showsRef = collection(db, 'users', userId, 'shows');
-      const snapshot = await getDocs(showsRef);
-      const loadedShows = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setShows(loadedShows);
-
-      // Update user profile with current stats
-      if (auth.currentUser) {
-        await updateUserProfile(auth.currentUser, loadedShows);
-        // Update community stats in background
-        updateCommunityStats();
-        // Calculate user rank
-        calculateUserRank(userId, loadedShows.length);
-      }
-    } catch (error) {
-      console.error('Failed to load shows:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateUserRank = async (userId, userShowCount) => {
-    try {
-      const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
-      const profiles = profilesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const sorted = profiles.sort((a, b) => (b.showCount || 0) - (a.showCount || 0));
-      const rank = sorted.findIndex(p => p.id === userId) + 1;
-      setUserRank({ rank, total: profiles.length });
-    } catch (error) {
-      console.error('Failed to calculate rank:', error);
     }
   };
 
@@ -2503,26 +2502,25 @@ function AdminView() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    const loadUsers = async () => {
+      setLoading(true);
+      try {
+        const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
+        const loadedUsers = profilesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+          lastLogin: doc.data().lastLogin?.toDate?.() || new Date()
+        }));
+        setUsers(loadedUsers.sort((a, b) => b.createdAt - a.createdAt));
+      } catch (error) {
+        console.error('Failed to load users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     loadUsers();
   }, []);
-
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
-      const loadedUsers = profilesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-        lastLogin: doc.data().lastLogin?.toDate?.() || new Date()
-      }));
-      setUsers(loadedUsers.sort((a, b) => b.createdAt - a.createdAt));
-    } catch (error) {
-      console.error('Failed to load users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredUsers = users.filter(user =>
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
