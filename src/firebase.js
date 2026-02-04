@@ -21,5 +21,12 @@ export const auth = getAuth(app);
 // Initialize Cloud Firestore
 export const db = getFirestore(app);
 
-// Initialize Google Auth Provider
-export const googleProvider = new GoogleAuthProvider();
+// Auth Providers - centralized for easy extension
+// To add Apple: import { OAuthProvider } from 'firebase/auth'; then add: apple: new OAuthProvider('apple.com')
+// To add Facebook: import { FacebookAuthProvider } from 'firebase/auth'; then add: facebook: new FacebookAuthProvider()
+export const authProviders = {
+  google: new GoogleAuthProvider(),
+};
+
+// Legacy export for backward compatibility
+export const googleProvider = authProviders.google;
