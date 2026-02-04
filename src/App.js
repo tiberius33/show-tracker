@@ -2501,26 +2501,27 @@ function AdminView() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    const loadUsers = async () => {
-      setLoading(true);
-      try {
-        const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
-        const loadedUsers = profilesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-          lastLogin: doc.data().lastLogin?.toDate?.() || new Date()
-        }));
-        setUsers(loadedUsers.sort((a, b) => b.createdAt - a.createdAt));
-      } catch (error) {
-        console.error('Failed to load users:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUsers();
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
+      const loadedUsers = profilesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+        lastLogin: doc.data().lastLogin?.toDate?.() || new Date()
+      }));
+      setUsers(loadedUsers.sort((a, b) => b.createdAt - a.createdAt));
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const filteredUsers = users.filter(user =>
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
