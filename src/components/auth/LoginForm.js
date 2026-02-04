@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence
+} from 'firebase/auth';
 import { auth, authProviders } from '../../firebase';
 import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
@@ -8,6 +14,7 @@ import PasswordInput from './PasswordInput';
 export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,6 +24,8 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
     setLoading(true);
 
     try {
+      // Set persistence based on "Remember me" checkbox
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email, password);
       onSuccess?.();
     } catch (err) {
@@ -31,6 +40,8 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
     setLoading(true);
 
     try {
+      // Set persistence based on "Remember me" checkbox
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       const provider = authProviders[providerName];
       await signInWithPopup(auth, provider);
       onSuccess?.();
@@ -75,7 +86,17 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
           disabled={loading}
         />
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-white/20 bg-white/10 text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+              disabled={loading}
+            />
+            <span className="text-sm text-white/60">Remember me</span>
+          </label>
           <button
             type="button"
             onClick={onForgotPassword}

@@ -4,6 +4,8 @@ import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
 import AuthModal from './components/auth/AuthModal';
+import ProfileView from './components/profile/ProfileView';
+import { ShowsOverTimeChart, TopArtistsChart, RatingDistributionChart, TopSongsChart } from './components/stats/StatCharts';
 
 // Admin email whitelist
 const ADMIN_EMAILS = ['phillip.leonard@gmail.com'];
@@ -219,6 +221,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
     { id: 'search', label: 'Search', icon: Search },
     { id: 'shows', label: 'Shows', icon: List },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
+    { id: 'profile', label: 'Profile', icon: User },
     { id: 'community', label: 'Community', icon: Users },
     { id: 'invite', label: 'Invite', icon: Mail },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
@@ -1887,11 +1890,25 @@ export default function ShowTracker() {
           <CommunityStatsView communityStats={communityStats} />
         )}
 
+        {activeView === 'profile' && (
+          <ProfileView
+            user={user}
+            shows={shows}
+            userRank={userRank}
+            onProfileUpdate={() => {
+              // Refresh user data if needed
+            }}
+          />
+        )}
+
         {activeView === 'admin' && isAdmin && (
           <AdminView />
         )}
         </div>
       </div>
+
+      {/* PWA Install Prompt */}
+      <InstallPrompt />
     </div>
   );
 }
@@ -2384,7 +2401,7 @@ function SongStatsRow({ song, index, onRateSong }) {
 }
 
 function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong }) {
-  const [tab, setTab] = useState('songs');
+  const [tab, setTab] = useState('overview');
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -2483,6 +2500,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
     <div className="space-y-4">
       <div className="flex gap-2 mb-4 flex-wrap">
         {[
+          { id: 'overview', label: 'Overview', icon: BarChart3 },
           { id: 'songs', label: 'Songs', icon: Music },
           { id: 'artists', label: 'Artists', icon: Users },
           { id: 'venues', label: 'Venues', icon: Building2 },
@@ -2502,6 +2520,30 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           </button>
         ))}
       </div>
+
+      {tab === 'overview' && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-white">Your Concert Journey</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Shows Over Time</h3>
+              <ShowsOverTimeChart shows={shows} />
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Top Artists</h3>
+              <TopArtistsChart shows={shows} />
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Rating Distribution</h3>
+              <RatingDistributionChart shows={shows} />
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Most Heard Songs</h3>
+              <TopSongsChart shows={shows} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {tab === 'songs' && (
         <div>
@@ -2895,6 +2937,69 @@ function AdminView() {
             {searchTerm ? 'No users match your search' : 'No users yet'}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// PWA Install Prompt Component
+function InstallPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Show prompt after user has been engaged (30 seconds)
+      setTimeout(() => setShowPrompt(true), 30000);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log('Install outcome:', outcome);
+    setDeferredPrompt(null);
+    setShowPrompt(false);
+  };
+
+  const handleDismiss = () => {
+    setShowPrompt(false);
+    // Don't show again this session
+    setDeferredPrompt(null);
+  };
+
+  if (!showPrompt || !deferredPrompt) return null;
+
+  return (
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4 shadow-xl z-50 animate-slide-up">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+          <Download className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <p className="text-white font-semibold">Install MySetlists</p>
+          <p className="text-white/80 text-sm mt-1">Add to your home screen for quick access</p>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={handleInstall}
+              className="px-4 py-2 bg-white text-emerald-600 rounded-lg font-medium text-sm hover:bg-white/90 transition-colors"
+            >
+              Install
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="px-4 py-2 text-white/80 hover:text-white text-sm transition-colors"
+            >
+              Not now
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
