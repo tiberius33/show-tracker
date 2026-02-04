@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check, Search, Download, ArrowUpDown, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -577,16 +578,18 @@ export default function ShowTracker() {
     shows.forEach(show => {
       const key = show.venue + (show.city ? `, ${show.city}` : '');
       if (!venueMap[key]) {
-        venueMap[key] = { count: 0, artists: new Set() };
+        venueMap[key] = { count: 0, artists: new Set(), shows: [] };
       }
       venueMap[key].count++;
       venueMap[key].artists.add(show.artist);
+      venueMap[key].shows.push(show);
     });
     return Object.entries(venueMap)
       .map(([name, data]) => ({
         name,
         count: data.count,
-        artists: data.artists.size
+        artistCount: data.artists.size,
+        shows: data.shows.sort((a, b) => parseDate(b.date) - parseDate(a.date))
       }))
       .sort((a, b) => b.count - a.count);
   };
@@ -918,6 +921,8 @@ export default function ShowTracker() {
                   <User className="w-9 h-9 p-1.5 bg-white/10 rounded-full text-white/70" />
                 )}
                 <span className="hidden sm:inline">{extractFirstName(user.displayName)}</span>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="hidden sm:inline">{user.email}</span>
               </div>
               <button
                 onClick={handleLogout}
@@ -993,6 +998,16 @@ export default function ShowTracker() {
                     <div className="text-xs font-medium text-white/50 uppercase tracking-wide mt-1">{stat.label}</div>
                   </div>
                 ))}
+              <div className="flex items-center gap-6 mb-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-gray-900">{shows.length}</span>
+                  <span className="text-sm font-medium text-gray-500">Shows</span>
+                </div>
+                <div className="w-px h-8 bg-gray-200" />
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-gray-900">{summaryStats.uniqueArtists}</span>
+                  <span className="text-sm font-medium text-gray-500">Artists</span>
+                </div>
               </div>
             )}
 
@@ -1452,11 +1467,17 @@ function ShowForm({ onSubmit, onCancel }) {
 }
 
 function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDeleteShow, onRateShow, selectedShowId }) {
+  const [expandedShowId, setExpandedShowId] = useState(null);
   const avgRating = (() => {
     const rated = shows.filter(s => s.rating);
     if (rated.length === 0) return null;
     return (rated.reduce((a, s) => a + s.rating, 0) / rated.length).toFixed(1);
   })();
+
+  const toggleShowSetlist = (showId, e) => {
+    e.stopPropagation();
+    setExpandedShowId(expandedShowId === showId ? null : showId);
+  };
 
   return (
     <>
@@ -1493,6 +1514,7 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                 {shows.map(show => {
                   const songAvg = avgSongRating(show.setlist);
                   const isSelected = selectedShowId === show.id;
+                  const isSetlistExpanded = expandedShowId === show.id;
                   return (
                     <div
                       key={show.id}
@@ -1525,8 +1547,55 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                           <RatingSelect value={show.rating} onChange={(r) => onRateShow(show.id, r)} label="Show:" />
                           {songAvg && (
                             <span className="text-xs font-medium text-white/40">Songs avg: {songAvg}/10</span>
+                    <div key={show.id}>
+                      <div
+                        className={`group flex items-start justify-between bg-white rounded-xl p-3 border cursor-pointer transition-all ${
+                          isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'
+                        }`}
+                        onClick={() => onSelectShow(show)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <button
+                              onClick={(e) => toggleShowSetlist(show.id, e)}
+                              className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
+                            >
+                              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSetlistExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-gray-700">{formatDate(show.date)}</span>
+                            <span className="text-gray-300">&middot;</span>
+                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-gray-500">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                            <span className="text-gray-300">&middot;</span>
+                            <Music className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-gray-500">{show.setlist.length} songs</span>
+                          </div>
+                          {show.tour && (
+                            <div className="text-xs text-emerald-600 font-medium mt-1 ml-6">Tour: {show.tour}</div>
                           )}
+                          {show.comment && (
+                            <div className="flex items-start gap-1.5 mt-1 ml-6 text-xs text-gray-500 italic">
+                              <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                              {show.comment}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 ml-6" onClick={(e) => e.stopPropagation()}>
+                            <RatingSelect value={show.rating} onChange={(r) => onRateShow(show.id, r)} label="Show:" />
+                            {songAvg && (
+                              <span className="text-xs font-medium text-gray-400">Songs avg: {songAvg}/10</span>
+                            )}
+                          </div>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteShow(show.id);
+                          }}
+                          className="text-gray-300 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 ml-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                       <button
                         onClick={(e) => {
@@ -1537,6 +1606,32 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                       >
                         <X className="w-4 h-4" />
                       </button>
+                      {isSetlistExpanded && show.setlist.length > 0 && (
+                        <div className="ml-6 mt-2 mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Setlist</div>
+                          <div className="space-y-1">
+                            {show.setlist.map((song, idx) => (
+                              <div key={song.id} className="flex items-center gap-2 text-sm">
+                                {song.setBreak && (
+                                  <div className="w-full text-xs font-semibold text-emerald-600 mt-2 mb-1 border-t border-gray-200 pt-2">
+                                    {song.setBreak}
+                                  </div>
+                                )}
+                                {!song.setBreak && (
+                                  <>
+                                    <span className="text-gray-400 w-6 text-right">{idx + 1}.</span>
+                                    <span className="text-gray-700">{song.name}</span>
+                                    {song.cover && <span className="text-xs text-gray-400">({song.cover})</span>}
+                                    {song.rating && (
+                                      <span className="text-xs font-semibold text-emerald-600 ml-auto">{song.rating}/10</span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1845,11 +1940,131 @@ function SongStatsRow({ song, index, onRateSong }) {
   );
 }
 
+function VenueStatsTab({ venueStats }) {
+  const [expandedVenue, setExpandedVenue] = useState(null);
+  const [expandedShow, setExpandedShow] = useState(null);
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-4 text-gray-900">Venue Statistics</h2>
+      {venueStats.length === 0 ? (
+        <p className="text-center text-gray-400 py-8 font-medium">No shows tracked yet</p>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Venue</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Shows</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artists</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {venueStats.map((venue) => (
+                <React.Fragment key={venue.name}>
+                  <tr
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => setExpandedVenue(expandedVenue === venue.name ? null : venue.name)}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${expandedVenue === venue.name ? 'rotate-180' : ''}`} />
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium text-gray-900">{venue.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-sm font-semibold">
+                        {venue.count}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-gray-600">
+                      {venue.artistCount}
+                    </td>
+                  </tr>
+                  {expandedVenue === venue.name && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-0">
+                        <div className="py-3 pl-6 border-l-2 border-emerald-300 ml-2 mb-2">
+                          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Shows at this venue</div>
+                          <div className="space-y-2">
+                            {venue.shows.map(show => {
+                              const isShowExpanded = expandedShow === show.id;
+                              return (
+                                <div key={show.id}>
+                                  <div
+                                    className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 cursor-pointer transition-all"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedShow(isShowExpanded ? null : show.id);
+                                    }}
+                                  >
+                                    <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${isShowExpanded ? 'rotate-180' : ''}`} />
+                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(show.artist) }} />
+                                    <span className="font-medium" style={{ color: artistColor(show.artist) }}>{show.artist}</span>
+                                    <span className="text-gray-300">&middot;</span>
+                                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                                    <span className="text-gray-600 text-sm">{formatDate(show.date)}</span>
+                                    <span className="text-gray-300">&middot;</span>
+                                    <Music className="w-3.5 h-3.5 text-gray-400" />
+                                    <span className="text-gray-500 text-sm">{show.setlist.length} songs</span>
+                                    {show.rating && (
+                                      <>
+                                        <span className="text-gray-300">&middot;</span>
+                                        <span className="text-sm font-semibold text-emerald-600">{show.rating}/10</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  {isShowExpanded && show.setlist.length > 0 && (
+                                    <div className="ml-6 mt-2 mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                      <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Setlist</div>
+                                      <div className="space-y-1">
+                                        {show.setlist.map((song, idx) => (
+                                          <div key={song.id} className="flex items-center gap-2 text-sm">
+                                            {song.setBreak && (
+                                              <div className="w-full text-xs font-semibold text-emerald-600 mt-2 mb-1 border-t border-gray-200 pt-2">
+                                                {song.setBreak}
+                                              </div>
+                                            )}
+                                            {!song.setBreak && (
+                                              <>
+                                                <span className="text-gray-400 w-6 text-right">{idx + 1}.</span>
+                                                <span className="text-gray-700">{song.name}</span>
+                                                {song.cover && <span className="text-xs text-gray-400">({song.cover})</span>}
+                                                {song.rating && (
+                                                  <span className="text-xs font-semibold text-emerald-600 ml-auto">{song.rating}/10</span>
+                                                )}
+                                              </>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong }) {
   const [tab, setTab] = useState('songs');
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
   const [filterYear, setFilterYear] = useState('');
+  const [songSortBy, setSongSortBy] = useState('count');
 
   const uniqueArtists = useMemo(() =>
     [...new Set(shows.map(s => s.artist))].sort(), [shows]);
@@ -1894,16 +2109,32 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         });
       });
     });
-    return Object.entries(songMap)
+    const mapped = Object.entries(songMap)
       .map(([name, data]) => ({
         name,
         count: data.count,
         avgRating: data.ratings.length ?
           (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : null,
         shows: data.shows
-      }))
-      .sort((a, b) => b.count - a.count);
-  }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters]);
+      }));
+
+    if (songSortBy === 'rating-high') {
+      return mapped.sort((a, b) => {
+        if (!a.avgRating && !b.avgRating) return b.count - a.count;
+        if (!a.avgRating) return 1;
+        if (!b.avgRating) return -1;
+        return parseFloat(b.avgRating) - parseFloat(a.avgRating);
+      });
+    } else if (songSortBy === 'rating-low') {
+      return mapped.sort((a, b) => {
+        if (!a.avgRating && !b.avgRating) return b.count - a.count;
+        if (!a.avgRating) return 1;
+        if (!b.avgRating) return -1;
+        return parseFloat(a.avgRating) - parseFloat(b.avgRating);
+      });
+    }
+    return mapped.sort((a, b) => b.count - a.count);
+  }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters, songSortBy]);
 
   const selectClass = "px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer";
 
@@ -1958,6 +2189,25 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                   Clear filters
                 </button>
               )}
+            </div>
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+              <ArrowUpDown className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-500">Sort:</span>
+              {[
+                { id: 'count', label: 'Times Played' },
+                { id: 'rating-high', label: 'Rating (High to Low)' },
+                { id: 'rating-low', label: 'Rating (Low to High)' },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setSongSortBy(opt.id)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    songSortBy === opt.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -2069,6 +2319,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
             </div>
           )}
         </div>
+        <VenueStatsTab venueStats={venueStats} />
       )}
 
       {tab === 'top' && (
