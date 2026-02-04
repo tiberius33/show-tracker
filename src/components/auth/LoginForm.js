@@ -35,6 +35,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
       await signInWithPopup(auth, provider);
       onSuccess?.();
     } catch (err) {
+      console.error('Google sign-in error:', err.code, err.message);
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(getErrorMessage(err.code));
       }
@@ -119,6 +120,9 @@ function getErrorMessage(code) {
     'auth/invalid-credential': 'Invalid email or password',
     'auth/too-many-requests': 'Too many attempts. Please try again later.',
     'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method',
+    'auth/popup-blocked': 'Popup was blocked. Please allow popups for this site.',
+    'auth/cancelled-popup-request': 'Sign in was cancelled.',
+    'auth/unauthorized-domain': 'This domain is not authorized for OAuth operations. Add it in Firebase Console.',
   };
-  return messages[code] || 'Sign in failed. Please try again.';
+  return messages[code] || `Sign in failed (${code || 'unknown error'}). Please try again.`;
 }
