@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -284,6 +284,15 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
               <span className="font-medium">Admin</span>
             </button>
           )}
+          <a
+            href="https://buymeacoffee.com/phillipd"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-amber-400 hover:bg-amber-500/10 transition-all"
+          >
+            <Coffee className="w-5 h-5" />
+            <span className="font-medium">Support</span>
+          </a>
           <button
             onClick={handleLogoutClick}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-white/60 hover:bg-white/5 hover:text-white/80 transition-all"
@@ -1426,6 +1435,17 @@ export default function ShowTracker() {
               <Music className="w-5 h-5" />
               Get Started Free
             </button>
+            <div className="mt-6">
+              <a
+                href="https://buymeacoffee.com/phillipd"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-amber-400 transition-colors"
+              >
+                <Heart className="w-4 h-4" />
+                Support this project
+              </a>
+            </div>
           </div>
 
           {/* Community Stats */}
