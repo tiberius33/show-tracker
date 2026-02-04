@@ -91,8 +91,9 @@ async function updateCommunityStats() {
       const userShows = showsSnapshot.docs.map(doc => doc.data());
       totalShows += userShows.length;
 
-      userShows.forEach(show => {
-        show.setlist?.forEach(song => {
+      for (const show of userShows) {
+        const setlist = show.setlist || [];
+        for (const song of setlist) {
           totalSongs++;
           const songKey = song.name.toLowerCase().trim();
           if (!allSongs[songKey]) {
@@ -104,8 +105,8 @@ async function updateCommunityStats() {
           }
           allSongs[songKey].users.add(profile.id);
           allSongs[songKey].artists.add(show.artist);
-        });
-      });
+        }
+      }
     }
 
     // Build leaderboards
@@ -243,6 +244,7 @@ export default function ShowTracker() {
     });
 
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkForLocalData = () => {
