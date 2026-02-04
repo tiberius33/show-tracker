@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -943,6 +943,9 @@ export default function ShowTracker() {
   // Mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Celebration animation
+  const [showCelebration, setShowCelebration] = useState(false);
+
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
@@ -1105,9 +1108,16 @@ export default function ShowTracker() {
     try {
       const showRef = doc(db, 'users', user.uid, 'shows', showId);
       await setDoc(showRef, newShow);
+      const isFirstShow = shows.length === 0;
       const updatedShows = [...shows, { id: showId, ...newShow, createdAt: new Date().toISOString() }];
       setShows(updatedShows);
       setShowForm(false);
+
+      // Celebrate first show!
+      if (isFirstShow) {
+        setShowCelebration(true);
+        setTimeout(() => setShowCelebration(false), 3000);
+      }
 
       // Update profile and community stats
       await updateUserProfile(user, updatedShows);
@@ -1645,6 +1655,18 @@ export default function ShowTracker() {
         </div>
       )}
 
+      {/* First Show Celebration */}
+      {showCelebration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="text-center animate-bounce">
+            <div className="text-8xl mb-4">🤙</div>
+            <div className="text-2xl font-bold text-white bg-black/50 backdrop-blur-sm px-6 py-3 rounded-2xl">
+              First show added!
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Header */}
       <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
 
@@ -2022,6 +2044,36 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const [commentText, setCommentText] = useState('');
   const [editingShowComment, setEditingShowComment] = useState(false);
   const [showCommentText, setShowCommentText] = useState(show.comment || '');
+  const [shareSuccess, setShareSuccess] = useState(false);
+
+  const handleShare = async () => {
+    const setlistText = show.setlist.map((song, i) => `${i + 1}. ${song.name}${song.rating ? ` (${song.rating}/10)` : ''}`).join('\n');
+    const shareText = `${show.artist} @ ${show.venue}${show.city ? `, ${show.city}` : ''}\n${formatDate(show.date)}${show.tour ? `\n${show.tour}` : ''}\n\nSetlist:\n${setlistText}\n\nTracked with MySetlists.net`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${show.artist} - ${formatDate(show.date)}`,
+          text: shareText,
+        });
+      } catch (err) {
+        // User cancelled or share failed, try clipboard
+        copyToClipboard(shareText);
+      }
+    } else {
+      copyToClipboard(shareText);
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const handleAddSong = (e) => {
     e.preventDefault();
@@ -2119,9 +2171,18 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                 </div>
               )}
             </div>
-            <button onClick={onClose} className="p-3 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-start gap-2">
+              <button
+                onClick={handleShare}
+                className={`p-3 md:p-2 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                title="Share setlist"
+              >
+                {shareSuccess ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+              </button>
+              <button onClick={onClose} className="p-3 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleAddSong} className="flex gap-3">
