@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -190,7 +190,7 @@ function RatingSelect({ value, onChange, max = 10, label }) {
 }
 
 // Sidebar Navigation Component
-function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName }) {
+function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpen, onClose }) {
   const navItems = [
     { id: 'search', label: 'Search', icon: Search },
     { id: 'shows', label: 'Shows', icon: List },
@@ -200,68 +200,125 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName }) {
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   ];
 
+  const handleNavClick = (id) => {
+    setActiveView(id);
+    if (onClose) onClose(); // Close mobile drawer
+  };
+
+  const handleLogoutClick = () => {
+    onLogout();
+    if (onClose) onClose();
+  };
+
   return (
-    <div className="w-64 h-screen bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col fixed left-0 top-0">
-      {/* Logo */}
-      <div className="p-6 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <Music className="w-5 h-5 text-white" />
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        w-64 h-screen bg-slate-950/95 md:bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col fixed left-0 top-0 z-50
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+      `}>
+        {/* Logo */}
+        <div className="p-6 border-b border-white/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <Music className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-lg font-semibold text-white">Show Tracker</span>
+            </div>
+            {/* Mobile close button */}
+            <button
+              onClick={onClose}
+              className="md:hidden p-2 rounded-xl hover:bg-white/10 transition-colors"
+            >
+              <X className="w-5 h-5 text-white/60" />
+            </button>
+          </div>
+        </div>
+
+        {/* User info */}
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+              <User className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm text-white/70 truncate">{userName}</span>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {navItems.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => handleNavClick(id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+                activeView === id
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${activeView === id ? 'text-emerald-400' : ''}`} />
+              <span className="font-medium">{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Bottom section */}
+        <div className="p-3 border-t border-white/5 space-y-1">
+          {isAdmin && (
+            <button
+              onClick={() => handleNavClick('admin')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+                activeView === 'admin'
+                  ? 'bg-rose-500/20 text-rose-400'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+              }`}
+            >
+              <Shield className={`w-5 h-5 ${activeView === 'admin' ? 'text-rose-400' : ''}`} />
+              <span className="font-medium">Admin</span>
+            </button>
+          )}
+          <button
+            onClick={handleLogoutClick}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-white/60 hover:bg-white/5 hover:text-white/80 transition-all"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Mobile Header Component
+function MobileHeader({ onMenuClick }) {
+  return (
+    <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-b border-white/5">
+      <div className="flex items-center justify-between px-4 py-3">
+        <button
+          onClick={onMenuClick}
+          className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+        >
+          <Menu className="w-6 h-6 text-white" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center">
+            <Music className="w-4 h-4 text-white" />
           </div>
           <span className="text-lg font-semibold text-white">Show Tracker</span>
         </div>
-      </div>
-
-      {/* User info */}
-      <div className="px-4 py-3 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-            <User className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-sm text-white/70 truncate">{userName}</span>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
-        {navItems.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveView(id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
-              activeView === id
-                ? 'bg-white/10 text-white'
-                : 'text-white/60 hover:bg-white/5 hover:text-white/80'
-            }`}
-          >
-            <Icon className={`w-5 h-5 ${activeView === id ? 'text-emerald-400' : ''}`} />
-            <span className="font-medium">{label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* Bottom section */}
-      <div className="p-3 border-t border-white/5 space-y-1">
-        {isAdmin && (
-          <button
-            onClick={() => setActiveView('admin')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
-              activeView === 'admin'
-                ? 'bg-rose-500/20 text-rose-400'
-                : 'text-white/60 hover:bg-white/5 hover:text-white/80'
-            }`}
-          >
-            <Shield className={`w-5 h-5 ${activeView === 'admin' ? 'text-rose-400' : ''}`} />
-            <span className="font-medium">Admin</span>
-          </button>
-        )}
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-white/60 hover:bg-white/5 hover:text-white/80 transition-all"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
-        </button>
+        <div className="w-10" /> {/* Spacer for centering */}
       </div>
     </div>
   );
@@ -281,7 +338,7 @@ function InviteView() {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-2">Invite Friends</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Invite Friends</h1>
       <p className="text-white/60 mb-8">Share Show Tracker with your concert-going friends.</p>
 
       <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
@@ -340,7 +397,7 @@ function FeedbackView() {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-2">Send Feedback</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Send Feedback</h1>
       <p className="text-white/60 mb-8">We'd love to hear your thoughts, suggestions, or bug reports.</p>
 
       <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
@@ -380,7 +437,7 @@ function CommunityStatsView({ communityStats }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-2">Community Stats</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Community Stats</h1>
       <p className="text-white/60 mb-8">See how you compare with other show-goers</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -490,7 +547,7 @@ function CommunityStatsView({ communityStats }) {
       </div>
 
       {/* Overall Stats */}
-      <div className="mt-8 grid grid-cols-3 gap-4">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 text-center">
           <div className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
             {communityStats.totalUsers || 0}
@@ -624,7 +681,7 @@ function SearchView({ onImport, importedIds }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-2">Search Shows</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Search Shows</h1>
       <p className="text-white/60 mb-8">Find and import setlists from Setlist.fm</p>
 
       {/* Search Form */}
@@ -802,6 +859,9 @@ export default function ShowTracker() {
   // Community stats
   const [communityStats, setCommunityStats] = useState(null);
   const [userRank, setUserRank] = useState(null);
+
+  // Mobile sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
@@ -1304,20 +1364,20 @@ export default function ShowTracker() {
         </div>
 
         {/* Hero Section */}
-        <div className="max-w-6xl mx-auto px-4 py-16">
-          <div className="text-center mb-16">
-            <div className="w-28 h-28 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-emerald-500/40">
-              <Music className="w-14 h-14 text-white" />
+        <div className="max-w-6xl mx-auto px-4 py-8 md:py-16">
+          <div className="text-center mb-8 md:mb-16">
+            <div className="w-20 h-20 md:w-28 md:h-28 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-emerald-500/40">
+              <Music className="w-10 h-10 md:w-14 md:h-14 text-white" />
             </div>
-            <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
               Track Your Concert Journey
             </h2>
-            <p className="text-xl text-white/70 mb-10 max-w-xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-white/70 mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed px-4">
               Save setlists, rate songs, discover patterns in your concert history, and join a community of live music lovers.
             </p>
             <button
               onClick={handleLogin}
-              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-full transition-all text-lg font-semibold shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
+              className="inline-flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-full transition-all text-base md:text-lg font-semibold shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
             >
               <Music className="w-5 h-5" />
               Get Started Free
@@ -1453,9 +1513,9 @@ export default function ShowTracker() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       {/* Migration Prompt Modal */}
       {showMigrationPrompt && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-30">
-          <div className="bg-slate-800 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <h2 className="text-xl font-bold mb-4 text-white">Import Existing Shows?</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-3 md:p-4 z-30">
+          <div className="bg-slate-800 border border-white/10 rounded-2xl md:rounded-3xl max-w-[95vw] sm:max-w-md w-full p-4 md:p-6 shadow-2xl">
+            <h2 className="text-lg md:text-xl font-bold mb-4 text-white">Import Existing Shows?</h2>
             <p className="text-white/60 mb-4">
               We found {localShowsToMigrate.length} show{localShowsToMigrate.length !== 1 ? 's' : ''} saved locally on this device.
               Would you like to import them to your account?
@@ -1478,6 +1538,9 @@ export default function ShowTracker() {
         </div>
       )}
 
+      {/* Mobile Header */}
+      <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
+
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
@@ -1485,16 +1548,18 @@ export default function ShowTracker() {
         isAdmin={isAdmin}
         onLogout={handleLogout}
         userName={extractFirstName(user.displayName)}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       {/* Main Content Area */}
-      <div className="ml-64 min-h-screen">
-        <div className="max-w-5xl mx-auto px-8 py-8">
+      <div className="ml-0 md:ml-64 min-h-screen pt-14 md:pt-0">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 md:py-8">
           {activeView === 'shows' && (
           <>
             {/* Summary stats */}
             {shows.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-6">
                 {[
                   { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400' },
                   { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400' },
@@ -1522,7 +1587,7 @@ export default function ShowTracker() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-white mb-1">My Shows</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-white mb-1">My Shows</h1>
                 <p className="text-white/60">All the concerts you've attended</p>
               </div>
               <button
@@ -1854,13 +1919,13 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const unratedCount = show.setlist.filter(s => !s.rating).length;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-20">
-      <div className="bg-slate-900 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        <div className="p-6 border-b border-white/10">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-2 md:p-4 z-20">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl md:rounded-3xl max-w-[95vw] sm:max-w-lg md:max-w-2xl w-full max-h-[95vh] md:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div className="p-4 md:p-6 border-b border-white/10">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold" style={{ color: artistColor(show.artist) }}>{show.artist}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl md:text-2xl font-bold" style={{ color: artistColor(show.artist) }}>{show.artist}</h2>
                 {!show.isManual && (
                   <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">
                     setlist.fm
@@ -1928,7 +1993,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                 </div>
               )}
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+            <button onClick={onClose} className="p-3 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1952,7 +2017,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               <RatingSelect value={batchRating} onChange={(v) => setBatchRating(v || 5)} />
               <button
                 onClick={() => onBatchRate(batchRating)}
-                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-xs font-medium transition-colors"
+                className="px-4 py-2 md:px-3 md:py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm md:text-xs font-medium transition-colors"
               >
                 Apply
               </button>
@@ -2546,7 +2611,7 @@ function AdminView() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Admin Portal</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
         <button
           onClick={loadUsers}
           className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
