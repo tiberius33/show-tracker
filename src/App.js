@@ -26,12 +26,8 @@ function parseDate(dateStr) {
 }
 
 function artistColor(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 45%)`;
+  // Use consistent yellow/amber color for all artists
+  return '#f59e0b'; // Tailwind amber-500
 }
 
 function avgSongRating(setlist) {
@@ -583,6 +579,7 @@ function SearchView({ onImport, importedIds }) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [imported, setImported] = useState(new Set());
+  const [expandedSetlist, setExpandedSetlist] = useState(null);
 
   const searchSetlists = async (pageNum = 1) => {
     if (!artistName.trim()) return;
@@ -757,51 +754,98 @@ function SearchView({ onImport, importedIds }) {
             <span className="text-sm text-white/50">Page {page} of {totalPages}</span>
           </div>
 
-          {results.map((setlist) => (
-            <div
-              key={setlist.id}
-              className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white">{setlist.artist.name}</div>
-                  <div className="text-sm text-white/60 mt-1">
-                    {setlist.venue.name} &middot; {setlist.venue.city.name}, {setlist.venue.city.country.name}
-                  </div>
-                  <div className="text-sm text-white/40 mt-1">
-                    {formatSetlistDate(setlist.eventDate)}
-                    {setlist.tour && <span className="text-emerald-400 ml-2">{setlist.tour.name}</span>}
-                  </div>
-                  {setlist.sets?.set && (
-                    <div className="text-xs text-white/30 mt-2">
-                      {setlist.sets.set.reduce((acc, s) => acc + (s.song?.length || 0), 0)} songs
+          {results.map((setlist) => {
+            const songCount = setlist.sets?.set?.reduce((acc, s) => acc + (s.song?.length || 0), 0) || 0;
+            const isExpanded = expandedSetlist === setlist.id;
+
+            return (
+              <div
+                key={setlist.id}
+                className="bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all"
+              >
+                <div className="p-4 hover:bg-white/5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white">{setlist.artist.name}</div>
+                      <div className="text-sm text-white/60 mt-1">
+                        {setlist.venue.name} &middot; {setlist.venue.city.name}, {setlist.venue.city.country.name}
+                      </div>
+                      <div className="text-sm text-white/40 mt-1">
+                        {formatSetlistDate(setlist.eventDate)}
+                        {setlist.tour && <span className="text-emerald-400 ml-2">{setlist.tour.name}</span>}
+                      </div>
+                      {songCount > 0 && (
+                        <button
+                          onClick={() => setExpandedSetlist(isExpanded ? null : setlist.id)}
+                          className="flex items-center gap-1 text-xs text-white/50 hover:text-white/70 mt-2 transition-colors"
+                        >
+                          <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          {songCount} songs
+                        </button>
+                      )}
                     </div>
-                  )}
+                    <button
+                      onClick={() => importSetlist(setlist)}
+                      disabled={isImported(setlist.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        isImported(setlist.id)
+                          ? 'bg-emerald-500/20 text-emerald-400 cursor-default'
+                          : 'bg-white/10 hover:bg-white/20 text-white'
+                      }`}
+                    >
+                      {isImported(setlist.id) ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Added
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Add Show
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => importSetlist(setlist)}
-                  disabled={isImported(setlist.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isImported(setlist.id)
-                      ? 'bg-emerald-500/20 text-emerald-400 cursor-default'
-                      : 'bg-white/10 hover:bg-white/20 text-white'
-                  }`}
-                >
-                  {isImported(setlist.id) ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Added
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      Add Show
-                    </>
-                  )}
-                </button>
+
+                {/* Expandable Setlist */}
+                {isExpanded && setlist.sets?.set && (
+                  <div className="border-t border-white/10 bg-white/5 p-4">
+                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                      {setlist.sets.set.map((set, setIdx) => (
+                        <div key={setIdx}>
+                          {set.name && (
+                            <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wide mt-2 mb-1">
+                              {set.name || (set.encore ? 'Encore' : `Set ${setIdx + 1}`)}
+                            </div>
+                          )}
+                          {set.encore && !set.name && (
+                            <div className="text-xs font-semibold text-amber-400 uppercase tracking-wide mt-2 mb-1">
+                              Encore
+                            </div>
+                          )}
+                          {set.song?.map((song, songIdx) => (
+                            <div
+                              key={songIdx}
+                              className="flex items-center gap-2 py-1 text-sm text-white/70"
+                            >
+                              <span className="text-white/30 w-6 text-right text-xs">{songIdx + 1}.</span>
+                              <span>{song.name}</span>
+                              {song.cover && (
+                                <span className="text-xs text-white/40">
+                                  ({song.cover.name} cover)
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Pagination */}
           {totalPages > 1 && (
