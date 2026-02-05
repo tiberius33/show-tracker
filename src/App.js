@@ -656,7 +656,7 @@ function SearchView({ onImport, importedIds }) {
         const artist = exactMatch || data.artist[0];
         setSelectedArtist(artist);
         setShowArtistPicker(false);
-        searchSetlists(1, artist.name);
+        searchSetlists(1, artist);
       } else {
         // Multiple artists - show picker
         setArtistOptions(data.artist.slice(0, 10)); // Show top 10 matches
@@ -674,7 +674,7 @@ function SearchView({ onImport, importedIds }) {
     setSelectedArtist(artist);
     setShowArtistPicker(false);
     setArtistOptions([]);
-    searchSetlists(1, artist.name);
+    searchSetlists(1, artist);
   };
 
   const clearArtistSelection = () => {
@@ -684,15 +684,22 @@ function SearchView({ onImport, importedIds }) {
     setTotalPages(1);
   };
 
-  const searchSetlists = async (pageNum = 1, artistNameOverride = null) => {
-    const searchArtist = artistNameOverride || selectedArtist?.name || artistName.trim();
+  const searchSetlists = async (pageNum = 1, artistOverride = null) => {
+    const artist = artistOverride || selectedArtist;
+    const searchArtist = artist?.name || artistName.trim();
     if (!searchArtist) return;
 
     setIsSearching(true);
     setError('');
 
     try {
-      const params = new URLSearchParams({ artistName: searchArtist, p: pageNum.toString() });
+      const params = new URLSearchParams({ p: pageNum.toString() });
+      // Use artistMbid for exact match if we have a selected artist with mbid
+      if (artist?.mbid) {
+        params.set('artistMbid', artist.mbid);
+      } else {
+        params.set('artistName', searchArtist);
+      }
       if (year.trim()) params.set('year', year.trim());
       if (venueName.trim()) params.set('venueName', venueName.trim());
       if (cityName.trim()) params.set('cityName', cityName.trim());

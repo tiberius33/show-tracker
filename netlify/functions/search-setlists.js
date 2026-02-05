@@ -9,16 +9,22 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const { artistName, year, venueName, cityName, p } = event.queryStringParameters || {};
+  const { artistName, artistMbid, year, venueName, cityName, p } = event.queryStringParameters || {};
 
-  if (!artistName) {
+  if (!artistName && !artistMbid) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: 'Artist name is required' })
+      body: JSON.stringify({ error: 'Artist name or MBID is required' })
     };
   }
 
-  const params = new URLSearchParams({ artistName, p: p || '1' });
+  const params = new URLSearchParams({ p: p || '1' });
+  // Use artistMbid for exact artist match if available, otherwise fall back to artistName
+  if (artistMbid) {
+    params.set('artistMbid', artistMbid);
+  } else {
+    params.set('artistName', artistName);
+  }
   if (year) params.set('year', year);
   if (venueName) params.set('venueName', venueName);
   if (cityName) params.set('cityName', cityName);
