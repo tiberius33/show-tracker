@@ -620,14 +620,79 @@ function SearchView({ onImport, importedIds }) {
   const [imported, setImported] = useState(new Set());
   const [expandedSetlist, setExpandedSetlist] = useState(null);
 
-  const searchSetlists = async (pageNum = 1) => {
+  // Artist disambiguation state
+  const [artistOptions, setArtistOptions] = useState([]);
+  const [selectedArtist, setSelectedArtist] = useState(null);
+  const [showArtistPicker, setShowArtistPicker] = useState(false);
+
+  // Search for artists first
+  const searchArtists = async () => {
     if (!artistName.trim()) return;
+
+    setIsSearching(true);
+    setError('');
+    setArtistOptions([]);
+    setSelectedArtist(null);
+    setResults([]);
+
+    try {
+      const params = new URLSearchParams({ artistName: artistName.trim() });
+      const response = await fetch(`/.netlify/functions/search-artists?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to search artists');
+      }
+
+      const data = await response.json();
+
+      if (!data.artist || data.artist.length === 0) {
+        setError('No artists found. Try a different search term.');
+        return;
+      }
+
+      // If only one artist or exact match, go straight to setlist search
+      const exactMatch = data.artist.find(a => a.name.toLowerCase() === artistName.trim().toLowerCase());
+      if (data.artist.length === 1 || exactMatch) {
+        const artist = exactMatch || data.artist[0];
+        setSelectedArtist(artist);
+        setShowArtistPicker(false);
+        searchSetlists(1, artist.name);
+      } else {
+        // Multiple artists - show picker
+        setArtistOptions(data.artist.slice(0, 10)); // Show top 10 matches
+        setShowArtistPicker(true);
+      }
+    } catch (err) {
+      console.error('Artist search error:', err);
+      setError('An error occurred while searching. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectArtist = (artist) => {
+    setSelectedArtist(artist);
+    setShowArtistPicker(false);
+    setArtistOptions([]);
+    searchSetlists(1, artist.name);
+  };
+
+  const clearArtistSelection = () => {
+    setSelectedArtist(null);
+    setResults([]);
+    setPage(1);
+    setTotalPages(1);
+  };
+
+  const searchSetlists = async (pageNum = 1, artistNameOverride = null) => {
+    const searchArtist = artistNameOverride || selectedArtist?.name || artistName.trim();
+    if (!searchArtist) return;
 
     setIsSearching(true);
     setError('');
 
     try {
-      const params = new URLSearchParams({ artistName: artistName.trim(), p: pageNum.toString() });
+      const params = new URLSearchParams({ artistName: searchArtist, p: pageNum.toString() });
       if (year.trim()) params.set('year', year.trim());
       if (venueName.trim()) params.set('venueName', venueName.trim());
       if (cityName.trim()) params.set('cityName', cityName.trim());
@@ -730,9 +795,27 @@ function SearchView({ onImport, importedIds }) {
               placeholder="e.g., Radiohead"
               value={artistName}
               onChange={(e) => setArtistName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+              onKeyPress={(e) => e.key === 'Enter' && searchArtists()}
+              disabled={selectedArtist !== null}
+              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 disabled:opacity-50"
             />
+            {selectedArtist && (
+              <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-lg">
+                <span className="text-emerald-400 text-sm flex-1">
+                  <span className="text-white/60">Searching:</span> {selectedArtist.name}
+                  {selectedArtist.disambiguation && (
+                    <span className="text-white/40 ml-1">({selectedArtist.disambiguation})</span>
+                  )}
+                </span>
+                <button
+                  onClick={clearArtistSelection}
+                  className="text-white/60 hover:text-white p-1"
+                  title="Clear selection"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-white/70 mb-2">Year</label>
@@ -741,7 +824,7 @@ function SearchView({ onImport, importedIds }) {
               placeholder="e.g., 2024"
               value={year}
               onChange={(e) => setYear(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
+              onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
               className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
             />
           </div>
@@ -752,7 +835,7 @@ function SearchView({ onImport, importedIds }) {
               placeholder="e.g., Madison Square Garden"
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
+              onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
               className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
             />
           </div>
@@ -763,20 +846,60 @@ function SearchView({ onImport, importedIds }) {
               placeholder="e.g., New York"
               value={cityName}
               onChange={(e) => setCityName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchSetlists(1)}
+              onKeyPress={(e) => e.key === 'Enter' && (selectedArtist ? searchSetlists(1) : searchArtists())}
               className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
             />
           </div>
         </div>
         <button
-          onClick={() => searchSetlists(1)}
+          onClick={() => selectedArtist ? searchSetlists(1) : searchArtists()}
           disabled={isSearching || !artistName.trim()}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/25"
         >
           <Search className="w-4 h-4" />
-          {isSearching ? 'Searching...' : 'Search Setlist.fm'}
+          {isSearching ? 'Searching...' : (selectedArtist ? 'Search Setlists' : 'Search Artists')}
         </button>
       </div>
+
+      {/* Artist Picker */}
+      {showArtistPicker && artistOptions.length > 0 && (
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Select Artist</h2>
+              <p className="text-sm text-white/50">Multiple artists found - please select the correct one</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowArtistPicker(false);
+                setArtistOptions([]);
+              }}
+              className="text-white/60 hover:text-white p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {artistOptions.map((artist) => (
+              <button
+                key={artist.mbid || artist.name}
+                onClick={() => selectArtist(artist)}
+                className="w-full text-left p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/30 rounded-xl transition-all group"
+              >
+                <div className="font-medium text-white group-hover:text-emerald-400 transition-colors">
+                  {artist.name}
+                </div>
+                {artist.disambiguation && (
+                  <div className="text-sm text-white/50 mt-1">{artist.disambiguation}</div>
+                )}
+                {artist.sortName && artist.sortName !== artist.name && (
+                  <div className="text-xs text-white/30 mt-1">Sort: {artist.sortName}</div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
