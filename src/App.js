@@ -259,7 +259,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
               <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <Music className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-semibold text-white">Show Tracker</span>
+              <span className="text-lg font-semibold text-white">Setlist Tracker</span>
             </div>
             {/* Mobile close button */}
             <button
@@ -351,7 +351,7 @@ function MobileHeader({ onMenuClick }) {
           <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center">
             <Music className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-semibold text-white">Show Tracker</span>
+          <span className="text-lg font-semibold text-white">Setlist Tracker</span>
         </div>
         <div className="w-10" /> {/* Spacer for centering */}
       </div>
@@ -364,7 +364,7 @@ function InviteView() {
   const [email, setEmail] = useState('');
 
   const handleInvite = () => {
-    const subject = encodeURIComponent('Join me on Show Tracker!');
+    const subject = encodeURIComponent('Join me on Setlist Tracker!');
     const body = encodeURIComponent(
       `Hey!\n\nI've been using MySetlists to keep track of all the concerts I've been to. You can save setlists, rate songs, and see your concert stats.\n\nCheck it out and join the community!\n\nhttps://mysetlists.net`
     );
@@ -374,7 +374,7 @@ function InviteView() {
   return (
     <div className="max-w-xl mx-auto">
       <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Invite Friends</h1>
-      <p className="text-white/60 mb-8">Share Show Tracker with your concert-going friends.</p>
+      <p className="text-white/60 mb-8">Share Setlist Tracker with your concert-going friends.</p>
 
       <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
         <label className="block text-sm font-medium text-white/70 mb-2">
@@ -425,7 +425,7 @@ function FeedbackView() {
   const [feedback, setFeedback] = useState('');
 
   const handleSubmit = () => {
-    const subject = encodeURIComponent('Show Tracker Feedback');
+    const subject = encodeURIComponent('Setlist Tracker Feedback');
     const body = encodeURIComponent(feedback);
     window.location.href = `mailto:pdl33@icloud.com?subject=${subject}&body=${body}`;
   };
@@ -1444,7 +1444,7 @@ export default function ShowTracker() {
                 <div className="w-11 h-11 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
                   <Music className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight">Show Tracker</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Setlist Tracker</h1>
               </div>
               <button
                 onClick={() => openAuthModal('login')}
