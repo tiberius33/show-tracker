@@ -366,7 +366,7 @@ function InviteView() {
   const handleInvite = () => {
     const subject = encodeURIComponent('Join me on Show Tracker!');
     const body = encodeURIComponent(
-      `Hey!\n\nI've been using Show Tracker to keep track of all the concerts I've been to. You can save setlists, rate songs, and see your concert stats.\n\nCheck it out and join the community!\n\nhttps://show-tracker.netlify.app`
+      `Hey!\n\nI've been using MySetlists to keep track of all the concerts I've been to. You can save setlists, rate songs, and see your concert stats.\n\nCheck it out and join the community!\n\nhttps://mysetlists.net`
     );
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
@@ -403,12 +403,12 @@ function InviteView() {
           <input
             type="text"
             readOnly
-            value="https://show-tracker.netlify.app"
+            value="https://mysetlists.net"
             className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white/60"
           />
           <button
             onClick={() => {
-              navigator.clipboard.writeText('https://show-tracker.netlify.app');
+              navigator.clipboard.writeText('https://mysetlists.net');
             }}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-sm font-medium transition-colors"
           >
