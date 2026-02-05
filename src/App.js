@@ -5,7 +5,6 @@ import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, o
 import { auth, db, googleProvider } from './firebase';
 import AuthModal from './components/auth/AuthModal';
 import ProfileView from './components/profile/ProfileView';
-import { ShowsOverTimeChart, TopArtistsChart, RatingDistributionChart, TopSongsChart } from './components/stats/StatCharts';
 
 // Admin email whitelist
 const ADMIN_EMAILS = ['phillip.leonard@gmail.com'];
@@ -2401,7 +2400,8 @@ function SongStatsRow({ song, index, onRateSong }) {
 }
 
 function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong }) {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('years');
+  const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -2500,7 +2500,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
     <div className="space-y-4">
       <div className="flex gap-2 mb-4 flex-wrap">
         {[
-          { id: 'overview', label: 'Overview', icon: BarChart3 },
+          { id: 'years', label: 'Years', icon: Calendar },
           { id: 'songs', label: 'Songs', icon: Music },
           { id: 'artists', label: 'Artists', icon: Users },
           { id: 'venues', label: 'Venues', icon: Building2 },
@@ -2521,27 +2521,101 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         ))}
       </div>
 
-      {tab === 'overview' && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-white">Your Concert Journey</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Shows Over Time</h3>
-              <ShowsOverTimeChart shows={shows} />
+      {tab === 'years' && (
+        <div className="space-y-4">
+          {selectedYear ? (
+            // Show details for selected year
+            <div>
+              <button
+                onClick={() => setSelectedYear(null)}
+                className="flex items-center gap-2 text-white/60 hover:text-white mb-4 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back to all years
+              </button>
+              <h2 className="text-xl font-bold text-white mb-4">{selectedYear} Shows</h2>
+              <div className="space-y-3">
+                {shows
+                  .filter(show => {
+                    const d = parseDate(show.date);
+                    return d.getFullYear() === selectedYear;
+                  })
+                  .sort((a, b) => parseDate(b.date) - parseDate(a.date))
+                  .map(show => (
+                    <div
+                      key={show.id}
+                      className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-white truncate">{show.artist}</h3>
+                          <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="truncate">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
+                            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>{formatDate(show.date)}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {show.rating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                              <span className="text-white font-medium">{show.rating}</span>
+                            </div>
+                          )}
+                          <span className="text-white/40 text-sm">{show.setlist?.length || 0} songs</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Top Artists</h3>
-              <TopArtistsChart shows={shows} />
+          ) : (
+            // Show year grid
+            <div>
+              <h2 className="text-xl font-bold text-white mb-4">Shows by Year</h2>
+              {uniqueYears.length === 0 ? (
+                <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {uniqueYears.map(year => {
+                    const yearShows = shows.filter(show => {
+                      const d = parseDate(show.date);
+                      return d.getFullYear() === year;
+                    });
+                    const avgRating = yearShows.filter(s => s.rating).length > 0
+                      ? (yearShows.filter(s => s.rating).reduce((a, s) => a + s.rating, 0) / yearShows.filter(s => s.rating).length).toFixed(1)
+                      : null;
+                    return (
+                      <button
+                        key={year}
+                        onClick={() => setSelectedYear(year)}
+                        className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 hover:border-emerald-500/30 transition-all text-left group"
+                      >
+                        <div className="text-3xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+                          {year}
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          <div className="flex items-center gap-2 text-white/60 text-sm">
+                            <Music className="w-3.5 h-3.5" />
+                            <span>{yearShows.length} show{yearShows.length !== 1 ? 's' : ''}</span>
+                          </div>
+                          {avgRating && (
+                            <div className="flex items-center gap-2 text-white/60 text-sm">
+                              <Star className="w-3.5 h-3.5 text-amber-400" />
+                              <span>{avgRating} avg</span>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Rating Distribution</h3>
-              <RatingDistributionChart shows={shows} />
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Most Heard Songs</h3>
-              <TopSongsChart shows={shows} />
-            </div>
-          </div>
+          )}
         </div>
       )}
 
