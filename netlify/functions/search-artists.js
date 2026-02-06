@@ -9,30 +9,24 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const { artistName, artistMbid, year, venueName, cityName, p } = event.queryStringParameters || {};
+  const { artistName } = event.queryStringParameters || {};
 
-  if (!artistName && !artistMbid) {
+  if (!artistName) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: 'Artist name or MBID is required' })
+      body: JSON.stringify({ error: 'Artist name is required' })
     };
   }
 
-  const params = new URLSearchParams({ p: p || '1' });
-  // Use artistMbid for exact artist match if available, otherwise fall back to artistName
-  if (artistMbid) {
-    params.set('artistMbid', artistMbid);
-  } else {
-    params.set('artistName', artistName);
-  }
-  if (year) params.set('year', year);
-  if (venueName) params.set('venueName', venueName);
-  if (cityName) params.set('cityName', cityName);
+  const params = new URLSearchParams({
+    artistName,
+    sort: 'relevance'
+  });
 
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'api.setlist.fm',
-      path: `/rest/1.0/search/setlists?${params.toString()}`,
+      path: `/rest/1.0/search/artists?${params.toString()}`,
       method: 'GET',
       headers: {
         'x-api-key': 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ',
