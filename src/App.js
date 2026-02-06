@@ -1121,6 +1121,12 @@ export default function ShowTracker() {
             venueStats={getVenueStats()}
             topRatedShows={getTopRatedShows()}
             onRateSong={updateSongRating}
+            onCommentSong={updateSongComment}
+            onAddSong={addSongToShow}
+            onDeleteSong={deleteSong}
+            onRateShow={updateShowRating}
+            onCommentShow={updateShowComment}
+            onBatchRate={batchRateUnrated}
           />
         )}
 
@@ -1847,11 +1853,23 @@ function SongStatsRow({ song, index, onRateSong }) {
   );
 }
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate }) {
   const [tab, setTab] = useState('songs');
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
   const [filterYear, setFilterYear] = useState('');
+  const [selectedShow, setSelectedShow] = useState(null);
+  const [expandedYear, setExpandedYear] = useState(null);
+
+  // Keep selectedShow in sync with shows data
+  useEffect(() => {
+    if (selectedShow) {
+      const updatedShow = shows.find(s => s.id === selectedShow.id);
+      if (updatedShow) {
+        setSelectedShow(updatedShow);
+      }
+    }
+  }, [shows, selectedShow?.id]);
 
   const uniqueArtists = useMemo(() =>
     [...new Set(shows.map(s => s.artist))].sort(), [shows]);
@@ -1864,6 +1882,23 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
       if (d.getFullYear() > 1970) years.add(d.getFullYear());
     });
     return [...years].sort((a, b) => b - a);
+  }, [shows]);
+
+  const showsByYear = useMemo(() => {
+    const grouped = {};
+    shows.forEach(show => {
+      const d = parseDate(show.date);
+      const year = d.getFullYear();
+      if (year > 1970) {
+        if (!grouped[year]) grouped[year] = [];
+        grouped[year].push(show);
+      }
+    });
+    // Sort shows within each year by date descending
+    Object.keys(grouped).forEach(year => {
+      grouped[year].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+    });
+    return grouped;
   }, [shows]);
 
   const hasFilters = filterArtist || filterVenue || filterYear;
@@ -1916,6 +1951,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           { id: 'songs', label: 'Songs', icon: Music },
           { id: 'artists', label: 'Artists', icon: Users },
           { id: 'venues', label: 'Venues', icon: Building2 },
+          { id: 'years', label: 'Years', icon: Calendar },
           { id: 'top', label: 'Top Shows', icon: Star },
         ].map(({ id, label, icon: Icon }) => (
           <button
@@ -2073,6 +2109,126 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         </div>
       )}
 
+      {tab === 'years' && (
+        <div>
+          <h2 className="text-xl font-bold mb-4 text-white">Shows by Year</h2>
+          {uniqueYears.length === 0 ? (
+            <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
+          ) : (
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-white/5 border-b border-white/10">
+                    <th className="text-left px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Year</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Avg Rating</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {uniqueYears.map((year) => {
+                    const yearShows = showsByYear[year] || [];
+                    const ratedShows = yearShows.filter(s => s.rating);
+                    const avgRating = ratedShows.length
+                      ? (ratedShows.reduce((a, s) => a + s.rating, 0) / ratedShows.length).toFixed(1)
+                      : null;
+                    const isExpanded = expandedYear === year;
+
+                    return (
+                      <React.Fragment key={year}>
+                        <tr
+                          className="cursor-pointer hover:bg-white/5 transition-colors"
+                          onClick={() => setExpandedYear(isExpanded ? null : year)}
+                        >
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <ChevronDown className={`w-4 h-4 text-white/40 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                              <span className="font-bold text-xl text-emerald-400">{year}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                              {yearShows.length}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            {avgRating ? (
+                              <span className="text-sm font-semibold text-emerald-400">{avgRating}/10</span>
+                            ) : (
+                              <span className="text-white/30">--</span>
+                            )}
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={3} className="px-4 py-0 bg-white/[0.02]">
+                              <div className="py-4 pl-6 border-l-2 border-emerald-500/50 ml-2 mb-2">
+                                <div className="text-xs font-semibold text-white/40 mb-3 uppercase tracking-wide">Shows in {year}</div>
+                                <div className="space-y-3">
+                                  {yearShows.map((show) => {
+                                    const songAvg = avgSongRating(show.setlist);
+                                    return (
+                                      <div
+                                        key={show.id}
+                                        className="flex items-start justify-between bg-white/5 rounded-2xl p-4 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedShow(show); }}
+                                      >
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-semibold" style={{ color: artistColor(show.artist) }}>
+                                              {show.artist}
+                                            </span>
+                                            {show.tour && (
+                                              <span className="text-xs text-emerald-400 font-medium">
+                                                {show.tour}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-2 text-sm mt-1 text-white/50">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            {formatDate(show.date)}
+                                          </div>
+                                          <div className="flex items-center gap-2 text-sm mt-1 text-white/50">
+                                            <MapPin className="w-3.5 h-3.5" />
+                                            {show.venue}{show.city ? `, ${show.city}` : ''}
+                                          </div>
+                                          <div className="flex items-center gap-4 mt-2 text-xs text-white/40">
+                                            <span>{show.setlist.length} songs</span>
+                                            {songAvg && <span>Avg song rating: {songAvg}/10</span>}
+                                          </div>
+                                          {show.comment && (
+                                            <div className="flex items-start gap-1.5 mt-2 text-sm text-white/50 italic">
+                                              <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                              {show.comment}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="flex-shrink-0 ml-4">
+                                          {show.rating ? (
+                                            <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold text-sm">
+                                              {show.rating}/10
+                                            </span>
+                                          ) : (
+                                            <span className="text-white/30 text-sm">Not rated</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {tab === 'top' && (
         <div>
           <h2 className="text-xl font-bold mb-4 text-white">Top Rated Shows</h2>
@@ -2092,7 +2248,11 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {topRatedShows.map((show, i) => (
-                    <tr key={show.id} className="hover:bg-white/5 transition-colors">
+                    <tr
+                      key={show.id}
+                      className="hover:bg-white/5 transition-colors cursor-pointer"
+                      onClick={() => setSelectedShow(show)}
+                    >
                       <td className="px-4 py-3 text-center text-lg font-bold text-white/30">
                         {i + 1}
                       </td>
@@ -2106,7 +2266,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                       <td className="px-4 py-3 text-white/60">{formatDate(show.date)}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold text-sm">
-                          {show.rating}/10
+                          {show.rating || '--'}/10
                         </span>
                       </td>
                     </tr>
@@ -2116,6 +2276,20 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
             </div>
           )}
         </div>
+      )}
+
+      {selectedShow && (
+        <SetlistEditor
+          show={selectedShow}
+          onAddSong={(song) => onAddSong(selectedShow.id, song)}
+          onRateSong={(songId, rating) => onRateSong(selectedShow.id, songId, rating)}
+          onCommentSong={(songId, comment) => onCommentSong(selectedShow.id, songId, comment)}
+          onDeleteSong={(songId) => onDeleteSong(selectedShow.id, songId)}
+          onRateShow={(rating) => onRateShow(selectedShow.id, rating)}
+          onCommentShow={(comment) => onCommentShow(selectedShow.id, comment)}
+          onBatchRate={(rating) => onBatchRate(selectedShow.id, rating)}
+          onClose={() => setSelectedShow(null)}
+        />
       )}
     </div>
   );
