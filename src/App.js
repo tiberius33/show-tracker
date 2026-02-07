@@ -3,6 +3,8 @@ import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Share2, Check,
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
+import { Link } from 'react-router-dom';
+import Footer from './Footer';
 
 // Admin email whitelist
 const ADMIN_EMAILS = ['phillip.leonard@gmail.com'];
@@ -721,6 +723,12 @@ export default function ShowTracker() {
               <Music className="w-5 h-5" />
               Get Started Free
             </button>
+            <p className="text-sm text-white/40 mt-4">
+              By creating an account, you agree to our{' '}
+              <Link to="/terms" className="text-white/60 hover:text-white/80 underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy" className="text-white/60 hover:text-white/80 underline">Privacy Policy</Link>.
+            </p>
           </div>
 
           {/* Community Stats */}
@@ -844,10 +852,7 @@ export default function ShowTracker() {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="mt-auto py-8 text-center text-white/30 text-sm">
-          <p>Track shows from setlist.fm &middot; Rate your favorite performances &middot; Share your concert journey</p>
-        </div>
+        <Footer />
       </div>
     );
   }
@@ -1128,6 +1133,8 @@ export default function ShowTracker() {
           <AdminView />
         )}
       </div>
+
+      <Footer />
     </div>
   );
 }
