@@ -528,6 +528,20 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.6.0',
+      date: 'February 2026',
+      title: 'Legal Pages & Stats Improvements',
+      changes: [
+        'Added Privacy Policy, Terms of Service, and Cookie Policy pages',
+        'New site-wide footer with links to all legal pages',
+        'Cookie consent banner on first visit with Accept/Decline options',
+        'Terms & Privacy consent language on the signup screen',
+        'Redesigned Years tab with expandable accordion view',
+        'Double-click any show in the Years view to open full show details',
+        'Fixed duplicate Years tab in Stats navigation',
+      ]
+    },
+    {
       version: '1.5.0',
       date: 'February 2025',
       title: 'Guest Mode & Stats Improvements',
