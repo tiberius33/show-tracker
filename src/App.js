@@ -106,8 +106,9 @@ async function updateCommunityStats() {
     const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
     const profiles = profilesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Get all shows from all users for song aggregation
+    // Get all shows from all users for song and venue aggregation
     const allSongs = {};
+    const allVenues = {};
     let totalShows = 0;
     let totalSongs = 0;
 
@@ -117,6 +118,14 @@ async function updateCommunityStats() {
       totalShows += userShows.length;
 
       for (const show of userShows) {
+        // Track venue attendance
+        const venueName = show.venue + (show.city ? `, ${show.city}` : '');
+        if (!allVenues[venueName]) {
+          allVenues[venueName] = { count: 0, artists: new Set() };
+        }
+        allVenues[venueName].count++;
+        allVenues[venueName].artists.add(show.artist);
+
         const setlist = show.setlist || [];
         for (const song of setlist) {
           totalSongs++;
@@ -125,11 +134,15 @@ async function updateCommunityStats() {
             allSongs[songKey] = {
               songName: song.name,
               users: new Set(),
-              artists: new Set()
+              artists: new Set(),
+              ratings: []
             };
           }
           allSongs[songKey].users.add(profile.id);
           allSongs[songKey].artists.add(show.artist);
+          if (song.rating) {
+            allSongs[songKey].ratings.push(song.rating);
+          }
         }
       }
     }
@@ -137,7 +150,7 @@ async function updateCommunityStats() {
     // Build leaderboards
     const topShowsAttended = [...profiles]
       .sort((a, b) => (b.showCount || 0) - (a.showCount || 0))
-      .slice(0, 10)
+      .slice(0, 5)
       .map(p => ({
         odubleserId: p.id,
         firstName: p.firstName,
@@ -147,7 +160,7 @@ async function updateCommunityStats() {
 
     const topSongsRated = [...profiles]
       .sort((a, b) => (b.ratedSongCount || 0) - (a.ratedSongCount || 0))
-      .slice(0, 10)
+      .slice(0, 5)
       .map(p => ({
         odubleserId: p.id,
         firstName: p.firstName,
@@ -157,7 +170,7 @@ async function updateCommunityStats() {
 
     const topVenuesVisited = [...profiles]
       .sort((a, b) => (b.venueCount || 0) - (a.venueCount || 0))
-      .slice(0, 10)
+      .slice(0, 5)
       .map(p => ({
         odubleserId: p.id,
         firstName: p.firstName,
@@ -173,7 +186,29 @@ async function updateCommunityStats() {
         artists: [...s.artists].slice(0, 3)
       }))
       .sort((a, b) => b.userCount - a.userCount)
-      .slice(0, 10);
+      .slice(0, 5);
+
+    // Top songs by average rating (minimum 2 ratings to qualify)
+    const topSongsByRating = Object.values(allSongs)
+      .filter(s => s.ratings.length >= 2)
+      .map(s => ({
+        songName: s.songName,
+        avgRating: (s.ratings.reduce((a, b) => a + b, 0) / s.ratings.length).toFixed(1),
+        ratingCount: s.ratings.length,
+        artists: [...s.artists].slice(0, 3)
+      }))
+      .sort((a, b) => parseFloat(b.avgRating) - parseFloat(a.avgRating))
+      .slice(0, 5);
+
+    // Top venues by number of shows
+    const topVenues = Object.entries(allVenues)
+      .map(([name, data]) => ({
+        venueName: name,
+        showCount: data.count,
+        artistCount: data.artists.size
+      }))
+      .sort((a, b) => b.showCount - a.showCount)
+      .slice(0, 5);
 
     // Save community stats
     const statsRef = doc(db, 'communityStats', 'global');
@@ -185,7 +220,9 @@ async function updateCommunityStats() {
       topShowsAttended,
       topSongsRated,
       topVenuesVisited,
-      topSongsBySightings
+      topSongsBySightings,
+      topSongsByRating,
+      topVenues
     });
   } catch (error) {
     console.error('Failed to update community stats:', error);
@@ -632,7 +669,7 @@ function CommunityStatsView({ communityStats }) {
             <h2 className="font-semibold text-white text-lg">Top Show-Goers</h2>
           </div>
           <div className="space-y-3">
-            {(communityStats.topShowsAttended || []).slice(0, 10).map((user, i) => (
+            {(communityStats.topShowsAttended || []).slice(0, 5).map((user, i) => (
               <div key={user.odubleserId} className="flex items-center gap-3">
                 <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-white/40'}`}>
                   {i + 1}
@@ -649,7 +686,7 @@ function CommunityStatsView({ communityStats }) {
           </div>
         </div>
 
-        {/* Top Rated Shows */}
+        {/* Top Raters */}
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-500 rounded-xl flex items-center justify-center">
@@ -658,7 +695,7 @@ function CommunityStatsView({ communityStats }) {
             <h2 className="font-semibold text-white text-lg">Top Raters</h2>
           </div>
           <div className="space-y-3">
-            {(communityStats.topSongsRated || []).slice(0, 10).map((user, i) => (
+            {(communityStats.topSongsRated || []).slice(0, 5).map((user, i) => (
               <div key={user.odubleserId} className="flex items-center gap-3">
                 <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-pink-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-pink-600' : 'text-white/40'}`}>
                   {i + 1}
@@ -675,16 +712,16 @@ function CommunityStatsView({ communityStats }) {
           </div>
         </div>
 
-        {/* Most Popular Songs */}
+        {/* Top Rated Songs */}
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
-            <h2 className="font-semibold text-white text-lg">Popular Songs</h2>
+            <h2 className="font-semibold text-white text-lg">Top Rated Songs</h2>
           </div>
           <div className="space-y-3">
-            {(communityStats.topSongsBySightings || []).slice(0, 10).map((song, i) => (
+            {(communityStats.topSongsByRating || []).slice(0, 5).map((song, i) => (
               <div key={song.songName} className="flex items-center gap-3">
                 <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-violet-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-violet-600' : 'text-white/40'}`}>
                   {i + 1}
@@ -693,34 +730,40 @@ function CommunityStatsView({ communityStats }) {
                   <div className="text-white/80 truncate">{song.songName}</div>
                   <div className="text-white/40 text-xs truncate">{song.artists?.join(', ')}</div>
                 </div>
-                <span className="bg-violet-500/20 text-violet-400 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
-                  {song.userCount} fans
-                </span>
+                <div className="text-right">
+                  <span className="bg-violet-500/20 text-violet-400 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
+                    {song.avgRating}/10
+                  </span>
+                  <div className="text-white/30 text-xs mt-1">{song.ratingCount} ratings</div>
+                </div>
               </div>
             ))}
+            {(!communityStats.topSongsByRating || communityStats.topSongsByRating.length === 0) && (
+              <p className="text-white/40 text-sm">Not enough ratings yet. Songs need at least 2 ratings to appear.</p>
+            )}
           </div>
         </div>
 
-        {/* Venue Explorers */}
+        {/* Top Venues */}
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center">
               <Building2 className="w-5 h-5 text-white" />
             </div>
-            <h2 className="font-semibold text-white text-lg">Venue Explorers</h2>
+            <h2 className="font-semibold text-white text-lg">Top Venues</h2>
           </div>
           <div className="space-y-3">
-            {(communityStats.topVenuesVisited || []).slice(0, 10).map((user, i) => (
-              <div key={user.odubleserId} className="flex items-center gap-3">
+            {(communityStats.topVenues || []).slice(0, 5).map((venue, i) => (
+              <div key={venue.venueName} className="flex items-center gap-3">
                 <span className={`text-lg font-bold w-6 ${i === 0 ? 'text-cyan-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-cyan-600' : 'text-white/40'}`}>
                   {i + 1}
                 </span>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-white/80 truncate">{venue.venueName}</div>
+                  <div className="text-white/40 text-xs">{venue.artistCount} artists</div>
                 </div>
-                <span className="text-white/80 flex-1">{user.firstName}</span>
                 <span className="bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-full text-sm font-semibold">
-                  {user.count} venues
+                  {venue.showCount} shows
                 </span>
               </div>
             ))}
