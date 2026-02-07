@@ -3069,7 +3069,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                         {yearShows.map(show => (
                           <div
                             key={show.id}
-                            className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors"
+                            onDoubleClick={() => setSelectedShow(show)}
+                            className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors cursor-pointer"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
