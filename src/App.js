@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -226,6 +226,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
       { id: 'invite', label: 'Invite', icon: Mail },
     ]),
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+    { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
   ];
 
   const handleNavClick = (id) => {
@@ -479,6 +480,127 @@ function FeedbackView() {
           <Send className="w-4 h-4" />
           Send Feedback
         </button>
+      </div>
+    </div>
+  );
+}
+
+// Release Notes View Component
+function ReleaseNotesView() {
+  const releases = [
+    {
+      version: '1.5.0',
+      date: 'February 2025',
+      title: 'Guest Mode & Stats Improvements',
+      changes: [
+        'Try the app without creating an account - shows saved locally',
+        'Click shows in Stats view to edit them (same as Shows page)',
+        'New Years tab in Stats to browse shows by year',
+        'Prompt to create account after adding first show in guest mode',
+        'Guest shows automatically migrate when you create an account',
+      ]
+    },
+    {
+      version: '1.4.0',
+      date: 'February 2025',
+      title: 'PWA & Authentication Updates',
+      changes: [
+        'Install as an app on your phone or desktop (PWA support)',
+        'Email/password authentication option added',
+        'Profile page with your concert statistics',
+        'Community leaderboards showing top show-goers',
+        'Invite friends via email',
+        'New sidebar navigation for easier access',
+      ]
+    },
+    {
+      version: '1.3.0',
+      date: 'January 2025',
+      title: 'Enhanced Stats & Filtering',
+      changes: [
+        'Filter songs by artist, venue, or year in Stats',
+        'Expandable venue details showing shows by year',
+        'Top rated shows leaderboard',
+        'Average song ratings displayed per show',
+        'Improved mobile responsiveness',
+      ]
+    },
+    {
+      version: '1.2.0',
+      date: 'January 2025',
+      title: 'Setlist Editing & Notes',
+      changes: [
+        'Add missing songs to any setlist',
+        'Rate individual songs (1-10 scale)',
+        'Add personal notes to songs',
+        'Add notes to entire shows',
+        'Batch rate all unrated songs at once',
+        'Delete songs from setlists',
+      ]
+    },
+    {
+      version: '1.1.0',
+      date: 'December 2024',
+      title: 'Search & Import',
+      changes: [
+        'Search setlist.fm for shows by artist',
+        'Filter by year, venue, or city',
+        'One-click import of setlists',
+        'Manual show entry option',
+        'Show rating system (1-10)',
+      ]
+    },
+    {
+      version: '1.0.0',
+      date: 'December 2024',
+      title: 'Initial Release',
+      changes: [
+        'Track your concert history',
+        'Google sign-in authentication',
+        'Cloud sync across devices',
+        'Basic statistics (shows, songs, artists)',
+        'Share your collection stats',
+      ]
+    },
+  ];
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Release Notes</h1>
+      <p className="text-white/60 mb-8">What's new in Setlist Tracker</p>
+
+      <div className="space-y-6">
+        {releases.map((release, index) => (
+          <div
+            key={release.version}
+            className={`bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 ${
+              index === 0 ? 'ring-2 ring-emerald-500/30' : ''
+            }`}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="text-lg font-bold text-white">v{release.version}</span>
+                  {index === 0 && (
+                    <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold">
+                      Latest
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-emerald-400 font-medium">{release.title}</h3>
+              </div>
+              <span className="text-white/40 text-sm">{release.date}</span>
+            </div>
+            <ul className="space-y-2">
+              {release.changes.map((change, i) => (
+                <li key={i} className="flex items-start gap-3 text-white/70">
+                  <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>{change}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1997,11 +2119,12 @@ export default function ShowTracker() {
           <>
             {/* Summary stats */}
             {shows.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
                 {[
                   { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400' },
                   { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400' },
                   { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-amber-400 to-orange-400' },
+                  { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-cyan-400 to-blue-400' },
                   { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-pink-400 to-rose-400' },
                 ].map(stat => (
                   <div key={stat.label} className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-5 text-center hover:bg-white/15 transition-all">
@@ -2185,6 +2308,10 @@ export default function ShowTracker() {
 
         {activeView === 'feedback' && (
           <FeedbackView />
+        )}
+
+        {activeView === 'release-notes' && (
+          <ReleaseNotesView />
         )}
 
         {activeView === 'community' && !guestMode && (
