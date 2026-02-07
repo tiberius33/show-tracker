@@ -3029,99 +3029,77 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'years' && (
         <div className="space-y-4">
-          {selectedYear ? (
-            // Show details for selected year
-            <div>
-              <button
-                onClick={() => setSelectedYear(null)}
-                className="flex items-center gap-2 text-white/60 hover:text-white mb-4 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back to all years
-              </button>
-              <h2 className="text-xl font-bold text-white mb-4">{selectedYear} Shows</h2>
-              <div className="space-y-3">
-                {shows
-                  .filter(show => {
-                    const d = parseDate(show.date);
-                    return d.getFullYear() === selectedYear;
-                  })
-                  .sort((a, b) => parseDate(b.date) - parseDate(a.date))
-                  .map(show => (
-                    <div
-                      key={show.id}
-                      className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-white truncate">{show.artist}</h3>
-                          <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
-                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="truncate">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
-                            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span>{formatDate(show.date)}</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {show.rating && (
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                              <span className="text-white font-medium">{show.rating}</span>
-                            </div>
-                          )}
-                          <span className="text-white/40 text-sm">{show.setlist?.length || 0} songs</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
+          <h2 className="text-xl font-bold text-white mb-4">Shows by Year</h2>
+          {uniqueYears.length === 0 ? (
+            <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
           ) : (
-            // Show year grid
-            <div>
-              <h2 className="text-xl font-bold text-white mb-4">Shows by Year</h2>
-              {uniqueYears.length === 0 ? (
-                <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
-              ) : (
-                <div className="space-y-1">
-                  {uniqueYears.map(year => {
-                    const yearShows = shows.filter(show => {
-                      const d = parseDate(show.date);
-                      return d.getFullYear() === year;
-                    });
-                    const avgRating = yearShows.filter(s => s.rating).length > 0
-                      ? (yearShows.filter(s => s.rating).reduce((a, s) => a + s.rating, 0) / yearShows.filter(s => s.rating).length).toFixed(1)
-                      : null;
-                    return (
-                      <button
-                        key={year}
-                        onClick={() => setSelectedYear(year)}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/10 transition-all text-left group"
-                      >
-                        <div className="flex items-center gap-4">
-                          <span className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
-                            {year}
-                          </span>
-                          <span className="text-white/50 text-sm">
-                            {yearShows.length} show{yearShows.length !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {avgRating && (
-                            <div className="flex items-center gap-1 text-white/60 text-sm">
-                              <Star className="w-3.5 h-3.5 text-amber-400" />
-                              <span>{avgRating}</span>
+            <div className="space-y-2">
+              {uniqueYears.map(year => {
+                const yearShows = showsByYear[year] || [];
+                const avgRating = yearShows.filter(s => s.rating).length > 0
+                  ? (yearShows.filter(s => s.rating).reduce((a, s) => a + s.rating, 0) / yearShows.filter(s => s.rating).length).toFixed(1)
+                  : null;
+                const isExpanded = expandedYear === year;
+                return (
+                  <div key={year}>
+                    <button
+                      onClick={() => setExpandedYear(isExpanded ? null : year)}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/10 transition-all text-left group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                        <span className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+                          {year}
+                        </span>
+                        <span className="text-white/50 text-sm">
+                          {yearShows.length} show{yearShows.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {avgRating && (
+                          <div className="flex items-center gap-1 text-white/60 text-sm">
+                            <Star className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{avgRating} avg</span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="space-y-2 pl-4 pr-2 pb-2 mt-1">
+                        {yearShows.map(show => (
+                          <div
+                            key={show.id}
+                            className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-white truncate">{show.artist}</h3>
+                                <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
+                                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                                  <span className="truncate">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
+                                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                                  <span>{formatDate(show.date)}</span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                {show.rating && (
+                                  <div className="flex items-center gap-1">
+                                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                    <span className="text-white font-medium">{show.rating}</span>
+                                  </div>
+                                )}
+                                <span className="text-white/40 text-sm">{show.setlist?.length || 0} songs</span>
+                              </div>
                             </div>
-                          )}
-                          <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
