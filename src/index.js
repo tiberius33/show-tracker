@@ -7,6 +7,7 @@ import PrivacyPolicy from './PrivacyPolicy';
 import TermsOfService from './TermsOfService';
 import CookiePolicy from './CookiePolicy';
 import CookieConsentBanner from './CookieConsentBanner';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -22,3 +23,13 @@ root.render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Register service worker for PWA
+serviceWorkerRegistration.register({
+  onUpdate: (registration) => {
+    console.log('New version available! Refresh to update.');
+  },
+  onSuccess: (registration) => {
+    console.log('App ready for offline use');
+  }
+});
