@@ -215,14 +215,16 @@ function RatingSelect({ value, onChange, max = 10, label }) {
 }
 
 // Sidebar Navigation Component
-function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpen, onClose }) {
+function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount }) {
   const navItems = [
     { id: 'search', label: 'Search', icon: Search },
     { id: 'shows', label: 'Shows', icon: List },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'community', label: 'Community', icon: Users },
-    { id: 'invite', label: 'Invite', icon: Mail },
+    ...(isGuest ? [] : [
+      { id: 'profile', label: 'Profile', icon: User },
+      { id: 'community', label: 'Community', icon: Users },
+      { id: 'invite', label: 'Invite', icon: Mail },
+    ]),
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   ];
 
@@ -274,10 +276,17 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
         {/* User info */}
         <div className="px-4 py-3 border-b border-white/5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              isGuest
+                ? 'bg-gradient-to-br from-amber-500 to-orange-500'
+                : 'bg-gradient-to-br from-emerald-500 to-teal-500'
+            }`}>
               <User className="w-4 h-4 text-white" />
             </div>
-            <span className="text-sm text-white/70 truncate">{userName}</span>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-white/70 truncate block">{userName}</span>
+              {isGuest && <span className="text-xs text-amber-400">Guest Mode</span>}
+            </div>
           </div>
         </div>
 
@@ -301,6 +310,22 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
 
         {/* Bottom section */}
         <div className="p-3 border-t border-white/5 space-y-1">
+          {isGuest && (
+            <>
+              <div className="px-4 py-2 mb-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                <p className="text-xs text-amber-400">
+                  Your shows are saved locally. Create an account to sync across devices.
+                </p>
+              </div>
+              <button
+                onClick={() => { onCreateAccount(); onClose && onClose(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 transition-all"
+              >
+                <User className="w-5 h-5" />
+                <span className="font-medium">Create Account</span>
+              </button>
+            </>
+          )}
           {isAdmin && (
             <button
               onClick={() => handleNavClick('admin')}
@@ -328,7 +353,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-white/60 hover:bg-white/5 hover:text-white/80 transition-all"
           >
             <LogOut className="w-5 h-5" />
-            <span className="font-medium">Logout</span>
+            <span className="font-medium">{isGuest ? 'Exit Guest Mode' : 'Logout'}</span>
           </button>
         </div>
       </div>
@@ -1069,6 +1094,8 @@ export default function ShowTracker() {
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const [localShowsToMigrate, setLocalShowsToMigrate] = useState([]);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'signup' | 'forgot-password'
+  const [guestMode, setGuestMode] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false); // Prompt to create account after first show
 
   // Community stats
   const [communityStats, setCommunityStats] = useState(null);
@@ -1150,6 +1177,31 @@ export default function ShowTracker() {
     }
   }, [calculateUserRank]);
 
+  // Load guest shows from localStorage
+  const loadGuestShows = useCallback(() => {
+    try {
+      const stored = localStorage.getItem('guest-shows');
+      if (stored) {
+        const guestShows = JSON.parse(stored);
+        if (guestShows && guestShows.length > 0) {
+          setShows(guestShows);
+        }
+      }
+    } catch (error) {
+      console.log('Failed to load guest shows:', error);
+    }
+    setIsLoading(false);
+  }, []);
+
+  // Save guest shows to localStorage
+  const saveGuestShows = useCallback((showsToSave) => {
+    try {
+      localStorage.setItem('guest-shows', JSON.stringify(showsToSave));
+    } catch (error) {
+      console.log('Failed to save guest shows:', error);
+    }
+  }, []);
+
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -1157,8 +1209,20 @@ export default function ShowTracker() {
       setAuthLoading(false);
 
       if (currentUser) {
+        setGuestMode(false);
         checkForLocalData();
+        // Also check for guest shows to migrate
+        const guestStored = localStorage.getItem('guest-shows');
+        if (guestStored) {
+          const guestShows = JSON.parse(guestStored);
+          if (guestShows && guestShows.length > 0) {
+            setLocalShowsToMigrate(prev => [...prev, ...guestShows]);
+            setShowMigrationPrompt(true);
+          }
+        }
         loadShows(currentUser.uid);
+      } else if (guestMode) {
+        loadGuestShows();
       } else {
         setShows([]);
         setIsLoading(false);
@@ -1166,7 +1230,7 @@ export default function ShowTracker() {
     });
 
     return () => unsubscribe();
-  }, [checkForLocalData, loadShows]);
+  }, [checkForLocalData, loadShows, guestMode, loadGuestShows]);
 
   const handleMigrateData = async () => {
     if (!user || localShowsToMigrate.length === 0) return;
@@ -1181,6 +1245,7 @@ export default function ShowTracker() {
         });
       }
       localStorage.removeItem('concert-shows');
+      localStorage.removeItem('guest-shows');
       setShowMigrationPrompt(false);
       setLocalShowsToMigrate([]);
       loadShows(user.uid);
@@ -1221,7 +1286,20 @@ export default function ShowTracker() {
   const closeAuthModal = () => setAuthModal(null);
   const switchAuthMode = (mode) => setAuthModal(mode);
   const handleAuthSuccess = () => setAuthModal(null);
+
+  // Enter guest mode
+  const enterGuestMode = () => {
+    setGuestMode(true);
+    loadGuestShows();
+  };
+
   const saveShow = async (updatedShow) => {
+    if (guestMode) {
+      // Save to localStorage for guest users
+      const updatedShows = shows.map(s => s.id === updatedShow.id ? updatedShow : s);
+      saveGuestShows(updatedShows);
+      return;
+    }
     if (!user) return;
     try {
       const showRef = doc(db, 'users', user.uid, 'shows', updatedShow.id);
@@ -1233,22 +1311,42 @@ export default function ShowTracker() {
   };
 
   const addShow = async (showData) => {
-    if (!user) return;
-
+    const showId = Date.now().toString();
     const newShow = {
       ...showData,
+      id: showId,
       setlist: showData.setlist || [],
-      createdAt: serverTimestamp(),
+      createdAt: new Date().toISOString(),
       isManual: !showData.setlistfmId
     };
 
-    const showId = Date.now().toString();
+    const isFirstShow = shows.length === 0;
+
+    if (guestMode) {
+      // Guest mode: save to localStorage
+      const updatedShows = [...shows, newShow];
+      setShows(updatedShows);
+      saveGuestShows(updatedShows);
+      setShowForm(false);
+
+      // Show prompt to create account after first show
+      if (isFirstShow) {
+        setShowCelebration(true);
+        setTimeout(() => {
+          setShowCelebration(false);
+          setShowGuestPrompt(true);
+        }, 2000);
+      }
+      return;
+    }
+
+    if (!user) return;
 
     try {
       const showRef = doc(db, 'users', user.uid, 'shows', showId);
-      await setDoc(showRef, newShow);
-      const isFirstShow = shows.length === 0;
-      const updatedShows = [...shows, { id: showId, ...newShow, createdAt: new Date().toISOString() }];
+      const { id, ...showDataWithoutId } = newShow;
+      await setDoc(showRef, { ...showDataWithoutId, createdAt: serverTimestamp() });
+      const updatedShows = [...shows, newShow];
       setShows(updatedShows);
       setShowForm(false);
 
@@ -1269,8 +1367,17 @@ export default function ShowTracker() {
   };
 
   const deleteShow = async (showId) => {
-    if (!user) return;
     if (!window.confirm('Delete this show?')) return;
+
+    if (guestMode) {
+      const updatedShows = shows.filter(s => s.id !== showId);
+      setShows(updatedShows);
+      saveGuestShows(updatedShows);
+      if (selectedShow?.id === showId) setSelectedShow(null);
+      return;
+    }
+
+    if (!user) return;
 
     try {
       const showRef = doc(db, 'users', user.uid, 'shows', showId);
@@ -1562,8 +1669,8 @@ export default function ShowTracker() {
     );
   }
 
-  // Show login screen if not authenticated
-  if (!user) {
+  // Show login screen if not authenticated and not in guest mode
+  if (!user && !guestMode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 text-white">
         {/* Header */}
@@ -1598,13 +1705,22 @@ export default function ShowTracker() {
             <p className="text-lg md:text-xl text-white/70 mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed px-4">
               Save setlists, rate songs, discover patterns in your concert history, and join a community of live music lovers.
             </p>
-            <button
-              onClick={() => openAuthModal('signup')}
-              className="inline-flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-full transition-all text-base md:text-lg font-semibold shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
-            >
-              <Music className="w-5 h-5" />
-              Get Started Free
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => openAuthModal('signup')}
+                className="inline-flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-full transition-all text-base md:text-lg font-semibold shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
+              >
+                <Music className="w-5 h-5" />
+                Get Started Free
+              </button>
+              <button
+                onClick={enterGuestMode}
+                className="inline-flex items-center gap-2 px-6 py-3 md:py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full transition-all text-base font-medium"
+              >
+                Try it First
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-white/40">No account needed to try - your shows will be saved locally</p>
             <div className="mt-6">
               <a
                 href="https://buymeacoffee.com/phillipd"
@@ -1810,6 +1926,54 @@ export default function ShowTracker() {
         </div>
       )}
 
+      {/* Guest Mode Account Prompt */}
+      {showGuestPrompt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Great Start!</h2>
+              <p className="text-white/60">
+                Your show is saved locally on this device. Create a free account to:
+              </p>
+            </div>
+            <ul className="space-y-3 mb-6">
+              <li className="flex items-center gap-3 text-white/80">
+                <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                <span>Save your shows permanently in the cloud</span>
+              </li>
+              <li className="flex items-center gap-3 text-white/80">
+                <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                <span>Access your collection from any device</span>
+              </li>
+              <li className="flex items-center gap-3 text-white/80">
+                <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                <span>Join the community leaderboards</span>
+              </li>
+            </ul>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => { setShowGuestPrompt(false); openAuthModal('signup'); }}
+                className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/30"
+              >
+                Create Free Account
+              </button>
+              <button
+                onClick={() => setShowGuestPrompt(false)}
+                className="w-full px-4 py-3 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl font-medium transition-colors"
+              >
+                Maybe Later
+              </button>
+            </div>
+            <p className="text-center text-white/40 text-xs mt-4">
+              Your locally saved shows will be imported to your account
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Header */}
       <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
 
@@ -1818,10 +1982,12 @@ export default function ShowTracker() {
         activeView={activeView}
         setActiveView={(view) => { setActiveView(view); setSelectedArtist(null); }}
         isAdmin={isAdmin}
-        onLogout={handleLogout}
-        userName={extractFirstName(user.displayName)}
+        onLogout={guestMode ? () => { setGuestMode(false); setShows([]); } : handleLogout}
+        userName={guestMode ? 'Guest' : extractFirstName(user?.displayName)}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isGuest={guestMode}
+        onCreateAccount={() => openAuthModal('signup')}
       />
 
       {/* Main Content Area */}
@@ -2013,7 +2179,7 @@ export default function ShowTracker() {
           />
         )}
 
-        {activeView === 'invite' && (
+        {activeView === 'invite' && !guestMode && (
           <InviteView />
         )}
 
@@ -2021,11 +2187,11 @@ export default function ShowTracker() {
           <FeedbackView />
         )}
 
-        {activeView === 'community' && (
+        {activeView === 'community' && !guestMode && (
           <CommunityStatsView communityStats={communityStats} />
         )}
 
-        {activeView === 'profile' && (
+        {activeView === 'profile' && !guestMode && user && (
           <ProfileView
             user={user}
             shows={shows}
