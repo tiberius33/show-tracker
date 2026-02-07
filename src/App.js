@@ -3,6 +3,8 @@ import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search,
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
+import { Link } from 'react-router-dom';
+import Footer from './Footer';
 import AuthModal from './components/auth/AuthModal';
 import ProfileView from './components/profile/ProfileView';
 
@@ -1885,7 +1887,12 @@ export default function ShowTracker() {
                 Try it First
               </button>
             </div>
-            <p className="mt-4 text-sm text-white/40">No account needed to try - your shows will be saved locally</p>
+            <p className="mt-4 text-sm text-white/40">
+              By creating an account, you agree to our{' '}
+              <Link to="/terms" className="text-white/60 hover:text-white/80 underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy" className="text-white/60 hover:text-white/80 underline">Privacy Policy</Link>.
+            </p>
             <div className="mt-6">
               <a
                 href="https://buymeacoffee.com/phillipd"
@@ -2008,10 +2015,7 @@ export default function ShowTracker() {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="mt-auto py-8 text-center text-white/30 text-sm">
-          <p>Track shows from setlist.fm &middot; Rate your favorite performances &middot; Share your concert journey</p>
-        </div>
+        <Footer />
 
         {/* Auth Modal */}
         {authModal && (
@@ -2377,6 +2381,8 @@ export default function ShowTracker() {
         )}
         </div>
       </div>
+
+      <Footer />
 
       {/* PWA Install Prompt */}
       <InstallPrompt />
