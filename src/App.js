@@ -528,8 +528,8 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '1.6.1',
-      date: 'February 2026',
+      version: '1.0.7',
+      date: 'February 7, 2026',
       title: 'Artist Stats Upgrade',
       changes: [
         'Expandable artist rows in the Stats Artists tab — click to see all shows for that artist',
@@ -537,8 +537,8 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.6.0',
-      date: 'February 2026',
+      version: '1.0.6',
+      date: 'February 7, 2026',
       title: 'Legal Pages & Stats Improvements',
       changes: [
         'Added Privacy Policy, Terms of Service, and Cookie Policy pages',
@@ -551,8 +551,8 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.5.0',
-      date: 'February 2025',
+      version: '1.0.5',
+      date: 'February 6, 2026',
       title: 'Guest Mode & Stats Improvements',
       changes: [
         'Try the app without creating an account - shows saved locally',
@@ -563,8 +563,8 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.4.0',
-      date: 'February 2025',
+      version: '1.0.4',
+      date: 'February 5, 2026',
       title: 'PWA & Authentication Updates',
       changes: [
         'Install as an app on your phone or desktop (PWA support)',
@@ -576,8 +576,8 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.3.0',
-      date: 'January 2025',
+      version: '1.0.3',
+      date: 'February 4, 2026',
       title: 'Enhanced Stats & Filtering',
       changes: [
         'Filter songs by artist, venue, or year in Stats',
@@ -588,8 +588,8 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.2.0',
-      date: 'January 2025',
+      version: '1.0.2',
+      date: 'February 3, 2026',
       title: 'Setlist Editing & Notes',
       changes: [
         'Add missing songs to any setlist',
@@ -601,8 +601,8 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.1.0',
-      date: 'December 2024',
+      version: '1.0.1',
+      date: 'February 2, 2026',
       title: 'Search & Import',
       changes: [
         'Search setlist.fm for shows by artist',
@@ -613,8 +613,8 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.0.0',
-      date: 'December 2024',
+      version: '1.0',
+      date: 'February 1, 2026',
       title: 'Initial Release',
       changes: [
         'Track your concert history',
