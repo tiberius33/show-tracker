@@ -528,6 +528,15 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.6.1',
+      date: 'February 2026',
+      title: 'Artist Stats Upgrade',
+      changes: [
+        'Expandable artist rows in the Stats Artists tab — click to see all shows for that artist',
+        'Double-click any show under an artist to open full show details',
+      ]
+    },
+    {
       version: '1.6.0',
       date: 'February 2026',
       title: 'Legal Pages & Stats Improvements',
@@ -3181,44 +3190,75 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           {artistStats.length === 0 ? (
             <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
           ) : (
-            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Artist</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Total Songs</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Avg Rating</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {artistStats.map((artist) => (
-                    <tr key={artist.name} className="hover:bg-white/5 transition-colors">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
-                          <span className="font-medium" style={{ color: artistColor(artist.name) }}>{artist.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-center">
+            <div className="space-y-2">
+              {artistStats.map((artist) => {
+                const isExpanded = expandedShow === `artist-${artist.name}`;
+                const artistShows = shows
+                  .filter(s => s.artist === artist.name)
+                  .sort((a, b) => parseDate(b.date) - parseDate(a.date));
+                return (
+                  <div key={artist.name}>
+                    <button
+                      onClick={() => setExpandedShow(isExpanded ? null : `artist-${artist.name}`)}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/10 transition-all text-left group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
+                        <span className="font-medium group-hover:text-emerald-400 transition-colors" style={{ color: artistColor(artist.name) }}>{artist.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
                         <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
-                          {artist.count}
+                          {artist.count} show{artist.count !== 1 ? 's' : ''}
                         </span>
-                      </td>
-                      <td className="px-4 py-4 text-center text-white/60">{artist.totalSongs}</td>
-                      <td className="px-4 py-4 text-center">
+                        <span className="text-white/40 text-sm">{artist.totalSongs} songs</span>
                         {artist.avgRating ? (
-                          <span className="text-sm font-semibold text-emerald-400">
-                            {artist.avgRating}/10
-                          </span>
-                        ) : (
-                          <span className="text-white/30">--</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          <div className="flex items-center gap-1 text-white/60 text-sm">
+                            <Star className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{artist.avgRating}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="space-y-2 pl-4 pr-2 pb-2 mt-1">
+                        {artistShows.map(show => (
+                          <div
+                            key={show.id}
+                            onDoubleClick={() => setSelectedShow(show)}
+                            className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-white/60 text-sm">
+                                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                                  <span>{formatDate(show.date)}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
+                                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                                  <span className="truncate">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                                </div>
+                                {show.tour && (
+                                  <div className="text-emerald-400/70 text-sm mt-1">{show.tour}</div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                {show.rating && (
+                                  <div className="flex items-center gap-1">
+                                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                    <span className="text-white font-medium">{show.rating}</span>
+                                  </div>
+                                )}
+                                <span className="text-white/40 text-sm">{show.setlist?.length || 0} songs</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
