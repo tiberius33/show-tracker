@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -43,6 +43,123 @@ function avgSongRating(setlist) {
 function extractFirstName(displayName) {
   if (!displayName) return 'Anonymous';
   return displayName.split(' ')[0];
+}
+
+// CSV Parser - handles quoted fields, escaped quotes, various line endings
+function parseCSV(text) {
+  const rows = [];
+  let current = '';
+  let inQuotes = false;
+  let row = [];
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        row.push(current.trim());
+        current = '';
+      } else if (ch === '\r' && next === '\n') {
+        row.push(current.trim());
+        if (row.some(cell => cell !== '')) rows.push(row);
+        row = [];
+        current = '';
+        i++;
+      } else if (ch === '\n' || ch === '\r') {
+        row.push(current.trim());
+        if (row.some(cell => cell !== '')) rows.push(row);
+        row = [];
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  // Last field/row
+  row.push(current.trim());
+  if (row.some(cell => cell !== '')) rows.push(row);
+  return rows;
+}
+
+// Robust date parser for import - normalizes to YYYY-MM-DD
+function parseImportDate(dateStr) {
+  if (!dateStr) return null;
+  const s = String(dateStr).trim();
+  if (!s) return null;
+
+  // Excel serial date number
+  if (/^\d{4,5}(\.\d+)?$/.test(s) && Number(s) > 1000 && Number(s) < 100000) {
+    const serial = Number(s);
+    const utcDays = Math.floor(serial - 25569);
+    const d = new Date(utcDays * 86400000);
+    if (!isNaN(d)) return d.toISOString().split('T')[0];
+  }
+
+  // YYYY-MM-DD
+  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) {
+    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    if (!isNaN(d)) return `${iso[1]}-${String(iso[2]).padStart(2, '0')}-${String(iso[3]).padStart(2, '0')}`;
+  }
+
+  // MM/DD/YYYY or MM-DD-YYYY
+  const mdy = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+  if (mdy) {
+    let year = Number(mdy[3]);
+    if (year < 100) year += year < 50 ? 2000 : 1900;
+    const month = Number(mdy[1]);
+    const day = Number(mdy[2]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+
+  // Try native Date parsing as fallback (handles "January 5, 2024", etc.)
+  const d = new Date(s);
+  if (!isNaN(d) && d.getFullYear() > 1900) {
+    return d.toISOString().split('T')[0];
+  }
+
+  return null;
+}
+
+// Auto-detect column mapping from headers
+function autoDetectMapping(headers) {
+  const mapping = {};
+  const patterns = {
+    artist: /^(artist|band|performer|act|group|musician)s?$/i,
+    venue: /^(venue|location|place|hall|theater|theatre|arena|club)$/i,
+    date: /^(date|show.?date|event.?date|when|day)$/i,
+    city: /^(city|town|metro|location.?city)$/i,
+    country: /^(country|nation|state.?country)$/i,
+    rating: /^(rating|score|stars|rank)$/i,
+    comment: /^(comment|comments|notes?|review|thoughts|memo)$/i,
+    tour: /^(tour|tour.?name|tour.?title|event|event.?name)$/i,
+  };
+
+  headers.forEach((header, index) => {
+    const h = header.trim();
+    for (const [field, pattern] of Object.entries(patterns)) {
+      if (pattern.test(h) && !(field in mapping)) {
+        mapping[field] = index;
+        break;
+      }
+    }
+  });
+
+  return mapping;
 }
 
 // Skeleton Loader Component
@@ -258,6 +375,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
   const navItems = [
     { id: 'search', label: 'Search', icon: Search },
     { id: 'shows', label: 'Shows', icon: List },
+    { id: 'import', label: 'Import', icon: Upload },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
     ...(isGuest ? [] : [
       { id: 'profile', label: 'Profile', icon: User },
@@ -528,6 +646,18 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.8',
+      date: 'February 7, 2026',
+      title: 'File Import',
+      changes: [
+        'Import shows from CSV, Excel, or Google Sheets files',
+        'Smart column detection — automatically maps your headers',
+        'Preview and validate data before importing',
+        'Duplicate detection warns about shows already in your collection',
+        'Drag-and-drop or browse to upload files',
+      ]
+    },
+    {
       version: '1.0.7',
       date: 'February 7, 2026',
       title: 'Artist Stats Upgrade',
@@ -664,6 +794,568 @@ function ReleaseNotesView() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Import View Component
+function ImportView({ onImport, existingShows, onNavigate }) {
+  const [step, setStep] = useState('upload');
+  const [fileName, setFileName] = useState('');
+  const [rawData, setRawData] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  const [mapping, setMapping] = useState({});
+  const [previewRows, setPreviewRows] = useState([]);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importTotal, setImportTotal] = useState(0);
+  const [importResults, setImportResults] = useState({ imported: 0, failed: 0, skipped: 0 });
+  const [dragOver, setDragOver] = useState(false);
+  const [parseError, setParseError] = useState(null);
+
+  const fields = useMemo(() => [
+    { key: 'artist', label: 'Artist', required: true },
+    { key: 'venue', label: 'Venue', required: true },
+    { key: 'date', label: 'Date', required: true },
+    { key: 'city', label: 'City', required: false },
+    { key: 'country', label: 'Country', required: false },
+    { key: 'rating', label: 'Rating', required: false },
+    { key: 'comment', label: 'Comment', required: false },
+    { key: 'tour', label: 'Tour', required: false },
+  ], []);
+
+  const processFileData = (rows) => {
+    if (rows.length < 2) {
+      setParseError('File must contain a header row and at least one data row.');
+      return;
+    }
+    const hdrs = rows[0];
+    const data = rows.slice(1).filter(row => row.some(cell => cell !== ''));
+    if (data.length === 0) {
+      setParseError('No data rows found in file.');
+      return;
+    }
+    setHeaders(hdrs);
+    setRawData(data);
+    const detected = autoDetectMapping(hdrs);
+    setMapping(detected);
+    setStep('mapping');
+    setParseError(null);
+  };
+
+  const handleFile = async (file) => {
+    setFileName(file.name);
+    setParseError(null);
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'csv') {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      processFileData(rows);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      try {
+        const XLSX = await import('xlsx');
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        const stringRows = rows.map(row => row.map(cell => String(cell)));
+        processFileData(stringRows);
+      } catch (err) {
+        setParseError('Failed to read Excel file. Please ensure it is a valid .xlsx or .xls file.');
+      }
+    } else {
+      setParseError('Unsupported file type. Please upload a .csv, .xlsx, or .xls file.');
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  const handleFileInput = (e) => {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
+  };
+
+  // Build preview rows with validation
+  const buildPreviewRows = useCallback(() => {
+    return rawData.map((row) => {
+      const record = {};
+      const errors = [];
+
+      fields.forEach(field => {
+        const colIndex = mapping[field.key];
+        const value = colIndex !== undefined && colIndex !== '' ? (row[colIndex] || '') : '';
+        record[field.key] = value;
+      });
+
+      // Validate required fields
+      if (!record.artist) errors.push('Missing artist');
+      if (!record.venue) errors.push('Missing venue');
+      if (!record.date) errors.push('Missing date');
+
+      // Validate date
+      let parsedDate = null;
+      if (record.date) {
+        parsedDate = parseImportDate(record.date);
+        if (!parsedDate) errors.push('Invalid date');
+      }
+
+      // Validate rating
+      let rating = null;
+      if (record.rating) {
+        const r = Number(record.rating);
+        if (isNaN(r) || r < 1 || r > 10) {
+          errors.push('Rating must be 1-10');
+        } else {
+          rating = r;
+        }
+      }
+
+      // Check for duplicates
+      const isDuplicate = parsedDate && existingShows.some(show =>
+        show.artist?.toLowerCase() === record.artist?.toLowerCase() &&
+        show.venue?.toLowerCase() === record.venue?.toLowerCase() &&
+        show.date === parsedDate
+      );
+
+      return {
+        raw: record,
+        parsedDate,
+        rating,
+        errors,
+        isDuplicate,
+        skip: false,
+      };
+    });
+  }, [rawData, mapping, existingShows, fields]);
+
+  useEffect(() => {
+    if (step === 'preview') {
+      setPreviewRows(buildPreviewRows());
+    }
+  }, [step, buildPreviewRows]);
+
+  const validRows = previewRows.filter(r => r.errors.length === 0 && !r.skip);
+  const errorRows = previewRows.filter(r => r.errors.length > 0);
+  const duplicateRows = previewRows.filter(r => r.isDuplicate && r.errors.length === 0);
+
+  const handleStartImport = async () => {
+    const toImport = validRows.filter(r => !r.skip);
+    setImportTotal(toImport.length);
+    setImportProgress(0);
+    setStep('importing');
+
+    let imported = 0;
+    let failed = 0;
+
+    for (let i = 0; i < toImport.length; i++) {
+      const row = toImport[i];
+      try {
+        const showData = {
+          artist: row.raw.artist,
+          venue: row.raw.venue,
+          date: row.parsedDate,
+          city: row.raw.city || '',
+          country: row.raw.country || '',
+          rating: row.rating || null,
+          comment: row.raw.comment || '',
+          tour: row.raw.tour || '',
+          setlist: [],
+        };
+        await onImport(showData);
+        imported++;
+      } catch (err) {
+        failed++;
+      }
+      setImportProgress(i + 1);
+      // Small delay to avoid overwhelming Firebase
+      if (i < toImport.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    setImportResults({
+      imported,
+      failed,
+      skipped: previewRows.length - toImport.length,
+    });
+    setStep('complete');
+  };
+
+  const resetImport = () => {
+    setStep('upload');
+    setFileName('');
+    setRawData([]);
+    setHeaders([]);
+    setMapping({});
+    setPreviewRows([]);
+    setImportProgress(0);
+    setImportTotal(0);
+    setImportResults({ imported: 0, failed: 0, skipped: 0 });
+    setParseError(null);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Import Shows</h1>
+      <p className="text-white/60 mb-8">Import your concert history from CSV, Excel, or Google Sheets</p>
+
+      {/* Step indicator */}
+      <div className="flex items-center gap-2 mb-8">
+        {['Upload', 'Map Columns', 'Preview', 'Import'].map((label, i) => {
+          const stepIndex = ['upload', 'mapping', 'preview', 'importing', 'complete'].indexOf(step);
+          const isActive = i <= stepIndex;
+          const isCurrent = i === Math.min(stepIndex, 3);
+          return (
+            <React.Fragment key={label}>
+              {i > 0 && <div className={`flex-1 h-0.5 ${isActive ? 'bg-emerald-500' : 'bg-white/10'}`} />}
+              <div className={`flex items-center gap-2 ${isCurrent ? 'text-emerald-400' : isActive ? 'text-white/80' : 'text-white/30'}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                  isActive ? 'bg-emerald-500/20 border border-emerald-500/50' : 'bg-white/5 border border-white/10'
+                }`}>
+                  {i < stepIndex ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                </div>
+                <span className="hidden sm:inline text-sm font-medium">{label}</span>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Upload Step */}
+      {step === 'upload' && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer ${
+              dragOver ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/20 hover:border-white/40'
+            }`}
+            onClick={() => document.getElementById('import-file-input').click()}
+          >
+            <Upload className={`w-12 h-12 mx-auto mb-4 ${dragOver ? 'text-emerald-400' : 'text-white/30'}`} />
+            <p className="text-lg font-medium text-white mb-2">
+              {dragOver ? 'Drop your file here' : 'Drag & drop your file here'}
+            </p>
+            <p className="text-white/50 mb-4">or click to browse</p>
+            <p className="text-white/30 text-sm">Supports .csv, .xlsx, and .xls files</p>
+            <input
+              id="import-file-input"
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={handleFileInput}
+              className="hidden"
+            />
+          </div>
+
+          {parseError && (
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-red-300 text-sm">{parseError}</p>
+            </div>
+          )}
+
+          <div className="mt-8 p-4 bg-white/5 rounded-xl">
+            <h3 className="text-white font-medium mb-3">File format tips</h3>
+            <ul className="space-y-2 text-white/50 text-sm">
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>First row should be column headers (e.g., Artist, Venue, Date)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>Required columns: Artist, Venue, Date</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>Optional columns: City, Country, Rating (1-10), Comment, Tour</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>Google Sheets: File → Download → CSV or Excel</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Mapping Step */}
+      {step === 'mapping' && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Map Your Columns</h2>
+              <p className="text-white/50 text-sm mt-1">
+                We detected {headers.length} columns from <span className="text-white/80">{fileName}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4 mb-8">
+            {fields.map(field => (
+              <div key={field.key} className="flex items-center gap-4">
+                <label className="w-28 text-sm text-white/80 flex items-center gap-1">
+                  {field.label}
+                  {field.required && <span className="text-red-400">*</span>}
+                </label>
+                <select
+                  value={mapping[field.key] !== undefined ? mapping[field.key] : ''}
+                  onChange={(e) => setMapping(prev => ({
+                    ...prev,
+                    [field.key]: e.target.value === '' ? undefined : Number(e.target.value)
+                  }))}
+                  className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 [&>option]:bg-slate-800"
+                >
+                  <option value="">— Skip —</option>
+                  {headers.map((h, i) => (
+                    <option key={i} value={i}>{h || `Column ${i + 1}`}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+
+          {/* Preview of first 3 rows */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-white/60 mb-3">Preview (first 3 rows)</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    {fields.filter(f => mapping[f.key] !== undefined).map(f => (
+                      <th key={f.key} className="text-left px-3 py-2 text-white/60 font-medium">{f.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rawData.slice(0, 3).map((row, i) => (
+                    <tr key={i} className="border-b border-white/5">
+                      {fields.filter(f => mapping[f.key] !== undefined).map(f => (
+                        <td key={f.key} className="px-3 py-2 text-white/70">{row[mapping[f.key]] || '—'}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={resetImport}
+              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => {
+                const missingRequired = fields
+                  .filter(f => f.required && mapping[f.key] === undefined)
+                  .map(f => f.label);
+                if (missingRequired.length > 0) {
+                  setParseError(`Please map required columns: ${missingRequired.join(', ')}`);
+                  return;
+                }
+                setParseError(null);
+                setStep('preview');
+              }}
+              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25"
+            >
+              Preview Import
+            </button>
+          </div>
+
+          {parseError && (
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-red-300 text-sm">{parseError}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preview Step */}
+      {step === 'preview' && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Review Import</h2>
+              <p className="text-white/50 text-sm mt-1">{previewRows.length} rows found in {fileName}</p>
+            </div>
+          </div>
+
+          {/* Summary badges */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <span className="px-3 py-1.5 bg-emerald-500/15 text-emerald-400 rounded-lg text-sm font-medium">
+              {validRows.length} ready to import
+            </span>
+            {errorRows.length > 0 && (
+              <span className="px-3 py-1.5 bg-red-500/15 text-red-400 rounded-lg text-sm font-medium">
+                {errorRows.length} with errors
+              </span>
+            )}
+            {duplicateRows.length > 0 && (
+              <span className="px-3 py-1.5 bg-amber-500/15 text-amber-400 rounded-lg text-sm font-medium">
+                {duplicateRows.length} possible duplicates
+              </span>
+            )}
+          </div>
+
+          {/* Preview table */}
+          <div className="overflow-x-auto mb-6 max-h-96 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-800/95">
+                <tr className="border-b border-white/10">
+                  <th className="text-left px-3 py-2 text-white/60 font-medium w-8">#</th>
+                  <th className="text-left px-3 py-2 text-white/60 font-medium">Artist</th>
+                  <th className="text-left px-3 py-2 text-white/60 font-medium">Venue</th>
+                  <th className="text-left px-3 py-2 text-white/60 font-medium">Date</th>
+                  <th className="text-left px-3 py-2 text-white/60 font-medium">City</th>
+                  <th className="text-left px-3 py-2 text-white/60 font-medium w-20">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, i) => (
+                  <tr
+                    key={i}
+                    className={`border-b border-white/5 ${
+                      row.errors.length > 0
+                        ? 'bg-red-500/5'
+                        : row.isDuplicate
+                        ? 'bg-amber-500/5'
+                        : ''
+                    }`}
+                  >
+                    <td className="px-3 py-2 text-white/40">{i + 1}</td>
+                    <td className="px-3 py-2 text-white/80">{row.raw.artist || '—'}</td>
+                    <td className="px-3 py-2 text-white/80">{row.raw.venue || '—'}</td>
+                    <td className="px-3 py-2 text-white/80">
+                      {row.parsedDate ? formatDate(row.parsedDate) : <span className="text-red-400">{row.raw.date || '—'}</span>}
+                    </td>
+                    <td className="px-3 py-2 text-white/60">{row.raw.city || '—'}</td>
+                    <td className="px-3 py-2">
+                      {row.errors.length > 0 ? (
+                        <span className="text-red-400 text-xs" title={row.errors.join(', ')}>
+                          <AlertTriangle className="w-4 h-4 inline mr-1" />
+                          Error
+                        </span>
+                      ) : row.isDuplicate ? (
+                        <span className="text-amber-400 text-xs">Duplicate?</span>
+                      ) : (
+                        <span className="text-emerald-400 text-xs">
+                          <Check className="w-4 h-4 inline" />
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Error details */}
+          {errorRows.length > 0 && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <p className="text-red-300 text-sm font-medium mb-2">Rows with errors will be skipped:</p>
+              <ul className="text-red-300/70 text-xs space-y-1">
+                {errorRows.slice(0, 5).map((row, i) => (
+                  <li key={i}>Row {previewRows.indexOf(row) + 1}: {row.errors.join(', ')}</li>
+                ))}
+                {errorRows.length > 5 && (
+                  <li>...and {errorRows.length - 5} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep('mapping')}
+              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleStartImport}
+              disabled={validRows.length === 0}
+              className={`px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg ${
+                validRows.length > 0
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-emerald-500/25'
+                  : 'bg-white/5 text-white/30 cursor-not-allowed shadow-none'
+              }`}
+            >
+              Import {validRows.length} Show{validRows.length !== 1 ? 's' : ''}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Importing Step */}
+      {step === 'importing' && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Download className="w-8 h-8 text-emerald-400 animate-pulse" />
+          </div>
+          <h2 className="text-lg font-semibold text-white mb-2">Importing Shows...</h2>
+          <p className="text-white/50 mb-6">{importProgress} of {importTotal}</p>
+          <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden max-w-md mx-auto">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
+              style={{ width: `${importTotal > 0 ? (importProgress / importTotal) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Complete Step */}
+      {step === 'complete' && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-8 h-8 text-emerald-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-white mb-2">Import Complete!</h2>
+
+          <div className="flex flex-wrap justify-center gap-4 my-6">
+            <div className="px-4 py-3 bg-emerald-500/10 rounded-xl">
+              <p className="text-2xl font-bold text-emerald-400">{importResults.imported}</p>
+              <p className="text-white/50 text-sm">Imported</p>
+            </div>
+            {importResults.failed > 0 && (
+              <div className="px-4 py-3 bg-red-500/10 rounded-xl">
+                <p className="text-2xl font-bold text-red-400">{importResults.failed}</p>
+                <p className="text-white/50 text-sm">Failed</p>
+              </div>
+            )}
+            {importResults.skipped > 0 && (
+              <div className="px-4 py-3 bg-white/5 rounded-xl">
+                <p className="text-2xl font-bold text-white/50">{importResults.skipped}</p>
+                <p className="text-white/50 text-sm">Skipped</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={() => onNavigate('shows')}
+              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25"
+            >
+              View My Shows
+            </button>
+            <button
+              onClick={resetImport}
+              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors"
+            >
+              Import More
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2239,6 +2931,13 @@ export default function ShowTracker() {
                   <Plus className="w-4 h-4" />
                   Add Manually
                 </button>
+                <button
+                  onClick={() => setActiveView('import')}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all whitespace-nowrap border border-white/10"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import File
+                </button>
               </div>
             </div>
 
@@ -2382,6 +3081,10 @@ export default function ShowTracker() {
 
         {activeView === 'release-notes' && (
           <ReleaseNotesView />
+        )}
+
+        {activeView === 'import' && (
+          <ImportView onImport={addShow} existingShows={shows} onNavigate={setActiveView} />
         )}
 
         {activeView === 'community' && !guestMode && (
