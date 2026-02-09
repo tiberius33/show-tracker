@@ -1364,10 +1364,16 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
         body: JSON.stringify({ image: base64, mediaType })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error(`Server returned invalid response (status ${response.status}). The image may be too large — try cropping it or using a smaller screenshot.`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze screenshot');
+        const detail = data.details ? ` (${JSON.stringify(data.details)})` : '';
+        throw new Error((data.error || 'Failed to analyze screenshot') + detail);
       }
 
       if (!data.shows || data.shows.length === 0) {
