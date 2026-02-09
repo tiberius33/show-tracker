@@ -150,7 +150,21 @@ Important rules:
             return;
           }
 
-          const shows = JSON.parse(jsonMatch[0]);
+          let shows;
+          try {
+            shows = JSON.parse(jsonMatch[0]);
+          } catch (parseErr) {
+            resolve({
+              statusCode: 422,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+              body: JSON.stringify({ error: 'Failed to parse show data JSON', raw: jsonMatch[0] })
+            });
+            return;
+          }
+
+          if (!Array.isArray(shows)) {
+            shows = [];
+          }
           resolve({
             statusCode: 200,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },

@@ -1376,14 +1376,18 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
         throw new Error((data.error || 'Failed to analyze screenshot') + detail);
       }
 
-      if (!data.shows || data.shows.length === 0) {
+      console.log('Screenshot analysis response:', JSON.stringify(data, null, 2));
+      alert('API returned: ' + JSON.stringify(data).substring(0, 500));
+
+      const shows = Array.isArray(data.shows) ? data.shows : [];
+      if (shows.length === 0) {
         setScreenshotError('No shows were detected in this screenshot. Try a different image showing your past events.');
         setScreenshotAnalyzing(false);
         return;
       }
 
       // Transform Claude's response into preview rows (same format as CSV import)
-      const rows = data.shows.map(show => {
+      const rows = shows.map(show => {
         const record = {
           artist: show.artist || '',
           venue: show.venue || '',
