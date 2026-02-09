@@ -1529,22 +1529,27 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       if (!artist || !date) return null;
       const year = date.split('-')[0];
 
-      // Helper to search setlist.fm and find a date match
+      // Helper to search setlist.fm with pagination
       const searchAndMatch = async (searchArtist) => {
-        const params = new URLSearchParams({ artistName: searchArtist, year });
-        const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (!data.setlist || data.setlist.length === 0) return null;
+        for (let page = 1; page <= 3; page++) {
+          const params = new URLSearchParams({ artistName: searchArtist, year, p: String(page) });
+          const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+          if (!response.ok) return null;
+          const data = await response.json();
+          if (!data.setlist || data.setlist.length === 0) return null;
 
-        // Find exact date match — API returns DD-MM-YYYY, we store YYYY-MM-DD
-        return data.setlist.find(s => {
-          if (!s.eventDate) return false;
-          const parts = s.eventDate.split('-');
-          if (parts.length !== 3) return false;
-          const apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-          return apiDate === date;
-        }) || null;
+          const match = data.setlist.find(s => {
+            if (!s.eventDate) return false;
+            const parts = s.eventDate.split('-');
+            if (parts.length !== 3) return false;
+            return `${parts[2]}-${parts[1]}-${parts[0]}` === date;
+          });
+
+          if (match) return match;
+          if (data.setlist.length < 20) break;
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        return null;
       };
 
       // Try original artist name first
@@ -1552,8 +1557,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
       // If no match and artist contains special chars like "&", try variations
       if (!match && artist.includes('&')) {
-        const simplified = artist.replace(/&/g, 'and');
-        match = await searchAndMatch(simplified);
+        match = await searchAndMatch(artist.replace(/&/g, 'and'));
       }
       // Try with "The" prefix removed/added
       if (!match && artist.toLowerCase().startsWith('the ')) {
@@ -3175,56 +3179,85 @@ export default function ShowTracker() {
     setSetlistScanProgress({ current: 0, total: showsWithoutSetlists.length, found: 0 });
     let found = 0;
 
+    // Helper to search setlist.fm with pagination support
+    const searchAndMatch = async (searchArtist, date, year) => {
+      // Search up to 3 pages for a date match
+      for (let page = 1; page <= 3; page++) {
+        const params = new URLSearchParams({ artistName: searchArtist, year, p: String(page) });
+        const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (!data.setlist || data.setlist.length === 0) return null;
+
+        const match = data.setlist.find(s => {
+          if (!s.eventDate) return false;
+          const parts = s.eventDate.split('-');
+          if (parts.length !== 3) return false;
+          return `${parts[2]}-${parts[1]}-${parts[0]}` === date;
+        });
+
+        if (match) return match;
+
+        // If fewer than 20 results, no more pages
+        if (data.setlist.length < 20) break;
+
+        // Rate limit between pages
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      return null;
+    };
+
+    // Helper to extract songs from a setlist match
+    const extractSongs = (match) => {
+      const songs = [];
+      let setIndex = 0;
+      if (match.sets && match.sets.set) {
+        match.sets.set.forEach(set => {
+          if (set.song) {
+            set.song.forEach(song => {
+              songs.push({
+                id: Date.now().toString() + Math.random(),
+                name: song.name,
+                cover: song.cover ? `${song.cover.name} cover` : null,
+                setBreak: setIndex > 0 && set.song.indexOf(song) === 0
+                  ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
+                  : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
+              });
+            });
+          }
+          setIndex++;
+        });
+      }
+      return songs;
+    };
+
     for (let i = 0; i < showsWithoutSetlists.length; i++) {
       const show = showsWithoutSetlists[i];
       try {
         if (!show.artist || !show.date) continue;
         const year = show.date.split('-')[0];
 
-        // Helper to search and match
-        const searchAndMatch = async (searchArtist) => {
-          const params = new URLSearchParams({ artistName: searchArtist, year });
-          const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
-          if (!response.ok) return null;
-          const data = await response.json();
-          if (!data.setlist || data.setlist.length === 0) return null;
-          return data.setlist.find(s => {
-            if (!s.eventDate) return false;
-            const parts = s.eventDate.split('-');
-            if (parts.length !== 3) return false;
-            return `${parts[2]}-${parts[1]}-${parts[0]}` === show.date;
-          }) || null;
-        };
+        // Try original artist name
+        let match = await searchAndMatch(show.artist, show.date, year);
 
-        let match = await searchAndMatch(show.artist);
+        // Try with "&" replaced by "and"
         if (!match && show.artist.includes('&')) {
-          match = await searchAndMatch(show.artist.replace(/&/g, 'and'));
-        }
-        if (!match && show.artist.toLowerCase().startsWith('the ')) {
-          match = await searchAndMatch(show.artist.substring(4));
-        } else if (!match) {
-          match = await searchAndMatch('The ' + show.artist);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          match = await searchAndMatch(show.artist.replace(/&/g, 'and'), show.date, year);
         }
 
-        if (match && match.sets && match.sets.set) {
-          const songs = [];
-          let setIndex = 0;
-          match.sets.set.forEach(set => {
-            if (set.song) {
-              set.song.forEach(song => {
-                songs.push({
-                  id: Date.now().toString() + Math.random(),
-                  name: song.name,
-                  cover: song.cover ? `${song.cover.name} cover` : null,
-                  setBreak: setIndex > 0 && set.song.indexOf(song) === 0
-                    ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
-                    : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
-                });
-              });
-            }
-            setIndex++;
-          });
+        // Try removing/adding "The" prefix
+        if (!match) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          if (show.artist.toLowerCase().startsWith('the ')) {
+            match = await searchAndMatch(show.artist.substring(4), show.date, year);
+          } else {
+            match = await searchAndMatch('The ' + show.artist, show.date, year);
+          }
+        }
 
+        if (match) {
+          const songs = extractSongs(match);
           if (songs.length > 0) {
             const updates = { setlist: songs, setlistfmId: match.id, isManual: false };
             if (match.tour) updates.tour = match.tour.name;
@@ -3238,9 +3271,9 @@ export default function ShowTracker() {
 
       setSetlistScanProgress({ current: i + 1, total: showsWithoutSetlists.length, found });
 
-      // Rate limiting: 300ms between API calls
+      // Rate limiting between shows
       if (i < showsWithoutSetlists.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
@@ -3248,7 +3281,7 @@ export default function ShowTracker() {
     if (found > 0) {
       alert(`Found ${found} new setlist${found !== 1 ? 's' : ''}!`);
     } else {
-      alert('No new setlists found. Some shows may not have setlists on setlist.fm.');
+      alert('No new setlists found. Some shows may not have setlists on setlist.fm yet.');
     }
   };
 
