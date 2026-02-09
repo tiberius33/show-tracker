@@ -1376,9 +1376,6 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
         throw new Error((data.error || 'Failed to analyze screenshot') + detail);
       }
 
-      console.log('Screenshot analysis response:', JSON.stringify(data, null, 2));
-      alert('API returned: ' + JSON.stringify(data).substring(0, 500));
-
       const shows = Array.isArray(data.shows) ? data.shows : [];
       if (shows.length === 0) {
         setScreenshotError('No shows were detected in this screenshot. Try a different image showing your past events.');
@@ -1387,44 +1384,49 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       }
 
       // Transform Claude's response into preview rows (same format as CSV import)
-      const rows = shows.map(show => {
-        const record = {
-          artist: show.artist || '',
-          venue: show.venue || '',
-          date: show.date || '',
-          city: show.city || '',
-          country: '',
-          rating: '',
-          comment: '',
-          tour: '',
-        };
+      const rows = [];
+      for (const show of shows) {
+        try {
+          const record = {
+            artist: show.artist || '',
+            venue: show.venue || '',
+            date: show.date || '',
+            city: show.city || '',
+            country: '',
+            rating: '',
+            comment: '',
+            tour: '',
+          };
 
-        const errors = [];
-        if (!record.artist) errors.push('Missing artist');
-        if (!record.venue) errors.push('Missing venue');
-        if (!record.date) errors.push('Missing date');
+          const errors = [];
+          if (!record.artist) errors.push('Missing artist');
+          if (!record.venue) errors.push('Missing venue');
+          if (!record.date) errors.push('Missing date');
 
-        let parsedDate = null;
-        if (record.date) {
-          parsedDate = parseImportDate(record.date);
-          if (!parsedDate) errors.push('Invalid date');
+          let parsedDate = null;
+          if (record.date) {
+            parsedDate = parseImportDate(record.date);
+            if (!parsedDate) errors.push('Invalid date');
+          }
+
+          const isDuplicate = parsedDate && existingShows.some(s =>
+            s.artist?.toLowerCase() === record.artist?.toLowerCase() &&
+            s.venue?.toLowerCase() === record.venue?.toLowerCase() &&
+            s.date === parsedDate
+          );
+
+          rows.push({
+            raw: record,
+            parsedDate,
+            rating: null,
+            errors,
+            isDuplicate,
+            skip: false,
+          });
+        } catch (rowErr) {
+          console.error('Error processing show:', show, rowErr);
         }
-
-        const isDuplicate = parsedDate && existingShows.some(s =>
-          s.artist?.toLowerCase() === record.artist?.toLowerCase() &&
-          s.venue?.toLowerCase() === record.venue?.toLowerCase() &&
-          s.date === parsedDate
-        );
-
-        return {
-          raw: record,
-          parsedDate,
-          rating: null,
-          errors,
-          isDuplicate,
-          skip: false,
-        };
-      });
+      }
 
       setPreviewRows(rows);
       setStep('preview');
@@ -1501,10 +1503,10 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   }, [rawData, mapping, existingShows, fields]);
 
   useEffect(() => {
-    if (step === 'preview') {
+    if (step === 'preview' && headers.length > 0) {
       setPreviewRows(buildPreviewRows());
     }
-  }, [step, buildPreviewRows]);
+  }, [step, headers.length, buildPreviewRows]);
 
   const validRows = previewRows.filter(r => r.errors.length === 0 && !r.skip);
   const errorRows = previewRows.filter(r => r.errors.length > 0);
