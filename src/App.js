@@ -646,6 +646,16 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.9',
+      date: 'February 8, 2026',
+      title: 'Admin User Support',
+      changes: [
+        'Admins can click any user to view their shows in the Admin Portal',
+        'User show detail view with search, sort, and setlist inspection',
+        'On-demand show loading for efficient data access',
+      ]
+    },
+    {
       version: '1.0.8',
       date: 'February 7, 2026',
       title: 'File Import',
@@ -4261,6 +4271,12 @@ function AdminView() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userShows, setUserShows] = useState([]);
+  const [loadingShows, setLoadingShows] = useState(false);
+  const [selectedAdminShow, setSelectedAdminShow] = useState(null);
+  const [showSortBy, setShowSortBy] = useState('date');
+  const [showSearchTerm, setShowSearchTerm] = useState('');
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -4280,6 +4296,39 @@ function AdminView() {
     }
   }, []);
 
+  const loadUserShows = useCallback(async (userId) => {
+    setLoadingShows(true);
+    try {
+      const showsRef = collection(db, 'users', userId, 'shows');
+      const snapshot = await getDocs(showsRef);
+      const loadedShows = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUserShows(loadedShows);
+    } catch (error) {
+      console.error('Failed to load user shows:', error);
+      setUserShows([]);
+    } finally {
+      setLoadingShows(false);
+    }
+  }, []);
+
+  const handleSelectUser = (user) => {
+    setSelectedUser(user);
+    setSelectedAdminShow(null);
+    setShowSearchTerm('');
+    setShowSortBy('date');
+    loadUserShows(user.id);
+  };
+
+  const handleBackToUsers = () => {
+    setSelectedUser(null);
+    setUserShows([]);
+    setSelectedAdminShow(null);
+    setShowSearchTerm('');
+  };
+
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
@@ -4296,6 +4345,20 @@ function AdminView() {
     totalRated: users.reduce((acc, u) => acc + (u.ratedSongCount || 0), 0)
   }), [users]);
 
+  const sortedFilteredUserShows = useMemo(() => {
+    let filtered = userShows.filter(show =>
+      show.artist?.toLowerCase().includes(showSearchTerm.toLowerCase()) ||
+      show.venue?.toLowerCase().includes(showSearchTerm.toLowerCase()) ||
+      show.city?.toLowerCase().includes(showSearchTerm.toLowerCase())
+    );
+    return filtered.sort((a, b) => {
+      if (showSortBy === 'date') return parseDate(b.date) - parseDate(a.date);
+      if (showSortBy === 'artist') return (a.artist || '').localeCompare(b.artist || '');
+      if (showSortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      return 0;
+    });
+  }, [userShows, showSearchTerm, showSortBy]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -4306,94 +4369,263 @@ function AdminView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
-        <button
-          onClick={loadUsers}
-          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
-        >
-          Refresh
-        </button>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Users', value: totalStats.totalUsers, color: 'from-violet-500 to-purple-500' },
-          { label: 'Total Shows', value: totalStats.totalShows, color: 'from-emerald-500 to-teal-500' },
-          { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-amber-500 to-orange-500' },
-          { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-pink-500 to-rose-500' },
-        ].map(stat => (
-          <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
-            <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-              {stat.value.toLocaleString()}
+      {/* User Shows Detail View */}
+      {selectedUser ? (
+        <>
+          {/* Back button + User header */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleBackToUsers}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {selectedUser.displayName || selectedUser.firstName || 'Anonymous'}'s Shows
+                </h2>
+                <p className="text-sm text-white/50">{selectedUser.email}</p>
+              </div>
             </div>
-            <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
           </div>
-        ))}
-      </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Search users by name or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
-        />
-      </div>
+          {/* User stats summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Shows', value: selectedUser.showCount || 0 },
+              { label: 'Songs', value: selectedUser.songCount || 0 },
+              { label: 'Venues', value: selectedUser.venueCount || 0 },
+              { label: 'Joined', value: selectedUser.createdAt?.toLocaleDateString?.() || 'Unknown', isDate: true },
+            ].map(stat => (
+              <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                <div className="text-2xl font-bold text-emerald-400">
+                  {stat.isDate ? stat.value : stat.value.toLocaleString()}
+                </div>
+                <div className="text-xs font-medium text-white/50 mt-1">{stat.label}</div>
+              </div>
+            ))}
+          </div>
 
-      {/* Users Table */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-white/5 border-b border-white/10">
-              <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">User</th>
-              <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
-              <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-              <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Songs</th>
-              <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Venues</th>
-              <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {filteredUsers.map((user) => (
-              <tr key={user.id} className="hover:bg-white/5 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-white">{user.firstName || 'Anonymous'}</div>
-                      <div className="text-sm text-white/40 md:hidden">{user.email}</div>
+          {/* Search + Sort controls */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Filter shows by artist, venue, or city..."
+                value={showSearchTerm}
+                onChange={(e) => setShowSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-white/50">Sort:</span>
+              {['date', 'artist', 'rating'].map(opt => (
+                <button
+                  key={opt}
+                  onClick={() => setShowSortBy(opt)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    showSortBy === opt
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  }`}
+                >
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Loading state */}
+          {loadingShows && (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-white/50 font-medium">Loading shows...</div>
+            </div>
+          )}
+
+          {/* Show cards */}
+          {!loadingShows && (
+            <div className="space-y-3">
+              {sortedFilteredUserShows.map(show => {
+                const songAvg = avgSongRating(show.setlist || []);
+                return (
+                  <div
+                    key={show.id}
+                    className="bg-white/5 rounded-2xl p-4 border border-white/10 hover:bg-white/10 hover:border-white/20 cursor-pointer transition-all"
+                    onClick={() => setSelectedAdminShow(show)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium" style={{ color: artistColor(show.artist) }}>
+                            {show.artist}
+                          </span>
+                          {show.isManual && (
+                            <span className="text-xs bg-white/10 text-white/40 px-2 py-0.5 rounded-full">Manual</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm flex-wrap">
+                          <Calendar className="w-3.5 h-3.5 text-white/40" />
+                          <span className="text-white/80">{formatDate(show.date)}</span>
+                          <span className="text-white/20">&middot;</span>
+                          <MapPin className="w-3.5 h-3.5 text-white/40" />
+                          <span className="text-white/60">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                          <span className="text-white/20">&middot;</span>
+                          <Music className="w-3.5 h-3.5 text-white/40" />
+                          <span className="text-white/60">{(show.setlist || []).length} songs</span>
+                        </div>
+                        {show.tour && (
+                          <div className="text-xs text-emerald-400 font-medium mt-1.5">Tour: {show.tour}</div>
+                        )}
+                        {show.comment && (
+                          <div className="flex items-start gap-1.5 mt-1.5 text-xs text-white/50 italic">
+                            <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            {show.comment}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 mt-2">
+                          {show.rating && (
+                            <span className="text-sm font-semibold text-emerald-400">Show: {show.rating}/10</span>
+                          )}
+                          {songAvg && (
+                            <span className="text-xs font-medium text-white/40">Songs avg: {songAvg}/10</span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-white/20 flex-shrink-0 ml-3" />
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
-                <td className="px-6 py-4 text-center">
-                  <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
-                    {user.showCount || 0}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center text-white/60">{user.songCount || 0}</td>
-                <td className="px-6 py-4 text-center text-white/60 hidden sm:table-cell">{user.venueCount || 0}</td>
-                <td className="px-6 py-4 text-right text-white/40 text-sm hidden lg:table-cell">
-                  {user.createdAt?.toLocaleDateString?.() || 'Unknown'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                );
+              })}
 
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-12 text-white/40">
-            {searchTerm ? 'No users match your search' : 'No users yet'}
+              {sortedFilteredUserShows.length === 0 && (
+                <div className="text-center py-12 text-white/40">
+                  {showSearchTerm ? 'No shows match your filter' : 'This user has no shows'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SetlistEditor modal for show detail (read-only) */}
+          {selectedAdminShow && (
+            <SetlistEditor
+              show={{...selectedAdminShow, setlist: selectedAdminShow.setlist || []}}
+              onAddSong={() => {}}
+              onRateSong={() => {}}
+              onCommentSong={() => {}}
+              onDeleteSong={() => {}}
+              onRateShow={() => {}}
+              onCommentShow={() => {}}
+              onBatchRate={() => {}}
+              onClose={() => setSelectedAdminShow(null)}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          {/* Users List View (existing) */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
+            <button
+              onClick={loadUsers}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
+            >
+              Refresh
+            </button>
           </div>
-        )}
-      </div>
+
+          {/* Stats Overview */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Users', value: totalStats.totalUsers, color: 'from-violet-500 to-purple-500' },
+              { label: 'Total Shows', value: totalStats.totalShows, color: 'from-emerald-500 to-teal-500' },
+              { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-amber-500 to-orange-500' },
+              { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-pink-500 to-rose-500' },
+            ].map(stat => (
+              <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                  {stat.value.toLocaleString()}
+                </div>
+                <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search users by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+            />
+          </div>
+
+          {/* Users Table */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/10">
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">User</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
+                  <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
+                  <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Songs</th>
+                  <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Venues</th>
+                  <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
+                  <th className="w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => handleSelectUser(user)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-white">{user.firstName || 'Anonymous'}</div>
+                          <div className="text-sm text-white/40 md:hidden">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                        {user.showCount || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-white/60">{user.songCount || 0}</td>
+                    <td className="px-6 py-4 text-center text-white/60 hidden sm:table-cell">{user.venueCount || 0}</td>
+                    <td className="px-6 py-4 text-right text-white/40 text-sm hidden lg:table-cell">
+                      {user.createdAt?.toLocaleDateString?.() || 'Unknown'}
+                    </td>
+                    <td className="px-2 py-4">
+                      <ChevronRight className="w-4 h-4 text-white/20" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-12 text-white/40">
+                {searchTerm ? 'No users match your search' : 'No users yet'}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
