@@ -1231,33 +1231,37 @@ function ReleaseNotesView() {
 }
 
 // Resize image for upload — caps width at 1920px to stay under Netlify's payload limit
-function resizeImageForUpload(file, maxWidth = 1920) {
+function resizeImageForUpload(file, maxDim = 1200) {
   return new Promise((resolve) => {
     const img = new window.Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      if (img.width <= maxWidth) {
-        // No resize needed
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.readAsDataURL(file);
-        return;
-      }
+      const needsResize = img.width > maxDim || img.height > maxDim;
+      // Always use canvas to convert to JPEG for smaller payload
       const canvas = document.createElement('canvas');
-      const scale = maxWidth / img.width;
-      canvas.width = maxWidth;
-      canvas.height = Math.round(img.height * scale);
+      if (needsResize) {
+        const scale = Math.min(maxDim / img.width, maxDim / img.height);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+      } else {
+        canvas.width = img.width;
+        canvas.height = img.height;
+      }
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL(file.type || 'image/png', 0.9);
-      resolve(dataUrl.split(',')[1]);
+      // Always output as JPEG for much smaller file size
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      // Fallback: read without resize
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onload = () => {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const mediaTypeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
+        resolve({ base64: reader.result.split(',')[1], mediaType: mediaTypeMap[ext] || 'image/png' });
+      };
       reader.readAsDataURL(file);
     };
     img.src = url;
@@ -1349,13 +1353,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     setScreenshotError(null);
 
     try {
-      // Read and resize image if needed
-      const base64 = await resizeImageForUpload(file);
-
-      // Determine media type
-      const ext = file.name.split('.').pop().toLowerCase();
-      const mediaTypeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
-      const mediaType = mediaTypeMap[ext] || 'image/png';
+      // Read, resize, and convert to JPEG for smaller payload
+      const { base64, mediaType } = await resizeImageForUpload(file);
 
       // Send to Netlify function for Claude analysis
       const response = await fetch('/.netlify/functions/analyze-screenshot', {
