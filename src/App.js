@@ -385,9 +385,9 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
     { id: 'import', label: 'Import', icon: Upload },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
     ...(isGuest ? [] : [
-      { id: 'profile', label: 'Profile', icon: User },
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
       { id: 'community', label: 'Community', icon: Users },
+      { id: 'invite', label: 'Invite', icon: Send },
     ]),
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
@@ -438,22 +438,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
           </div>
         </div>
 
-        {/* User info */}
-        <div className="px-4 py-3 border-b border-white/5">
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              isGuest
-                ? 'bg-gradient-to-br from-amber-500 to-orange-500'
-                : 'bg-gradient-to-br from-emerald-500 to-teal-500'
-            }`}>
-              <User className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-sm text-white/70 truncate block">{userName}</span>
-              {isGuest && <span className="text-xs text-amber-400">Guest Mode</span>}
-            </div>
-          </div>
-        </div>
+        {/* User info - hidden for now */}
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -1012,6 +997,17 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.14',
+      date: 'February 9, 2026',
+      title: 'Sidebar Redesign',
+      changes: [
+        'Reorganized sidebar navigation for a cleaner layout',
+        'Restored Invite option to the sidebar',
+        'Moved Feedback and Release Notes below Community and Invite',
+        'Hidden profile section from sidebar for a streamlined look',
+      ]
+    },
     {
       version: '1.0.13',
       date: 'February 9, 2026',
