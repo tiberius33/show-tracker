@@ -231,38 +231,45 @@ async function updateCommunityStats() {
     let totalShows = 0;
     let totalSongs = 0;
 
+    // Use profile-level counts for totals (always accessible)
+    totalShows = profiles.reduce((acc, p) => acc + (p.showCount || 0), 0);
+    totalSongs = profiles.reduce((acc, p) => acc + (p.songCount || 0), 0);
+
     for (const profile of profiles) {
-      const showsSnapshot = await getDocs(collection(db, 'users', profile.id, 'shows'));
-      const userShows = showsSnapshot.docs.map(doc => doc.data());
-      totalShows += userShows.length;
+      try {
+        const showsSnapshot = await getDocs(collection(db, 'users', profile.id, 'shows'));
+        const userShows = showsSnapshot.docs.map(doc => doc.data());
 
-      for (const show of userShows) {
-        // Track venue attendance
-        const venueName = show.venue + (show.city ? `, ${show.city}` : '');
-        if (!allVenues[venueName]) {
-          allVenues[venueName] = { count: 0, artists: new Set() };
-        }
-        allVenues[venueName].count++;
-        allVenues[venueName].artists.add(show.artist);
+        for (const show of userShows) {
+          // Track venue attendance
+          const venueName = show.venue + (show.city ? `, ${show.city}` : '');
+          if (!allVenues[venueName]) {
+            allVenues[venueName] = { count: 0, artists: new Set() };
+          }
+          allVenues[venueName].count++;
+          allVenues[venueName].artists.add(show.artist);
 
-        const setlist = show.setlist || [];
-        for (const song of setlist) {
-          totalSongs++;
-          const songKey = song.name.toLowerCase().trim();
-          if (!allSongs[songKey]) {
-            allSongs[songKey] = {
-              songName: song.name,
-              users: new Set(),
-              artists: new Set(),
-              ratings: []
-            };
-          }
-          allSongs[songKey].users.add(profile.id);
-          allSongs[songKey].artists.add(show.artist);
-          if (song.rating) {
-            allSongs[songKey].ratings.push(song.rating);
+          const setlist = show.setlist || [];
+          for (const song of setlist) {
+            const songKey = song.name.toLowerCase().trim();
+            if (!allSongs[songKey]) {
+              allSongs[songKey] = {
+                songName: song.name,
+                users: new Set(),
+                artists: new Set(),
+                ratings: []
+              };
+            }
+            allSongs[songKey].users.add(profile.id);
+            allSongs[songKey].artists.add(show.artist);
+            if (song.rating) {
+              allSongs[songKey].ratings.push(song.rating);
+            }
           }
         }
+      } catch (err) {
+        // Permission denied for other users' shows — skip gracefully
+        // Leaderboards still work from profile data
       }
     }
 
@@ -1003,6 +1010,16 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.12',
+      date: 'February 9, 2026',
+      title: 'Bug Fixes & Improvements',
+      changes: [
+        'Fixed community stats not updating — leaderboards now show all users correctly',
+        'Fixed community song and venue aggregation failing due to Firestore permissions',
+        'Removed duplicate years list on the Stats page',
+      ]
+    },
     {
       version: '1.0.11',
       date: 'February 9, 2026',
@@ -4637,85 +4654,6 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           </button>
         ))}
       </div>
-
-      {tab === 'years' && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white mb-4">Shows by Year</h2>
-          {uniqueYears.length === 0 ? (
-            <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
-          ) : (
-            <div className="space-y-2">
-              {uniqueYears.map(year => {
-                const yearShows = showsByYear[year] || [];
-                const avgRating = yearShows.filter(s => s.rating).length > 0
-                  ? (yearShows.filter(s => s.rating).reduce((a, s) => a + s.rating, 0) / yearShows.filter(s => s.rating).length).toFixed(1)
-                  : null;
-                const isExpanded = expandedYear === year;
-                return (
-                  <div key={year}>
-                    <button
-                      onClick={() => setExpandedYear(isExpanded ? null : year)}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/10 transition-all text-left group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
-                        <span className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
-                          {year}
-                        </span>
-                        <span className="text-white/50 text-sm">
-                          {yearShows.length} show{yearShows.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {avgRating && (
-                          <div className="flex items-center gap-1 text-white/60 text-sm">
-                            <Star className="w-3.5 h-3.5 text-amber-400" />
-                            <span>{avgRating} avg</span>
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                    {isExpanded && (
-                      <div className="space-y-2 pl-4 pr-2 pb-2 mt-1">
-                        {yearShows.map(show => (
-                          <div
-                            key={show.id}
-                            onDoubleClick={() => setSelectedShow(show)}
-                            className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors cursor-pointer"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-white truncate">{show.artist}</h3>
-                                <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
-                                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                                  <span className="truncate">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
-                                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                                  <span>{formatDate(show.date)}</span>
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-end gap-1">
-                                {show.rating && (
-                                  <div className="flex items-center gap-1">
-                                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                    <span className="text-white font-medium">{show.rating}</span>
-                                  </div>
-                                )}
-                                <span className="text-white/40 text-sm">{show.setlist?.length || 0} songs</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {tab === 'songs' && (
         <div>
