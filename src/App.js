@@ -2769,24 +2769,29 @@ export default function ShowTracker() {
         return;
       }
 
-      // Check for existing pending requests (load all and filter client-side to avoid index requirements)
-      const allRequests = await getDocs(collection(db, 'friendRequests'));
-      const pendingFromUs = allRequests.docs.find(d => {
-        const data = d.data();
-        return data.from === user.uid && data.to === targetUid && data.status === 'pending';
-      });
-      if (pendingFromUs) {
-        alert('Friend request already sent.');
-        return;
-      }
+      // Check for existing pending requests (skip if collection read fails — new collection may not have rules yet)
+      try {
+        const allRequests = await getDocs(collection(db, 'friendRequests'));
+        const pendingFromUs = allRequests.docs.find(d => {
+          const data = d.data();
+          return data.from === user.uid && data.to === targetUid && data.status === 'pending';
+        });
+        if (pendingFromUs) {
+          alert('Friend request already sent.');
+          return;
+        }
 
-      const pendingFromThem = allRequests.docs.find(d => {
-        const data = d.data();
-        return data.from === targetUid && data.to === user.uid && data.status === 'pending';
-      });
-      if (pendingFromThem) {
-        await acceptFriendRequest(pendingFromThem.id);
-        return;
+        const pendingFromThem = allRequests.docs.find(d => {
+          const data = d.data();
+          return data.from === targetUid && data.to === user.uid && data.status === 'pending';
+        });
+        if (pendingFromThem) {
+          await acceptFriendRequest(pendingFromThem.id);
+          return;
+        }
+      } catch (readError) {
+        // Collection may not exist yet or security rules may block reads — proceed with creating the request
+        console.log('Could not check existing requests, proceeding:', readError.message);
       }
 
       await addDoc(collection(db, 'friendRequests'), {
@@ -2799,9 +2804,10 @@ export default function ShowTracker() {
         status: 'pending',
         createdAt: serverTimestamp()
       });
+      alert('Friend request sent!');
     } catch (error) {
       console.error('Failed to send friend request:', error);
-      alert('Failed to send friend request. Please try again.');
+      alert('Failed to send friend request. Check the browser console for details — you may need to update Firestore security rules to allow the "friendRequests" collection.');
     }
   };
 
@@ -2825,8 +2831,8 @@ export default function ShowTracker() {
       }
       await sendFriendRequest(matchingProfile.id, matchingProfile.data().displayName, matchingProfile.data().email);
     } catch (error) {
-      console.error('Failed to find user:', error);
-      alert('Failed to search for user. Please try again.');
+      console.error('Failed to find user or send request:', error);
+      alert('Something went wrong. Check the browser console (F12) for details — this may be a Firestore permissions issue with new collections.');
     }
   };
 
