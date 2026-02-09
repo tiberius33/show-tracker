@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -998,6 +998,18 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.16',
+      date: 'February 9, 2026',
+      title: 'Setlist Scanning & Onboarding',
+      changes: [
+        'Find Missing Setlists button scans your shows without setlists and fetches them from setlist.fm',
+        'Improved setlist matching with artist name variations (e.g., "Dead & Company" vs "Dead and Company")',
+        'Shows are refreshed when navigating back from Import to ensure imported shows appear immediately',
+        'Setlist scanning preserves your existing ratings and comments',
+        'New first-time user experience with import options: screenshot, CSV/Excel, and setlist.fm search',
+      ]
+    },
+    {
       version: '1.0.15',
       date: 'February 9, 2026',
       title: 'Screenshot Import',
@@ -1516,20 +1528,39 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     try {
       if (!artist || !date) return null;
       const year = date.split('-')[0];
-      const params = new URLSearchParams({ artistName: artist, year });
-      const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
-      if (!response.ok) return null;
-      const data = await response.json();
-      if (!data.setlist || data.setlist.length === 0) return null;
 
-      // Find exact date match — API returns DD-MM-YYYY, we store YYYY-MM-DD
-      const match = data.setlist.find(s => {
-        if (!s.eventDate) return false;
-        const parts = s.eventDate.split('-');
-        if (parts.length !== 3) return false;
-        const apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        return apiDate === date;
-      });
+      // Helper to search setlist.fm and find a date match
+      const searchAndMatch = async (searchArtist) => {
+        const params = new URLSearchParams({ artistName: searchArtist, year });
+        const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (!data.setlist || data.setlist.length === 0) return null;
+
+        // Find exact date match — API returns DD-MM-YYYY, we store YYYY-MM-DD
+        return data.setlist.find(s => {
+          if (!s.eventDate) return false;
+          const parts = s.eventDate.split('-');
+          if (parts.length !== 3) return false;
+          const apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          return apiDate === date;
+        }) || null;
+      };
+
+      // Try original artist name first
+      let match = await searchAndMatch(artist);
+
+      // If no match and artist contains special chars like "&", try variations
+      if (!match && artist.includes('&')) {
+        const simplified = artist.replace(/&/g, 'and');
+        match = await searchAndMatch(simplified);
+      }
+      // Try with "The" prefix removed/added
+      if (!match && artist.toLowerCase().startsWith('the ')) {
+        match = await searchAndMatch(artist.substring(4));
+      } else if (!match) {
+        match = await searchAndMatch('The ' + artist);
+      }
 
       if (!match) return null;
 
@@ -2736,6 +2767,10 @@ export default function ShowTracker() {
   const [communityStats, setCommunityStats] = useState(null);
   const [userRank, setUserRank] = useState(null);
 
+  // Setlist scanning
+  const [setlistScanning, setSetlistScanning] = useState(false);
+  const [setlistScanProgress, setSetlistScanProgress] = useState({ current: 0, total: 0, found: 0 });
+
   // Mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -3126,6 +3161,94 @@ export default function ShowTracker() {
       setShows(prev => prev.map(s => s.id === showId ? { ...s, ...updates } : s));
     } catch (error) {
       console.error('Failed to update show data:', error);
+    }
+  };
+
+  const scanForMissingSetlists = async () => {
+    const showsWithoutSetlists = shows.filter(s => !s.setlist || s.setlist.length === 0);
+    if (showsWithoutSetlists.length === 0) {
+      alert('All your shows already have setlists!');
+      return;
+    }
+
+    setSetlistScanning(true);
+    setSetlistScanProgress({ current: 0, total: showsWithoutSetlists.length, found: 0 });
+    let found = 0;
+
+    for (let i = 0; i < showsWithoutSetlists.length; i++) {
+      const show = showsWithoutSetlists[i];
+      try {
+        if (!show.artist || !show.date) continue;
+        const year = show.date.split('-')[0];
+
+        // Helper to search and match
+        const searchAndMatch = async (searchArtist) => {
+          const params = new URLSearchParams({ artistName: searchArtist, year });
+          const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+          if (!response.ok) return null;
+          const data = await response.json();
+          if (!data.setlist || data.setlist.length === 0) return null;
+          return data.setlist.find(s => {
+            if (!s.eventDate) return false;
+            const parts = s.eventDate.split('-');
+            if (parts.length !== 3) return false;
+            return `${parts[2]}-${parts[1]}-${parts[0]}` === show.date;
+          }) || null;
+        };
+
+        let match = await searchAndMatch(show.artist);
+        if (!match && show.artist.includes('&')) {
+          match = await searchAndMatch(show.artist.replace(/&/g, 'and'));
+        }
+        if (!match && show.artist.toLowerCase().startsWith('the ')) {
+          match = await searchAndMatch(show.artist.substring(4));
+        } else if (!match) {
+          match = await searchAndMatch('The ' + show.artist);
+        }
+
+        if (match && match.sets && match.sets.set) {
+          const songs = [];
+          let setIndex = 0;
+          match.sets.set.forEach(set => {
+            if (set.song) {
+              set.song.forEach(song => {
+                songs.push({
+                  id: Date.now().toString() + Math.random(),
+                  name: song.name,
+                  cover: song.cover ? `${song.cover.name} cover` : null,
+                  setBreak: setIndex > 0 && set.song.indexOf(song) === 0
+                    ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
+                    : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
+                });
+              });
+            }
+            setIndex++;
+          });
+
+          if (songs.length > 0) {
+            const updates = { setlist: songs, setlistfmId: match.id, isManual: false };
+            if (match.tour) updates.tour = match.tour.name;
+            await updateShowData(show.id, updates);
+            found++;
+          }
+        }
+      } catch (err) {
+        console.warn('Setlist scan error for', show.artist, err);
+      }
+
+      setSetlistScanProgress({ current: i + 1, total: showsWithoutSetlists.length, found });
+
+      // Rate limiting: 300ms between API calls
+      if (i < showsWithoutSetlists.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+
+    setSetlistScanning(false);
+    if (found > 0) {
+      alert(`Found ${found} new setlist${found !== 1 ? 's' : ''}!`);
+    } else {
+      alert('No new setlists found. Some shows may not have setlists on setlist.fm.');
     }
   };
 
@@ -4030,8 +4153,38 @@ export default function ShowTracker() {
                   <Upload className="w-4 h-4" />
                   Import File
                 </button>
+                {shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
+                  <button
+                    onClick={scanForMissingSetlists}
+                    disabled={setlistScanning}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-all whitespace-nowrap border border-violet-500/30 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
+                    {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Setlist scanning progress */}
+            {setlistScanning && (
+              <div className="bg-violet-500/10 border border-violet-500/30 rounded-2xl p-4 mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <RefreshCw className="w-5 h-5 text-violet-400 animate-spin" />
+                  <span className="text-white font-medium">Scanning for setlists...</span>
+                  <span className="text-white/50 text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div
+                    className="bg-violet-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${setlistScanProgress.total > 0 ? (setlistScanProgress.current / setlistScanProgress.total) * 100 : 0}%` }}
+                  />
+                </div>
+                {setlistScanProgress.found > 0 && (
+                  <p className="text-violet-300 text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
+                )}
+              </div>
+            )}
 
             {/* Search & Sort */}
             <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-6">
@@ -4073,21 +4226,60 @@ export default function ShowTracker() {
                   <Sparkles className="w-12 h-12 text-emerald-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Your Concert Journey Starts Here</h2>
-                <p className="text-white/60 mb-8 max-w-md mx-auto">
-                  Search for shows you've attended and build your personal concert history with setlists, ratings, and stats.
+                <p className="text-white/60 mb-6 max-w-md mx-auto">
+                  Build your personal concert history with setlists, ratings, and stats.
                 </p>
-                <button
-                  onClick={() => setActiveView('search')}
-                  className="relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
-                >
-                  {/* Pulsing ring animation */}
-                  <span className="absolute inset-0 rounded-xl bg-emerald-400 animate-ping opacity-20" />
-                  <Search className="w-5 h-5" />
-                  Search for Your First Show
-                </button>
-                <p className="text-sm text-white/40 mt-4">
-                  💡 Tip: Search by artist name to find setlists from setlist.fm
-                </p>
+
+                <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
+                  <button
+                    onClick={() => setActiveView('search')}
+                    className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
+                  >
+                    <span className="absolute inset-0 rounded-xl bg-emerald-400 animate-ping opacity-20" />
+                    <Search className="w-5 h-5" />
+                    Search for a Show
+                  </button>
+                  <button
+                    onClick={() => setActiveView('import')}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-semibold transition-all border border-violet-500/30 hover:scale-105"
+                  >
+                    <Upload className="w-5 h-5" />
+                    Bulk Import
+                  </button>
+                </div>
+
+                <div className="max-w-lg mx-auto bg-white/5 border border-white/10 rounded-2xl p-6 text-left">
+                  <h3 className="text-white font-semibold mb-4 text-center">Quick ways to add your shows</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Camera className="w-4 h-4 text-violet-400" />
+                      </div>
+                      <div>
+                        <p className="text-white/90 font-medium text-sm">Screenshot Import</p>
+                        <p className="text-white/50 text-xs">Take a screenshot of your Ticketmaster, AXS, or StubHub past events and our AI will extract your shows</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Upload className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-white/90 font-medium text-sm">CSV / Excel Import</p>
+                        <p className="text-white/50 text-xs">Upload a .csv, .xlsx, or .xls spreadsheet with your concert history</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Search className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-white/90 font-medium text-sm">Search setlist.fm</p>
+                        <p className="text-white/50 text-xs">Search by artist to find shows with full setlists from setlist.fm</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -4203,7 +4395,13 @@ export default function ShowTracker() {
         )}
 
         {activeView === 'import' && (
-          <ImportView onImport={addShow} onUpdateShow={updateShowData} existingShows={shows} onNavigate={setActiveView} />
+          <ImportView onImport={addShow} onUpdateShow={updateShowData} existingShows={shows} onNavigate={(view) => {
+            setActiveView(view);
+            // Reload shows from Firestore to ensure imported shows + setlists are reflected
+            if (view === 'shows' && user && !guestMode) {
+              loadShows(user.uid);
+            }
+          }} />
         )}
 
         {activeView === 'community' && !guestMode && (
