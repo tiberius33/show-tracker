@@ -2437,34 +2437,40 @@ export default function ShowTracker() {
 
     loadFriends();
 
-    // Incoming friend requests
-    const qIncoming = query(
-      collection(db, 'friendRequests'),
-      where('to', '==', user.uid),
-      where('status', '==', 'pending')
-    );
+    // Incoming friend requests (single-field query, filter status client-side to avoid composite index)
+    const qIncoming = query(collection(db, 'friendRequests'), where('to', '==', user.uid));
     const unsubIncoming = onSnapshot(qIncoming, (snapshot) => {
-      setPendingFriendRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      setPendingFriendRequests(
+        snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(r => r.status === 'pending')
+      );
+    }, (error) => {
+      console.log('Friend requests listener error:', error.message);
     });
 
-    // Sent friend requests
-    const qSent = query(
-      collection(db, 'friendRequests'),
-      where('from', '==', user.uid),
-      where('status', '==', 'pending')
-    );
+    // Sent friend requests (single-field query, filter status client-side)
+    const qSent = query(collection(db, 'friendRequests'), where('from', '==', user.uid));
     const unsubSent = onSnapshot(qSent, (snapshot) => {
-      setSentFriendRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      setSentFriendRequests(
+        snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(r => r.status === 'pending')
+      );
+    }, (error) => {
+      console.log('Sent requests listener error:', error.message);
     });
 
-    // Incoming show tags
-    const qTags = query(
-      collection(db, 'showTags'),
-      where('toUid', '==', user.uid),
-      where('status', '==', 'pending')
-    );
+    // Incoming show tags (single-field query, filter status client-side)
+    const qTags = query(collection(db, 'showTags'), where('toUid', '==', user.uid));
     const unsubTags = onSnapshot(qTags, (snapshot) => {
-      setPendingShowTags(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      setPendingShowTags(
+        snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(t => t.status === 'pending')
+      );
+    }, (error) => {
+      console.log('Show tags listener error:', error.message);
     });
 
     return () => {
@@ -2754,33 +2760,35 @@ export default function ShowTracker() {
       return;
     }
 
-    // Check if already friends
-    const friendRef = doc(db, 'users', user.uid, 'friends', targetUid);
-    const existingFriend = await getDoc(friendRef);
-    if (existingFriend.exists()) {
-      alert('You are already friends with this user.');
-      return;
-    }
-
-    // Check for existing pending request (sent by us)
-    const q1 = query(collection(db, 'friendRequests'),
-      where('from', '==', user.uid), where('to', '==', targetUid), where('status', '==', 'pending'));
-    const existing1 = await getDocs(q1);
-    if (!existing1.empty) {
-      alert('Friend request already sent.');
-      return;
-    }
-
-    // Check for existing pending request (sent by them — auto-accept)
-    const q2 = query(collection(db, 'friendRequests'),
-      where('from', '==', targetUid), where('to', '==', user.uid), where('status', '==', 'pending'));
-    const existing2 = await getDocs(q2);
-    if (!existing2.empty) {
-      await acceptFriendRequest(existing2.docs[0].id);
-      return;
-    }
-
     try {
+      // Check if already friends
+      const friendRef = doc(db, 'users', user.uid, 'friends', targetUid);
+      const existingFriend = await getDoc(friendRef);
+      if (existingFriend.exists()) {
+        alert('You are already friends with this user.');
+        return;
+      }
+
+      // Check for existing pending requests (load all and filter client-side to avoid index requirements)
+      const allRequests = await getDocs(collection(db, 'friendRequests'));
+      const pendingFromUs = allRequests.docs.find(d => {
+        const data = d.data();
+        return data.from === user.uid && data.to === targetUid && data.status === 'pending';
+      });
+      if (pendingFromUs) {
+        alert('Friend request already sent.');
+        return;
+      }
+
+      const pendingFromThem = allRequests.docs.find(d => {
+        const data = d.data();
+        return data.from === targetUid && data.to === user.uid && data.status === 'pending';
+      });
+      if (pendingFromThem) {
+        await acceptFriendRequest(pendingFromThem.id);
+        return;
+      }
+
       await addDoc(collection(db, 'friendRequests'), {
         from: user.uid,
         to: targetUid,
@@ -2806,14 +2814,16 @@ export default function ShowTracker() {
     }
 
     try {
-      const q = query(collection(db, 'userProfiles'), where('email', '==', trimmedEmail));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
+      // Load all profiles and match case-insensitively (Firestore where() is case-sensitive)
+      const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
+      const matchingProfile = profilesSnapshot.docs.find(d =>
+        d.data().email?.toLowerCase() === trimmedEmail
+      );
+      if (!matchingProfile) {
         alert('No user found with that email address. They may need to sign up first.');
         return;
       }
-      const targetProfile = snapshot.docs[0];
-      await sendFriendRequest(targetProfile.id, targetProfile.data().displayName, targetProfile.data().email);
+      await sendFriendRequest(matchingProfile.id, matchingProfile.data().displayName, matchingProfile.data().email);
     } catch (error) {
       console.error('Failed to find user:', error);
       alert('Failed to search for user. Please try again.');
