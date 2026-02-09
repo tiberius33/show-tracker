@@ -3,7 +3,7 @@ import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search,
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Footer from './Footer';
 import AuthModal from './components/auth/AuthModal';
 import ProfileView from './components/profile/ProfileView';
@@ -908,13 +908,15 @@ function TagFriendsModal({ show, friends, onTag, onClose }) {
 }
 
 // Invite View Component
-function InviteView() {
+function InviteView({ currentUserUid }) {
   const [email, setEmail] = useState('');
+
+  const inviteUrl = currentUserUid ? `https://mysetlists.net?ref=${currentUserUid}` : 'https://mysetlists.net';
 
   const handleInvite = () => {
     const subject = encodeURIComponent('Join me on Setlist Tracker!');
     const body = encodeURIComponent(
-      `Hey!\n\nI've been using MySetlists to keep track of all the concerts I've been to. You can save setlists, rate songs, and see your concert stats.\n\nCheck it out and join the community!\n\nhttps://mysetlists.net`
+      `Hey!\n\nI've been using MySetlists to keep track of all the concerts I've been to. You can save setlists, rate songs, and see your concert stats.\n\nCheck it out and join the community!\n\n${inviteUrl}`
     );
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
@@ -951,12 +953,12 @@ function InviteView() {
           <input
             type="text"
             readOnly
-            value="https://mysetlists.net"
+            value={inviteUrl}
             className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white/60"
           />
           <button
             onClick={() => {
-              navigator.clipboard.writeText('https://mysetlists.net');
+              navigator.clipboard.writeText(inviteUrl);
             }}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-sm font-medium transition-colors"
           >
@@ -1010,6 +1012,16 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.13',
+      date: 'February 9, 2026',
+      title: 'Invite Auto-Friendship',
+      changes: [
+        'Users who join via an invite link are now automatically friends with the person who invited them',
+        'Invite links now include a referral code so the app knows who sent the invitation',
+        'No friend request needed — the friendship is created instantly when the invited user signs up',
+      ]
+    },
     {
       version: '1.0.12',
       date: 'February 9, 2026',
@@ -2538,6 +2550,17 @@ export default function ShowTracker() {
   const [guestMode, setGuestMode] = useState(false);
   const [showGuestPrompt, setShowGuestPrompt] = useState(false); // Prompt to create account after first show
 
+  // Capture invite referral from URL param (?ref=uid) and persist in localStorage
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const refUid = searchParams.get('ref');
+    if (refUid) {
+      localStorage.setItem('invite-referrer', refUid);
+      // Clean the URL without reloading the page
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams]);
+
   // Community stats
   const [communityStats, setCommunityStats] = useState(null);
   const [userRank, setUserRank] = useState(null);
@@ -2734,6 +2757,43 @@ export default function ShowTracker() {
           }
         }
         loadShows(currentUser.uid);
+
+        // Auto-friend the user who invited them via referral link
+        const referrerUid = localStorage.getItem('invite-referrer');
+        if (referrerUid && referrerUid !== currentUser.uid) {
+          try {
+            // Check if already friends to avoid duplicates
+            const existingFriend = await getDoc(doc(db, 'users', currentUser.uid, 'friends', referrerUid));
+            if (!existingFriend.exists()) {
+              // Get referrer's profile for their name/email
+              const referrerProfile = await getDoc(doc(db, 'userProfiles', referrerUid));
+              const referrerData = referrerProfile.exists() ? referrerProfile.data() : {};
+
+              // Create friend doc for the new user
+              await setDoc(doc(db, 'users', currentUser.uid, 'friends', referrerUid), {
+                friendUid: referrerUid,
+                friendName: referrerData.displayName || referrerData.firstName || 'Friend',
+                friendEmail: referrerData.email || '',
+                friendPhotoURL: referrerData.photoURL || '',
+                addedAt: serverTimestamp()
+              });
+
+              // Create friend doc for the referrer
+              await setDoc(doc(db, 'users', referrerUid, 'friends', currentUser.uid), {
+                friendUid: currentUser.uid,
+                friendName: currentUser.displayName || 'New Friend',
+                friendEmail: currentUser.email || '',
+                friendPhotoURL: currentUser.photoURL || '',
+                addedAt: serverTimestamp()
+              });
+            }
+            localStorage.removeItem('invite-referrer');
+          } catch (err) {
+            console.warn('Auto-friend from invite failed:', err);
+            // Don't block app load — remove the referrer to avoid retrying
+            localStorage.removeItem('invite-referrer');
+          }
+        }
       } else if (guestMode) {
         loadGuestShows();
       } else {
@@ -3960,7 +4020,7 @@ export default function ShowTracker() {
         )}
 
         {activeView === 'invite' && !guestMode && (
-          <InviteView />
+          <InviteView currentUserUid={user?.uid} />
         )}
 
         {activeView === 'feedback' && (
