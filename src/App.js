@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -998,6 +998,18 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.15',
+      date: 'February 9, 2026',
+      title: 'Screenshot Import',
+      changes: [
+        'Upload a screenshot from Ticketmaster, AXS, or any ticket platform to import shows',
+        'AI-powered image analysis identifies artists, venues, dates, and cities',
+        'Detected shows are previewed for review before importing',
+        'Setlists are automatically fetched from setlist.fm for screenshot-imported shows',
+        'Supports PNG, JPG, and WebP image formats',
+      ]
+    },
+    {
       version: '1.0.14',
       date: 'February 9, 2026',
       title: 'Sidebar Redesign',
@@ -1218,6 +1230,40 @@ function ReleaseNotesView() {
   );
 }
 
+// Resize image for upload — caps width at 1920px to stay under Netlify's payload limit
+function resizeImageForUpload(file, maxWidth = 1920) {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      if (img.width <= maxWidth) {
+        // No resize needed
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(file);
+        return;
+      }
+      const canvas = document.createElement('canvas');
+      const scale = maxWidth / img.width;
+      canvas.width = maxWidth;
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL(file.type || 'image/png', 0.9);
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      // Fallback: read without resize
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.readAsDataURL(file);
+    };
+    img.src = url;
+  });
+}
+
 // Import View Component
 function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [step, setStep] = useState('upload');
@@ -1235,6 +1281,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [setlistFetchProgress, setSetlistFetchProgress] = useState(0);
   const [setlistFetchTotal, setSetlistFetchTotal] = useState(0);
   const [setlistsFound, setSetlistsFound] = useState(0);
+  const [screenshotAnalyzing, setScreenshotAnalyzing] = useState(false);
+  const [screenshotError, setScreenshotError] = useState(null);
 
   const fields = useMemo(() => [
     { key: 'artist', label: 'Artist', required: true },
@@ -1269,6 +1317,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const handleFile = async (file) => {
     setFileName(file.name);
     setParseError(null);
+    setScreenshotError(null);
     const ext = file.name.split('.').pop().toLowerCase();
 
     if (ext === 'csv') {
@@ -1288,8 +1337,91 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       } catch (err) {
         setParseError('Failed to read Excel file. Please ensure it is a valid .xlsx or .xls file.');
       }
+    } else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+      await handleScreenshot(file);
     } else {
-      setParseError('Unsupported file type. Please upload a .csv, .xlsx, or .xls file.');
+      setParseError('Unsupported file type. Please upload a .csv, .xlsx, .xls, or image file (.png, .jpg).');
+    }
+  };
+
+  const handleScreenshot = async (file) => {
+    setScreenshotAnalyzing(true);
+    setScreenshotError(null);
+
+    try {
+      // Read and resize image if needed
+      const base64 = await resizeImageForUpload(file);
+
+      // Determine media type
+      const ext = file.name.split('.').pop().toLowerCase();
+      const mediaTypeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
+      const mediaType = mediaTypeMap[ext] || 'image/png';
+
+      // Send to Netlify function for Claude analysis
+      const response = await fetch('/.netlify/functions/analyze-screenshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, mediaType })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze screenshot');
+      }
+
+      if (!data.shows || data.shows.length === 0) {
+        setScreenshotError('No shows were detected in this screenshot. Try a different image showing your past events.');
+        setScreenshotAnalyzing(false);
+        return;
+      }
+
+      // Transform Claude's response into preview rows (same format as CSV import)
+      const rows = data.shows.map(show => {
+        const record = {
+          artist: show.artist || '',
+          venue: show.venue || '',
+          date: show.date || '',
+          city: show.city || '',
+          country: '',
+          rating: '',
+          comment: '',
+          tour: '',
+        };
+
+        const errors = [];
+        if (!record.artist) errors.push('Missing artist');
+        if (!record.venue) errors.push('Missing venue');
+        if (!record.date) errors.push('Missing date');
+
+        let parsedDate = null;
+        if (record.date) {
+          parsedDate = parseImportDate(record.date);
+          if (!parsedDate) errors.push('Invalid date');
+        }
+
+        const isDuplicate = parsedDate && existingShows.some(s =>
+          s.artist?.toLowerCase() === record.artist?.toLowerCase() &&
+          s.venue?.toLowerCase() === record.venue?.toLowerCase() &&
+          s.date === parsedDate
+        );
+
+        return {
+          raw: record,
+          parsedDate,
+          rating: null,
+          errors,
+          isDuplicate,
+          skip: false,
+        };
+      });
+
+      setPreviewRows(rows);
+      setStep('preview');
+    } catch (err) {
+      setScreenshotError(err.message || 'Failed to analyze screenshot. Please try again.');
+    } finally {
+      setScreenshotAnalyzing(false);
     }
   };
 
@@ -1520,34 +1652,49 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     setSetlistFetchProgress(0);
     setSetlistFetchTotal(0);
     setSetlistsFound(0);
+    setScreenshotAnalyzing(false);
+    setScreenshotError(null);
   };
 
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Import Shows</h1>
-      <p className="text-white/60 mb-8">Import your concert history from CSV, Excel, or Google Sheets</p>
+      <p className="text-white/60 mb-8">Import your concert history from CSV, Excel, Google Sheets, or a screenshot</p>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-8">
-        {['Upload', 'Map Columns', 'Preview', 'Import'].map((label, i) => {
-          const stepIndex = ['upload', 'mapping', 'preview', 'importing', 'complete'].indexOf(step);
-          const isActive = i <= stepIndex;
-          const isCurrent = i === Math.min(stepIndex, 3);
-          return (
-            <React.Fragment key={label}>
-              {i > 0 && <div className={`flex-1 h-0.5 ${isActive ? 'bg-emerald-500' : 'bg-white/10'}`} />}
-              <div className={`flex items-center gap-2 ${isCurrent ? 'text-emerald-400' : isActive ? 'text-white/80' : 'text-white/30'}`}>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  isActive ? 'bg-emerald-500/20 border border-emerald-500/50' : 'bg-white/5 border border-white/10'
-                }`}>
-                  {i < stepIndex ? <Check className="w-3.5 h-3.5" /> : i + 1}
-                </div>
-                <span className="hidden sm:inline text-sm font-medium">{label}</span>
-              </div>
-            </React.Fragment>
-          );
-        })}
-      </div>
+      {(() => {
+        const isScreenshotFlow = headers.length === 0 && step !== 'upload';
+        const stepLabels = isScreenshotFlow
+          ? ['Upload', 'Preview', 'Import']
+          : ['Upload', 'Map Columns', 'Preview', 'Import'];
+        const stepKeys = isScreenshotFlow
+          ? ['upload', 'preview', 'importing', 'complete']
+          : ['upload', 'mapping', 'preview', 'importing', 'complete'];
+        const stepIndex = stepKeys.indexOf(step);
+        const maxStepIndex = stepLabels.length - 1;
+
+        return (
+          <div className="flex items-center gap-2 mb-8">
+            {stepLabels.map((label, i) => {
+              const isActive = i <= stepIndex;
+              const isCurrent = i === Math.min(stepIndex, maxStepIndex);
+              return (
+                <React.Fragment key={label}>
+                  {i > 0 && <div className={`flex-1 h-0.5 ${isActive ? 'bg-emerald-500' : 'bg-white/10'}`} />}
+                  <div className={`flex items-center gap-2 ${isCurrent ? 'text-emerald-400' : isActive ? 'text-white/80' : 'text-white/30'}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isActive ? 'bg-emerald-500/20 border border-emerald-500/50' : 'bg-white/5 border border-white/10'
+                    }`}>
+                      {i < stepIndex ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                    </div>
+                    <span className="hidden sm:inline text-sm font-medium">{label}</span>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Upload Step */}
       {step === 'upload' && (
@@ -1556,21 +1703,35 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer ${
-              dragOver ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/20 hover:border-white/40'
+            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
+              screenshotAnalyzing ? 'border-violet-500 bg-violet-500/10' :
+              dragOver ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/20 hover:border-white/40 cursor-pointer'
             }`}
-            onClick={() => document.getElementById('import-file-input').click()}
+            onClick={() => !screenshotAnalyzing && document.getElementById('import-file-input').click()}
           >
-            <Upload className={`w-12 h-12 mx-auto mb-4 ${dragOver ? 'text-emerald-400' : 'text-white/30'}`} />
-            <p className="text-lg font-medium text-white mb-2">
-              {dragOver ? 'Drop your file here' : 'Drag & drop your file here'}
-            </p>
-            <p className="text-white/50 mb-4">or click to browse</p>
-            <p className="text-white/30 text-sm">Supports .csv, .xlsx, and .xls files</p>
+            {screenshotAnalyzing ? (
+              <>
+                <Camera className="w-12 h-12 mx-auto mb-4 text-violet-400 animate-pulse" />
+                <p className="text-lg font-medium text-white mb-2">Analyzing Screenshot...</p>
+                <p className="text-white/50 mb-4">AI is identifying shows from your image</p>
+                <div className="w-48 h-1.5 bg-white/10 rounded-full mx-auto overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <Upload className={`w-12 h-12 mx-auto mb-4 ${dragOver ? 'text-emerald-400' : 'text-white/30'}`} />
+                <p className="text-lg font-medium text-white mb-2">
+                  {dragOver ? 'Drop your file here' : 'Drag & drop your file here'}
+                </p>
+                <p className="text-white/50 mb-4">or click to browse</p>
+                <p className="text-white/30 text-sm">Supports .csv, .xlsx, .xls, and screenshot images (.png, .jpg)</p>
+              </>
+            )}
             <input
               id="import-file-input"
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp"
               onChange={handleFileInput}
               className="hidden"
             />
@@ -1583,20 +1744,23 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
             </div>
           )}
 
+          {screenshotError && (
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-red-300 text-sm">{screenshotError}</p>
+            </div>
+          )}
+
           <div className="mt-8 p-4 bg-white/5 rounded-xl">
-            <h3 className="text-white font-medium mb-3">File format tips</h3>
+            <h3 className="text-white font-medium mb-3">Import options</h3>
             <ul className="space-y-2 text-white/50 text-sm">
               <li className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>First row should be column headers (e.g., Artist, Venue, Date)</span>
+                <Upload className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>CSV or Excel file with columns for Artist, Venue, Date (+ optional City, Rating, etc.)</span>
               </li>
               <li className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Required columns: Artist, Venue, Date</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Optional columns: City, Country, Rating (1-10), Comment, Tour</span>
+                <Camera className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
+                <span>Screenshot from Ticketmaster, AXS, or any ticket platform showing your past events</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -1798,7 +1962,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
           <div className="flex gap-3">
             <button
-              onClick={() => setStep('mapping')}
+              onClick={() => headers.length === 0 ? resetImport() : setStep('mapping')}
               className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors"
             >
               Back
