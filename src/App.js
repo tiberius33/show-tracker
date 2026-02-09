@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
 import { Link } from 'react-router-dom';
 import Footer from './Footer';
@@ -371,7 +371,7 @@ function RatingSelect({ value, onChange, max = 10, label }) {
 }
 
 // Sidebar Navigation Component
-function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount }) {
+function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount, pendingNotificationCount }) {
   const navItems = [
     { id: 'search', label: 'Search', icon: Search },
     { id: 'shows', label: 'Shows', icon: List },
@@ -379,8 +379,8 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
     { id: 'stats', label: 'Stats', icon: BarChart3 },
     ...(isGuest ? [] : [
       { id: 'profile', label: 'Profile', icon: User },
+      { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
       { id: 'community', label: 'Community', icon: Users },
-      { id: 'invite', label: 'Invite', icon: Mail },
     ]),
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
@@ -450,7 +450,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map(({ id, label, icon: Icon }) => (
+          {navItems.map(({ id, label, icon: Icon, badge }) => (
             <button
               key={id}
               onClick={() => handleNavClick(id)}
@@ -461,7 +461,12 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
               }`}
             >
               <Icon className={`w-5 h-5 ${activeView === id ? 'text-emerald-400' : ''}`} />
-              <span className="font-medium">{label}</span>
+              <span className="font-medium flex-1">{label}</span>
+              {badge > 0 && (
+                <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  {badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -537,6 +542,359 @@ function MobileHeader({ onMenuClick }) {
           <span className="text-lg font-semibold text-white">Setlist Tracker</span>
         </div>
         <div className="w-10" /> {/* Spacer for centering */}
+      </div>
+    </div>
+  );
+}
+
+// Friends View Component
+function FriendsView({
+  user, friends, pendingFriendRequests, sentFriendRequests, pendingShowTags,
+  onSendFriendRequestByEmail, onSendFriendRequest, onAcceptFriendRequest,
+  onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag
+}) {
+  const [activeTab, setActiveTab] = useState('friends');
+  const [searchEmail, setSearchEmail] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSendRequest = async () => {
+    if (!searchEmail.trim()) return;
+    setSending(true);
+    await onSendFriendRequestByEmail(searchEmail);
+    setSending(false);
+    setSearchEmail('');
+  };
+
+  const requestCount = pendingFriendRequests.length + pendingShowTags.length;
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Friends</h1>
+      <p className="text-white/60 mb-6">Connect with friends and tag them at shows</p>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        {[
+          { id: 'friends', label: `My Friends (${friends.length})` },
+          { id: 'requests', label: `Requests${requestCount > 0 ? ` (${requestCount})` : ''}` },
+          { id: 'find', label: 'Find Friends' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* My Friends Tab */}
+      {activeTab === 'friends' && (
+        <div className="space-y-3">
+          {friends.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
+              <p className="text-white/40 mb-2">No friends yet</p>
+              <p className="text-white/30 text-sm">Search by email or add from the Community leaderboard!</p>
+            </div>
+          ) : (
+            friends.map(friend => (
+              <div key={friend.friendUid} className="bg-white/5 rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-white">{friend.friendName || 'Anonymous'}</div>
+                    <div className="text-sm text-white/40">{friend.friendEmail}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => onRemoveFriend(friend.friendUid)}
+                  className="p-2 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  title="Remove friend"
+                >
+                  <UserX className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Requests Tab */}
+      {activeTab === 'requests' && (
+        <div className="space-y-6">
+          {/* Incoming Friend Requests */}
+          {pendingFriendRequests.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-3">Friend Requests</h3>
+              <div className="space-y-3">
+                {pendingFriendRequests.map(req => (
+                  <div key={req.id} className="bg-white/5 rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                        <UserPlus className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-white">{req.fromName || 'Someone'}</div>
+                        <div className="text-sm text-white/40">{req.fromEmail}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onAcceptFriendRequest(req.id)}
+                        className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/30 transition-colors"
+                      >
+                        <UserCheck className="w-4 h-4 inline mr-1" />
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => onDeclineFriendRequest(req.id)}
+                        className="px-3 py-1.5 bg-white/5 text-white/50 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pending Show Tags */}
+          {pendingShowTags.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-3">Show Tags</h3>
+              <div className="space-y-3">
+                {pendingShowTags.map(tag => (
+                  <div key={tag.id} className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Tag className="w-4 h-4 text-emerald-400" />
+                      <span className="text-white/80 text-sm">
+                        <span className="font-medium text-white">{tag.fromName}</span> tagged you at a show
+                      </span>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-3 mb-3">
+                      <div className="font-medium" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
+                      <div className="flex items-center gap-2 text-sm text-white/60 mt-1">
+                        <Calendar className="w-3.5 h-3.5 text-white/40" />
+                        <span>{formatDate(tag.showData?.date)}</span>
+                        <span className="text-white/20">&middot;</span>
+                        <MapPin className="w-3.5 h-3.5 text-white/40" />
+                        <span>{tag.showData?.venue}{tag.showData?.city ? `, ${tag.showData.city}` : ''}</span>
+                      </div>
+                      {tag.showData?.setlist?.length > 0 && (
+                        <div className="text-xs text-white/40 mt-2">
+                          <Music className="w-3 h-3 inline mr-1" />
+                          {tag.showData.setlist.length} songs in setlist
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onAcceptShowTag(tag.id)}
+                        className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/30 transition-colors"
+                      >
+                        <Check className="w-4 h-4 inline mr-1" />
+                        Add to My Shows
+                      </button>
+                      <button
+                        onClick={() => onDeclineShowTag(tag.id)}
+                        className="px-3 py-1.5 bg-white/5 text-white/50 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sent Requests */}
+          {sentFriendRequests.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-3">Sent Requests</h3>
+              <div className="space-y-3">
+                {sentFriendRequests.map(req => (
+                  <div key={req.id} className="bg-white/5 rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                        <Send className="w-4 h-4 text-white/40" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-white/60">{req.toName || req.toEmail || 'Unknown'}</div>
+                        <div className="text-sm text-white/30">Pending</div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-amber-400/60 bg-amber-500/10 px-2 py-1 rounded-full">Awaiting response</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {pendingFriendRequests.length === 0 && pendingShowTags.length === 0 && sentFriendRequests.length === 0 && (
+            <div className="text-center py-12 text-white/40">
+              <Check className="w-12 h-12 text-white/20 mx-auto mb-4" />
+              <p>No pending requests or tags</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Find Friends Tab */}
+      {activeTab === 'find' && (
+        <div>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+            <h3 className="text-white font-medium mb-4">Search by email</h3>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Mail className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  placeholder="Enter your friend's email..."
+                  value={searchEmail}
+                  onChange={(e) => setSearchEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
+                  className="w-full pl-11 pr-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                />
+              </div>
+              <button
+                onClick={handleSendRequest}
+                disabled={sending || !searchEmail.trim()}
+                className={`px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap ${
+                  sending || !searchEmail.trim()
+                    ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25'
+                }`}
+              >
+                {sending ? 'Sending...' : 'Send Request'}
+              </button>
+            </div>
+            <p className="text-white/30 text-sm mt-3">
+              You can also add friends from the <span className="text-emerald-400">Community</span> leaderboard
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Tag Friends Modal Component
+function TagFriendsModal({ show, friends, onTag, onClose }) {
+  const [selectedFriends, setSelectedFriends] = useState(new Set());
+  const [sending, setSending] = useState(false);
+
+  const toggleFriend = (uid) => {
+    setSelectedFriends(prev => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      return next;
+    });
+  };
+
+  const handleTag = async () => {
+    setSending(true);
+    await onTag([...selectedFriends]);
+    setSending(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-white">Tag Friends</h2>
+            <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="bg-white/5 rounded-xl p-3">
+            <div className="font-medium" style={{ color: '#f59e0b' }}>{show.artist}</div>
+            <div className="flex items-center gap-2 text-sm text-white/60 mt-1">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{formatDate(show.date)}</span>
+              <span className="text-white/20">&middot;</span>
+              <MapPin className="w-3.5 h-3.5" />
+              <span>{show.venue}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Friend list */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {friends.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-10 h-10 text-white/20 mx-auto mb-3" />
+              <p className="text-white/40 text-sm">Add friends first from the Friends page!</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-white/50 mb-3">Select friends who were at this show:</p>
+              {friends.map(friend => (
+                <label
+                  key={friend.friendUid}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                    selectedFriends.has(friend.friendUid)
+                      ? 'bg-emerald-500/15 border border-emerald-500/30'
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedFriends.has(friend.friendUid)}
+                    onChange={() => toggleFriend(friend.friendUid)}
+                    className="sr-only"
+                  />
+                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
+                    selectedFriends.has(friend.friendUid)
+                      ? 'bg-emerald-500 border-emerald-500'
+                      : 'border-white/20'
+                  }`}>
+                    {selectedFriends.has(friend.friendUid) && <Check className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                  <div>
+                    <div className="font-medium text-white text-sm">{friend.friendName || 'Anonymous'}</div>
+                    <div className="text-xs text-white/40">{friend.friendEmail}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {friends.length > 0 && (
+          <div className="p-6 border-t border-white/10 flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleTag}
+              disabled={selectedFriends.size === 0 || sending}
+              className={`flex-1 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                selectedFriends.size > 0 && !sending
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25'
+                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+              }`}
+            >
+              {sending ? 'Tagging...' : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''}`}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -645,6 +1003,20 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.10',
+      date: 'February 8, 2026',
+      title: 'Friends & Show Tagging',
+      changes: [
+        'Add friends by email or directly from the Community leaderboard',
+        'Friend requests require acceptance — mutual friendship only',
+        'Tag friends at shows you attended together',
+        'Tagged shows require friend approval before importing to their collection',
+        'Approved tags copy the full setlist (without your ratings or comments)',
+        'Real-time notification badge for pending requests and show tags',
+        'New Friends page with My Friends, Requests, and Find Friends tabs',
+      ]
+    },
     {
       version: '1.0.9',
       date: 'February 8, 2026',
@@ -1371,7 +1743,7 @@ function ImportView({ onImport, existingShows, onNavigate }) {
 }
 
 // Community Stats View Component
-function CommunityStatsView({ communityStats }) {
+function CommunityStatsView({ communityStats, onAddFriend, currentUserUid, currentFriendUids }) {
   if (!communityStats) {
     return (
       <div className="text-center py-16">
@@ -1405,6 +1777,16 @@ function CommunityStatsView({ communityStats }) {
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-white/80 flex-1">{user.firstName}</span>
+                {onAddFriend && user.odubleserId !== currentUserUid && !(currentFriendUids || []).includes(user.odubleserId) && (
+                  <button
+                    onClick={() => onAddFriend(user.odubleserId, user.firstName, '')}
+                    className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+                    title="Add friend"
+                  >
+                    <UserPlus className="w-3 h-3 inline mr-1" />
+                    Add
+                  </button>
+                )}
                 <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-semibold">
                   {user.count} shows
                 </span>
@@ -1431,6 +1813,16 @@ function CommunityStatsView({ communityStats }) {
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-white/80 flex-1">{user.firstName}</span>
+                {onAddFriend && user.odubleserId !== currentUserUid && !(currentFriendUids || []).includes(user.odubleserId) && (
+                  <button
+                    onClick={() => onAddFriend(user.odubleserId, user.firstName, '')}
+                    className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+                    title="Add friend"
+                  >
+                    <UserPlus className="w-3 h-3 inline mr-1" />
+                    Add
+                  </button>
+                )}
                 <span className="bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm font-semibold">
                   {user.count} ratings
                 </span>
@@ -1999,8 +2391,19 @@ export default function ShowTracker() {
   // Celebration animation
   const [showCelebration, setShowCelebration] = useState(false);
 
+  // Friends feature state
+  const [friends, setFriends] = useState([]);
+  const [pendingFriendRequests, setPendingFriendRequests] = useState([]);
+  const [sentFriendRequests, setSentFriendRequests] = useState([]);
+  const [pendingShowTags, setPendingShowTags] = useState([]);
+  const [tagFriendsShow, setTagFriendsShow] = useState(null);
+
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
+  // Derived friends data
+  const friendUids = useMemo(() => friends.map(f => f.friendUid), [friends]);
+  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length;
 
   // Listen for community stats (for login page)
   useEffect(() => {
@@ -2015,6 +2418,61 @@ export default function ShowTracker() {
 
     return () => unsubscribe();
   }, []);
+
+  // Load friends list
+  const loadFriends = useCallback(async () => {
+    if (!user) return;
+    try {
+      const friendsRef = collection(db, 'users', user.uid, 'friends');
+      const snapshot = await getDocs(friendsRef);
+      setFriends(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+      console.error('Failed to load friends:', error);
+    }
+  }, [user]);
+
+  // Real-time listeners for friend requests and show tags
+  useEffect(() => {
+    if (!user || guestMode) return;
+
+    loadFriends();
+
+    // Incoming friend requests
+    const qIncoming = query(
+      collection(db, 'friendRequests'),
+      where('to', '==', user.uid),
+      where('status', '==', 'pending')
+    );
+    const unsubIncoming = onSnapshot(qIncoming, (snapshot) => {
+      setPendingFriendRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    // Sent friend requests
+    const qSent = query(
+      collection(db, 'friendRequests'),
+      where('from', '==', user.uid),
+      where('status', '==', 'pending')
+    );
+    const unsubSent = onSnapshot(qSent, (snapshot) => {
+      setSentFriendRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    // Incoming show tags
+    const qTags = query(
+      collection(db, 'showTags'),
+      where('toUid', '==', user.uid),
+      where('status', '==', 'pending')
+    );
+    const unsubTags = onSnapshot(qTags, (snapshot) => {
+      setPendingShowTags(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => {
+      unsubIncoming();
+      unsubSent();
+      unsubTags();
+    };
+  }, [user, guestMode, loadFriends]);
 
   const checkForLocalData = useCallback(() => {
     try {
@@ -2285,6 +2743,206 @@ export default function ShowTracker() {
     } catch (error) {
       console.error('Failed to delete show:', error);
       alert('Failed to delete show. Please try again.');
+    }
+  };
+
+  // === FRIEND FUNCTIONS ===
+
+  const sendFriendRequest = async (targetUid, targetName, targetEmail) => {
+    if (!user || targetUid === user.uid) {
+      alert('You cannot send a friend request to yourself.');
+      return;
+    }
+
+    // Check if already friends
+    const friendRef = doc(db, 'users', user.uid, 'friends', targetUid);
+    const existingFriend = await getDoc(friendRef);
+    if (existingFriend.exists()) {
+      alert('You are already friends with this user.');
+      return;
+    }
+
+    // Check for existing pending request (sent by us)
+    const q1 = query(collection(db, 'friendRequests'),
+      where('from', '==', user.uid), where('to', '==', targetUid), where('status', '==', 'pending'));
+    const existing1 = await getDocs(q1);
+    if (!existing1.empty) {
+      alert('Friend request already sent.');
+      return;
+    }
+
+    // Check for existing pending request (sent by them — auto-accept)
+    const q2 = query(collection(db, 'friendRequests'),
+      where('from', '==', targetUid), where('to', '==', user.uid), where('status', '==', 'pending'));
+    const existing2 = await getDocs(q2);
+    if (!existing2.empty) {
+      await acceptFriendRequest(existing2.docs[0].id);
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, 'friendRequests'), {
+        from: user.uid,
+        to: targetUid,
+        fromName: user.displayName || 'Anonymous',
+        fromEmail: user.email || '',
+        toName: targetName || '',
+        toEmail: targetEmail || '',
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Failed to send friend request:', error);
+      alert('Failed to send friend request. Please try again.');
+    }
+  };
+
+  const sendFriendRequestByEmail = async (email) => {
+    if (!user) return;
+    const trimmedEmail = email.trim().toLowerCase();
+    if (trimmedEmail === user.email?.toLowerCase()) {
+      alert('You cannot send a friend request to yourself.');
+      return;
+    }
+
+    try {
+      const q = query(collection(db, 'userProfiles'), where('email', '==', trimmedEmail));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        alert('No user found with that email address. They may need to sign up first.');
+        return;
+      }
+      const targetProfile = snapshot.docs[0];
+      await sendFriendRequest(targetProfile.id, targetProfile.data().displayName, targetProfile.data().email);
+    } catch (error) {
+      console.error('Failed to find user:', error);
+      alert('Failed to search for user. Please try again.');
+    }
+  };
+
+  const acceptFriendRequest = async (requestId) => {
+    if (!user) return;
+    try {
+      const reqRef = doc(db, 'friendRequests', requestId);
+      const reqSnap = await getDoc(reqRef);
+      if (!reqSnap.exists()) return;
+      const reqData = reqSnap.data();
+
+      // Update request status
+      await setDoc(reqRef, { status: 'accepted' }, { merge: true });
+
+      // Create friend doc for current user
+      const myFriendRef = doc(db, 'users', user.uid, 'friends', reqData.from);
+      await setDoc(myFriendRef, {
+        friendUid: reqData.from,
+        friendName: reqData.fromName,
+        friendEmail: reqData.fromEmail,
+        friendPhotoURL: '',
+        addedAt: serverTimestamp()
+      });
+
+      // Create friend doc for the sender
+      const theirFriendRef = doc(db, 'users', reqData.from, 'friends', user.uid);
+      await setDoc(theirFriendRef, {
+        friendUid: user.uid,
+        friendName: user.displayName || 'Anonymous',
+        friendEmail: user.email || '',
+        friendPhotoURL: user.photoURL || '',
+        addedAt: serverTimestamp()
+      });
+
+      await loadFriends();
+    } catch (error) {
+      console.error('Failed to accept friend request:', error);
+      alert('Failed to accept friend request. Please try again.');
+    }
+  };
+
+  const declineFriendRequest = async (requestId) => {
+    try {
+      const reqRef = doc(db, 'friendRequests', requestId);
+      await setDoc(reqRef, { status: 'declined' }, { merge: true });
+    } catch (error) {
+      console.error('Failed to decline friend request:', error);
+    }
+  };
+
+  const removeFriend = async (friendUid) => {
+    if (!user) return;
+    if (!window.confirm('Remove this friend?')) return;
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'friends', friendUid));
+      await deleteDoc(doc(db, 'users', friendUid, 'friends', user.uid));
+      setFriends(prev => prev.filter(f => f.friendUid !== friendUid));
+    } catch (error) {
+      console.error('Failed to remove friend:', error);
+    }
+  };
+
+  // === SHOW TAGGING FUNCTIONS ===
+
+  const sanitizeShowForTag = (show) => ({
+    artist: show.artist,
+    venue: show.venue,
+    date: show.date,
+    city: show.city || '',
+    tour: show.tour || '',
+    setlistfmId: show.setlistfmId || null,
+    isManual: show.isManual || false,
+    setlist: (show.setlist || []).map(song => ({
+      id: song.id,
+      name: song.name,
+    }))
+  });
+
+  const tagFriendsAtShow = async (show, selectedFriendUids) => {
+    if (!user || selectedFriendUids.length === 0) return;
+    const sanitizedShow = sanitizeShowForTag(show);
+    try {
+      for (const friendUid of selectedFriendUids) {
+        await addDoc(collection(db, 'showTags'), {
+          fromUid: user.uid,
+          fromName: user.displayName || 'Anonymous',
+          toUid: friendUid,
+          showData: sanitizedShow,
+          status: 'pending',
+          createdAt: serverTimestamp()
+        });
+      }
+      setTagFriendsShow(null);
+    } catch (error) {
+      console.error('Failed to tag friends:', error);
+      alert('Failed to tag friends. Please try again.');
+    }
+  };
+
+  const acceptShowTag = async (tagId) => {
+    if (!user) return;
+    try {
+      const tagRef = doc(db, 'showTags', tagId);
+      const tagSnap = await getDoc(tagRef);
+      if (!tagSnap.exists()) return;
+      const tagData = tagSnap.data();
+
+      await addShow({
+        ...tagData.showData,
+        taggedBy: tagData.fromName,
+        taggedByUid: tagData.fromUid
+      });
+
+      await setDoc(tagRef, { status: 'accepted' }, { merge: true });
+    } catch (error) {
+      console.error('Failed to accept show tag:', error);
+      alert('Failed to import tagged show. Please try again.');
+    }
+  };
+
+  const declineShowTag = async (tagId) => {
+    try {
+      const tagRef = doc(db, 'showTags', tagId);
+      await setDoc(tagRef, { status: 'declined' }, { merge: true });
+    } catch (error) {
+      console.error('Failed to decline show tag:', error);
     }
   };
 
@@ -2882,6 +3540,7 @@ export default function ShowTracker() {
         onClose={() => setSidebarOpen(false)}
         isGuest={guestMode}
         onCreateAccount={() => openAuthModal('signup')}
+        pendingNotificationCount={pendingNotificationCount}
       />
 
       {/* Main Content Area */}
@@ -3052,6 +3711,16 @@ export default function ShowTracker() {
                 onCommentShow={(comment) => updateShowComment(selectedShow.id, comment)}
                 onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
                 onClose={() => setSelectedShow(null)}
+                onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
+              />
+            )}
+
+            {tagFriendsShow && (
+              <TagFriendsModal
+                show={tagFriendsShow}
+                friends={friends}
+                onTag={(selectedFriendUids) => tagFriendsAtShow(tagFriendsShow, selectedFriendUids)}
+                onClose={() => setTagFriendsShow(null)}
               />
             )}
           </>
@@ -3081,6 +3750,23 @@ export default function ShowTracker() {
           />
         )}
 
+        {activeView === 'friends' && !guestMode && user && (
+          <FriendsView
+            user={user}
+            friends={friends}
+            pendingFriendRequests={pendingFriendRequests}
+            sentFriendRequests={sentFriendRequests}
+            pendingShowTags={pendingShowTags}
+            onSendFriendRequestByEmail={sendFriendRequestByEmail}
+            onSendFriendRequest={sendFriendRequest}
+            onAcceptFriendRequest={acceptFriendRequest}
+            onDeclineFriendRequest={declineFriendRequest}
+            onRemoveFriend={removeFriend}
+            onAcceptShowTag={acceptShowTag}
+            onDeclineShowTag={declineShowTag}
+          />
+        )}
+
         {activeView === 'invite' && !guestMode && (
           <InviteView />
         )}
@@ -3098,7 +3784,12 @@ export default function ShowTracker() {
         )}
 
         {activeView === 'community' && !guestMode && (
-          <CommunityStatsView communityStats={communityStats} />
+          <CommunityStatsView
+            communityStats={communityStats}
+            onAddFriend={sendFriendRequest}
+            currentUserUid={user?.uid}
+            currentFriendUids={friendUids}
+          />
         )}
 
         {activeView === 'profile' && !guestMode && user && (
@@ -3278,7 +3969,7 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
   );
 }
 
-function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onTagFriends }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -3413,6 +4104,15 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               )}
             </div>
             <div className="flex items-start gap-2">
+              {onTagFriends && (
+                <button
+                  onClick={() => onTagFriends(show)}
+                  className="p-3 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  title="Tag friends at this show"
+                >
+                  <Tag className="w-5 h-5" />
+                </button>
+              )}
               <button
                 onClick={handleShare}
                 className={`p-3 md:p-2 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
