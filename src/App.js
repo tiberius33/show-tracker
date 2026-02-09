@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
 import { Link } from 'react-router-dom';
 import Footer from './Footer';
@@ -1004,6 +1004,19 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.11',
+      date: 'February 9, 2026',
+      title: 'Auto-Fetch Setlists on Import',
+      changes: [
+        'Imported shows now automatically search setlist.fm for matching setlists',
+        'Setlists are matched by artist name and exact date',
+        'Found setlists include full song lists with set breaks and encore markers',
+        'Tour information is also pulled when available from setlist.fm',
+        'Progress indicator shows setlist fetch status during import',
+        'Import completion screen shows how many setlists were found',
+      ]
+    },
+    {
       version: '1.0.10',
       date: 'February 8, 2026',
       title: 'Friends & Show Tagging',
@@ -1181,7 +1194,7 @@ function ReleaseNotesView() {
 }
 
 // Import View Component
-function ImportView({ onImport, existingShows, onNavigate }) {
+function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [step, setStep] = useState('upload');
   const [fileName, setFileName] = useState('');
   const [rawData, setRawData] = useState([]);
@@ -1193,6 +1206,10 @@ function ImportView({ onImport, existingShows, onNavigate }) {
   const [importResults, setImportResults] = useState({ imported: 0, failed: 0, skipped: 0 });
   const [dragOver, setDragOver] = useState(false);
   const [parseError, setParseError] = useState(null);
+  const [setlistFetchStep, setSetlistFetchStep] = useState(null); // null | 'fetching' | 'complete'
+  const [setlistFetchProgress, setSetlistFetchProgress] = useState(0);
+  const [setlistFetchTotal, setSetlistFetchTotal] = useState(0);
+  const [setlistsFound, setSetlistsFound] = useState(0);
 
   const fields = useMemo(() => [
     { key: 'artist', label: 'Artist', required: true },
@@ -1326,15 +1343,76 @@ function ImportView({ onImport, existingShows, onNavigate }) {
   const errorRows = previewRows.filter(r => r.errors.length > 0);
   const duplicateRows = previewRows.filter(r => r.isDuplicate && r.errors.length === 0);
 
+  // Fetch setlist from setlist.fm API for a given show
+  const fetchSetlistForShow = async ({ artist, date }) => {
+    try {
+      if (!artist || !date) return null;
+      const year = date.split('-')[0];
+      const params = new URLSearchParams({ artistName: artist, year });
+      const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!data.setlist || data.setlist.length === 0) return null;
+
+      // Find exact date match — API returns DD-MM-YYYY, we store YYYY-MM-DD
+      const match = data.setlist.find(s => {
+        if (!s.eventDate) return false;
+        const parts = s.eventDate.split('-');
+        if (parts.length !== 3) return false;
+        const apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return apiDate === date;
+      });
+
+      if (!match) return null;
+
+      // Transform songs using same logic as SearchView importSetlist
+      const songs = [];
+      let setIndex = 0;
+      if (match.sets && match.sets.set) {
+        match.sets.set.forEach(set => {
+          if (set.song) {
+            set.song.forEach(song => {
+              songs.push({
+                id: Date.now().toString() + Math.random(),
+                name: song.name,
+                cover: song.cover ? `${song.cover.name} cover` : null,
+                setBreak: setIndex > 0 && set.song.indexOf(song) === 0
+                  ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
+                  : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
+              });
+            });
+          }
+          setIndex++;
+        });
+      }
+
+      if (songs.length === 0) return null;
+
+      return {
+        setlist: songs,
+        setlistfmId: match.id,
+        tour: match.tour ? match.tour.name : null
+      };
+    } catch (err) {
+      console.warn('Setlist fetch failed for', artist, date, err);
+      return null;
+    }
+  };
+
   const handleStartImport = async () => {
     const toImport = validRows.filter(r => !r.skip);
     setImportTotal(toImport.length);
     setImportProgress(0);
+    setSetlistFetchStep(null);
+    setSetlistFetchProgress(0);
+    setSetlistsFound(0);
     setStep('importing');
 
     let imported = 0;
     let failed = 0;
+    const importedShows = []; // Track imported shows for setlist fetch
 
+    // Phase 1: Import shows to Firestore
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
       try {
@@ -1349,16 +1427,49 @@ function ImportView({ onImport, existingShows, onNavigate }) {
           tour: row.raw.tour || '',
           setlist: [],
         };
-        await onImport(showData);
+        const showId = await onImport(showData);
         imported++;
+        if (showId) {
+          importedShows.push({ showId, artist: showData.artist, date: showData.date, venue: showData.venue, city: showData.city });
+        }
       } catch (err) {
         failed++;
       }
       setImportProgress(i + 1);
-      // Small delay to avoid overwhelming Firebase
       if (i < toImport.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
+    }
+
+    // Phase 2: Fetch setlists from setlist.fm
+    if (importedShows.length > 0 && onUpdateShow) {
+      setSetlistFetchStep('fetching');
+      setSetlistFetchTotal(importedShows.length);
+      let found = 0;
+
+      for (let i = 0; i < importedShows.length; i++) {
+        const show = importedShows[i];
+        try {
+          const result = await fetchSetlistForShow({ artist: show.artist, date: show.date });
+          if (result) {
+            const updates = { setlist: result.setlist, setlistfmId: result.setlistfmId, isManual: false };
+            if (result.tour) updates.tour = result.tour;
+            await onUpdateShow(show.showId, updates);
+            found++;
+          }
+        } catch (err) {
+          // Non-blocking — setlist fetch failures don't affect import
+          console.warn('Setlist fetch error for', show.artist, show.date, err);
+        }
+        setSetlistFetchProgress(i + 1);
+        setSetlistsFound(found);
+        // Rate limiting: 300ms between API calls
+        if (i < importedShows.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+
+      setSetlistFetchStep('complete');
     }
 
     setImportResults({
@@ -1380,6 +1491,10 @@ function ImportView({ onImport, existingShows, onNavigate }) {
     setImportTotal(0);
     setImportResults({ imported: 0, failed: 0, skipped: 0 });
     setParseError(null);
+    setSetlistFetchStep(null);
+    setSetlistFetchProgress(0);
+    setSetlistFetchTotal(0);
+    setSetlistsFound(0);
   };
 
   return (
@@ -1681,17 +1796,36 @@ function ImportView({ onImport, existingShows, onNavigate }) {
       {/* Importing Step */}
       {step === 'importing' && (
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Download className="w-8 h-8 text-emerald-400 animate-pulse" />
-          </div>
-          <h2 className="text-lg font-semibold text-white mb-2">Importing Shows...</h2>
-          <p className="text-white/50 mb-6">{importProgress} of {importTotal}</p>
-          <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden max-w-md mx-auto">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
-              style={{ width: `${importTotal > 0 ? (importProgress / importTotal) * 100 : 0}%` }}
-            />
-          </div>
+          {!setlistFetchStep ? (
+            <>
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Download className="w-8 h-8 text-emerald-400 animate-pulse" />
+              </div>
+              <h2 className="text-lg font-semibold text-white mb-2">Importing Shows...</h2>
+              <p className="text-white/50 mb-6">{importProgress} of {importTotal}</p>
+              <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden max-w-md mx-auto">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
+                  style={{ width: `${importTotal > 0 ? (importProgress / importTotal) * 100 : 0}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Music className="w-8 h-8 text-violet-400 animate-pulse" />
+              </div>
+              <h2 className="text-lg font-semibold text-white mb-2">Fetching Setlists...</h2>
+              <p className="text-white/50 mb-2">Searching setlist.fm for your shows</p>
+              <p className="text-white/50 mb-6">{setlistFetchProgress} of {setlistFetchTotal} — {setlistsFound} found</p>
+              <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden max-w-md mx-auto">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-300"
+                  style={{ width: `${setlistFetchTotal > 0 ? (setlistFetchProgress / setlistFetchTotal) * 100 : 0}%` }}
+                />
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -1718,6 +1852,12 @@ function ImportView({ onImport, existingShows, onNavigate }) {
               <div className="px-4 py-3 bg-white/5 rounded-xl">
                 <p className="text-2xl font-bold text-white/50">{importResults.skipped}</p>
                 <p className="text-white/50 text-sm">Skipped</p>
+              </div>
+            )}
+            {setlistsFound > 0 && (
+              <div className="px-4 py-3 bg-violet-500/10 rounded-xl">
+                <p className="text-2xl font-bold text-violet-400">{setlistsFound}</p>
+                <p className="text-white/50 text-sm">Setlists Found</p>
               </div>
             )}
           </div>
@@ -2693,10 +2833,10 @@ export default function ShowTracker() {
           setShowGuestPrompt(true);
         }, 2000);
       }
-      return;
+      return showId;
     }
 
-    if (!user) return;
+    if (!user) return null;
 
     try {
       const showRef = doc(db, 'users', user.uid, 'shows', showId);
@@ -2716,9 +2856,28 @@ export default function ShowTracker() {
       await updateUserProfile(user, updatedShows);
       updateCommunityStats();
       calculateUserRank(user.uid, updatedShows.length);
+      return showId;
     } catch (error) {
       console.error('Failed to add show:', error);
       alert('Failed to add show. Please try again.');
+      return null;
+    }
+  };
+
+  const updateShowData = async (showId, updates) => {
+    if (guestMode) {
+      const updatedShows = shows.map(s => s.id === showId ? { ...s, ...updates } : s);
+      setShows(updatedShows);
+      saveGuestShows(updatedShows);
+      return;
+    }
+    if (!user) return;
+    try {
+      const showRef = doc(db, 'users', user.uid, 'shows', showId);
+      await updateDoc(showRef, updates);
+      setShows(prev => prev.map(s => s.id === showId ? { ...s, ...updates } : s));
+    } catch (error) {
+      console.error('Failed to update show data:', error);
     }
   };
 
@@ -3796,7 +3955,7 @@ export default function ShowTracker() {
         )}
 
         {activeView === 'import' && (
-          <ImportView onImport={addShow} existingShows={shows} onNavigate={setActiveView} />
+          <ImportView onImport={addShow} onUpdateShow={updateShowData} existingShows={shows} onNavigate={setActiveView} />
         )}
 
         {activeView === 'community' && !guestMode && (
