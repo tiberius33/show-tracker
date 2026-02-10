@@ -4683,131 +4683,135 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const unratedCount = show.setlist.filter(s => !s.rating).length;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-2 md:p-4 z-20">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl md:rounded-3xl max-w-[95vw] sm:max-w-lg md:max-w-2xl w-full max-h-[95vh] md:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        <div className="p-4 md:p-6 border-b border-white/10">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl md:text-2xl font-bold" style={{ color: artistColor(show.artist) }}>{show.artist}</h2>
-                {!show.isManual && (
-                  <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">
-                    setlist.fm
-                  </span>
-                )}
-              </div>
-              <p className="text-white/50 mt-1">
-                {formatDate(show.date)} &middot; {show.venue}
-                {show.city && `, ${show.city}`}
-              </p>
-              {show.tour && (
-                <p className="text-emerald-400 text-sm font-medium mt-1">Tour: {show.tour}</p>
-              )}
-              <div className="mt-3">
-                <RatingSelect value={show.rating} onChange={onRateShow} label="Show rating:" />
-              </div>
-              {!editingShowComment && (
-                <div className="mt-2">
-                  {show.comment ? (
-                    <div
-                      className="text-sm text-white/50 italic bg-white/5 p-2.5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
-                      onClick={() => { setEditingShowComment(true); setShowCommentText(show.comment || ''); }}
-                    >
-                      <div className="flex items-start gap-1.5">
-                        <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-white/40" />
-                        <span>{show.comment}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setEditingShowComment(true); setShowCommentText(''); }}
-                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white/10 text-white/40 hover:bg-white/20 hover:text-white/60 transition-colors"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      Add show note
-                    </button>
-                  )}
-                </div>
-              )}
-              {editingShowComment && (
-                <div className="mt-2 flex gap-2">
-                  <input
-                    type="text"
-                    value={showCommentText}
-                    onChange={(e) => setShowCommentText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }
-                    }}
-                    placeholder="Add a note about this show..."
-                    className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }}
-                    className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-xs font-medium transition-colors"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => setEditingShowComment(false)}
-                    className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white/60 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="flex items-start gap-2">
-              {onTagFriends && (
-                <button
-                  onClick={() => onTagFriends(show)}
-                  className="p-3 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                  title="Tag friends at this show"
-                >
-                  <Tag className="w-5 h-5" />
-                </button>
-              )}
-              <button
-                onClick={handleShare}
-                className={`p-3 md:p-2 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
-                title="Share setlist"
-              >
-                {shareSuccess ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
-              </button>
-              <button onClick={onClose} className="p-3 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-end md:items-center justify-center md:p-4 z-20">
+      <div className="bg-slate-900 border border-white/10 rounded-t-2xl md:rounded-3xl max-w-[100vw] sm:max-w-lg md:max-w-2xl w-full max-h-[92vh] md:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        {/* Compact top bar with close, share, and tag */}
+        <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/10 bg-slate-900 flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <h2 className="text-lg md:text-2xl font-bold truncate" style={{ color: artistColor(show.artist) }}>{show.artist}</h2>
+            {!show.isManual && (
+              <span className="text-[10px] md:text-xs font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full flex-shrink-0">
+                setlist.fm
+              </span>
+            )}
           </div>
-
-          <form onSubmit={handleAddSong} className="flex gap-3">
-            <input
-              type="text"
-              placeholder="Add song to setlist..."
-              value={songName}
-              onChange={(e) => setSongName(e.target.value)}
-              className="flex-1 px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
-            />
-            <button type="submit" className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/25">
-              <Plus className="w-5 h-5" />
-            </button>
-          </form>
-
-          {unratedCount > 0 && (
-            <div className="flex items-center gap-3 mt-4 p-3 bg-white/5 border border-white/10 rounded-xl">
-              <span className="text-xs font-medium text-white/50">Rate {unratedCount} unrated:</span>
-              <RatingSelect value={batchRating} onChange={(v) => setBatchRating(v || 5)} />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {onTagFriends && (
               <button
-                onClick={() => onBatchRate(batchRating)}
-                className="px-4 py-2 md:px-3 md:py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm md:text-xs font-medium transition-colors"
+                onClick={() => onTagFriends(show)}
+                className="p-2.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                title="Tag friends at this show"
               >
-                Apply
+                <Tag className="w-5 h-5" />
               </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={handleShare}
+              className={`p-2.5 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+              title="Share setlist"
+            >
+              {shareSuccess ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+            </button>
+            <button onClick={onClose} className="p-2.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-900/50">
+        {/* Scrollable content area with show info + setlist */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Show details */}
+          <div className="px-4 py-3 md:px-6 md:py-4 border-b border-white/10 bg-slate-900/80">
+            <p className="text-white/50 text-sm">
+              {formatDate(show.date)} &middot; {show.venue}
+              {show.city && `, ${show.city}`}
+            </p>
+            {show.tour && (
+              <p className="text-emerald-400 text-sm font-medium mt-1">Tour: {show.tour}</p>
+            )}
+            <div className="mt-2">
+              <RatingSelect value={show.rating} onChange={onRateShow} label="Show rating:" />
+            </div>
+            {!editingShowComment && (
+              <div className="mt-2">
+                {show.comment ? (
+                  <div
+                    className="text-sm text-white/50 italic bg-white/5 p-2.5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                    onClick={() => { setEditingShowComment(true); setShowCommentText(show.comment || ''); }}
+                  >
+                    <div className="flex items-start gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-white/40" />
+                      <span>{show.comment}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setEditingShowComment(true); setShowCommentText(''); }}
+                    className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white/10 text-white/40 hover:bg-white/20 hover:text-white/60 transition-colors"
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    Add show note
+                  </button>
+                )}
+              </div>
+            )}
+            {editingShowComment && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={showCommentText}
+                  onChange={(e) => setShowCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }
+                  }}
+                  placeholder="Add a note about this show..."
+                  className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                  autoFocus
+                />
+                <button
+                  onClick={() => { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }}
+                  className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-xs font-medium transition-colors"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingShowComment(false)}
+                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white/60 rounded-lg text-xs font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {/* Add song form */}
+            <form onSubmit={handleAddSong} className="flex gap-3 mt-3">
+              <input
+                type="text"
+                placeholder="Add song to setlist..."
+                value={songName}
+                onChange={(e) => setSongName(e.target.value)}
+                className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 text-sm"
+              />
+              <button type="submit" className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/25">
+                <Plus className="w-5 h-5" />
+              </button>
+            </form>
+
+            {unratedCount > 0 && (
+              <div className="flex items-center gap-3 mt-3 p-3 bg-white/5 border border-white/10 rounded-xl">
+                <span className="text-xs font-medium text-white/50">Rate {unratedCount} unrated:</span>
+                <RatingSelect value={batchRating} onChange={(v) => setBatchRating(v || 5)} />
+                <button
+                  onClick={() => onBatchRate(batchRating)}
+                  className="px-4 py-2 md:px-3 md:py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm md:text-xs font-medium transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 md:p-6 bg-slate-900/50">
           {show.setlist.length === 0 ? (
             <p className="text-center text-white/40 py-8 font-medium">No songs in setlist</p>
           ) : (
@@ -4886,6 +4890,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
