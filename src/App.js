@@ -962,7 +962,7 @@ function FeedbackView() {
   const handleSubmit = () => {
     const subject = encodeURIComponent('Setlist Tracker Feedback');
     const body = encodeURIComponent(feedback);
-    window.location.href = `mailto:pdl33@icloud.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:support@mysetlists.net?subject=${subject}&body=${body}`;
   };
 
   return (
