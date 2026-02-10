@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -543,11 +543,17 @@ function MobileHeader({ onMenuClick }) {
 function FriendsView({
   user, friends, pendingFriendRequests, sentFriendRequests, pendingShowTags,
   onSendFriendRequestByEmail, onSendFriendRequest, onAcceptFriendRequest,
-  onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag
+  onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag,
+  initialTab
 }) {
-  const [activeTab, setActiveTab] = useState('friends');
+  const [activeTab, setActiveTab] = useState(initialTab || 'friends');
   const [searchEmail, setSearchEmail] = useState('');
   const [sending, setSending] = useState(false);
+
+  // Navigate to initialTab when it changes (e.g., from notification banner)
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   const handleSendRequest = async () => {
     if (!searchEmail.trim()) return;
@@ -567,20 +573,25 @@ function FriendsView({
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         {[
-          { id: 'friends', label: `My Friends (${friends.length})` },
-          { id: 'requests', label: `Requests${requestCount > 0 ? ` (${requestCount})` : ''}` },
-          { id: 'find', label: 'Find Friends' },
+          { id: 'friends', label: `My Friends (${friends.length})`, badge: 0 },
+          { id: 'requests', label: 'Requests', badge: requestCount },
+          { id: 'find', label: 'Find Friends', badge: 0 },
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.id
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                 : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
             }`}
           >
             {tab.label}
+            {tab.badge > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -997,6 +1008,16 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.17',
+      date: 'February 10, 2026',
+      title: 'Notifications & Alerts',
+      changes: [
+        'Notification banner on the Shows page alerts you to pending friend requests and show tags',
+        'Clicking the notification banner takes you directly to the Friends Requests tab',
+        'Red badge on the Requests tab shows the number of pending friend requests and show tags',
+      ]
+    },
     {
       version: '1.0.16',
       date: 'February 9, 2026',
@@ -2739,6 +2760,7 @@ function SearchView({ onImport, importedIds }) {
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
   const [activeView, setActiveView] = useState('shows');
+  const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -2794,6 +2816,13 @@ export default function ShowTracker() {
   // Derived friends data
   const friendUids = useMemo(() => friends.map(f => f.friendUid), [friends]);
   const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length;
+
+  // Clear friendsInitialTab when navigating away from friends
+  useEffect(() => {
+    if (activeView !== 'friends') {
+      setFriendsInitialTab(null);
+    }
+  }, [activeView]);
 
   // Listen for community stats (for login page)
   useEffect(() => {
@@ -4127,6 +4156,31 @@ export default function ShowTracker() {
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 md:py-8">
           {activeView === 'shows' && (
           <>
+            {/* Friend request / show tag notification banner */}
+            {!guestMode && pendingNotificationCount > 0 && (
+              <button
+                onClick={() => {
+                  setFriendsInitialTab('requests');
+                  setActiveView('friends');
+                }}
+                className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl hover:from-violet-500/30 hover:to-purple-500/30 transition-all group"
+              >
+                <div className="relative">
+                  <Bell className="w-5 h-5 text-violet-400" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                </div>
+                <span className="text-white/90 text-sm font-medium">
+                  {pendingFriendRequests.length > 0 && pendingShowTags.length > 0
+                    ? `You have ${pendingFriendRequests.length} friend request${pendingFriendRequests.length !== 1 ? 's' : ''} and ${pendingShowTags.length} show tag${pendingShowTags.length !== 1 ? 's' : ''}`
+                    : pendingFriendRequests.length > 0
+                      ? `You have ${pendingFriendRequests.length} pending friend request${pendingFriendRequests.length !== 1 ? 's' : ''}`
+                      : `You were tagged in ${pendingShowTags.length} show${pendingShowTags.length !== 1 ? 's' : ''} by friends`
+                  }
+                </span>
+                <ChevronRight className="w-4 h-4 text-violet-400/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            )}
+
             {/* Summary stats */}
             {shows.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
@@ -4412,6 +4466,7 @@ export default function ShowTracker() {
             onRemoveFriend={removeFriend}
             onAcceptShowTag={acceptShowTag}
             onDeclineShowTag={declineShowTag}
+            initialTab={friendsInitialTab}
           />
         )}
 
