@@ -132,7 +132,7 @@ export default function CookiePolicy() {
             <section>
               <h2 className="text-xl font-semibold text-white mb-4">Contact Us</h2>
               <p>If you have questions about this Cookie Policy, please contact us at:</p>
-              <p className="mt-2"><strong className="text-white">Email:</strong> <a href="mailto:pdl33@icloud.com" className="text-emerald-400 hover:text-emerald-300 underline">pdl33@icloud.com</a></p>
+              <p className="mt-2"><strong className="text-white">Email:</strong> <a href="mailto:support@mysetlists.net" className="text-emerald-400 hover:text-emerald-300 underline">support@mysetlists.net</a></p>
             </section>
           </div>
         </div>
