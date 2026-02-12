@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Clock } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -1008,19 +1008,6 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
-    {
-      version: '1.0.18',
-      date: 'February 11, 2026',
-      title: 'Upcoming Shows & Auto-Setlists',
-      changes: [
-        'Add shows with future dates — they appear in a dedicated Upcoming Shows section with countdown',
-        'Tag friends who are going to upcoming shows right after adding them',
-        'See who\'s going with you on each upcoming show card',
-        'Setlists are automatically fetched from setlist.fm 24 hours after a show',
-        'City field added to the manual show form',
-        'Past shows and upcoming shows are now visually separated',
-      ]
-    },
     {
       version: '1.0.17',
       date: 'February 10, 2026',
@@ -2781,9 +2768,6 @@ export default function ShowTracker() {
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('date');
   const [selectedArtist, setSelectedArtist] = useState(null);
-  const [autoFetchingSetlists, setAutoFetchingSetlists] = useState(false);
-  const [autoFetchProgress, setAutoFetchProgress] = useState({ current: 0, total: 0, found: 0 });
-  const autoFetchRanRef = useRef(false);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -2839,129 +2823,6 @@ export default function ShowTracker() {
       setFriendsInitialTab(null);
     }
   }, [activeView]);
-
-  // Auto-fetch setlists for shows that happened 24+ hours ago without setlists
-  useEffect(() => {
-    if (autoFetchRanRef.current || isLoading || shows.length === 0) return;
-
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-    const eligibleShows = shows.filter(s =>
-      s.date <= yesterdayStr &&
-      (!s.setlist || s.setlist.length === 0) &&
-      !s.setlistFetchAttempted
-    ).slice(0, 5); // Max 5 per session
-
-    if (eligibleShows.length === 0) return;
-
-    autoFetchRanRef.current = true;
-
-    const autoFetch = async () => {
-      setAutoFetchingSetlists(true);
-      setAutoFetchProgress({ current: 0, total: eligibleShows.length, found: 0 });
-      let found = 0;
-
-      const searchAndMatch = async (searchArtist, date, year) => {
-        for (let page = 1; page <= 3; page++) {
-          const params = new URLSearchParams({ artistName: searchArtist, year, p: String(page) });
-          const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
-          if (!response.ok) return null;
-          const data = await response.json();
-          if (!data.setlist || data.setlist.length === 0) return null;
-          const match = data.setlist.find(s => {
-            if (!s.eventDate) return false;
-            const parts = s.eventDate.split('-');
-            if (parts.length !== 3) return false;
-            return `${parts[2]}-${parts[1]}-${parts[0]}` === date;
-          });
-          if (match) return match;
-          if (data.setlist.length < 20) break;
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        return null;
-      };
-
-      const extractSongs = (match) => {
-        const songs = [];
-        let setIndex = 0;
-        if (match.sets && match.sets.set) {
-          match.sets.set.forEach(set => {
-            if (set.song) {
-              set.song.forEach(song => {
-                songs.push({
-                  id: Date.now().toString() + Math.random(),
-                  name: song.name,
-                  cover: song.cover ? `${song.cover.name} cover` : null,
-                  setBreak: setIndex > 0 && set.song.indexOf(song) === 0
-                    ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
-                    : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
-                });
-              });
-            }
-            setIndex++;
-          });
-        }
-        return songs;
-      };
-
-      for (let i = 0; i < eligibleShows.length; i++) {
-        const show = eligibleShows[i];
-        try {
-          if (!show.artist || !show.date) {
-            await updateShowData(show.id, { setlistFetchAttempted: true });
-            continue;
-          }
-          const year = show.date.split('-')[0];
-
-          let match = await searchAndMatch(show.artist, show.date, year);
-
-          if (!match && show.artist.includes('&')) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            match = await searchAndMatch(show.artist.replace(/&/g, 'and'), show.date, year);
-          }
-
-          if (!match) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            if (show.artist.toLowerCase().startsWith('the ')) {
-              match = await searchAndMatch(show.artist.substring(4), show.date, year);
-            } else {
-              match = await searchAndMatch('The ' + show.artist, show.date, year);
-            }
-          }
-
-          if (match) {
-            const songs = extractSongs(match);
-            if (songs.length > 0) {
-              const updates = { setlist: songs, setlistfmId: match.id, isManual: false, setlistFetchAttempted: true };
-              if (match.tour) updates.tour = match.tour.name;
-              await updateShowData(show.id, updates);
-              found++;
-            } else {
-              await updateShowData(show.id, { setlistFetchAttempted: true });
-            }
-          } else {
-            await updateShowData(show.id, { setlistFetchAttempted: true });
-          }
-        } catch (err) {
-          console.warn('Auto-fetch setlist error for', show.artist, err);
-          await updateShowData(show.id, { setlistFetchAttempted: true });
-        }
-
-        setAutoFetchProgress({ current: i + 1, total: eligibleShows.length, found });
-
-        if (i < eligibleShows.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      setAutoFetchingSetlists(false);
-    };
-
-    autoFetch();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, shows.length]);
 
   // Listen for community stats (for login page)
   useEffect(() => {
@@ -3272,7 +3133,6 @@ export default function ShowTracker() {
     };
 
     const isFirstShow = shows.length === 0;
-    const isFutureShow = showData.date > new Date().toISOString().split('T')[0];
 
     if (guestMode) {
       // Guest mode: save to localStorage
@@ -3289,7 +3149,7 @@ export default function ShowTracker() {
           setShowGuestPrompt(true);
         }, 2000);
       }
-      return newShow;
+      return showId;
     }
 
     if (!user) return null;
@@ -3312,13 +3172,7 @@ export default function ShowTracker() {
       await updateUserProfile(user, updatedShows);
       updateCommunityStats();
       calculateUserRank(user.uid, updatedShows.length);
-
-      // Auto-open tag friends modal for upcoming shows
-      if (isFutureShow && friends.length > 0) {
-        setTagFriendsShow(newShow);
-      }
-
-      return newShow;
+      return showId;
     } catch (error) {
       console.error('Failed to add show:', error);
       alert('Failed to add show. Please try again.');
@@ -3653,12 +3507,6 @@ export default function ShowTracker() {
     if (!user || selectedFriendUids.length === 0) return;
     const sanitizedShow = sanitizeShowForTag(show);
     try {
-      // Build goingFriends list from selected UIDs
-      const newGoingFriends = selectedFriendUids.map(uid => {
-        const friend = friends.find(f => f.friendUid === uid);
-        return { uid, name: friend?.friendName || 'Friend' };
-      });
-
       for (const friendUid of selectedFriendUids) {
         await addDoc(collection(db, 'showTags'), {
           fromUid: user.uid,
@@ -3669,17 +3517,6 @@ export default function ShowTracker() {
           createdAt: serverTimestamp()
         });
       }
-
-      // Store goingFriends on the show document for display
-      const existingGoingFriends = show.goingFriends || [];
-      const mergedFriends = [...existingGoingFriends];
-      newGoingFriends.forEach(f => {
-        if (!mergedFriends.some(ef => ef.uid === f.uid)) {
-          mergedFriends.push(f);
-        }
-      });
-      await updateShowData(show.id, { goingFriends: mergedFriends });
-
       setTagFriendsShow(null);
     } catch (error) {
       console.error('Failed to tag friends:', error);
@@ -3933,21 +3770,8 @@ export default function ShowTracker() {
 
   const importedIds = useMemo(() => new Set(shows.map(s => s.setlistfmId).filter(Boolean)), [shows]);
 
-  // Separate upcoming vs past shows
-  const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
-  const upcomingShows = useMemo(() => {
-    return shows
-      .filter(show => show.date >= todayStr)
-      .sort((a, b) => a.date.localeCompare(b.date)); // soonest first
-  }, [shows, todayStr]);
-
-  const pastShows = useMemo(() => {
-    return shows.filter(show => show.date < todayStr);
-  }, [shows, todayStr]);
-
   const sortedFilteredShows = useMemo(() => {
-    const filtered = pastShows.filter(show =>
+    const filtered = shows.filter(show =>
       show.artist.toLowerCase().includes(searchTerm.toLowerCase()) ||
       show.venue.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -3957,7 +3781,7 @@ export default function ShowTracker() {
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       return 0;
     });
-  }, [pastShows, searchTerm, sortBy]);
+  }, [shows, searchTerm, sortBy]);
 
   const artistGroups = useMemo(() => {
     const groups = {};
@@ -3980,19 +3804,19 @@ export default function ShowTracker() {
   }, [sortedFilteredShows, sortBy]);
 
   const summaryStats = useMemo(() => {
-    // Count unique songs from past shows only (by name, case-insensitive)
+    // Count unique songs (by name, case-insensitive)
     const uniqueSongs = new Set();
-    pastShows.forEach(s => s.setlist.forEach(song => uniqueSongs.add(song.name.toLowerCase().trim())));
+    shows.forEach(s => s.setlist.forEach(song => uniqueSongs.add(song.name.toLowerCase().trim())));
     const uniqueSongCount = uniqueSongs.size;
 
-    const ratedShows = pastShows.filter(s => s.rating);
+    const ratedShows = shows.filter(s => s.rating);
     const avgRating = ratedShows.length
       ? (ratedShows.reduce((a, s) => a + s.rating, 0) / ratedShows.length).toFixed(1)
       : null;
-    const uniqueArtists = new Set(pastShows.map(s => s.artist)).size;
-    const uniqueVenues = new Set(pastShows.map(s => s.venue)).size;
+    const uniqueArtists = new Set(shows.map(s => s.artist)).size;
+    const uniqueVenues = new Set(shows.map(s => s.venue)).size;
     return { totalSongs: uniqueSongCount, avgRating, uniqueArtists, uniqueVenues };
-  }, [pastShows]);
+  }, [shows]);
 
   // Show loading state while checking auth
   if (authLoading) {
@@ -4357,102 +4181,11 @@ export default function ShowTracker() {
               </button>
             )}
 
-            {/* Auto-fetching setlists progress */}
-            {autoFetchingSetlists && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 mb-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin" />
-                  <span className="text-white text-sm font-medium">Auto-fetching setlists for recent shows...</span>
-                  <span className="text-white/50 text-xs ml-auto">{autoFetchProgress.current} / {autoFetchProgress.total}</span>
-                </div>
-                <div className="w-full bg-white/10 rounded-full h-1.5">
-                  <div
-                    className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${autoFetchProgress.total > 0 ? (autoFetchProgress.current / autoFetchProgress.total) * 100 : 0}%` }}
-                  />
-                </div>
-                {autoFetchProgress.found > 0 && (
-                  <p className="text-emerald-300 text-xs mt-1">{autoFetchProgress.found} setlist{autoFetchProgress.found !== 1 ? 's' : ''} found</p>
-                )}
-              </div>
-            )}
-
-            {/* Upcoming Shows Section */}
-            {upcomingShows.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-5 h-5 text-amber-400" />
-                  <h2 className="text-lg font-semibold text-white">Upcoming Shows</h2>
-                  <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium">{upcomingShows.length}</span>
-                </div>
-                <div className="space-y-3">
-                  {upcomingShows.map(show => {
-                    const showDate = new Date(show.date + 'T00:00:00');
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const diffDays = Math.ceil((showDate - today) / (1000 * 60 * 60 * 24));
-                    const countdownText = diffDays === 0 ? 'Today!' : diffDays === 1 ? 'Tomorrow' : `in ${diffDays} days`;
-
-                    return (
-                      <div
-                        key={show.id}
-                        className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-4 hover:from-amber-500/15 hover:to-orange-500/15 transition-all cursor-pointer"
-                        onClick={() => setSelectedShow(show)}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="font-semibold text-lg" style={{ color: '#f59e0b' }}>{show.artist}</div>
-                            <div className="flex items-center gap-2 text-sm text-white/70 mt-1 flex-wrap">
-                              <Calendar className="w-3.5 h-3.5 text-white/40" />
-                              <span>{formatDate(show.date)}</span>
-                              <span className="text-amber-400 font-medium">· {countdownText}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-white/60 mt-1">
-                              <MapPin className="w-3.5 h-3.5 text-white/40" />
-                              <span>{show.venue}{show.city ? `, ${show.city}` : ''}</span>
-                            </div>
-                            {show.goingFriends && show.goingFriends.length > 0 && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <Users className="w-3.5 h-3.5 text-emerald-400" />
-                                <span className="text-sm text-emerald-400/80">
-                                  Going with: {show.goingFriends.map(f => f.name).join(', ')}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {!guestMode && friends.length > 0 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setTagFriendsShow(show);
-                                }}
-                                className="p-2 rounded-xl text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                                title="Tag friends going to this show"
-                              >
-                                <UserPlus className="w-4 h-4" />
-                              </button>
-                            )}
-                            <div className="text-right">
-                              <div className={`text-2xl font-bold ${diffDays === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                {diffDays === 0 ? '🎶' : diffDays}
-                              </div>
-                              {diffDays > 0 && <div className="text-[10px] text-white/40 uppercase">days</div>}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Summary stats */}
-            {pastShows.length > 0 && (
+            {shows.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
                 {[
-                  { label: 'Shows', value: pastShows.length, color: 'from-emerald-400 to-teal-400' },
+                  { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400' },
                   { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400' },
                   { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-amber-400 to-orange-400' },
                   { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-cyan-400 to-blue-400' },
@@ -4574,7 +4307,7 @@ export default function ShowTracker() {
               </div>
             </div>
 
-            {sortedFilteredShows.length === 0 && upcomingShows.length === 0 && !showForm && (
+            {sortedFilteredShows.length === 0 && !showForm && (
               <div className="text-center py-12 md:py-16">
                 <div className="w-24 h-24 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
                   <Sparkles className="w-12 h-12 text-emerald-400" />
@@ -4797,11 +4530,8 @@ function ShowForm({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     artist: '',
     venue: '',
-    city: '',
     date: new Date().toISOString().split('T')[0]
   });
-
-  const isFutureShow = formData.date > new Date().toISOString().split('T')[0];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -4813,12 +4543,6 @@ function ShowForm({ onSubmit, onCancel }) {
   return (
     <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-4">
       <h3 className="text-lg font-semibold mb-4 text-white">Add Show Manually</h3>
-      {isFutureShow && (
-        <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-          <Clock className="w-4 h-4 text-amber-400" />
-          <span className="text-sm text-amber-300">This is an upcoming show — you can tag friends after adding it</span>
-        </div>
-      )}
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
           type="text"
@@ -4837,13 +4561,6 @@ function ShowForm({ onSubmit, onCancel }) {
           required
         />
         <input
-          type="text"
-          placeholder="City (optional)"
-          value={formData.city}
-          onChange={(e) => setFormData({...formData, city: e.target.value})}
-          className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
-        />
-        <input
           type="date"
           value={formData.date}
           onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -4852,7 +4569,7 @@ function ShowForm({ onSubmit, onCancel }) {
         />
         <div className="flex gap-3 pt-2">
           <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
-            {isFutureShow ? 'Add Upcoming Show' : 'Add Show'}
+            Add Show
           </button>
           <button type="button" onClick={onCancel} className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors">
             Cancel
