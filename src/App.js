@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -2984,6 +2984,21 @@ export default function ShowTracker() {
       setAuthLoading(false);
 
       if (currentUser) {
+        // Mark guest session as converted if the user was in guest mode
+        try {
+          const guestSessionId = localStorage.getItem('guest-session-id');
+          if (guestSessionId) {
+            await updateDoc(doc(db, 'guestSessions', guestSessionId), {
+              converted: true,
+              convertedAt: serverTimestamp(),
+              convertedUserId: currentUser.uid,
+            });
+            localStorage.removeItem('guest-session-id');
+          }
+        } catch (error) {
+          console.log('Failed to update guest session conversion:', error);
+        }
+
         setGuestMode(false);
         checkForLocalData();
         // Also check for guest shows to migrate
@@ -3100,9 +3115,26 @@ export default function ShowTracker() {
   const handleAuthSuccess = () => setAuthModal(null);
 
   // Enter guest mode
-  const enterGuestMode = () => {
+  const enterGuestMode = async () => {
     setGuestMode(true);
     loadGuestShows();
+
+    // Track guest trial session in Firestore
+    try {
+      let sessionId = localStorage.getItem('guest-session-id');
+      if (!sessionId) {
+        const sessionDoc = await addDoc(collection(db, 'guestSessions'), {
+          startedAt: serverTimestamp(),
+          converted: false,
+          showsAdded: 0,
+          userAgent: navigator.userAgent,
+        });
+        sessionId = sessionDoc.id;
+        localStorage.setItem('guest-session-id', sessionId);
+      }
+    } catch (error) {
+      console.log('Failed to track guest session:', error);
+    }
   };
 
   const saveShow = async (updatedShow) => {
@@ -3140,6 +3172,16 @@ export default function ShowTracker() {
       setShows(updatedShows);
       saveGuestShows(updatedShows);
       setShowForm(false);
+
+      // Update guest session showsAdded count
+      try {
+        const sessionId = localStorage.getItem('guest-session-id');
+        if (sessionId) {
+          await updateDoc(doc(db, 'guestSessions', sessionId), { showsAdded: updatedShows.length });
+        }
+      } catch (error) {
+        console.log('Failed to update guest session:', error);
+      }
 
       // Show prompt to create account after first show
       if (isFirstShow) {
@@ -5603,6 +5645,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 }
 
 function AdminView() {
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -5612,6 +5655,10 @@ function AdminView() {
   const [selectedAdminShow, setSelectedAdminShow] = useState(null);
   const [showSortBy, setShowSortBy] = useState('date');
   const [showSearchTerm, setShowSearchTerm] = useState('');
+
+  // Guest trials state
+  const [guestSessions, setGuestSessions] = useState([]);
+  const [loadingGuests, setLoadingGuests] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -5628,6 +5675,24 @@ function AdminView() {
       console.error('Failed to load users:', error);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadGuestSessions = useCallback(async () => {
+    setLoadingGuests(true);
+    try {
+      const snapshot = await getDocs(collection(db, 'guestSessions'));
+      const sessions = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+        startedAt: d.data().startedAt?.toDate?.() || new Date(),
+        convertedAt: d.data().convertedAt?.toDate?.() || null,
+      }));
+      setGuestSessions(sessions.sort((a, b) => b.startedAt - a.startedAt));
+    } catch (error) {
+      console.error('Failed to load guest sessions:', error);
+    } finally {
+      setLoadingGuests(false);
     }
   }, []);
 
@@ -5666,7 +5731,8 @@ function AdminView() {
 
   useEffect(() => {
     loadUsers();
-  }, [loadUsers]);
+    loadGuestSessions();
+  }, [loadUsers, loadGuestSessions]);
 
   const filteredUsers = users.filter(user =>
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -5679,6 +5745,20 @@ function AdminView() {
     totalSongs: users.reduce((acc, u) => acc + (u.songCount || 0), 0),
     totalRated: users.reduce((acc, u) => acc + (u.ratedSongCount || 0), 0)
   }), [users]);
+
+  const guestTrialStats = useMemo(() => {
+    const total = guestSessions.length;
+    const converted = guestSessions.filter(s => s.converted).length;
+    const withShows = guestSessions.filter(s => (s.showsAdded || 0) > 0).length;
+    const totalShowsAdded = guestSessions.reduce((acc, s) => acc + (s.showsAdded || 0), 0);
+    return {
+      total,
+      converted,
+      conversionRate: total > 0 ? ((converted / total) * 100).toFixed(1) : '0.0',
+      withShows,
+      totalShowsAdded,
+    };
+  }, [guestSessions]);
 
   const sortedFilteredUserShows = useMemo(() => {
     let filtered = userShows.filter(show =>
@@ -5862,103 +5942,226 @@ function AdminView() {
         </>
       ) : (
         <>
-          {/* Users List View (existing) */}
+          {/* Header */}
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
             <button
-              onClick={loadUsers}
+              onClick={() => { loadUsers(); loadGuestSessions(); }}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
             >
               Refresh
             </button>
           </div>
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Total Users', value: totalStats.totalUsers, color: 'from-violet-500 to-purple-500' },
-              { label: 'Total Shows', value: totalStats.totalShows, color: 'from-emerald-500 to-teal-500' },
-              { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-amber-500 to-orange-500' },
-              { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-pink-500 to-rose-500' },
-            ].map(stat => (
-              <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
-                <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-                  {stat.value.toLocaleString()}
-                </div>
-                <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
-              </div>
-            ))}
+          {/* Tab Navigation */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAdminTab('users')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'users'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Users
+            </button>
+            <button
+              onClick={() => setAdminTab('guestTrials')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'guestTrials'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              Guest Trials
+            </button>
           </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search users by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
-            />
-          </div>
-
-          {/* Users Table */}
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-white/5 border-b border-white/10">
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">User</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
-                  <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-                  <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Songs</th>
-                  <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Venues</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
-                  <th className="w-10"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-white/5 transition-colors cursor-pointer"
-                    onClick={() => handleSelectUser(user)}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-white">{user.firstName || 'Anonymous'}</div>
-                          <div className="text-sm text-white/40 md:hidden">{user.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
-                        {user.showCount || 0}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center text-white/60">{user.songCount || 0}</td>
-                    <td className="px-6 py-4 text-center text-white/60 hidden sm:table-cell">{user.venueCount || 0}</td>
-                    <td className="px-6 py-4 text-right text-white/40 text-sm hidden lg:table-cell">
-                      {user.createdAt?.toLocaleDateString?.() || 'Unknown'}
-                    </td>
-                    <td className="px-2 py-4">
-                      <ChevronRight className="w-4 h-4 text-white/20" />
-                    </td>
-                  </tr>
+          {/* Users Tab */}
+          {adminTab === 'users' && (
+            <>
+              {/* Stats Overview */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total Users', value: totalStats.totalUsers, color: 'from-violet-500 to-purple-500' },
+                  { label: 'Total Shows', value: totalStats.totalShows, color: 'from-emerald-500 to-teal-500' },
+                  { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-amber-500 to-orange-500' },
+                  { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-pink-500 to-rose-500' },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                    <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                      {stat.value.toLocaleString()}
+                    </div>
+                    <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-12 text-white/40">
-                {searchTerm ? 'No users match your search' : 'No users yet'}
               </div>
-            )}
-          </div>
+
+              {/* Search */}
+              <div className="relative">
+                <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                />
+              </div>
+
+              {/* Users Table */}
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-white/5 border-b border-white/10">
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">User</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Songs</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Venues</th>
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
+                      <th className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredUsers.map((user) => (
+                      <tr
+                        key={user.id}
+                        className="hover:bg-white/5 transition-colors cursor-pointer"
+                        onClick={() => handleSelectUser(user)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-white">{user.firstName || 'Anonymous'}</div>
+                              <div className="text-sm text-white/40 md:hidden">{user.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                            {user.showCount || 0}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center text-white/60">{user.songCount || 0}</td>
+                        <td className="px-6 py-4 text-center text-white/60 hidden sm:table-cell">{user.venueCount || 0}</td>
+                        <td className="px-6 py-4 text-right text-white/40 text-sm hidden lg:table-cell">
+                          {user.createdAt?.toLocaleDateString?.() || 'Unknown'}
+                        </td>
+                        <td className="px-2 py-4">
+                          <ChevronRight className="w-4 h-4 text-white/20" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {filteredUsers.length === 0 && (
+                  <div className="text-center py-12 text-white/40">
+                    {searchTerm ? 'No users match your search' : 'No users yet'}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Guest Trials Tab */}
+          {adminTab === 'guestTrials' && (
+            <>
+              {/* Guest Trial Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total Trials', value: guestTrialStats.total, color: 'from-violet-500 to-purple-500' },
+                  { label: 'Converted', value: guestTrialStats.converted, color: 'from-emerald-500 to-teal-500' },
+                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-amber-500 to-orange-500' },
+                  { label: 'Shows Added', value: guestTrialStats.totalShowsAdded, color: 'from-pink-500 to-rose-500' },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                    <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                      {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                    </div>
+                    <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Engaged Guests (added shows) */}
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                <div className="text-sm font-medium text-white/50 mb-1">Engaged Guests</div>
+                <div className="text-2xl font-bold text-emerald-400">{guestTrialStats.withShows}</div>
+                <div className="text-xs text-white/40 mt-1">Guests who added at least one show</div>
+              </div>
+
+              {/* Guest Sessions Table */}
+              {loadingGuests ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="text-white/50 font-medium">Loading guest sessions...</div>
+                </div>
+              ) : (
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-white/5 border-b border-white/10">
+                        <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Started</th>
+                        <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows Added</th>
+                        <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Status</th>
+                        <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Converted</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {guestSessions.map((session) => (
+                        <tr key={session.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4 text-white/80 text-sm">
+                            {session.startedAt?.toLocaleDateString?.() || 'Unknown'}
+                            <span className="text-white/40 ml-2 hidden sm:inline">
+                              {session.startedAt?.toLocaleTimeString?.([], { hour: '2-digit', minute: '2-digit' }) || ''}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-sm font-semibold ${
+                              (session.showsAdded || 0) > 0
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-white/10 text-white/40'
+                            }`}>
+                              {session.showsAdded || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {session.converted ? (
+                              <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-xs font-semibold">
+                                <Check className="w-3 h-3" />
+                                Converted
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-white/10 text-white/40 px-2.5 py-1 rounded-full text-xs font-semibold">
+                                <Eye className="w-3 h-3" />
+                                Browsing
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-right text-white/40 text-sm hidden md:table-cell">
+                            {session.convertedAt?.toLocaleDateString?.() || '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {guestSessions.length === 0 && (
+                    <div className="text-center py-12 text-white/40">
+                      No guest trial sessions recorded yet
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
     </div>
