@@ -3755,17 +3755,17 @@ export default function ShowTracker() {
     const artistMap = {};
     shows.forEach(show => {
       if (!artistMap[show.artist]) {
-        artistMap[show.artist] = { count: 0, ratings: [], totalSongs: 0 };
+        artistMap[show.artist] = { count: 0, ratings: [], uniqueSongs: new Set() };
       }
       artistMap[show.artist].count++;
-      artistMap[show.artist].totalSongs += show.setlist.length;
+      show.setlist.forEach(song => artistMap[show.artist].uniqueSongs.add(song.name.toLowerCase().trim()));
       if (show.rating) artistMap[show.artist].ratings.push(show.rating);
     });
     return Object.entries(artistMap)
       .map(([name, data]) => ({
         name,
         count: data.count,
-        totalSongs: data.totalSongs,
+        totalSongs: data.uniqueSongs.size,
         avgRating: data.ratings.length ?
           (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : null
       }))
