@@ -1009,6 +1009,16 @@ function FeedbackView() {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.18',
+      date: 'February 20, 2026',
+      title: 'Interactive Summary Stats',
+      changes: [
+        'Stat boxes are now ~50% smaller for a cleaner, less cluttered home screen',
+        'Tap any stat box to jump directly to its detailed stats view (Songs, Artists, Venues, or Top Shows)',
+        'User rank box now links to the Community page',
+      ]
+    },
+    {
       version: '1.0.17',
       date: 'February 10, 2026',
       title: 'Notifications & Alerts',
@@ -2760,6 +2770,7 @@ function SearchView({ onImport, importedIds }) {
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
   const [activeView, setActiveView] = useState('shows');
+  const [statsTab, setStatsTab] = useState('years');
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
@@ -4225,28 +4236,28 @@ export default function ShowTracker() {
 
             {/* Summary stats */}
             {shows.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
                 {[
-                  { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400' },
-                  { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400' },
-                  { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-amber-400 to-orange-400' },
-                  { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-cyan-400 to-blue-400' },
-                  { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-pink-400 to-rose-400' },
+                  { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400', action: () => {} },
+                  { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400', action: () => { setStatsTab('songs'); setActiveView('stats'); } },
+                  { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-amber-400 to-orange-400', action: () => { setStatsTab('artists'); setActiveView('stats'); } },
+                  { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-cyan-400 to-blue-400', action: () => { setStatsTab('venues'); setActiveView('stats'); } },
+                  { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-pink-400 to-rose-400', action: () => { setStatsTab('top'); setActiveView('stats'); } },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-5 text-center hover:bg-white/15 transition-all">
-                    <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
-                    <div className="text-xs font-medium text-white/50 uppercase tracking-wide mt-1">{stat.label}</div>
-                  </div>
+                  <button key={stat.label} onClick={stat.action} className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-2.5 text-center hover:bg-white/15 transition-all cursor-pointer">
+                    <div className={`text-xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
+                    <div className="text-[10px] font-medium text-white/50 uppercase tracking-wide mt-0.5">{stat.label}</div>
+                  </button>
                 ))}
                 {/* User Rank */}
                 {userRank && (
-                  <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-5 text-center hover:from-amber-500/30 hover:to-orange-500/30 transition-all">
-                    <div className="flex items-center justify-center gap-2">
-                      <Crown className="w-6 h-6 text-amber-400" />
-                      <div className="text-3xl font-bold text-amber-400">#{userRank.rank}</div>
+                  <button onClick={() => { setActiveView('community'); }} className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-xl border border-amber-500/30 rounded-xl p-2.5 text-center hover:from-amber-500/30 hover:to-orange-500/30 transition-all cursor-pointer">
+                    <div className="flex items-center justify-center gap-1">
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      <div className="text-xl font-bold text-amber-400">#{userRank.rank}</div>
                     </div>
-                    <div className="text-xs font-medium text-amber-200/70 uppercase tracking-wide mt-1">of {userRank.total} users</div>
-                  </div>
+                    <div className="text-[10px] font-medium text-amber-200/70 uppercase tracking-wide mt-0.5">of {userRank.total}</div>
+                  </button>
                 )}
               </div>
             )}
@@ -4484,6 +4495,7 @@ export default function ShowTracker() {
             onRateShow={updateShowRating}
             onCommentShow={updateShowComment}
             onBatchRate={batchRateUnrated}
+            initialTab={statsTab}
           />
         )}
 
@@ -5069,8 +5081,8 @@ function SongStatsRow({ song, index, onRateSong }) {
   );
 }
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate }) {
-  const [tab, setTab] = useState('years');
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab }) {
+  const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
   const [filterVenue, setFilterVenue] = useState('');
@@ -5079,6 +5091,10 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
   const [expandedYear, setExpandedYear] = useState(null);
   const [expandedShow, setExpandedShow] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
+
+  useEffect(() => {
+    if (initialTab) setTab(initialTab);
+  }, [initialTab]);
 
   // Keep selectedShow in sync with shows data
   useEffect(() => {
