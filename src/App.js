@@ -812,14 +812,14 @@ function TagFriendsModal({ show, friends, onTag, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 md:left-64 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
       <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-white">Tag Friends</h2>
-            <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-              <X className="w-5 h-5" />
+            <button onClick={onClose} className="p-3 text-white/40 hover:text-white hover:bg-white/10 active:bg-white/20 rounded-xl transition-colors">
+              <X className="w-6 h-6" />
             </button>
           </div>
           <div className="bg-white/5 rounded-xl p-3">
@@ -4102,7 +4102,7 @@ export default function ShowTracker() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       {/* Migration Prompt Modal */}
       {showMigrationPrompt && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-3 md:p-4 z-30">
+        <div className="fixed inset-0 md:left-64 bg-black/60 backdrop-blur-xl flex items-center justify-center p-3 md:p-4 z-[60]">
           <div className="bg-slate-800 border border-white/10 rounded-2xl md:rounded-3xl max-w-[95vw] sm:max-w-md w-full p-4 md:p-6 shadow-2xl">
             <h2 className="text-lg md:text-xl font-bold mb-4 text-white">Import Existing Shows?</h2>
             <p className="text-white/60 mb-4">
@@ -4141,7 +4141,7 @@ export default function ShowTracker() {
 
       {/* Guest Mode Account Prompt */}
       {showGuestPrompt && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 md:left-64 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-[60]">
           <div className="bg-slate-800 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -4792,7 +4792,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const unratedCount = show.setlist.filter(s => !s.rating).length;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-end md:items-center justify-center md:p-4 z-20">
+    <div className="fixed inset-0 md:left-64 bg-black/60 backdrop-blur-xl flex items-end md:items-center justify-center md:p-4 z-[60]">
       <div className="bg-slate-900 border border-white/10 rounded-t-2xl md:rounded-3xl max-w-[100vw] sm:max-w-lg md:max-w-2xl w-full max-h-[92vh] md:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         {/* Compact top bar with close, share, and tag */}
         <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/10 bg-slate-900 flex-shrink-0">
@@ -4804,25 +4804,25 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {onTagFriends && (
               <button
                 onClick={() => onTagFriends(show)}
-                className="p-2.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-3 rounded-xl text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
                 title="Tag friends at this show"
               >
-                <Tag className="w-5 h-5" />
+                <Tag className="w-6 h-6" />
               </button>
             )}
             <button
               onClick={handleShare}
-              className={`p-2.5 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+              className={`p-3 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20'}`}
               title="Share setlist"
             >
-              {shareSuccess ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+              {shareSuccess ? <Check className="w-6 h-6" /> : <Share2 className="w-6 h-6" />}
             </button>
-            <button onClick={onClose} className="p-2.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-              <X className="w-5 h-5" />
+            <button onClick={onClose} className="p-3 rounded-xl text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors">
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>
