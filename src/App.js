@@ -5676,6 +5676,13 @@ function AdminView() {
   const [guestSessions, setGuestSessions] = useState([]);
   const [loadingGuests, setLoadingGuests] = useState(false);
 
+  // Email compose state
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState(null); // null | 'success' | 'error'
+
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -5743,6 +5750,39 @@ function AdminView() {
     setUserShows([]);
     setSelectedAdminShow(null);
     setShowSearchTerm('');
+    setShowEmailForm(false);
+    setEmailSubject('');
+    setEmailBody('');
+    setEmailStatus(null);
+  };
+
+  const handleSendEmail = async () => {
+    if (!selectedUser?.email || !emailSubject.trim() || !emailBody.trim()) return;
+    setEmailSending(true);
+    setEmailStatus(null);
+    try {
+      const res = await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: selectedUser.email,
+          subject: emailSubject.trim(),
+          html: emailBody.trim().replace(/\n/g, '<br />')
+        })
+      });
+      if (res.ok) {
+        setEmailStatus('success');
+        setEmailSubject('');
+        setEmailBody('');
+        setTimeout(() => { setEmailStatus(null); setShowEmailForm(false); }, 2000);
+      } else {
+        setEmailStatus('error');
+      }
+    } catch {
+      setEmailStatus('error');
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   useEffect(() => {
@@ -5815,14 +5855,64 @@ function AdminView() {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
                 <User className="w-6 h-6 text-white" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h2 className="text-xl font-bold text-white">
                   {selectedUser.displayName || selectedUser.firstName || 'Anonymous'}'s Shows
                 </h2>
                 <p className="text-sm text-white/50">{selectedUser.email}</p>
               </div>
             </div>
+            {selectedUser.email && (
+              <button
+                onClick={() => { setShowEmailForm(!showEmailForm); setEmailStatus(null); }}
+                className="ml-auto flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-medium text-white/70 transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                Email
+              </button>
+            )}
           </div>
+
+          {/* Inline email compose */}
+          {showEmailForm && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-white/50">
+                <Mail className="w-4 h-4" />
+                <span>To: {selectedUser.email}</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              />
+              <textarea
+                placeholder="Message body..."
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                rows={5}
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSendEmail}
+                  disabled={emailSending || !emailSubject.trim() || !emailBody.trim()}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all text-sm"
+                >
+                  {emailSending ? 'Sending...' : 'Send'}
+                </button>
+                <button
+                  onClick={() => { setShowEmailForm(false); setEmailSubject(''); setEmailBody(''); setEmailStatus(null); }}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl font-medium transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                {emailStatus === 'success' && <span className="text-sm text-emerald-400">Sent!</span>}
+                {emailStatus === 'error' && <span className="text-sm text-red-400">Failed to send. Check RESEND_API_KEY.</span>}
+              </div>
+            </div>
+          )}
 
           {/* User stats summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
