@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
@@ -5665,6 +5665,10 @@ function AdminView() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [cacheEntries, setCacheEntries] = useState([]);
+  const [cacheLoading, setCacheLoading] = useState(false);
+  const [cacheClearArtist, setCacheClearArtist] = useState('');
+  const [cacheStatus, setCacheStatus] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [userShows, setUserShows] = useState([]);
   const [loadingShows, setLoadingShows] = useState(false);
@@ -5794,6 +5798,49 @@ function AdminView() {
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const loadCacheStats = async () => {
+    if (!auth.currentUser) return;
+    setCacheLoading(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch('/.netlify/functions/cache-stats', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to load cache stats');
+      const { entries } = await res.json();
+      setCacheEntries(entries);
+    } catch (error) {
+      console.error('Failed to load cache stats:', error);
+    } finally {
+      setCacheLoading(false);
+    }
+  };
+
+  const clearCache = async (by, name = null, key = null) => {
+    if (by === 'all' && !window.confirm('Clear the entire setlist cache? All searches will hit the Setlist.fm API again until re-cached.')) return;
+    if (!auth.currentUser) return;
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const body = by === 'artist' ? { by: 'artist', name }
+        : by === 'key' ? { key }
+        : { by: 'all' };
+      const res = await fetch('/.netlify/functions/clear-cache', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed');
+      setCacheStatus(`Cleared ${result.deleted} cache ${result.deleted === 1 ? 'entry' : 'entries'}.`);
+      setTimeout(() => setCacheStatus(''), 4000);
+      setCacheClearArtist('');
+      loadCacheStats();
+    } catch (error) {
+      setCacheStatus(`Error: ${error.message}`);
+      setTimeout(() => setCacheStatus(''), 4000);
+    }
+  };
 
   const totalStats = useMemo(() => ({
     totalUsers: users.length,
@@ -6332,6 +6379,120 @@ function InstallPrompt() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Cache Management */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Database className="w-5 h-5 text-violet-400" />
+            Setlist.fm Cache
+          </h3>
+          <button
+            onClick={loadCacheStats}
+            disabled={cacheLoading}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+          >
+            {cacheLoading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'Cached Searches', value: cacheEntries.length, color: 'from-violet-500 to-purple-500' },
+            { label: 'Active Entries', value: cacheEntries.filter(e => e.isActive).length, color: 'from-emerald-500 to-teal-500' },
+            { label: 'Total Cache Hits', value: cacheEntries.reduce((a, e) => a + e.hitCount, 0), color: 'from-amber-500 to-orange-500' },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+              <div className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                {stat.value.toLocaleString()}
+              </div>
+              <div className="text-xs font-medium text-white/50 mt-1">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Artist name to clear from cache..."
+            value={cacheClearArtist}
+            onChange={e => setCacheClearArtist(e.target.value)}
+            onKeyPress={e => e.key === 'Enter' && cacheClearArtist.trim() && clearCache('artist', cacheClearArtist)}
+            className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-white placeholder-white/40 text-sm"
+          />
+          <button
+            onClick={() => clearCache('artist', cacheClearArtist)}
+            disabled={!cacheClearArtist.trim()}
+            className="px-4 py-2.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-colors text-sm disabled:opacity-40"
+          >
+            Clear Artist
+          </button>
+          <button
+            onClick={() => clearCache('all')}
+            className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl font-medium transition-colors text-sm"
+          >
+            Clear All
+          </button>
+        </div>
+
+        {cacheStatus && (
+          <div className={`px-4 py-2.5 rounded-xl text-sm font-medium ${cacheStatus.startsWith('Error') ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+            {cacheStatus}
+          </div>
+        )}
+
+        {cacheEntries.length > 0 && (
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/10">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Artist</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Page</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Hits</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">TTL</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Expires</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {cacheEntries.map(entry => (
+                  <tr key={entry.key} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3 text-white font-medium capitalize">{entry.artistName || '—'}</td>
+                    <td className="px-4 py-3 text-white/60 text-center hidden sm:table-cell">{entry.page}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full text-xs font-semibold">{entry.hitCount}</span>
+                    </td>
+                    <td className="px-4 py-3 text-white/60 text-center hidden md:table-cell">{entry.ttlHours}h</td>
+                    <td className="px-4 py-3 text-white/40 text-center text-xs hidden lg:table-cell">{entry.expiresAt}</td>
+                    <td className="px-4 py-3 text-center">
+                      {entry.isActive
+                        ? <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full text-xs">Active</span>
+                        : <span className="bg-white/10 text-white/40 px-2 py-0.5 rounded-full text-xs">Expired</span>
+                      }
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => clearCache('key', null, entry.key)}
+                        className="text-red-400/50 hover:text-red-400 transition-colors"
+                        title="Delete this entry"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!cacheLoading && cacheEntries.length === 0 && (
+          <div className="text-center py-8 text-white/40 text-sm">
+            No cache entries yet. Cache will populate as users search for setlists.
+          </div>
+        )}
       </div>
     </div>
   );
