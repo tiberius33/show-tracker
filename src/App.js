@@ -5014,7 +5014,46 @@ function UpcomingShows({ artistName }) {
     const tmCacheKey = `tm_${slug}`;
     const sgCacheKey = `sg_${slug}`;
 
-    async function fetchWithCache(cacheKey, endpoint) {
+    // Ticketmaster fetch — supports Attraction ID caching for exact artist matching.
+    // On first call the Netlify function resolves and returns the Attraction ID;
+    // subsequent calls pass it directly, skipping the TM attractions lookup entirely.
+    async function fetchTmWithCache(cacheKey) {
+      let cachedAttractionId = null;
+      try {
+        const cacheDoc = await getDoc(doc(db, 'ticketCache', cacheKey));
+        if (cacheDoc.exists()) {
+          const cached = cacheDoc.data();
+          // Preserve the attraction ID even when the event cache has expired
+          cachedAttractionId = cached.tmAttractionId || null;
+          const cachedAt = cached.cachedAt && cached.cachedAt.toMillis ? cached.cachedAt.toMillis() : 0;
+          if (Date.now() - cachedAt < TICKET_CACHE_TTL) {
+            return cached.data || [];
+          }
+        }
+      } catch (_) { /* cache miss — continue */ }
+
+      try {
+        let url = `/.netlify/functions/ticketmaster-events?artistName=${encodeURIComponent(artistName)}`;
+        // Pass the cached attraction ID so the function skips the attractions lookup
+        if (cachedAttractionId) url += `&attractionId=${encodeURIComponent(cachedAttractionId)}`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const json = await res.json();
+        const evts = json.events || [];
+        const returnedAttractionId = json.attractionId || cachedAttractionId || null;
+        try {
+          const cacheData = { data: evts, cachedAt: serverTimestamp() };
+          if (returnedAttractionId) cacheData.tmAttractionId = returnedAttractionId;
+          await setDoc(doc(db, 'ticketCache', cacheKey), cacheData);
+        } catch (_) { /* cache write failed — non-fatal */ }
+        return evts;
+      } catch (_) {
+        return [];
+      }
+    }
+
+    // SeatGeek fetch — simple cache wrapper (server-side exact filter handles matching)
+    async function fetchSgWithCache(cacheKey) {
       try {
         const cacheDoc = await getDoc(doc(db, 'ticketCache', cacheKey));
         if (cacheDoc.exists()) {
@@ -5027,7 +5066,7 @@ function UpcomingShows({ artistName }) {
       } catch (_) { /* cache miss — continue */ }
 
       try {
-        const res = await fetch(`/.netlify/functions/${endpoint}?artistName=${encodeURIComponent(artistName)}`);
+        const res = await fetch(`/.netlify/functions/seatgeek-events?artistName=${encodeURIComponent(artistName)}`);
         if (!res.ok) return [];
         const json = await res.json();
         const evts = json.events || [];
@@ -5043,8 +5082,8 @@ function UpcomingShows({ artistName }) {
     async function load() {
       setLoading(true);
       const [tmEvents, sgEvents] = await Promise.all([
-        fetchWithCache(tmCacheKey, 'ticketmaster-events'),
-        fetchWithCache(sgCacheKey, 'seatgeek-events')
+        fetchTmWithCache(tmCacheKey),
+        fetchSgWithCache(sgCacheKey)
       ]);
       if (cancelled) return;
       const merged = mergeTicketEvents(tmEvents, sgEvents);
