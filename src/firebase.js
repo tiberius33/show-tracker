@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyC5PQErQtSFAIkG779kfK_UhaS5hYflwuY",
@@ -66,3 +67,6 @@ export function onForegroundMessage(callback) {
   if (!messaging) return () => {};
   return onMessage(messaging, callback);
 }
+
+// Initialize Firebase Analytics
+export const analytics = getAnalytics(app);

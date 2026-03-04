@@ -1,0 +1,120 @@
+const https = require('https');
+
+exports.handler = async function(event, context) {
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  const { artistName } = event.queryStringParameters || {};
+
+  if (!artistName) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'artistName is required' })
+    };
+  }
+
+  const clientId = process.env.SEATGEEK_CLIENT_ID;
+  const affiliateId = process.env.SEATGEEK_AFFILIATE_ID;
+
+  if (!clientId) {
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'SeatGeek client ID not configured' })
+    };
+  }
+
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  const params = new URLSearchParams({
+    q: artistName,
+    type: 'concert',
+    client_id: clientId,
+    sort: 'datetime_local.asc',
+    per_page: '5',
+    'datetime_local.gte': today
+  });
+
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'api.seatgeek.com',
+      path: `/2/events?${params.toString()}`,
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'MySetlistsApp/1.0'
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => { data += chunk; });
+
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          const rawEvents = Array.isArray(parsed.events) ? parsed.events : [];
+
+          const events = rawEvents.map((e) => {
+            const venue = e.venue || {};
+
+            // Build affiliate URL
+            let url = e.url || '';
+            if (url && affiliateId) {
+              url += (url.includes('?') ? '&' : '?') + `aid=${encodeURIComponent(affiliateId)}`;
+            }
+
+            // datetime_local format: "2026-03-15T19:00:00"
+            const dtParts = e.datetime_local ? e.datetime_local.split('T') : [];
+            const date = dtParts[0] || null;
+            const time = dtParts[1] || null;
+
+            return {
+              id: String(e.id),
+              name: e.title || null,
+              date,
+              time,
+              venue: venue.name || null,
+              city: venue.city || null,
+              state: venue.state || null,
+              country: venue.country || null,
+              url,
+              minPrice: e.stats ? (e.stats.lowest_price || null) : null,
+              maxPrice: e.stats ? (e.stats.highest_price || null) : null
+            };
+          });
+
+          resolve({
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ events })
+          });
+        } catch (err) {
+          resolve({
+            statusCode: 500,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ error: 'Failed to parse SeatGeek response', events: [] })
+          });
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      resolve({
+        statusCode: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Request to SeatGeek failed', details: err.message, events: [] })
+      });
+    });
+
+    req.end();
+  });
+};
