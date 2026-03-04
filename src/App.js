@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket, Trash2 } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
@@ -794,9 +794,26 @@ function FriendsView({
 }
 
 // Tag Friends Modal Component
-function TagFriendsModal({ show, friends, onTag, onClose }) {
+function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
   const [selectedFriends, setSelectedFriends] = useState(new Set());
   const [sending, setSending] = useState(false);
+  const [query, setQuery] = useState('');
+  // invite sub-form state
+  const [inviteMode, setInviteMode] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState(null); // null | 'success' | 'error'
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredFriends = normalizedQuery
+    ? friends.filter(f =>
+        (f.friendName || '').toLowerCase().includes(normalizedQuery) ||
+        (f.friendEmail || '').toLowerCase().includes(normalizedQuery)
+      )
+    : friends;
+
+  const showInvitePrompt = normalizedQuery.length > 0 && filteredFriends.length === 0;
 
   const toggleFriend = (uid) => {
     setSelectedFriends(prev => {
@@ -813,9 +830,25 @@ function TagFriendsModal({ show, friends, onTag, onClose }) {
     setSending(false);
   };
 
+  const handleSendInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviteSending(true);
+    setInviteStatus(null);
+    try {
+      await onInviteByEmail({ name: query.trim(), email: inviteEmail.trim(), message: inviteMessage.trim(), show });
+      setInviteStatus('success');
+      setInviteEmail('');
+      setInviteMessage('');
+    } catch {
+      setInviteStatus('error');
+    } finally {
+      setInviteSending(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 md:left-64 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-      <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between mb-3">
@@ -836,50 +869,126 @@ function TagFriendsModal({ show, friends, onTag, onClose }) {
           </div>
         </div>
 
-        {/* Friend list */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
-          {friends.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="w-10 h-10 text-white/20 mx-auto mb-3" />
-              <p className="text-white/40 text-sm">Add friends first from the Friends page!</p>
+          {/* Search input */}
+          {!inviteMode && (
+            <div className="relative mb-4">
+              <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search friends by name or email…"
+                className="w-full pl-9 pr-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white text-sm placeholder-white/40"
+              />
             </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-white/50 mb-3">Select friends who were at this show:</p>
-              {friends.map(friend => (
-                <label
-                  key={friend.friendUid}
-                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                    selectedFriends.has(friend.friendUid)
-                      ? 'bg-emerald-500/15 border border-emerald-500/30'
-                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedFriends.has(friend.friendUid)}
-                    onChange={() => toggleFriend(friend.friendUid)}
-                    className="sr-only"
-                  />
-                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                    selectedFriends.has(friend.friendUid)
-                      ? 'bg-emerald-500 border-emerald-500'
-                      : 'border-white/20'
-                  }`}>
-                    {selectedFriends.has(friend.friendUid) && <Check className="w-3.5 h-3.5 text-white" />}
-                  </div>
-                  <div>
-                    <div className="font-medium text-white text-sm">{friend.friendName || 'Anonymous'}</div>
-                    <div className="text-xs text-white/40">{friend.friendEmail}</div>
-                  </div>
-                </label>
-              ))}
+          )}
+
+          {/* Invite sub-form */}
+          {inviteMode && (
+            <div>
+              <button
+                onClick={() => { setInviteMode(false); setInviteStatus(null); }}
+                className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm mb-4 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back to friend list
+              </button>
+              <p className="text-white/70 text-sm mb-3">
+                Send <span className="text-white font-medium">{query.trim()}</span> an invite to join mysetlists.net, with this show included.
+              </p>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="friend@example.com"
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white text-sm placeholder-white/40 mb-3"
+              />
+              <textarea
+                value={inviteMessage}
+                onChange={(e) => setInviteMessage(e.target.value)}
+                placeholder="Add a personal note… (optional)"
+                rows={3}
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white text-sm placeholder-white/40 resize-none mb-3"
+              />
+              {inviteStatus === 'success' && (
+                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-3">
+                  <Check className="w-4 h-4" /> Invite sent! They'll get an email with the show details.
+                </div>
+              )}
+              {inviteStatus === 'error' && (
+                <div className="text-rose-400 text-sm mb-3">Something went wrong. Please try again.</div>
+              )}
+              <button
+                onClick={handleSendInvite}
+                disabled={!inviteEmail.trim() || inviteSending}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                {inviteSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {inviteSending ? 'Sending…' : 'Send Invite'}
+              </button>
             </div>
+          )}
+
+          {/* Friend list / invite prompt */}
+          {!inviteMode && (
+            <>
+              {friends.length === 0 && !normalizedQuery ? (
+                <div className="text-center py-8">
+                  <Users className="w-10 h-10 text-white/20 mx-auto mb-3" />
+                  <p className="text-white/40 text-sm">Add friends first from the Friends page!</p>
+                </div>
+              ) : showInvitePrompt ? (
+                <div className="text-center py-6">
+                  <p className="text-white/60 text-sm mb-3">
+                    <span className="text-white font-medium">{query.trim()}</span> isn't on mysetlists.net yet.
+                  </p>
+                  <button
+                    onClick={() => { setInviteMode(true); setInviteStatus(null); }}
+                    className="flex items-center gap-2 mx-auto px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-xl font-medium text-sm transition-colors"
+                  >
+                    <Send className="w-4 h-4" /> Invite {query.trim()}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-white/50 mb-3">Select friends who were at this show:</p>
+                  {filteredFriends.map(friend => (
+                    <label
+                      key={friend.friendUid}
+                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                        selectedFriends.has(friend.friendUid)
+                          ? 'bg-emerald-500/15 border border-emerald-500/30'
+                          : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedFriends.has(friend.friendUid)}
+                        onChange={() => toggleFriend(friend.friendUid)}
+                        className="sr-only"
+                      />
+                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
+                        selectedFriends.has(friend.friendUid)
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : 'border-white/20'
+                      }`}>
+                        {selectedFriends.has(friend.friendUid) && <Check className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                      <div>
+                        <div className="font-medium text-white text-sm">{friend.friendName || 'Anonymous'}</div>
+                        <div className="text-xs text-white/40">{friend.friendEmail}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Footer */}
-        {friends.length > 0 && (
+        {/* Footer — tag button (only shown in list mode with selections) */}
+        {!inviteMode && selectedFriends.size > 0 && (
           <div className="p-6 border-t border-white/10 flex gap-3">
             <button
               onClick={onClose}
@@ -889,12 +998,8 @@ function TagFriendsModal({ show, friends, onTag, onClose }) {
             </button>
             <button
               onClick={handleTag}
-              disabled={selectedFriends.size === 0 || sending}
-              className={`flex-1 px-4 py-2.5 rounded-xl font-medium transition-all ${
-                selectedFriends.size > 0 && !sending
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25'
-                  : 'bg-white/5 text-white/30 cursor-not-allowed'
-              }`}
+              disabled={sending}
+              className="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25 disabled:opacity-50"
             >
               {sending ? 'Tagging...' : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''}`}
             </button>
@@ -906,23 +1011,71 @@ function TagFriendsModal({ show, friends, onTag, onClose }) {
 }
 
 // Invite View Component
-function InviteView({ currentUserUid }) {
+function InviteView({ currentUserUid, currentUser }) {
   const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState(null); // null | 'success' | 'error'
+  const [copyLabel, setCopyLabel] = useState('Copy');
 
   const inviteUrl = currentUserUid ? `https://mysetlists.net?ref=${currentUserUid}` : 'https://mysetlists.net';
 
-  const handleInvite = () => {
-    const subject = encodeURIComponent('Join me on Setlist Tracker!');
-    const body = encodeURIComponent(
-      `Hey!\n\nI've been using MySetlists to keep track of all the concerts I've been to. You can save setlists, rate songs, and see your concert stats.\n\nCheck it out and join the community!\n\n${inviteUrl}`
-    );
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  const handleInvite = async () => {
+    if (!email.trim() || !currentUserUid) return;
+    setSending(true);
+    setSendStatus(null);
+    try {
+      const toEmail = email.trim().toLowerCase();
+      const inviterDisplayName = currentUser?.displayName || 'A friend';
+
+      // Write invite record to Firestore
+      await addDoc(collection(db, 'invites'), {
+        inviterUid: currentUserUid,
+        inviterName: inviterDisplayName,
+        inviterEmail: currentUser?.email || '',
+        inviteeEmail: toEmail,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+
+      // Send email via Resend
+      const html = `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+          <h2 style="color:#10b981">Hey! ${inviterDisplayName} wants you to join mysetlists.net 🎵</h2>
+          <p>${inviterDisplayName} has been tracking all their concerts on mysetlists.net — saving setlists, rating songs, and seeing their all-time stats. They think you'd love it too.</p>
+          <p style="margin:24px 0">
+            <a href="${inviteUrl}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+              Join mysetlists.net →
+            </a>
+          </p>
+          <p style="color:#64748b;font-size:14px">When you sign up, you and ${inviterDisplayName} will automatically be friends on the app.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+          <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
+        </div>
+      `;
+      await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: toEmail,
+          subject: `${inviterDisplayName} invited you to mysetlists.net!`,
+          html,
+        }),
+      });
+
+      setSendStatus('success');
+      setEmail('');
+    } catch (err) {
+      console.error('Invite send failed:', err);
+      setSendStatus('error');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div className="max-w-xl mx-auto">
       <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Invite Friends</h1>
-      <p className="text-white/60 mb-8">Share Setlist Tracker with your concert-going friends.</p>
+      <p className="text-white/60 mb-8">Share mysetlists.net with your concert-going friends.</p>
 
       <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
         <label className="block text-sm font-medium text-white/70 mb-2">
@@ -931,18 +1084,31 @@ function InviteView({ currentUserUid }) {
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); setSendStatus(null); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleInvite(); }}
           placeholder="friend@example.com"
           className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 mb-4"
         />
         <button
           onClick={handleInvite}
-          disabled={!email.trim()}
+          disabled={!email.trim() || sending}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25"
         >
-          <Send className="w-4 h-4" />
-          Send Invitation
+          {sending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {sending ? 'Sending…' : 'Send Invitation'}
         </button>
+
+        {sendStatus === 'success' && (
+          <div className="mt-3 flex items-center gap-2 text-emerald-400 text-sm font-medium">
+            <Check className="w-4 h-4" />
+            Invite sent! They'll get an email from mysetlists.net.
+          </div>
+        )}
+        {sendStatus === 'error' && (
+          <div className="mt-3 text-rose-400 text-sm">
+            Something went wrong. Try copying the link below instead.
+          </div>
+        )}
       </div>
 
       <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10">
@@ -957,10 +1123,12 @@ function InviteView({ currentUserUid }) {
           <button
             onClick={() => {
               navigator.clipboard.writeText(inviteUrl);
+              setCopyLabel('Copied!');
+              setTimeout(() => setCopyLabel('Copy'), 2000);
             }}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-sm font-medium transition-colors"
           >
-            Copy
+            {copyLabel}
           </button>
         </div>
       </div>
@@ -1010,6 +1178,19 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.19',
+      date: 'March 4, 2026',
+      title: 'Email Invites, Show Tagging & Admin Tools',
+      changes: [
+        'Invite emails are now sent directly from mysetlists.net — no more opening your mail app',
+        'Friends who join via your invite are automatically connected with a welcome message',
+        'Tag friends at shows even if they haven\'t joined yet — they\'ll get an invite email with the show details',
+        'New users who were tagged in shows see a "Shows your friends tagged you in" screen on first login',
+        'Confirmed tags notify the friend who tagged you so they know you\'re officially show buddies',
+        'Admin: full user deletion removes their account, shows, friend connections, and tags permanently',
+      ]
+    },
     {
       version: '1.0.18',
       date: 'February 20, 2026',
@@ -2831,6 +3012,10 @@ export default function ShowTracker() {
   const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length;
   const [upcomingShowsBadgeCount, setUpcomingShowsBadgeCount] = useState(null);
 
+  // Post-signup welcome + pending tags
+  const [welcomeState, setWelcomeState] = useState(null);       // null | { inviterName, inviterUid }
+  const [pendingTagsForReview, setPendingTagsForReview] = useState([]);
+
   // Clear friendsInitialTab when navigating away from friends
   useEffect(() => {
     if (activeView !== 'friends') {
@@ -3062,6 +3247,102 @@ export default function ShowTracker() {
             localStorage.removeItem('invite-referrer');
           }
         }
+
+        // ── Email-based invite lookup ─────────────────────────────────────
+        // Check for pending invites addressed to this user's email.
+        // Creates auto-friendship, shows welcome modal, notifies inviter.
+        try {
+          const inviteQuery = query(
+            collection(db, 'invites'),
+            where('inviteeEmail', '==', currentUser.email.toLowerCase()),
+            where('status', '==', 'pending')
+          );
+          const inviteSnap = await getDocs(inviteQuery);
+          if (!inviteSnap.empty) {
+            // Take the most recent invite
+            const inviteDoc = inviteSnap.docs.sort((a, b) =>
+              (b.data().createdAt?.toMillis?.() || 0) - (a.data().createdAt?.toMillis?.() || 0)
+            )[0];
+            const inviteData = inviteDoc.data();
+            const { inviterUid, inviterName, inviterEmail } = inviteData;
+
+            if (inviterUid && inviterUid !== currentUser.uid) {
+              // Create bidirectional friendship if not already friends
+              const existingFriend = await getDoc(doc(db, 'users', currentUser.uid, 'friends', inviterUid));
+              if (!existingFriend.exists()) {
+                const inviterProfile = await getDoc(doc(db, 'userProfiles', inviterUid));
+                const inviterData = inviterProfile.exists() ? inviterProfile.data() : {};
+                await setDoc(doc(db, 'users', currentUser.uid, 'friends', inviterUid), {
+                  friendUid: inviterUid,
+                  friendName: inviterData.displayName || inviterName || 'Friend',
+                  friendEmail: inviterData.email || inviterEmail || '',
+                  friendPhotoURL: inviterData.photoURL || '',
+                  addedAt: serverTimestamp(),
+                });
+                await setDoc(doc(db, 'users', inviterUid, 'friends', currentUser.uid), {
+                  friendUid: currentUser.uid,
+                  friendName: currentUser.displayName || 'New Friend',
+                  friendEmail: currentUser.email || '',
+                  friendPhotoURL: currentUser.photoURL || '',
+                  addedAt: serverTimestamp(),
+                });
+              }
+
+              // Mark invite as accepted
+              await setDoc(doc(db, 'invites', inviteDoc.id), { status: 'accepted' }, { merge: true });
+
+              // Show welcome modal to the new user
+              setWelcomeState({ inviterName: inviterName || 'your friend', inviterUid });
+
+              // Notify inviter via email
+              if (inviterEmail) {
+                const newUserFirstName = (currentUser.displayName || 'Your friend').split(' ')[0];
+                fetch('/.netlify/functions/send-email', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    to: inviterEmail,
+                    subject: `${newUserFirstName} joined mysetlists.net via your invite! 🎉`,
+                    html: `
+                      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+                        <h2 style="color:#10b981">Your invite worked! 🎉</h2>
+                        <p><strong>${currentUser.displayName || 'Your friend'}</strong> just joined mysetlists.net via your invite link — you're now friends on the app!</p>
+                        <p style="margin:24px 0">
+                          <a href="https://mysetlists.net" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+                            Go to mysetlists.net →
+                          </a>
+                        </p>
+                        <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+                        <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
+                      </div>
+                    `,
+                  }),
+                }).catch(() => {}); // fire-and-forget
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Email invite lookup failed:', err);
+        }
+
+        // ── Pending email tags lookup ─────────────────────────────────────
+        // Check for show tags sent to this email before the user existed.
+        try {
+          const tagQuery = query(
+            collection(db, 'pendingEmailTags'),
+            where('toEmail', '==', currentUser.email.toLowerCase()),
+            where('status', '==', 'pending')
+          );
+          const tagSnap = await getDocs(tagQuery);
+          if (!tagSnap.empty) {
+            setPendingTagsForReview(
+              tagSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+            );
+          }
+        } catch (err) {
+          console.warn('Pending email tags lookup failed:', err);
+        }
+
       } else if (guestMode) {
         loadGuestShows();
       } else {
@@ -3607,6 +3888,103 @@ export default function ShowTracker() {
       await setDoc(tagRef, { status: 'declined' }, { merge: true });
     } catch (error) {
       console.error('Failed to decline show tag:', error);
+    }
+  };
+
+  // Accept a pending email tag (new user confirming a show tagged before they joined)
+  const acceptPendingEmailTag = async (tag) => {
+    if (!user) return;
+    try {
+      await addShow({ ...tag.showData, taggedBy: tag.fromName, taggedByUid: tag.fromUid });
+      await setDoc(doc(db, 'pendingEmailTags', tag.id), { status: 'accepted' }, { merge: true });
+      // Notify the tagger
+      if (tag.fromEmail) {
+        const newUserFirstName = (user.displayName || 'Your friend').split(' ')[0];
+        fetch('/.netlify/functions/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: tag.fromEmail,
+            subject: `${newUserFirstName} confirmed they were at ${tag.showData.artist} with you! 🎶`,
+            html: `
+              <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+                <h2 style="color:#10b981">They were there! 🎶</h2>
+                <p><strong>${user.displayName || 'Your friend'}</strong> just confirmed they were at
+                <strong>${tag.showData.artist}</strong>${tag.showData.venue ? ` at ${tag.showData.venue}` : ''}${tag.showData.date ? ` on ${formatDate(tag.showData.date)}` : ''} with you!</p>
+                <p>The show has been added to their setlist history on mysetlists.net.</p>
+                <p style="margin:24px 0">
+                  <a href="https://mysetlists.net" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+                    View their profile →
+                  </a>
+                </p>
+                <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+                <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
+              </div>
+            `,
+          }),
+        }).catch(() => {});
+      }
+      setPendingTagsForReview(prev => prev.filter(t => t.id !== tag.id));
+    } catch (error) {
+      console.error('Failed to accept pending email tag:', error);
+    }
+  };
+
+  const declinePendingEmailTag = async (tag) => {
+    try {
+      await setDoc(doc(db, 'pendingEmailTags', tag.id), { status: 'declined' }, { merge: true });
+      setPendingTagsForReview(prev => prev.filter(t => t.id !== tag.id));
+    } catch (error) {
+      console.error('Failed to decline pending email tag:', error);
+    }
+  };
+
+  // Tag a non-registered friend at a show and send them an invite email
+  const tagFriendByEmail = async ({ name, email: toEmailRaw, message, show }) => {
+    if (!user) return;
+    const toEmail = toEmailRaw.trim().toLowerCase();
+    const sanitizedShow = sanitizeShowForTag(show);
+    try {
+      await addDoc(collection(db, 'pendingEmailTags'), {
+        fromUid: user.uid,
+        fromName: user.displayName || 'Anonymous',
+        fromEmail: user.email || '',
+        toEmail,
+        toName: name,
+        showData: sanitizedShow,
+        personalMessage: message || null,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+
+      const inviterName = user.displayName || 'A friend';
+      const html = `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+          <h2 style="color:#10b981">${inviterName} tagged you in a show! 🎵</h2>
+          <p><strong>${inviterName}</strong> saw <strong>${sanitizedShow.artist}</strong>${sanitizedShow.venue ? ` at ${sanitizedShow.venue}` : ''}${sanitizedShow.date ? ` on ${formatDate(sanitizedShow.date)}` : ''} and thinks you were there too!</p>
+          ${message ? `<blockquote style="border-left:3px solid #10b981;padding-left:16px;color:#475569;font-style:italic;margin:16px 0">${message}</blockquote>` : ''}
+          <p>Join mysetlists.net to confirm the show and add it to your concert history:</p>
+          <p style="margin:24px 0">
+            <a href="https://mysetlists.net?ref=${user.uid}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+              Join mysetlists.net →
+            </a>
+          </p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+          <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
+        </div>
+      `;
+      await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: toEmail,
+          subject: `${inviterName} tagged you in a show on mysetlists.net!`,
+          html,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to tag friend by email:', error);
+      throw error; // let TagFriendsModal surface the error
     }
   };
 
@@ -4193,6 +4571,28 @@ export default function ShowTracker() {
       {/* Mobile Header */}
       <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
 
+      {/* Welcome modal — shown once when a new user joins via an invite */}
+      {welcomeState && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-emerald-500/30 rounded-2xl w-full max-w-md p-8 shadow-2xl shadow-emerald-500/10 text-center">
+            <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <Music className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Welcome to mysetlists.net! 🎉</h2>
+            <p className="text-white/70 leading-relaxed mb-6">
+              You joined via <span className="text-emerald-400 font-semibold">{welcomeState.inviterName}</span>'s invite —
+              you're already friends on the app. Start adding shows and compare your concert history!
+            </p>
+            <button
+              onClick={() => setWelcomeState(null)}
+              className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/25"
+            >
+              Let's go →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
@@ -4211,7 +4611,61 @@ export default function ShowTracker() {
       {/* Main Content Area */}
       <div className="ml-0 md:ml-64 min-h-screen pt-14 md:pt-0">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 md:py-8">
-          {activeView === 'shows' && (
+
+          {/* Pending email tags review — shown once after signup if shows were tagged */}
+          {pendingTagsForReview.length > 0 && (
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-white">Your friends tagged you in some shows!</h1>
+                  <p className="text-white/50 text-sm">Review them and add any to your history.</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {pendingTagsForReview.map(tag => (
+                  <div key={tag.id} className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div>
+                        <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
+                        <div className="flex items-center gap-3 text-sm text-white/60 mt-1 flex-wrap">
+                          {tag.showData?.date && (
+                            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDate(tag.showData.date)}</span>
+                          )}
+                          {tag.showData?.venue && (
+                            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{tag.showData.venue}</span>
+                          )}
+                          {tag.showData?.city && <span>{tag.showData.city}</span>}
+                        </div>
+                        <div className="text-sm text-white/40 mt-1">Tagged by {tag.fromName}</div>
+                        {tag.personalMessage && (
+                          <p className="text-sm text-white/50 italic mt-2">"{tag.personalMessage}"</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => acceptPendingEmailTag(tag)}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-xl font-medium transition-colors text-sm"
+                      >
+                        <Check className="w-4 h-4" /> Add to My History
+                      </button>
+                      <button
+                        onClick={() => declinePendingEmailTag(tag)}
+                        className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white/50 rounded-xl font-medium transition-colors text-sm"
+                      >
+                        Not Me — Skip
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {pendingTagsForReview.length === 0 && activeView === 'shows' && (
           <>
             {/* Friend request / show tag notification banner */}
             {!guestMode && pendingNotificationCount > 0 && (
@@ -4479,6 +4933,7 @@ export default function ShowTracker() {
                 show={tagFriendsShow}
                 friends={friends}
                 onTag={(selectedFriendUids) => tagFriendsAtShow(tagFriendsShow, selectedFriendUids)}
+                onInviteByEmail={(params) => tagFriendByEmail({ ...params, show: tagFriendsShow })}
                 onClose={() => setTagFriendsShow(null)}
               />
             )}
@@ -4529,7 +4984,7 @@ export default function ShowTracker() {
         )}
 
         {activeView === 'invite' && !guestMode && (
-          <InviteView currentUserUid={user?.uid} />
+          <InviteView currentUserUid={user?.uid} currentUser={user} />
         )}
 
         {activeView === 'feedback' && (
@@ -6190,6 +6645,11 @@ function AdminView() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState(null); // null | 'success' | 'error'
 
+  // Delete user state
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState(null); // null | { id, firstName, email }
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -6207,6 +6667,30 @@ function AdminView() {
       setLoading(false);
     }
   }, []);
+
+  const handleDeleteUser = async () => {
+    if (!deleteConfirmUser) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch('/.netlify/functions/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ targetUid: deleteConfirmUser.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Deletion failed');
+      setDeleteConfirmUser(null);
+      // Remove from local list without a full reload
+      setUsers(prev => prev.filter(u => u.id !== deleteConfirmUser.id));
+      if (selectedUser?.id === deleteConfirmUser.id) setSelectedUser(null);
+    } catch (err) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const loadGuestSessions = useCallback(async () => {
     setLoadingGuests(true);
@@ -6679,6 +7163,7 @@ function AdminView() {
                       <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Venues</th>
                       <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
                       <th className="w-10"></th>
+                      <th className="w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -6712,6 +7197,18 @@ function AdminView() {
                         </td>
                         <td className="px-2 py-4">
                           <ChevronRight className="w-4 h-4 text-white/20" />
+                        </td>
+                        <td className="px-2 py-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmUser({ id: user.id, firstName: user.firstName || 'this user', email: user.email });
+                            }}
+                            className="p-1.5 rounded-lg text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            title="Delete user"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -6934,6 +7431,55 @@ function AdminView() {
           </div>
         )}
       </div>
+
+      {/* Delete User Confirmation Dialog */}
+      {deleteConfirmUser && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-rose-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl shadow-rose-500/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-white">Delete User</h2>
+            </div>
+            <p className="text-white/70 mb-2 leading-relaxed">
+              Are you sure you want to permanently delete{' '}
+              <span className="text-white font-medium">{deleteConfirmUser.firstName}</span>
+              {deleteConfirmUser.email ? ` (${deleteConfirmUser.email})` : ''}?
+            </p>
+            <p className="text-white/50 text-sm mb-6 leading-relaxed">
+              This will delete their account, all shows, friend connections, show tags, and invites.{' '}
+              <span className="text-rose-400 font-medium">This cannot be undone.</span>
+            </p>
+            {deleteError && (
+              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 mb-4 text-sm text-rose-400">
+                {deleteError}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDeleteConfirmUser(null); setDeleteError(null); }}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 bg-rose-500 hover:bg-rose-400 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleteLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                {deleteLoading ? 'Deleting…' : 'Delete Forever'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
