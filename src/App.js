@@ -899,7 +899,7 @@ function FriendsView({
 }
 
 // Venue Rating Modal Component
-function VenueRatingModal({ show, currentUser, db, onClose, onSaved }) {
+function VenueRatingModal({ show, currentUser, onClose, onSaved }) {
   const SUB_LABELS = [
     { key: 'soundQuality', label: 'Sound Quality' },
     { key: 'sightlines', label: 'Sightlines' },
@@ -961,8 +961,7 @@ function VenueRatingModal({ show, currentUser, db, onClose, onSaved }) {
         updatedAt: serverTimestamp(),
         ...(existingId ? {} : { createdAt: serverTimestamp() }),
       }, { merge: true });
-      if (onSaved) onSaved();
-      onClose();
+      if (onSaved) onSaved(); else onClose();
     } catch (e) {
       console.error('Failed to save venue rating:', e);
       alert('Failed to save rating. Please try again.');
@@ -1451,6 +1450,15 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.21',
+      date: 'March 4, 2026',
+      title: 'Bug Fixes',
+      changes: [
+        'Fixed: Rate Venue button now opens the rating modal correctly from any page',
+        'Fixed: Rate Venue modal now works when accessed from the Stats page as well as setlist view',
+      ]
+    },
     {
       version: '1.0.20',
       date: 'March 4, 2026',
@@ -5313,16 +5321,6 @@ export default function ShowTracker() {
               />
             )}
 
-            {venueRatingShow && user && (
-              <VenueRatingModal
-                show={venueRatingShow}
-                currentUser={user}
-                db={db}
-                onClose={() => setVenueRatingShow(null)}
-                onSaved={() => setToast(`Rating saved for ${venueRatingShow.venue}!`)}
-              />
-            )}
-
             {tagFriendsShow && (
               <TagFriendsModal
                 show={tagFriendsShow}
@@ -5442,6 +5440,19 @@ export default function ShowTracker() {
 
       {/* PWA Install Prompt */}
       <InstallPrompt />
+
+      {/* Venue Rating Modal — rendered globally so it works from any view */}
+      {venueRatingShow && user && (
+        <VenueRatingModal
+          show={venueRatingShow}
+          currentUser={user}
+          onClose={() => setVenueRatingShow(null)}
+          onSaved={() => {
+            setToast(`Rating saved for ${venueRatingShow.venue}!`);
+            setVenueRatingShow(null);
+          }}
+        />
+      )}
 
       {/* Global toast notification */}
       {toast && (
