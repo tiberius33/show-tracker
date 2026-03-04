@@ -23,13 +23,15 @@ exports.handler = async function(event, context) {
   if (venueName) params.set('venueName', venueName);
   if (cityName) params.set('cityName', cityName);
 
+  const setlistFmApiKey = process.env.SETLISTFM_API_KEY;
+
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'api.setlist.fm',
       path: `/rest/1.0/search/setlists?${params.toString()}`,
       method: 'GET',
       headers: {
-        'x-api-key': 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ',
+        'x-api-key': setlistFmApiKey,
         'Accept': 'application/json',
         'User-Agent': 'ShowTrackerApp/1.0'
       }
