@@ -619,12 +619,38 @@ function FriendsView({
   user, friends, pendingFriendRequests, sentFriendRequests, pendingShowTags,
   onSendFriendRequestByEmail, onSendFriendRequest, onAcceptFriendRequest,
   onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag,
-  initialTab, getShowsTogether, showSuggestions, respondToSuggestion, openMemories
+  initialTab, getShowsTogether, showSuggestions, respondToSuggestion, openMemories,
+  pendingInvites, inviteStats, onResendInvite, onCancelInvite
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'friends');
   const [searchEmail, setSearchEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [showingTogetherWith, setShowingTogetherWith] = useState(null); // null | { uid, name }
+  const [resendingIds, setResendingIds] = useState(new Set()); // invite IDs currently being resent
+
+  const inviteList = pendingInvites || [];
+
+  const isExpired = (invite) => {
+    const lastSent = invite.lastSentAt?.toMillis?.() ?? invite.createdAt?.toMillis?.() ?? 0;
+    return Date.now() - lastSent > 30 * 24 * 60 * 60 * 1000;
+  };
+
+  const timeAgo = (ts) => {
+    if (!ts) return '';
+    const ms = Date.now() - (ts.toMillis?.() ?? ts);
+    const d = Math.floor(ms / 86400000);
+    if (d === 0) return 'Today';
+    if (d === 1) return 'Yesterday';
+    if (d < 7) return `${d} days ago`;
+    if (d < 30) return `${Math.floor(d / 7)} week${Math.floor(d / 7) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(d / 30)} month${Math.floor(d / 30) > 1 ? 's' : ''} ago`;
+  };
+
+  const handleResend = async (invite) => {
+    setResendingIds(prev => new Set(prev).add(invite.id));
+    await onResendInvite(invite);
+    setResendingIds(prev => { const s = new Set(prev); s.delete(invite.id); return s; });
+  };
 
   // Navigate to initialTab when it changes (e.g., from notification banner)
   useEffect(() => {
@@ -663,11 +689,12 @@ function FriendsView({
       <p className="text-white/60 mb-6">Connect with friends and tag them at shows</p>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap">
         {[
           { id: 'friends', label: `My Friends (${friends.length})`, badge: 0 },
           { id: 'requests', label: 'Requests', badge: requestCount },
           { id: 'find', label: 'Find Friends', badge: 0 },
+          { id: 'invites', label: 'Invites', badge: inviteList.length },
         ].map(tab => (
           <button
             key={tab.id}
@@ -978,6 +1005,91 @@ function FriendsView({
               You can also add friends from the <span className="text-emerald-400">Community</span> leaderboard
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Invites Tab */}
+      {activeTab === 'invites' && (
+        <div className="space-y-4">
+          {/* Summary stat */}
+          {inviteStats && (
+            <div className="flex items-center gap-2 text-sm text-white/50 bg-white/5 rounded-xl px-4 py-3 border border-white/10">
+              <Mail className="w-4 h-4 text-white/30 flex-shrink-0" />
+              <span>
+                You've invited <span className="text-white/80 font-medium">{inviteStats.total}</span> {inviteStats.total === 1 ? 'person' : 'people'} —{' '}
+                <span className="text-emerald-400 font-medium">{inviteStats.accepted}</span> {inviteStats.accepted === 1 ? 'has' : 'have'} joined
+              </span>
+            </div>
+          )}
+
+          {inviteList.length === 0 ? (
+            <div className="text-center py-12">
+              <Send className="w-12 h-12 text-white/20 mx-auto mb-4" />
+              <p className="text-white/40 mb-1">No pending invites</p>
+              <p className="text-white/30 text-sm">Invite your friends from the <span className="text-emerald-400">Invite</span> page!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {inviteList
+                .slice()
+                .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+                .map(invite => {
+                  const expired = isExpired(invite);
+                  const isResending = resendingIds.has(invite.id);
+                  const sentTs = invite.lastSentAt || invite.createdAt;
+                  const originalTs = invite.createdAt;
+                  const wasResent = !!invite.lastSentAt;
+                  return (
+                    <div
+                      key={invite.id}
+                      className={`bg-white/5 rounded-2xl p-4 border transition-all ${
+                        expired ? 'border-white/5 opacity-60' : 'border-white/10'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="min-w-0">
+                          <div className="font-medium text-white truncate">{invite.inviteeEmail}</div>
+                          <div className="text-xs text-white/40 mt-0.5">
+                            {wasResent ? (
+                              <>Last resent {timeAgo(sentTs)} &middot; Originally sent {timeAgo(originalTs)}</>
+                            ) : (
+                              <>Sent {timeAgo(originalTs)}</>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                          expired
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                            : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                        }`}>
+                          {expired ? 'Expired' : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleResend(invite)}
+                          disabled={isResending}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          {isResending
+                            ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            : <Send className="w-3.5 h-3.5" />
+                          }
+                          {isResending ? 'Sending…' : 'Resend Invite'}
+                        </button>
+                        <button
+                          onClick={() => onCancelInvite && onCancelInvite(invite.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-red-500/10 text-white/40 hover:text-red-400 border border-white/10 hover:border-red-500/20 rounded-lg text-xs font-medium transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1369,64 +1481,25 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
 }
 
 // Invite View Component
-function InviteView({ currentUserUid, currentUser }) {
+function InviteView({ currentUserUid, currentUser, onSendInvite }) {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
-  const [sendStatus, setSendStatus] = useState(null); // null | 'success' | 'error'
+  const [sendStatus, setSendStatus] = useState(null); // null | 'success' | 'error' | string (error message)
   const [copyLabel, setCopyLabel] = useState('Copy');
 
   const inviteUrl = currentUserUid ? `https://mysetlists.net?ref=${currentUserUid}` : 'https://mysetlists.net';
 
   const handleInvite = async () => {
-    if (!email.trim() || !currentUserUid) return;
+    if (!email.trim() || !currentUserUid || !onSendInvite) return;
     setSending(true);
     setSendStatus(null);
-    try {
-      const toEmail = email.trim().toLowerCase();
-      const inviterDisplayName = currentUser?.displayName || 'A friend';
-
-      // Write invite record to Firestore
-      await addDoc(collection(db, 'invites'), {
-        inviterUid: currentUserUid,
-        inviterName: inviterDisplayName,
-        inviterEmail: currentUser?.email || '',
-        inviteeEmail: toEmail,
-        status: 'pending',
-        createdAt: serverTimestamp(),
-      });
-
-      // Send email via Resend
-      const html = `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
-          <h2 style="color:#10b981">Hey! ${inviterDisplayName} wants you to join mysetlists.net 🎵</h2>
-          <p>${inviterDisplayName} has been tracking all their concerts on mysetlists.net — saving setlists, rating songs, and seeing their all-time stats. They think you'd love it too.</p>
-          <p style="margin:24px 0">
-            <a href="${inviteUrl}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
-              Join mysetlists.net →
-            </a>
-          </p>
-          <p style="color:#64748b;font-size:14px">When you sign up, you and ${inviterDisplayName} will automatically be friends on the app.</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-          <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
-        </div>
-      `;
-      await fetch('/.netlify/functions/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: toEmail,
-          subject: `${inviterDisplayName} invited you to mysetlists.net!`,
-          html,
-        }),
-      });
-
+    const result = await onSendInvite(email.trim());
+    setSending(false);
+    if (result?.success) {
       setSendStatus('success');
       setEmail('');
-    } catch (err) {
-      console.error('Invite send failed:', err);
-      setSendStatus('error');
-    } finally {
-      setSending(false);
+    } else {
+      setSendStatus(result?.error || 'error');
     }
   };
 
@@ -1462,9 +1535,11 @@ function InviteView({ currentUserUid, currentUser }) {
             Invite sent! They'll get an email from mysetlists.net.
           </div>
         )}
-        {sendStatus === 'error' && (
+        {sendStatus && sendStatus !== 'success' && (
           <div className="mt-3 text-rose-400 text-sm">
-            Something went wrong. Try copying the link below instead.
+            {sendStatus === 'error'
+              ? 'Something went wrong. Try copying the link below instead.'
+              : sendStatus}
           </div>
         )}
       </div>
@@ -1536,6 +1611,20 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.23',
+      date: 'March 4, 2026',
+      title: 'Pending Invites Dashboard',
+      changes: [
+        'New: See all pending email invites in Friends \u2192 Invites tab',
+        'Resend any pending invite with one tap (limited to once per 24 hours to prevent spam)',
+        'Cancel invites you no longer want to send',
+        'Invites older than 30 days are marked Expired \u2014 resending resets the expiry clock',
+        'Invite summary shows how many people you\u2019ve invited and how many have joined',
+        'Duplicate invite guard: warns you if you try to invite someone who already has a pending invite',
+        'Pending invite count now appears in the Friends badge in the sidebar',
+      ]
+    },
     {
       version: '1.0.22',
       date: 'March 4, 2026',
@@ -3432,6 +3521,10 @@ export default function ShowTracker() {
   // Collection: showSuggestions/{uid1}_{uid2}_{showKey} (uid1 < uid2 alphabetically)
   const [showSuggestions, setShowSuggestions] = useState([]);
 
+  // Pending Invites — email invites this user has sent that are still pending
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [inviteStats, setInviteStats] = useState(null); // null | { total, accepted }
+
   // Shared Memories — comment threads on confirmed shared shows
   const [memoriesShow, setMemoriesShow]     = useState(null); // null | { suggestion, show }
   const [sharedComments, setSharedComments] = useState([]);
@@ -3447,7 +3540,7 @@ export default function ShowTracker() {
   const myPendingSuggestions   = showSuggestions.filter(s => s.responses?.[user?.uid] === 'pending' && s.overallStatus !== 'declined');
   const myConfirmedSuggestions = showSuggestions.filter(s => s.overallStatus === 'confirmed');
 
-  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length + myPendingSuggestions.length;
+  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length + myPendingSuggestions.length + pendingInvites.length;
   const [upcomingShowsBadgeCount, setUpcomingShowsBadgeCount] = useState(null);
 
   // Post-signup welcome + pending tags
@@ -3549,11 +3642,24 @@ export default function ShowTracker() {
       console.log('Show suggestions listener error:', error.message);
     });
 
+    // Pending invites this user has sent (status === 'pending')
+    const qInvites = query(
+      collection(db, 'invites'),
+      where('inviterUid', '==', user.uid),
+      where('status', '==', 'pending')
+    );
+    const unsubInvites = onSnapshot(qInvites, (snapshot) => {
+      setPendingInvites(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.log('Pending invites listener error:', error.message);
+    });
+
     return () => {
       unsubIncoming();
       unsubSent();
       unsubTags();
       unsubSuggestions();
+      unsubInvites();
     };
   }, [user, guestMode, loadFriends]);
 
@@ -3671,6 +3777,7 @@ export default function ShowTracker() {
           }
         }
         loadShows(currentUser.uid);
+        loadInviteStats(currentUser.uid);
 
         // Auto-friend the user who invited them via referral link
         const referrerUid = localStorage.getItem('invite-referrer');
@@ -4709,6 +4816,129 @@ export default function ShowTracker() {
     } catch (error) {
       console.error('Failed to tag friend by email:', error);
       throw error; // let TagFriendsModal surface the error
+    }
+  };
+
+  // === INVITE MANAGEMENT FUNCTIONS ===
+
+  const loadInviteStats = async (uid) => {
+    if (!uid) return;
+    try {
+      const snap = await getDocs(query(collection(db, 'invites'), where('inviterUid', '==', uid)));
+      const docs = snap.docs.map(d => d.data());
+      setInviteStats({
+        total: docs.length,
+        accepted: docs.filter(d => d.status === 'accepted').length,
+      });
+    } catch (err) {
+      console.log('Failed to load invite stats:', err);
+    }
+  };
+
+  const sendInvite = async (email) => {
+    if (!user) return { error: 'Not signed in' };
+    const toEmail = email.trim().toLowerCase();
+
+    // Guard: duplicate pending invite to same email
+    const existing = pendingInvites.find(inv => inv.inviteeEmail === toEmail);
+    if (existing) {
+      return { error: 'You already have a pending invite for this email. You can resend it from the Friends \u2192 Invites tab.' };
+    }
+
+    try {
+      const inviterDisplayName = user.displayName || 'A friend';
+      const inviteUrl = `https://mysetlists.net?ref=${user.uid}`;
+      await addDoc(collection(db, 'invites'), {
+        inviterUid: user.uid,
+        inviterName: inviterDisplayName,
+        inviterEmail: user.email || '',
+        inviteeEmail: toEmail,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+      const html = `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+          <h2 style="color:#10b981">Hey! ${inviterDisplayName} wants you to join mysetlists.net \uD83C\uDFB5</h2>
+          <p>${inviterDisplayName} has been tracking all their concerts on mysetlists.net \u2014 saving setlists, rating songs, and seeing their all-time stats. They think you'd love it too.</p>
+          <p style="margin:24px 0">
+            <a href="${inviteUrl}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+              Join mysetlists.net \u2192
+            </a>
+          </p>
+          <p style="color:#64748b;font-size:14px">When you sign up, you and ${inviterDisplayName} will automatically be friends on the app.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+          <p style="color:#94a3b8;font-size:12px">mysetlists.net \u2014 track every show you've ever been to</p>
+        </div>
+      `;
+      await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: toEmail,
+          subject: `${inviterDisplayName} invited you to mysetlists.net!`,
+          html,
+        }),
+      });
+      loadInviteStats(user.uid);
+      return { success: true };
+    } catch (err) {
+      console.error('Invite send failed:', err);
+      return { error: 'Failed to send invite. Please try again.' };
+    }
+  };
+
+  const resendInvite = async (invite) => {
+    if (!user) return;
+    // 24-hour throttle — check lastSentAt, fall back to createdAt
+    const lastSent = invite.lastSentAt?.toMillis?.() ?? invite.createdAt?.toMillis?.() ?? 0;
+    if (Date.now() - lastSent < 24 * 60 * 60 * 1000) {
+      setToast('You can only resend to the same person once per 24 hours.');
+      return false;
+    }
+    try {
+      const inviterDisplayName = user.displayName || 'A friend';
+      const inviteUrl = `https://mysetlists.net?ref=${user.uid}`;
+      const html = `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+          <h2 style="color:#10b981">Hey! ${inviterDisplayName} wants you to join mysetlists.net \uD83C\uDFB5</h2>
+          <p>${inviterDisplayName} has been tracking all their concerts on mysetlists.net \u2014 saving setlists, rating songs, and seeing their all-time stats. They think you'd love it too.</p>
+          <p style="margin:24px 0">
+            <a href="${inviteUrl}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+              Join mysetlists.net \u2192
+            </a>
+          </p>
+          <p style="color:#64748b;font-size:14px">When you sign up, you and ${inviterDisplayName} will automatically be friends on the app.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+          <p style="color:#94a3b8;font-size:12px">mysetlists.net \u2014 track every show you've ever been to</p>
+        </div>
+      `;
+      const res = await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: invite.inviteeEmail,
+          subject: `${inviterDisplayName} invited you to mysetlists.net!`,
+          html,
+        }),
+      });
+      if (!res.ok) throw new Error('Email send failed');
+      await updateDoc(doc(db, 'invites', invite.id), { lastSentAt: serverTimestamp() });
+      setToast(`Invite resent to ${invite.inviteeEmail}`);
+      return true;
+    } catch (err) {
+      console.error('Resend invite failed:', err);
+      setToast('Failed to resend invite. Please try again.');
+      return false;
+    }
+  };
+
+  const cancelInvite = async (inviteId) => {
+    try {
+      await deleteDoc(doc(db, 'invites', inviteId));
+      // onSnapshot auto-removes from pendingInvites — no manual setState needed
+    } catch (err) {
+      console.error('Cancel invite failed:', err);
+      setToast('Failed to cancel invite. Please try again.');
     }
   };
 
@@ -5779,11 +6009,15 @@ export default function ShowTracker() {
             showSuggestions={showSuggestions}
             respondToSuggestion={respondToSuggestion}
             openMemories={openMemories}
+            pendingInvites={pendingInvites}
+            inviteStats={inviteStats}
+            onResendInvite={resendInvite}
+            onCancelInvite={cancelInvite}
           />
         )}
 
         {activeView === 'invite' && !guestMode && (
-          <InviteView currentUserUid={user?.uid} currentUser={user} />
+          <InviteView currentUserUid={user?.uid} currentUser={user} onSendInvite={sendInvite} />
         )}
 
         {activeView === 'feedback' && (
