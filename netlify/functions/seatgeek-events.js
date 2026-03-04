@@ -35,7 +35,7 @@ exports.handler = async function(event, context) {
     type: 'concert',
     client_id: clientId,
     sort: 'datetime_local.asc',
-    per_page: '5',
+    per_page: '20', // fetch more so client-side exact-name filter has enough to work with
     'datetime_local.gte': today
   });
 
@@ -58,7 +58,18 @@ exports.handler = async function(event, context) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          const rawEvents = Array.isArray(parsed.events) ? parsed.events : [];
+          const allEvents = Array.isArray(parsed.events) ? parsed.events : [];
+
+          // Client-side exact-match filter: only keep events where at least one
+          // performer name exactly matches the searched artist (case-insensitive).
+          // This prevents loose keyword matches (e.g. "Goose" matching unrelated shows).
+          const normalizedSearch = artistName.trim().toLowerCase();
+          const rawEvents = allEvents.filter((e) => {
+            const performers = Array.isArray(e.performers) ? e.performers : [];
+            return performers.some(
+              (p) => (p.name || '').trim().toLowerCase() === normalizedSearch
+            );
+          });
 
           const events = rawEvents.map((e) => {
             const venue = e.venue || {};
