@@ -423,14 +423,9 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
       `}>
         {/* Logo */}
-        <div className="p-6 border-b border-white/5">
+        <div className="px-5 py-4 border-b border-white/5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Music className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-semibold text-white">Setlist Tracker</span>
-            </div>
+            <img src="/logo.svg" alt="MySetlists" className="h-10 w-auto" />
             {/* Mobile close button */}
             <button
               onClick={onClose}
@@ -530,12 +525,7 @@ function MobileHeader({ onMenuClick }) {
         >
           <Menu className="w-6 h-6 text-white" />
         </button>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center">
-            <Music className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-lg font-semibold text-white">Setlist Tracker</span>
-        </div>
+        <img src="/logo.svg" alt="MySetlists" className="h-8 w-auto" />
         <div className="w-10" /> {/* Spacer for centering */}
       </div>
     </div>
@@ -5032,12 +5022,7 @@ export default function ShowTracker() {
         <div className="bg-black/20 backdrop-blur-xl border-b border-white/10">
           <div className="max-w-6xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                  <Music className="w-6 h-6 text-white" />
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight">Setlist Tracker</h1>
-              </div>
+              <img src="/logo.svg" alt="MySetlists" className="h-11 w-auto" />
               <button
                 onClick={() => openAuthModal('login')}
                 className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white rounded-full font-medium transition-all"
@@ -5051,12 +5036,11 @@ export default function ShowTracker() {
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto px-4 py-8 md:py-16">
           <div className="text-center mb-8 md:mb-16">
-            <div className="w-20 h-20 md:w-28 md:h-28 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-emerald-500/40">
-              <Music className="w-10 h-10 md:w-14 md:h-14 text-white" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
-              Track Your Concert Journey
-            </h2>
+            <img
+              src="/logo.svg"
+              alt="MySetlists"
+              className="h-24 md:h-32 w-auto mx-auto mb-6 md:mb-8 drop-shadow-2xl"
+            />
             <p className="text-lg md:text-xl text-white/70 mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed px-4">
               Save setlists, rate songs, discover patterns in your concert history, and join a community of live music lovers.
             </p>
