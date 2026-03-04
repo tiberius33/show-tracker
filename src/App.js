@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket, Trash2 } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket, Trash2, Clock } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc, writeBatch } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 import { auth, db, googleProvider, analytics } from './firebase';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Footer from './Footer';
 import AuthModal from './components/auth/AuthModal';
 import ProfileView from './components/profile/ProfileView';
@@ -628,7 +629,7 @@ function FriendsView({
   user, friends, pendingFriendRequests, sentFriendRequests, pendingShowTags,
   onSendFriendRequestByEmail, onSendFriendRequest, onAcceptFriendRequest,
   onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag,
-  initialTab, getShowsTogether
+  initialTab, getShowsTogether, showSuggestions, respondToSuggestion, openMemories
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'friends');
   const [searchEmail, setSearchEmail] = useState('');
@@ -648,7 +649,13 @@ function FriendsView({
     setSearchEmail('');
   };
 
-  const requestCount = pendingFriendRequests.length + pendingShowTags.length;
+  const pendingSuggestions = (showSuggestions || []).filter(
+    s => s.responses?.[user?.uid] === 'pending' && s.overallStatus !== 'declined'
+  );
+  const partialSuggestions = (showSuggestions || []).filter(
+    s => s.responses?.[user?.uid] === 'confirmed' && s.overallStatus === 'partially_confirmed'
+  );
+  const requestCount = pendingFriendRequests.length + pendingShowTags.length + pendingSuggestions.length;
 
   if (showingTogetherWith) {
     return (
@@ -827,6 +834,95 @@ function FriendsView({
             </div>
           )}
 
+          {/* Show Suggestions */}
+          {pendingSuggestions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-3">Were You There Together?</h3>
+              <div className="space-y-3">
+                {pendingSuggestions.map(s => {
+                  const otherUid = s.participants?.find(p => p !== user?.uid);
+                  const otherName = otherUid ? s.names?.[otherUid] : 'A friend';
+                  return (
+                    <div key={s.id} className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Users className="w-4 h-4 text-teal-400" />
+                        <span className="text-white/80 text-sm">
+                          <span className="font-medium text-white">{otherName}</span> may have been at this show with you
+                        </span>
+                      </div>
+                      <div className="bg-white/5 rounded-xl p-3 mb-3">
+                        <div className="font-medium" style={{ color: '#f59e0b' }}>{s.showData?.artist}</div>
+                        <div className="flex items-center gap-2 text-sm text-white/60 mt-1">
+                          <Calendar className="w-3.5 h-3.5 text-white/40" />
+                          <span>{formatDate(s.showData?.date)}</span>
+                          {s.showData?.venue && (
+                            <>
+                              <span className="text-white/20">&middot;</span>
+                              <MapPin className="w-3.5 h-3.5 text-white/40" />
+                              <span>{s.showData.venue}{s.showData?.city ? `, ${s.showData.city}` : ''}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => respondToSuggestion && respondToSuggestion(s, 'confirmed')}
+                          className="px-3 py-1.5 bg-teal-500/20 text-teal-400 rounded-lg text-sm font-medium hover:bg-teal-500/30 transition-colors"
+                        >
+                          <Check className="w-4 h-4 inline mr-1" />
+                          Yes, I was there!
+                        </button>
+                        <button
+                          onClick={() => respondToSuggestion && respondToSuggestion(s, 'declined')}
+                          className="px-3 py-1.5 bg-white/5 text-white/50 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Waiting for friend to confirm */}
+          {partialSuggestions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-3">Waiting for Confirmation</h3>
+              <div className="space-y-3">
+                {partialSuggestions.map(s => {
+                  const otherUid = s.participants?.find(p => p !== user?.uid);
+                  const otherName = otherUid ? s.names?.[otherUid] : 'Your friend';
+                  return (
+                    <div key={s.id} className="bg-white/5 rounded-2xl p-4 border border-amber-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Clock className="w-4 h-4 text-amber-400" />
+                        <span className="text-white/70 text-sm">
+                          Waiting for <span className="font-medium text-white">{otherName}</span> to confirm
+                        </span>
+                      </div>
+                      <div className="bg-white/5 rounded-xl p-3">
+                        <div className="font-medium" style={{ color: '#f59e0b' }}>{s.showData?.artist}</div>
+                        <div className="flex items-center gap-2 text-sm text-white/60 mt-1">
+                          <Calendar className="w-3.5 h-3.5 text-white/40" />
+                          <span>{formatDate(s.showData?.date)}</span>
+                          {s.showData?.venue && (
+                            <>
+                              <span className="text-white/20">&middot;</span>
+                              <MapPin className="w-3.5 h-3.5 text-white/40" />
+                              <span>{s.showData.venue}{s.showData?.city ? `, ${s.showData.city}` : ''}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Sent Requests */}
           {sentFriendRequests.length > 0 && (
             <div>
@@ -850,7 +946,7 @@ function FriendsView({
             </div>
           )}
 
-          {pendingFriendRequests.length === 0 && pendingShowTags.length === 0 && sentFriendRequests.length === 0 && (
+          {pendingFriendRequests.length === 0 && pendingShowTags.length === 0 && sentFriendRequests.length === 0 && pendingSuggestions.length === 0 && partialSuggestions.length === 0 && (
             <div className="text-center py-12 text-white/40">
               <Check className="w-12 h-12 text-white/20 mx-auto mb-4" />
               <p>No pending requests or tags</p>
@@ -1450,6 +1546,18 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.22',
+      date: 'March 4, 2026',
+      title: 'Friend Show Suggestions, Shared Memories & SEO',
+      changes: [
+        'New: MySetlists now suggests when you and a friend may have been at the same show — confirm or decline from the Friends tab',
+        'New: Share memories on any confirmed shared show — add, edit, and delete comments visible only to you and that friend',
+        'New: Public artist pages at mysetlists.net/artist/[name] with community stats (shows tracked, fans, top songs, recent venues)',
+        'New: Dynamic page titles and meta tags for better search engine visibility and sharing',
+        'Improved: Notification badge now includes pending show-together suggestions',
+      ]
+    },
     {
       version: '1.0.21',
       date: 'March 4, 2026',
@@ -3330,12 +3438,26 @@ export default function ShowTracker() {
   const [pendingShowTags, setPendingShowTags] = useState([]);
   const [tagFriendsShow, setTagFriendsShow] = useState(null);
 
+  // Show Suggestions — proactive "were you there together?" prompts
+  // Collection: showSuggestions/{uid1}_{uid2}_{showKey} (uid1 < uid2 alphabetically)
+  const [showSuggestions, setShowSuggestions] = useState([]);
+
+  // Shared Memories — comment threads on confirmed shared shows
+  const [memoriesShow, setMemoriesShow]     = useState(null); // null | { suggestion, show }
+  const [sharedComments, setSharedComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
   // Derived friends data
   const friendUids = useMemo(() => friends.map(f => f.friendUid), [friends]);
-  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length;
+
+  // Derived suggestion state
+  const myPendingSuggestions   = showSuggestions.filter(s => s.responses?.[user?.uid] === 'pending' && s.overallStatus !== 'declined');
+  const myConfirmedSuggestions = showSuggestions.filter(s => s.overallStatus === 'confirmed');
+
+  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length + myPendingSuggestions.length;
   const [upcomingShowsBadgeCount, setUpcomingShowsBadgeCount] = useState(null);
 
   // Post-signup welcome + pending tags
@@ -3428,10 +3550,20 @@ export default function ShowTracker() {
       console.log('Show tags listener error:', error.message);
     });
 
+    // Show suggestions — real-time listener on showSuggestions where this user is a participant
+    // Firestore index required: participants (Array Contains) — Firebase will prompt to create on first load
+    const qSuggestions = query(collection(db, 'showSuggestions'), where('participants', 'array-contains', user.uid));
+    const unsubSuggestions = onSnapshot(qSuggestions, (snapshot) => {
+      setShowSuggestions(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.log('Show suggestions listener error:', error.message);
+    });
+
     return () => {
       unsubIncoming();
       unsubSent();
       unsubTags();
+      unsubSuggestions();
     };
   }, [user, guestMode, loadFriends]);
 
@@ -3480,6 +3612,8 @@ export default function ShowTracker() {
         updateCommunityStats();
         // Calculate user rank
         calculateUserRank(userId);
+        // One-time retroactive suggestion scan
+        runRetroactiveSuggestionScan().catch(() => {});
       }
     } catch (error) {
       console.error('Failed to load shows:', error);
@@ -3846,6 +3980,10 @@ export default function ShowTracker() {
       await updateUserProfile(user, updatedShows);
       updateCommunityStats();
       calculateUserRank(user.uid, updatedShows.length);
+
+      // Background suggestion check — non-blocking
+      checkShowSuggestionsForNewShow(newShow).catch(() => {});
+
       return showId;
     } catch (error) {
       console.error('Failed to add show:', error);
@@ -4215,6 +4353,246 @@ export default function ShowTracker() {
     const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
     const theirKeys = new Set(theirShows.map(key));
     return myShows.filter(s => theirKeys.has(key(s)));
+  };
+
+  // === SHOW SUGGESTIONS ===
+  // Proactive "were you there together?" prompts when friends have the same show.
+  // Collection: showSuggestions/{uid1}_{uid2}_{normalizedShowKey}
+  // uid1 < uid2 alphabetically guarantees exactly one doc per pair+show.
+
+  const normalizeShowKey = (show) => {
+    const norm = v => (v || '').trim().toLowerCase();
+    return show.setlistfmId || `${norm(show.artist)}|${norm(show.venue)}|${norm(show.date)}`;
+  };
+
+  const buildSuggestionDocId = (uid1raw, uid2raw, showKey) => {
+    const [uid1, uid2] = [uid1raw, uid2raw].sort();
+    return `${uid1}_${uid2}_${showKey.replace(/[^a-z0-9]/g, '_').slice(0, 80)}`;
+  };
+
+  // Create a suggestion doc if one doesn't already exist for this pair + show.
+  const createShowSuggestion = async (friendUid, friendName, show) => {
+    if (!user) return;
+    const showKey = normalizeShowKey(show);
+    const [uid1, uid2] = [user.uid, friendUid].sort();
+    const docId = buildSuggestionDocId(uid1, uid2, showKey);
+    const ref = doc(db, 'showSuggestions', docId);
+    try {
+      const existing = await getDoc(ref);
+      if (existing.exists()) return; // already suggested — don't overwrite responses
+      const myName = user.displayName || 'Someone';
+      const name1 = uid1 === user.uid ? myName : friendName;
+      const name2 = uid2 === user.uid ? myName : friendName;
+      await setDoc(ref, {
+        participants: [uid1, uid2],
+        names: { [uid1]: name1, [uid2]: name2 },
+        showKey,
+        showData: {
+          artist: show.artist || '',
+          venue: show.venue || '',
+          date: show.date || '',
+          city: show.city || '',
+          setlistfmId: show.setlistfmId || null,
+        },
+        responses: { [uid1]: 'pending', [uid2]: 'pending' },
+        overallStatus: 'pending',
+        emailSentToUid: null,
+        emailSentAt: null,
+        lastViewedAt: { [uid1]: null, [uid2]: null },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.error('Failed to create show suggestion:', e);
+    }
+  };
+
+  // Called right after addShow() succeeds — checks all friends for a matching show.
+  const checkShowSuggestionsForNewShow = async (newShow) => {
+    if (!user || guestMode || friends.length === 0) return;
+    const showKey = normalizeShowKey(newShow);
+    for (const friend of friends) {
+      try {
+        const theirSnap = await getDocs(collection(db, 'users', friend.friendUid, 'shows'));
+        const hasMatch = theirSnap.docs.some(d => {
+          const s = d.data();
+          return normalizeShowKey(s) === showKey;
+        });
+        if (hasMatch) {
+          await createShowSuggestion(friend.friendUid, friend.friendName, newShow);
+        }
+      } catch (e) {
+        console.error('Suggestion check error for friend:', friend.friendUid, e);
+      }
+    }
+  };
+
+  // Retroactive scan — runs once ever per user (localStorage flag).
+  // Checks all existing shows against all friends and creates missing suggestions.
+  const runRetroactiveSuggestionScan = async () => {
+    if (!user || guestMode || friends.length === 0 || shows.length === 0) return;
+    const flagKey = `suggestionScan_${user.uid}`;
+    if (localStorage.getItem(flagKey)) return; // already done
+    try {
+      // Load all existing suggestion IDs in one query to avoid re-creating
+      const existingSnap = await getDocs(
+        query(collection(db, 'showSuggestions'), where('participants', 'array-contains', user.uid))
+      );
+      const existingIds = new Set(existingSnap.docs.map(d => d.id));
+      for (const friend of friends) {
+        try {
+          const theirSnap = await getDocs(collection(db, 'users', friend.friendUid, 'shows'));
+          const theirShows = theirSnap.docs.map(d => d.data());
+          const theirKeySet = new Set(theirShows.map(s => normalizeShowKey(s)));
+          for (const myShow of shows) {
+            const showKey = normalizeShowKey(myShow);
+            if (!theirKeySet.has(showKey)) continue;
+            const docId = buildSuggestionDocId(user.uid, friend.friendUid, showKey);
+            if (existingIds.has(docId)) continue;
+            await createShowSuggestion(friend.friendUid, friend.friendName, myShow);
+            existingIds.add(docId);
+          }
+        } catch (e) {
+          console.error('Retroactive scan error for friend:', friend.friendUid, e);
+        }
+      }
+      localStorage.setItem(flagKey, '1');
+    } catch (e) {
+      console.error('Retroactive suggestion scan failed:', e);
+    }
+  };
+
+  // User responds to a suggestion: 'confirmed' or 'declined'.
+  const respondToSuggestion = async (suggestion, response) => {
+    if (!user) return;
+    const friendUid = suggestion.participants.find(uid => uid !== user.uid);
+    const theirResponse = suggestion.responses?.[friendUid];
+    let newOverallStatus;
+    if (response === 'declined') {
+      newOverallStatus = 'declined';
+    } else if (theirResponse === 'confirmed') {
+      newOverallStatus = 'confirmed';
+    } else {
+      newOverallStatus = 'partially_confirmed';
+    }
+    const ref = doc(db, 'showSuggestions', suggestion.id);
+    try {
+      await updateDoc(ref, {
+        [`responses.${user.uid}`]: response,
+        overallStatus: newOverallStatus,
+        updatedAt: serverTimestamp(),
+      });
+      // Send email nudge when we confirm and friend hasn't responded yet
+      if (response === 'confirmed' && theirResponse === 'pending' && !suggestion.emailSentToUid) {
+        const friendData = friends.find(f => f.friendUid === friendUid);
+        if (friendData?.friendEmail) {
+          const friendName = suggestion.names?.[friendUid] || 'your friend';
+          const { artist, venue, date } = suggestion.showData;
+          await fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: friendData.friendEmail,
+              subject: `${user.displayName || 'A friend'} thinks you were both at ${artist}!`,
+              html: `<p>Hey ${friendName},</p><p><strong>${user.displayName || 'A friend'}</strong> confirmed they were at <strong>${artist}</strong> at ${venue} on ${date} — and thinks you might have been there too. Were you there together?</p><p><a href="https://mysetlists.net/?view=friends">Open MySetlists to confirm or dismiss</a></p>`,
+            }),
+          });
+          await updateDoc(ref, { emailSentToUid: friendUid, emailSentAt: serverTimestamp() });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to respond to suggestion:', e);
+    }
+  };
+
+  // === SHARED MEMORIES ===
+  // Comment threads on confirmed shared shows (overallStatus === 'confirmed').
+  // Stored as: showSuggestions/{suggestionId}/comments/{commentId}
+
+  const loadSharedComments = async (suggestionId) => {
+    setCommentsLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'showSuggestions', suggestionId, 'comments'));
+      const comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      comments.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+      setSharedComments(comments);
+    } catch (e) {
+      console.error('Failed to load shared comments:', e);
+    }
+    setCommentsLoading(false);
+  };
+
+  const openMemories = async (suggestion) => {
+    const show = shows.find(s => normalizeShowKey(s) === suggestion.showKey) ||
+                 { artist: suggestion.showData.artist, venue: suggestion.showData.venue, date: suggestion.showData.date };
+    setMemoriesShow({ suggestion, show });
+    await loadSharedComments(suggestion.id);
+    // Mark this thread as viewed so the unread dot clears
+    try {
+      await updateDoc(doc(db, 'showSuggestions', suggestion.id), {
+        [`lastViewedAt.${user.uid}`]: serverTimestamp(),
+      });
+    } catch (e) { /* non-critical */ }
+  };
+
+  const addSharedComment = async (suggestionId, text, suggestion) => {
+    if (!user || !text.trim()) return;
+    try {
+      const commentRef = await addDoc(collection(db, 'showSuggestions', suggestionId, 'comments'), {
+        authorUid: user.uid,
+        authorName: user.displayName || 'Someone',
+        text: text.trim().slice(0, 500),
+        createdAt: serverTimestamp(),
+        editedAt: null,
+      });
+      // Reload comments locally
+      setSharedComments(prev => [...prev, {
+        id: commentRef.id,
+        authorUid: user.uid,
+        authorName: user.displayName || 'Someone',
+        text: text.trim().slice(0, 500),
+        createdAt: { seconds: Date.now() / 1000 },
+        editedAt: null,
+      }]);
+      // Email the other participant if they haven't been notified recently
+      const otherUid = suggestion.participants.find(uid => uid !== user.uid);
+      const otherLastViewed = suggestion.lastViewedAt?.[otherUid];
+      const shouldEmail = !otherLastViewed; // email only if they've never opened Memories (first comment ever)
+      if (shouldEmail) {
+        const friendData = friends.find(f => f.friendUid === otherUid);
+        if (friendData?.friendEmail) {
+          const { artist, date } = suggestion.showData;
+          await fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: friendData.friendEmail,
+              subject: `${user.displayName || 'A friend'} added a memory from ${artist}`,
+              html: `<p><strong>${user.displayName || 'A friend'}</strong> added a comment to your shared memory of <strong>${artist}</strong> (${date}).</p><p><a href="https://mysetlists.net/?view=friends">Open MySetlists to see and reply</a></p>`,
+            }),
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to add comment:', e);
+    }
+  };
+
+  const editSharedComment = async (suggestionId, commentId, newText) => {
+    try {
+      await updateDoc(doc(db, 'showSuggestions', suggestionId, 'comments', commentId), {
+        text: newText.trim().slice(0, 500),
+        editedAt: serverTimestamp(),
+      });
+      setSharedComments(prev => prev.map(c => c.id === commentId ? { ...c, text: newText.trim(), editedAt: { seconds: Date.now() / 1000 } } : c));
+    } catch (e) { console.error('Failed to edit comment:', e); }
+  };
+
+  const deleteSharedComment = async (suggestionId, commentId) => {
+    try {
+      await deleteDoc(doc(db, 'showSuggestions', suggestionId, 'comments', commentId));
+      setSharedComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (e) { console.error('Failed to delete comment:', e); }
   };
 
   const acceptShowTag = async (tagId) => {
@@ -4864,8 +5242,31 @@ export default function ShowTracker() {
     );
   }
 
+  // Per-view SEO metadata
+  const viewMeta = {
+    shows:          { title: 'My Shows — MySetlists', description: 'Your personal concert history. View and rate every show you\'ve attended.' },
+    stats:          { title: 'Stats — MySetlists', description: 'Dive into your concert stats: top artists, venues, songs, and more.' },
+    search:         { title: 'Search Shows — MySetlists', description: 'Search setlist.fm to add shows to your concert history.' },
+    friends:        { title: 'Friends — MySetlists', description: 'Connect with friends and share your live music journey.' },
+    community:      { title: 'Community — MySetlists', description: 'See how you rank among all MySetlists users.' },
+    invite:         { title: 'Invite Friends — MySetlists', description: 'Invite your friends to track shows together on MySetlists.' },
+    import:         { title: 'Import Shows — MySetlists', description: 'Import your concert history from a spreadsheet.' },
+    profile:        { title: 'Profile — MySetlists', description: 'Your MySetlists profile and account settings.' },
+    'release-notes':{ title: 'Release Notes — MySetlists', description: 'What\'s new in MySetlists.' },
+    feedback:       { title: 'Feedback — MySetlists', description: 'Share your feedback to help improve MySetlists.' },
+  };
+  const currentMeta = viewMeta[activeView] || { title: 'MySetlists — Track Your Concert Journey', description: 'Build your personal concert history with setlists, ratings, and stats.' };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Helmet>
+        <title>{currentMeta.title}</title>
+        <meta name="description" content={currentMeta.description} />
+        <meta property="og:title" content={currentMeta.title} />
+        <meta property="og:description" content={currentMeta.description} />
+        <meta property="og:url" content="https://mysetlists.net/" />
+      </Helmet>
+
       {/* Migration Prompt Modal */}
       {showMigrationPrompt && (
         <div className="fixed inset-0 md:left-64 bg-black/60 backdrop-blur-xl flex items-center justify-center p-3 md:p-4 z-[60]">
@@ -5305,21 +5706,34 @@ export default function ShowTracker() {
               </div>
             )}
 
-            {selectedShow && (
-              <SetlistEditor
-                show={selectedShow}
-                onAddSong={(song) => addSongToShow(selectedShow.id, song)}
-                onRateSong={(songId, rating) => updateSongRating(selectedShow.id, songId, rating)}
-                onCommentSong={(songId, comment) => updateSongComment(selectedShow.id, songId, comment)}
-                onDeleteSong={(songId) => deleteSong(selectedShow.id, songId)}
-                onRateShow={(rating) => updateShowRating(selectedShow.id, rating)}
-                onCommentShow={(comment) => updateShowComment(selectedShow.id, comment)}
-                onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
-                onClose={() => setSelectedShow(null)}
-                onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
-                onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
-              />
-            )}
+            {selectedShow && (() => {
+              const confirmedSuggestion = user && !guestMode
+                ? myConfirmedSuggestions.find(s => s.showKey === normalizeShowKey(selectedShow))
+                : null;
+              return (
+                <SetlistEditor
+                  show={selectedShow}
+                  onAddSong={(song) => addSongToShow(selectedShow.id, song)}
+                  onRateSong={(songId, rating) => updateSongRating(selectedShow.id, songId, rating)}
+                  onCommentSong={(songId, comment) => updateSongComment(selectedShow.id, songId, comment)}
+                  onDeleteSong={(songId) => deleteSong(selectedShow.id, songId)}
+                  onRateShow={(rating) => updateShowRating(selectedShow.id, rating)}
+                  onCommentShow={(comment) => updateShowComment(selectedShow.id, comment)}
+                  onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
+                  onClose={() => setSelectedShow(null)}
+                  onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
+                  onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
+                  confirmedSuggestion={confirmedSuggestion || null}
+                  sharedComments={memoriesShow?.suggestion?.id === confirmedSuggestion?.id ? sharedComments : []}
+                  commentsLoading={commentsLoading}
+                  onOpenMemories={confirmedSuggestion ? () => openMemories(confirmedSuggestion) : null}
+                  onAddComment={confirmedSuggestion ? (text) => addSharedComment(confirmedSuggestion.id, text, confirmedSuggestion) : null}
+                  onEditComment={confirmedSuggestion ? (cid, txt) => editSharedComment(confirmedSuggestion.id, cid, txt) : null}
+                  onDeleteComment={confirmedSuggestion ? (cid) => deleteSharedComment(confirmedSuggestion.id, cid) : null}
+                  currentUserUid={user?.uid}
+                />
+              );
+            })()}
 
             {tagFriendsShow && (
               <TagFriendsModal
@@ -5378,6 +5792,9 @@ export default function ShowTracker() {
             onDeclineShowTag={declineShowTag}
             initialTab={friendsInitialTab}
             getShowsTogether={getShowsTogether}
+            showSuggestions={showSuggestions}
+            respondToSuggestion={respondToSuggestion}
+            openMemories={openMemories}
           />
         )}
 
@@ -6161,7 +6578,7 @@ function UpcomingShows({ artistName }) {
   );
 }
 
-function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onTagFriends, onRateVenue }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onTagFriends, onRateVenue, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -6169,6 +6586,10 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const [editingShowComment, setEditingShowComment] = useState(false);
   const [showCommentText, setShowCommentText] = useState(show.comment || '');
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [memoriesOpen, setMemoriesOpen] = useState(false);
+  const [newMemoryText, setNewMemoryText] = useState('');
+  const [editingMemoryId, setEditingMemoryId] = useState(null);
+  const [editingMemoryText, setEditingMemoryText] = useState('');
 
   const handleShare = async () => {
     const setlistText = show.setlist.map((song, i) => `${i + 1}. ${song.name}${song.rating ? ` (${song.rating}/10)` : ''}`).join('\n');
@@ -6438,6 +6859,130 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
             </div>
           )}
           <UpcomingShows artistName={show.artist} />
+
+          {/* Shared Memories (confirmed show together) */}
+          {confirmedSuggestion && (() => {
+            const otherUid = confirmedSuggestion.participants?.find(p => p !== currentUserUid);
+            const otherName = otherUid ? confirmedSuggestion.names?.[otherUid] : 'A friend';
+            return (
+              <div className="mt-4 border-t border-teal-500/20 pt-4">
+                {/* Attendance chip */}
+                <button
+                  onClick={() => {
+                    if (!memoriesOpen && onOpenMemories) onOpenMemories();
+                    setMemoriesOpen(prev => !prev);
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/15 border border-teal-500/30 text-teal-300 text-sm font-medium hover:bg-teal-500/25 transition-colors mb-3"
+                >
+                  <Users className="w-4 h-4" />
+                  You and {otherName} were both here
+                  <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${memoriesOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {memoriesOpen && (
+                  <div className="bg-teal-500/5 rounded-2xl border border-teal-500/15 p-4">
+                    <h4 className="text-sm font-semibold text-teal-300 mb-3">Shared Memories</h4>
+
+                    {commentsLoading ? (
+                      <p className="text-sm text-white/40 py-4 text-center">Loading...</p>
+                    ) : (
+                      <>
+                        {sharedComments.length === 0 && (
+                          <p className="text-sm text-white/40 mb-3 text-center py-2">No memories yet — add the first one!</p>
+                        )}
+                        <div className="space-y-3 mb-3">
+                          {sharedComments.map(c => {
+                            const isOwn = c.authorUid === currentUserUid;
+                            return (
+                              <div key={c.id} className={`rounded-xl p-3 ${isOwn ? 'bg-teal-500/10 ml-4' : 'bg-white/5 mr-4'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-semibold text-white/60">{c.authorName}</span>
+                                  <span className="text-xs text-white/30">
+                                    {c.editedAt ? 'edited' : c.createdAt?.toDate ? new Date(c.createdAt.toDate()).toLocaleDateString() : ''}
+                                  </span>
+                                </div>
+                                {editingMemoryId === c.id ? (
+                                  <div className="flex gap-2 mt-1">
+                                    <input
+                                      type="text"
+                                      value={editingMemoryText}
+                                      onChange={e => setEditingMemoryText(e.target.value)}
+                                      maxLength={500}
+                                      className="flex-1 px-2 py-1 bg-white/10 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter' && editingMemoryText.trim()) {
+                                          onEditComment && onEditComment(c.id, editingMemoryText.trim());
+                                          setEditingMemoryId(null);
+                                        }
+                                        if (e.key === 'Escape') setEditingMemoryId(null);
+                                      }}
+                                      autoFocus
+                                    />
+                                    <button
+                                      onClick={() => { onEditComment && onEditComment(c.id, editingMemoryText.trim()); setEditingMemoryId(null); }}
+                                      className="px-2 py-1 bg-teal-500 hover:bg-teal-400 text-white rounded-lg text-xs"
+                                    >Save</button>
+                                    <button
+                                      onClick={() => setEditingMemoryId(null)}
+                                      className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white/60 rounded-lg text-xs"
+                                    >Cancel</button>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-white/80 mt-0.5">{c.text}</p>
+                                )}
+                                {isOwn && editingMemoryId !== c.id && (
+                                  <div className="flex gap-2 mt-2">
+                                    <button
+                                      onClick={() => { setEditingMemoryId(c.id); setEditingMemoryText(c.text); }}
+                                      className="text-xs text-white/30 hover:text-white/60 transition-colors"
+                                    >Edit</button>
+                                    <button
+                                      onClick={() => onDeleteComment && onDeleteComment(c.id)}
+                                      className="text-xs text-white/30 hover:text-red-400 transition-colors"
+                                    >Delete</button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* New comment input */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Share a memory..."
+                            value={newMemoryText}
+                            onChange={e => setNewMemoryText(e.target.value)}
+                            maxLength={500}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && newMemoryText.trim()) {
+                                onAddComment && onAddComment(newMemoryText.trim());
+                                setNewMemoryText('');
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                          />
+                          <button
+                            onClick={() => {
+                              if (newMemoryText.trim()) {
+                                onAddComment && onAddComment(newMemoryText.trim());
+                                setNewMemoryText('');
+                              }
+                            }}
+                            disabled={!newMemoryText.trim()}
+                            className="px-3 py-2 bg-teal-500/80 hover:bg-teal-500 disabled:opacity-40 text-white rounded-xl text-sm transition-colors"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           </div>
         </div>
       </div>
@@ -8098,6 +8643,154 @@ function InstallPrompt() {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// PUBLIC ARTIST PAGE  —  /artist/:artistSlug
+// ============================================================
+export function PublicArtistPage() {
+  const { artistSlug } = useParams();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!artistSlug) return;
+    setLoading(true);
+    fetch(`/.netlify/functions/get-artist-stats?slug=${encodeURIComponent(artistSlug)}`)
+      .then(r => {
+        if (!r.ok) throw new Error('Not found');
+        return r.json();
+      })
+      .then(data => { setStats(data); setLoading(false); })
+      .catch(err => { setError(err.message); setLoading(false); });
+  }, [artistSlug]);
+
+  const artistName = stats?.artistName || artistSlug?.replace(/-/g, ' ');
+  const canonicalUrl = `https://mysetlists.net/artist/${artistSlug}`;
+  const ogTitle = `${artistName} Concert Stats — MySetlists`;
+  const ogDescription = stats
+    ? `${artistName} has been seen ${stats.showCount} times by ${stats.userCount} fans on MySetlists. See top songs and recent shows.`
+    : `See concert stats for ${artistName} on MySetlists.`;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Helmet>
+        <title>{ogTitle}</title>
+        <meta name="description" content={ogDescription} />
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href={canonicalUrl} />
+        {stats && (
+          <script type="application/ld+json">{JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'MusicGroup',
+            name: artistName,
+            url: canonicalUrl,
+            description: ogDescription,
+          })}</script>
+        )}
+      </Helmet>
+
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4">
+            <Music className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-1" style={{ textTransform: 'capitalize' }}>{artistName}</h1>
+          <p className="text-white/50">Community concert stats on MySetlists</p>
+        </div>
+
+        {loading && (
+          <div className="text-center py-16 text-white/40">Loading stats...</div>
+        )}
+
+        {error && (
+          <div className="text-center py-16">
+            <p className="text-white/40 mb-4">No stats found for this artist yet.</p>
+            <a href="/" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl font-medium transition-colors">
+              Track a Show
+            </a>
+          </div>
+        )}
+
+        {stats && (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+                <div className="text-3xl font-bold text-emerald-400">{stats.showCount}</div>
+                <div className="text-sm text-white/50 mt-1">Shows tracked</div>
+              </div>
+              <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+                <div className="text-3xl font-bold text-teal-400">{stats.userCount}</div>
+                <div className="text-sm text-white/50 mt-1">Fans tracking</div>
+              </div>
+            </div>
+
+            {/* Top songs */}
+            {stats.topSongs?.length > 0 && (
+              <div className="bg-white/5 rounded-2xl border border-white/10 p-5 mb-6">
+                <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                  <Music className="w-4 h-4 text-emerald-400" />
+                  Most Played Songs
+                </h2>
+                <div className="space-y-2">
+                  {stats.topSongs.slice(0, 10).map((song, i) => (
+                    <div key={song.name} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <span className="text-white/30 font-mono text-sm w-5">{i + 1}.</span>
+                        <span className="text-white/80 text-sm">{song.name}</span>
+                      </div>
+                      <span className="text-emerald-400 text-xs font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        {song.count}x
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent shows */}
+            {stats.recentShows?.length > 0 && (
+              <div className="bg-white/5 rounded-2xl border border-white/10 p-5 mb-8">
+                <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-teal-400" />
+                  Recent Shows
+                </h2>
+                <div className="space-y-2">
+                  {stats.recentShows.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                      <div>
+                        <div className="text-white/80 text-sm">{s.venue}</div>
+                        {s.city && <div className="text-white/40 text-xs">{s.city}</div>}
+                      </div>
+                      <span className="text-white/40 text-xs">{s.date}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CTA */}
+            <div className="text-center">
+              <p className="text-white/50 mb-4 text-sm">Track your own concert history for free</p>
+              <a
+                href="/"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold shadow-lg shadow-emerald-500/25 transition-all"
+              >
+                <Music className="w-4 h-4" />
+                Start Tracking on MySetlists
+              </a>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

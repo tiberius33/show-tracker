@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /artist/
+Disallow: /admin
+
+Sitemap: https://mysetlists.net/sitemap.xml
