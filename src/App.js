@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket, Trash2 } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc, writeBatch } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 import { auth, db, googleProvider, analytics } from './firebase';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import Footer from './Footer';
 import AuthModal from './components/auth/AuthModal';
 import ProfileView from './components/profile/ProfileView';
@@ -542,15 +542,98 @@ function MobileHeader({ onMenuClick }) {
 }
 
 // Friends View Component
+// Shows Together View
+function ShowsTogetherView({ friend, getShowsTogether, onBack }) {
+  const [sharedShows, setSharedShows] = useState(null); // null = loading
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const shows = await getShowsTogether(friend.uid);
+        if (!cancelled) setSharedShows(shows.sort((a, b) => parseDate(b.date) - parseDate(a.date)));
+      } catch (e) {
+        if (!cancelled) setError('Failed to load shows.');
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friend.uid]);
+
+  const mostSeenArtist = sharedShows ? (() => {
+    const counts = {};
+    sharedShows.forEach(s => { counts[s.artist] = (counts[s.artist] || 0) + 1; });
+    const [artist, count] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
+    return artist ? { artist, count } : null;
+  })() : null;
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-white/50 hover:text-white text-sm mb-6 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" /> Back to Friends
+      </button>
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
+        Shows with {friend.name}
+      </h1>
+      {sharedShows === null ? (
+        <div className="flex items-center justify-center py-16">
+          <RefreshCw className="w-6 h-6 text-white/30 animate-spin" />
+        </div>
+      ) : error ? (
+        <p className="text-rose-400">{error}</p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-4 mb-6 text-sm">
+            <span className="text-white/60">
+              <span className="text-white font-semibold">{sharedShows.length}</span> show{sharedShows.length !== 1 ? 's' : ''} together
+            </span>
+            {mostSeenArtist && (
+              <span className="text-white/60">
+                Most seen: <span className="text-amber-400 font-semibold">{mostSeenArtist.artist}</span>
+                {mostSeenArtist.count > 1 && <span className="text-white/40"> ({mostSeenArtist.count}x)</span>}
+              </span>
+            )}
+          </div>
+          {sharedShows.length === 0 ? (
+            <div className="text-center py-12">
+              <Music className="w-12 h-12 text-white/20 mx-auto mb-4" />
+              <p className="text-white/40">No shared shows found yet.</p>
+              <p className="text-white/30 text-sm mt-1">Shows are matched by artist, venue, and date.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sharedShows.map(show => (
+                <div key={show.id} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <div className="font-medium mb-1" style={{ color: '#f59e0b' }}>{show.artist}</div>
+                  <div className="flex items-center gap-3 text-sm text-white/50">
+                    <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDate(show.date)}</span>
+                    {show.venue && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{show.venue}{show.city ? `, ${show.city}` : ''}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function FriendsView({
   user, friends, pendingFriendRequests, sentFriendRequests, pendingShowTags,
   onSendFriendRequestByEmail, onSendFriendRequest, onAcceptFriendRequest,
   onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag,
-  initialTab
+  initialTab, getShowsTogether
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'friends');
   const [searchEmail, setSearchEmail] = useState('');
   const [sending, setSending] = useState(false);
+  const [showingTogetherWith, setShowingTogetherWith] = useState(null); // null | { uid, name }
 
   // Navigate to initialTab when it changes (e.g., from notification banner)
   useEffect(() => {
@@ -566,6 +649,16 @@ function FriendsView({
   };
 
   const requestCount = pendingFriendRequests.length + pendingShowTags.length;
+
+  if (showingTogetherWith) {
+    return (
+      <ShowsTogetherView
+        friend={showingTogetherWith}
+        getShowsTogether={getShowsTogether}
+        onBack={() => setShowingTogetherWith(null)}
+      />
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -619,13 +712,25 @@ function FriendsView({
                     <div className="text-sm text-white/40">{friend.friendEmail}</div>
                   </div>
                 </div>
-                <button
-                  onClick={() => onRemoveFriend(friend.friendUid)}
-                  className="p-2 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                  title="Remove friend"
-                >
-                  <UserX className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {getShowsTogether && (
+                    <button
+                      onClick={() => setShowingTogetherWith({ uid: friend.friendUid, name: friend.friendName || 'Friend' })}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border border-violet-500/30 rounded-xl text-xs font-medium transition-colors"
+                      title="Shows together"
+                    >
+                      <Music className="w-3.5 h-3.5" />
+                      Shows Together
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onRemoveFriend(friend.friendUid)}
+                    className="p-2 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    title="Remove friend"
+                  >
+                    <UserX className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -793,6 +898,157 @@ function FriendsView({
   );
 }
 
+// Venue Rating Modal Component
+function VenueRatingModal({ show, currentUser, db, onClose, onSaved }) {
+  const SUB_LABELS = [
+    { key: 'soundQuality', label: 'Sound Quality' },
+    { key: 'sightlines', label: 'Sightlines' },
+    { key: 'atmosphere', label: 'Atmosphere' },
+    { key: 'accessibility', label: 'Accessibility' },
+    { key: 'foodDrinks', label: 'Food & Drinks' },
+  ];
+
+  const [overallRating, setOverallRating] = useState(0);
+  const [subRatings, setSubRatings] = useState({ soundQuality: 0, sightlines: 0, atmosphere: 0, accessibility: 0, foodDrinks: 0 });
+  const [review, setReview] = useState('');
+  const [existingId, setExistingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const venueKey = `${(show.venue || '').trim().toLowerCase()}::${(show.city || '').trim().toLowerCase()}`;
+
+  useEffect(() => {
+    async function loadExisting() {
+      if (!currentUser) { setLoading(false); return; }
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'venueRatings'),
+          where('venueKey', '==', venueKey),
+          where('userId', '==', currentUser.uid)
+        ));
+        if (!snap.empty) {
+          const d = snap.docs[0].data();
+          setExistingId(snap.docs[0].id);
+          setOverallRating(d.overallRating || 0);
+          setSubRatings({ soundQuality: 0, sightlines: 0, atmosphere: 0, accessibility: 0, foodDrinks: 0, ...d.subRatings });
+          setReview(d.review || '');
+        }
+      } catch (e) {
+        console.error('Failed to load venue rating:', e);
+      }
+      setLoading(false);
+    }
+    loadExisting();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSave = async () => {
+    if (!overallRating) return;
+    setSaving(true);
+    try {
+      const docId = existingId || `${currentUser.uid}_${venueKey.replace(/[^a-z0-9]/g, '_').slice(0, 60)}`;
+      await setDoc(doc(db, 'venueRatings', docId), {
+        venueName: (show.venue || '').trim().toLowerCase(),
+        venueCity: (show.city || '').trim().toLowerCase(),
+        venueKey,
+        venueDisplayName: show.venue || '',
+        venueCityDisplay: show.city || '',
+        userId: currentUser.uid,
+        userDisplayName: currentUser.displayName || 'Anonymous',
+        overallRating,
+        subRatings,
+        review: review.trim() || null,
+        updatedAt: serverTimestamp(),
+        ...(existingId ? {} : { createdAt: serverTimestamp() }),
+      }, { merge: true });
+      if (onSaved) onSaved();
+      onClose();
+    } catch (e) {
+      console.error('Failed to save venue rating:', e);
+      alert('Failed to save rating. Please try again.');
+    }
+    setSaving(false);
+  };
+
+  const StarPicker = ({ value, onChange, size = 'w-7 h-7' }) => (
+    <div className="flex gap-1">
+      {[1,2,3,4,5].map(n => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(value === n ? 0 : n)}
+          className={`${size} transition-colors ${n <= value ? 'text-amber-400' : 'text-white/20 hover:text-amber-400/50'}`}
+        >
+          <Star className="w-full h-full" fill={n <= value ? 'currentColor' : 'none'} />
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 md:left-64 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+      <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-white">{existingId ? 'Edit Your Rating' : 'Rate This Venue'}</h2>
+            <p className="text-white/50 text-sm mt-0.5">{show.venue}{show.city ? `, ${show.city}` : ''}</p>
+          </div>
+          <button onClick={onClose} className="p-3 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <RefreshCw className="w-6 h-6 text-white/30 animate-spin" />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Overall rating */}
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">Overall Rating <span className="text-rose-400">*</span></label>
+              <StarPicker value={overallRating} onChange={setOverallRating} size="w-9 h-9" />
+            </div>
+            {/* Sub-ratings */}
+            <div className="space-y-3">
+              <p className="text-sm text-white/50">Optional sub-ratings</p>
+              {SUB_LABELS.map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-sm text-white/70 w-32">{label}</span>
+                  <StarPicker value={subRatings[key] || 0} onChange={v => setSubRatings(p => ({ ...p, [key]: v }))} />
+                </div>
+              ))}
+            </div>
+            {/* Review */}
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">Review <span className="text-white/30">(optional)</span></label>
+              <textarea
+                value={review}
+                onChange={e => setReview(e.target.value.slice(0, 500))}
+                placeholder="What did you think of the venue?"
+                rows={3}
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-white text-sm placeholder-white/40 resize-none"
+              />
+              <p className="text-xs text-white/30 mt-1 text-right">{review.length}/500</p>
+            </div>
+          </div>
+        )}
+        <div className="p-6 border-t border-white/10 flex gap-3">
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!overallRating || saving}
+            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving…' : existingId ? 'Update Rating' : 'Save Rating'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Tag Friends Modal Component
 function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
   const [selectedFriends, setSelectedFriends] = useState(new Set());
@@ -930,6 +1186,23 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
             </div>
           )}
 
+          {/* Selected friend chips */}
+          {!inviteMode && selectedFriends.size > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {[...selectedFriends].map(uid => {
+                const f = friends.find(fr => fr.friendUid === uid);
+                return f ? (
+                  <span key={uid} className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-emerald-400 text-xs font-medium">
+                    {f.friendName || 'Friend'}
+                    <button onClick={() => toggleFriend(uid)} className="text-emerald-400/60 hover:text-emerald-300">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ) : null;
+              })}
+            </div>
+          )}
+
           {/* Friend list / invite prompt */}
           {!inviteMode && (
             <>
@@ -1001,7 +1274,7 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
               disabled={sending}
               className="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25 disabled:opacity-50"
             >
-              {sending ? 'Tagging...' : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''}`}
+              {sending ? 'Tagging...' : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} at This Show →`}
             </button>
           </div>
         )}
@@ -1178,6 +1451,19 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.20',
+      date: 'March 4, 2026',
+      title: 'Venue Ratings, Social Tagging & Navigation',
+      changes: [
+        'Rate venues with 1–5 stars and optional sub-ratings (Sound, Sightlines, Atmosphere, Accessibility, Food & Drinks)',
+        'See aggregate venue ratings and top-rated venues in your Stats page',
+        'Tag multiple friends at a show in one tap with instant batch confirmation',
+        'Tag friends when adding new shows, not just from existing setlists',
+        'See all the shows you\'ve attended with a specific friend from their profile',
+        'Browser back/forward buttons now work correctly throughout the app',
+      ]
+    },
     {
       version: '1.0.19',
       date: 'March 4, 2026',
@@ -2972,14 +3258,46 @@ export default function ShowTracker() {
   const [guestMode, setGuestMode] = useState(false);
   const [showGuestPrompt, setShowGuestPrompt] = useState(false); // Prompt to create account after first show
 
-  // Capture invite referral from URL param (?ref=uid) and persist in localStorage
+  // URL-based navigation (back/forward button support)
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const VALID_VIEWS = ['shows','stats','search','friends','invite','feedback','release-notes','import','community','profile','admin','upcoming-shows'];
+
+  // Initialize activeView from ?view= param on first load
+  useEffect(() => {
+    const v = searchParams.get('view');
+    if (v && VALID_VIEWS.includes(v)) setActiveView(v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep state in sync when user presses browser back/forward
+  useEffect(() => {
+    const handler = () => {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get('view');
+      setActiveView((v && VALID_VIEWS.includes(v)) ? v : 'shows');
+      setSelectedArtist(null);
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Wrapper for user-triggered view changes — keeps URL in sync
+  const navigateTo = (view) => {
+    setActiveView(view);
+    navigate(`/?view=${view}`, { replace: false });
+  };
+
+  // Capture invite referral from URL param (?ref=uid) and persist in localStorage
   useEffect(() => {
     const refUid = searchParams.get('ref');
     if (refUid) {
       localStorage.setItem('invite-referrer', refUid);
-      // Clean the URL without reloading the page
-      window.history.replaceState({}, '', window.location.pathname);
+      // Clean ?ref from URL while keeping ?view= if present
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('ref');
+      window.history.replaceState({}, '', cleanUrl.toString());
     }
   }, [searchParams]);
 
@@ -3015,6 +3333,17 @@ export default function ShowTracker() {
   // Post-signup welcome + pending tags
   const [welcomeState, setWelcomeState] = useState(null);       // null | { inviterName, inviterUid }
   const [pendingTagsForReview, setPendingTagsForReview] = useState([]);
+
+  // Global toast notification
+  const [toast, setToast] = useState(null); // null | string
+
+  // Venue rating modal
+  const [venueRatingShow, setVenueRatingShow] = useState(null); // null | showObj
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Clear friendsInitialTab when navigating away from friends
   useEffect(() => {
@@ -3844,8 +4173,10 @@ export default function ShowTracker() {
     if (!user || selectedFriendUids.length === 0) return;
     const sanitizedShow = sanitizeShowForTag(show);
     try {
+      const batch = writeBatch(db);
       for (const friendUid of selectedFriendUids) {
-        await addDoc(collection(db, 'showTags'), {
+        const ref = doc(collection(db, 'showTags'));
+        batch.set(ref, {
           fromUid: user.uid,
           fromName: user.displayName || 'Anonymous',
           toUid: friendUid,
@@ -3854,11 +4185,28 @@ export default function ShowTracker() {
           createdAt: serverTimestamp()
         });
       }
+      await batch.commit();
       setTagFriendsShow(null);
+      setToast(`Tagged ${selectedFriendUids.length} friend${selectedFriendUids.length !== 1 ? 's' : ''} at ${show.artist}!`);
     } catch (error) {
       console.error('Failed to tag friends:', error);
       alert('Failed to tag friends. Please try again.');
     }
+  };
+
+  // === SHOWS TOGETHER ===
+
+  const getShowsTogether = async (friendUid) => {
+    const [mySnap, theirSnap] = await Promise.all([
+      getDocs(collection(db, 'users', user.uid, 'shows')),
+      getDocs(collection(db, 'users', friendUid, 'shows')),
+    ]);
+    const myShows = mySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const theirShows = theirSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const norm = s => (s || '').trim().toLowerCase();
+    const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
+    const theirKeys = new Set(theirShows.map(key));
+    return myShows.filter(s => theirKeys.has(key(s)));
   };
 
   const acceptShowTag = async (tagId) => {
@@ -4170,6 +4518,35 @@ export default function ShowTracker() {
         artists: data.artists.size
       }))
       .sort((a, b) => b.count - a.count);
+  };
+
+  // === VENUE RATING HELPERS ===
+
+  const normalizeVenueKey = (venue, city) =>
+    `${(venue || '').trim().toLowerCase()}::${(city || '').trim().toLowerCase()}`;
+
+  const getVenueRatings = async (venueKey) => {
+    const snap = await getDocs(query(collection(db, 'venueRatings'), where('venueKey', '==', venueKey)));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  };
+
+  const computeVenueAggregate = (ratings) => {
+    if (!ratings.length) return null;
+    const avg = arr => {
+      const valid = arr.filter(v => v != null && v > 0);
+      return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    return {
+      count: ratings.length,
+      overallAvg: avg(ratings.map(r => r.overallRating)),
+      subAvgs: {
+        soundQuality: avg(ratings.map(r => r.subRatings?.soundQuality)),
+        sightlines: avg(ratings.map(r => r.subRatings?.sightlines)),
+        atmosphere: avg(ratings.map(r => r.subRatings?.atmosphere)),
+        accessibility: avg(ratings.map(r => r.subRatings?.accessibility)),
+        foodDrinks: avg(ratings.map(r => r.subRatings?.foodDrinks)),
+      }
+    };
   };
 
   const getTopRatedShows = () => {
@@ -4596,7 +4973,7 @@ export default function ShowTracker() {
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
-        setActiveView={(view) => { setActiveView(view); setSelectedArtist(null); }}
+        setActiveView={(view) => { navigateTo(view); setSelectedArtist(null); }}
         isAdmin={isAdmin}
         onLogout={guestMode ? () => { setGuestMode(false); setShows([]); } : handleLogout}
         userName={guestMode ? 'Guest' : extractFirstName(user?.displayName)}
@@ -4672,7 +5049,7 @@ export default function ShowTracker() {
               <button
                 onClick={() => {
                   setFriendsInitialTab('requests');
-                  setActiveView('friends');
+                  navigateTo('friends');
                 }}
                 className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl hover:from-violet-500/30 hover:to-purple-500/30 transition-all group"
               >
@@ -4697,10 +5074,10 @@ export default function ShowTracker() {
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
                 {[
                   { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400', action: () => {} },
-                  { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400', action: () => { setStatsTab('songs'); setActiveView('stats'); } },
-                  { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-amber-400 to-orange-400', action: () => { setStatsTab('artists'); setActiveView('stats'); } },
-                  { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-cyan-400 to-blue-400', action: () => { setStatsTab('venues'); setActiveView('stats'); } },
-                  { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-pink-400 to-rose-400', action: () => { setStatsTab('top'); setActiveView('stats'); } },
+                  { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400', action: () => { setStatsTab('songs'); navigateTo('stats'); } },
+                  { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-amber-400 to-orange-400', action: () => { setStatsTab('artists'); navigateTo('stats'); } },
+                  { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-cyan-400 to-blue-400', action: () => { setStatsTab('venues'); navigateTo('stats'); } },
+                  { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-pink-400 to-rose-400', action: () => { setStatsTab('top'); navigateTo('stats'); } },
                 ].map(stat => (
                   <button key={stat.label} onClick={stat.action} className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-2.5 text-center hover:bg-white/15 transition-all cursor-pointer">
                     <div className={`text-xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
@@ -4709,7 +5086,7 @@ export default function ShowTracker() {
                 ))}
                 {/* User Rank */}
                 {userRank && (
-                  <button onClick={() => { setActiveView('community'); }} className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-xl border border-amber-500/30 rounded-xl p-2.5 text-center hover:from-amber-500/30 hover:to-orange-500/30 transition-all cursor-pointer">
+                  <button onClick={() => { navigateTo('community'); }} className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-xl border border-amber-500/30 rounded-xl p-2.5 text-center hover:from-amber-500/30 hover:to-orange-500/30 transition-all cursor-pointer">
                     <div className="flex items-center justify-center gap-1">
                       <Crown className="w-4 h-4 text-amber-400" />
                       <div className="text-xl font-bold text-amber-400">#{userRank.rank}</div>
@@ -4728,7 +5105,7 @@ export default function ShowTracker() {
               </div>
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={() => setActiveView('search')}
+                  onClick={() => navigateTo('search')}
                   className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-emerald-500/25 ${shows.length === 0 ? 'animate-pulse' : ''}`}
                 >
                   {shows.length === 0 && (
@@ -4745,7 +5122,7 @@ export default function ShowTracker() {
                   Add Manually
                 </button>
                 <button
-                  onClick={() => setActiveView('import')}
+                  onClick={() => navigateTo('import')}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all whitespace-nowrap border border-white/10"
                 >
                   <Upload className="w-4 h-4" />
@@ -4830,7 +5207,7 @@ export default function ShowTracker() {
 
                 <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
                   <button
-                    onClick={() => setActiveView('search')}
+                    onClick={() => navigateTo('search')}
                     className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
                   >
                     <span className="absolute inset-0 rounded-xl bg-emerald-400 animate-ping opacity-20" />
@@ -4838,7 +5215,7 @@ export default function ShowTracker() {
                     Search for a Show
                   </button>
                   <button
-                    onClick={() => setActiveView('import')}
+                    onClick={() => navigateTo('import')}
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-semibold transition-all border border-violet-500/30 hover:scale-105"
                   >
                     <Upload className="w-5 h-5" />
@@ -4881,7 +5258,14 @@ export default function ShowTracker() {
               </div>
             )}
 
-            {showForm && <ShowForm onSubmit={addShow} onCancel={() => setShowForm(false)} />}
+            {showForm && (
+              <ShowForm
+                onSubmit={addShow}
+                onCancel={() => setShowForm(false)}
+                friends={user && !guestMode ? friends : []}
+                onTagFriends={tagFriendsAtShow}
+              />
+            )}
 
             {/* Artist groups table */}
             {sortedFilteredShows.length > 0 && (
@@ -4925,6 +5309,17 @@ export default function ShowTracker() {
                 onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
                 onClose={() => setSelectedShow(null)}
                 onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
+                onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
+              />
+            )}
+
+            {venueRatingShow && user && (
+              <VenueRatingModal
+                show={venueRatingShow}
+                currentUser={user}
+                db={db}
+                onClose={() => setVenueRatingShow(null)}
+                onSaved={() => setToast(`Rating saved for ${venueRatingShow.venue}!`)}
               />
             )}
 
@@ -4955,6 +5350,10 @@ export default function ShowTracker() {
             onCommentShow={updateShowComment}
             onBatchRate={batchRateUnrated}
             initialTab={statsTab}
+            onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
+            fetchVenueRatings={getVenueRatings}
+            normalizeVenueKey={normalizeVenueKey}
+            computeVenueAggregate={computeVenueAggregate}
           />
         )}
 
@@ -4980,6 +5379,7 @@ export default function ShowTracker() {
             onAcceptShowTag={acceptShowTag}
             onDeclineShowTag={declineShowTag}
             initialTab={friendsInitialTab}
+            getShowsTogether={getShowsTogether}
           />
         )}
 
@@ -4997,7 +5397,7 @@ export default function ShowTracker() {
 
         {activeView === 'import' && (
           <ImportView onImport={addShow} onUpdateShow={updateShowData} existingShows={shows} onNavigate={(view) => {
-            setActiveView(view);
+            navigateTo(view);
             // Reload shows from Firestore to ensure imported shows + setlists are reflected
             if (view === 'shows' && user && !guestMode) {
               loadShows(user.uid);
@@ -5042,21 +5442,41 @@ export default function ShowTracker() {
 
       {/* PWA Install Prompt */}
       <InstallPrompt />
+
+      {/* Global toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 bg-emerald-500 text-white rounded-2xl shadow-lg shadow-emerald-500/40 font-medium text-sm animate-fade-in">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
 
-function ShowForm({ onSubmit, onCancel }) {
+function ShowForm({ onSubmit, onCancel, friends = [], onTagFriends }) {
   const [formData, setFormData] = useState({
     artist: '',
     venue: '',
     date: new Date().toISOString().split('T')[0]
   });
+  const [tagOpen, setTagOpen] = useState(false);
+  const [selectedTagFriends, setSelectedTagFriends] = useState(new Set());
 
-  const handleSubmit = (e) => {
+  const toggleTagFriend = (uid) => {
+    setSelectedTagFriends(prev => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid); else next.add(uid);
+      return next;
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.artist && formData.venue && formData.date) {
-      onSubmit(formData);
+      await onSubmit(formData);
+      if (selectedTagFriends.size > 0 && onTagFriends) {
+        await onTagFriends(formData, [...selectedTagFriends]);
+      }
     }
   };
 
@@ -5087,6 +5507,47 @@ function ShowForm({ onSubmit, onCancel }) {
           className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white"
           required
         />
+        {/* Tag Friends accordion (only for logged-in users with friends) */}
+        {friends.length > 0 && (
+          <div className="border border-white/10 rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setTagOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors text-sm"
+            >
+              <span className="flex items-center gap-2 text-white/70">
+                <Tag className="w-4 h-4" />
+                Tag friends at this show
+                {selectedTagFriends.size > 0 && (
+                  <span className="ml-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">
+                    {selectedTagFriends.size} selected
+                  </span>
+                )}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${tagOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {tagOpen && (
+              <div className="p-4 space-y-2 max-h-48 overflow-y-auto">
+                {friends.map(f => (
+                  <label
+                    key={f.friendUid}
+                    className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all ${
+                      selectedTagFriends.has(f.friendUid)
+                        ? 'bg-emerald-500/15 border border-emerald-500/30'
+                        : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <input type="checkbox" className="sr-only" checked={selectedTagFriends.has(f.friendUid)} onChange={() => toggleTagFriend(f.friendUid)} />
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedTagFriends.has(f.friendUid) ? 'bg-emerald-500 border-emerald-500' : 'border-white/20'}`}>
+                      {selectedTagFriends.has(f.friendUid) && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className="text-sm text-white">{f.friendName || f.friendEmail}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex gap-3 pt-2">
           <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
             Add Show
@@ -5689,7 +6150,7 @@ function UpcomingShows({ artistName }) {
   );
 }
 
-function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onTagFriends }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onTagFriends, onRateVenue }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -5762,6 +6223,15 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {onRateVenue && show.venue && (
+              <button
+                onClick={() => onRateVenue(show)}
+                className="p-3 rounded-xl text-white/50 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors"
+                title="Rate this venue"
+              >
+                <Star className="w-6 h-6" />
+              </button>
+            )}
             {onTagFriends && (
               <button
                 onClick={() => onTagFriends(show)}
@@ -6039,7 +6509,7 @@ function SongStatsRow({ song, index, onRateSong }) {
   );
 }
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onRateVenue, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -6049,10 +6519,30 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
   const [expandedYear, setExpandedYear] = useState(null);
   const [expandedShow, setExpandedShow] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
+  const [venueRatingsMap, setVenueRatingsMap] = useState({}); // venueKey → aggregate | null
 
   useEffect(() => {
     if (initialTab) setTab(initialTab);
   }, [initialTab]);
+
+  // Load venue ratings when venues tab becomes active
+  useEffect(() => {
+    if (tab !== 'venues' || !fetchVenueRatings || !normalizeVenueKey || !computeVenueAggregate) return;
+    let cancelled = false;
+    async function loadAll() {
+      const keys = [...new Set(shows.map(s => normalizeVenueKey(s.venue, s.city)))];
+      const results = await Promise.all(keys.map(async (key) => {
+        try {
+          const ratings = await fetchVenueRatings(key);
+          return [key, computeVenueAggregate(ratings)];
+        } catch { return [key, null]; }
+      }));
+      if (!cancelled) setVenueRatingsMap(Object.fromEntries(results));
+    }
+    loadAll();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   // Keep selectedShow in sync with shows data
   useEffect(() => {
@@ -6100,7 +6590,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
     shows.forEach(show => {
       const venueName = show.venue + (show.city ? `, ${show.city}` : '');
       if (!details[venueName]) {
-        details[venueName] = { years: {}, artistSet: new Set() };
+        details[venueName] = { years: {}, artistSet: new Set(), sampleShow: show };
       }
       const year = parseDate(show.date).getFullYear();
       if (!details[venueName].years[year]) {
@@ -6113,6 +6603,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
     return Object.entries(details)
       .map(([name, data]) => ({
         name,
+        venueKey: normalizeVenueKey ? normalizeVenueKey(data.sampleShow.venue, data.sampleShow.city) : name.toLowerCase(),
+        sampleShow: data.sampleShow,
         showCount: Object.values(data.years).flat().length,
         artistCount: data.artistSet.size,
         years: Object.entries(data.years)
@@ -6123,7 +6615,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           .sort((a, b) => b.year - a.year)
       }))
       .sort((a, b) => b.showCount - a.showCount);
-  }, [shows]);
+  }, [shows, normalizeVenueKey]);
 
   const hasFilters = filterArtist || filterVenue || filterYear;
 
@@ -6331,6 +6823,31 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
       {tab === 'venues' && (
         <div>
           <h2 className="text-xl font-bold mb-4 text-white">Venue Statistics</h2>
+          {/* Top Rated Venues section */}
+          {(() => {
+            const topRated = venueDetails
+              .filter(v => venueRatingsMap[v.venueKey]?.count >= 2)
+              .sort((a, b) => (venueRatingsMap[b.venueKey]?.overallAvg || 0) - (venueRatingsMap[a.venueKey]?.overallAvg || 0))
+              .slice(0, 5);
+            if (!topRated.length) return null;
+            return (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wide mb-3">Top Rated</h3>
+                <div className="space-y-2">
+                  {topRated.map((v, i) => (
+                    <div key={v.name} className="flex items-center gap-3 px-4 py-2.5 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                      <span className="text-amber-400/50 font-bold text-sm w-4">#{i+1}</span>
+                      <span className="text-white text-sm flex-1">{v.name}</span>
+                      <span className="flex items-center gap-1 text-amber-400 font-semibold text-sm">
+                        <Star className="w-3.5 h-3.5" fill="currentColor" />
+                        {venueRatingsMap[v.venueKey]?.overallAvg?.toFixed(1)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           {venueDetails.length === 0 ? (
             <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
           ) : (
@@ -6347,6 +6864,13 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                       <span className="font-medium text-white">{venue.name}</span>
                     </div>
                     <div className="flex items-center gap-4">
+                      {venueRatingsMap[venue.venueKey] && (
+                        <span className="flex items-center gap-1 text-amber-400 text-sm font-semibold">
+                          <Star className="w-3.5 h-3.5" fill="currentColor" />
+                          {venueRatingsMap[venue.venueKey].overallAvg?.toFixed(1)}
+                          <span className="text-amber-400/50 font-normal">({venueRatingsMap[venue.venueKey].count})</span>
+                        </span>
+                      )}
                       <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
                         {venue.showCount} shows
                       </span>
@@ -6357,6 +6881,27 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                   {/* Expanded Years */}
                   {expandedVenue === venue.name && (
                     <div className="border-t border-white/10 bg-white/5">
+                      {onRateVenue && (
+                        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                          {venueRatingsMap[venue.venueKey] ? (
+                            <div className="flex items-center gap-3 text-sm">
+                              <span className="text-white/50">Community avg:</span>
+                              <span className="text-amber-400 font-semibold flex items-center gap-1">
+                                <Star className="w-3.5 h-3.5" fill="currentColor" />
+                                {venueRatingsMap[venue.venueKey].overallAvg?.toFixed(1)} / 5
+                                <span className="text-amber-400/50 font-normal">from {venueRatingsMap[venue.venueKey].count} rating{venueRatingsMap[venue.venueKey].count !== 1 ? 's' : ''}</span>
+                              </span>
+                            </div>
+                          ) : <span className="text-white/30 text-sm">No ratings yet</span>}
+                          <button
+                            onClick={() => onRateVenue(venue.sampleShow)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-medium transition-colors"
+                          >
+                            <Star className="w-3.5 h-3.5" />
+                            Rate Venue
+                          </button>
+                        </div>
+                      )}
                       {venue.years.map(({ year, shows: yearShows }) => (
                         <div key={year}>
                           {/* Year Header */}
