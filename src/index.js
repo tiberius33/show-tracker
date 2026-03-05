@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
-import App, { PublicArtistPage } from './App';
+import App, { PublicArtistPage, PublicRoadmapPage } from './App';
 import PrivacyPolicy from './PrivacyPolicy';
 import TermsOfService from './TermsOfService';
 import CookiePolicy from './CookiePolicy';
@@ -17,6 +17,7 @@ root.render(
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<App />} />
+          <Route path="/roadmap" element={<PublicRoadmapPage />} />
           <Route path="/artist/:artistSlug" element={<PublicArtistPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />

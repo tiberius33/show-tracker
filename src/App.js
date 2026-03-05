@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket, Trash2, Clock } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, ChevronUp, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket, Trash2, Clock } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc, writeBatch, runTransaction, increment } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 import { auth, db, googleProvider, analytics } from './firebase';
 import { Link, useSearchParams, useNavigate, useParams } from 'react-router-dom';
@@ -392,6 +392,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
       { id: 'community', label: 'Community', icon: Users },
       { id: 'invite', label: 'Invite', icon: Send },
     ]),
+    { id: 'roadmap', label: 'Roadmap', icon: TrendingUp },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
   ];
@@ -1569,39 +1570,434 @@ function InviteView({ currentUserUid, currentUser, onSendInvite }) {
   );
 }
 
-// Feedback View Component
-function FeedbackView() {
-  const [feedback, setFeedback] = useState('');
+// ========== ROADMAP SHARED CONSTANTS & SUB-COMPONENTS ==========
 
-  const handleSubmit = () => {
-    const subject = encodeURIComponent('Setlist Tracker Feedback');
-    const body = encodeURIComponent(feedback);
-    window.location.href = `mailto:support@mysetlists.net?subject=${subject}&body=${body}`;
+// Roadmap feature categories — used in FeedbackView, RoadmapView, PublicRoadmapPage, and AdminView
+const ROADMAP_CATEGORIES = {
+  ui: 'UI/Design',
+  social: 'Social',
+  data: 'Data & Stats',
+  search: 'Search',
+  other: 'Other',
+};
+
+// Roadmap column definitions — order and display for the three public columns
+const ROADMAP_COLUMNS = [
+  { key: 'upnext',     label: 'Up Next',     emoji: '🔜', headerColor: 'text-violet-400',  border: 'border-violet-500/30'  },
+  { key: 'inprogress', label: 'In Progress',  emoji: '🛠️', headerColor: 'text-amber-400',   border: 'border-amber-500/30'   },
+  { key: 'shipped',    label: 'Shipped',      emoji: '✅', headerColor: 'text-emerald-400', border: 'border-emerald-500/30' },
+];
+
+// timeAgo — relative date string from a Firestore Timestamp or Date
+function timeAgo(ts) {
+  if (!ts) return '';
+  const ms = Date.now() - (ts.toMillis ? ts.toMillis() : (ts instanceof Date ? ts.getTime() : Number(ts)));
+  const d = Math.floor(ms / 86400000);
+  if (d === 0) return 'Today';
+  if (d === 1) return 'Yesterday';
+  if (d < 7) return `${d} days ago`;
+  if (d < 30) return `${Math.floor(d / 7)}w ago`;
+  if (d < 365) return `${Math.floor(d / 30)}mo ago`;
+  return `${Math.floor(d / 365)}y ago`;
+}
+
+// RoadmapCard — shared between RoadmapView (in-app) and PublicRoadmapPage
+function RoadmapCard({ item, hasVoted, isTopThree, onVote, voting, isLoggedIn }) {
+  return (
+    <div className={`bg-white/5 backdrop-blur-xl rounded-2xl border ${isTopThree ? 'border-amber-500/40' : 'border-white/10'} p-4 relative transition-all hover:bg-white/[0.07]`}>
+      {isTopThree && (
+        <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30 whitespace-nowrap">
+          Most Requested
+        </span>
+      )}
+      <div className={isTopThree ? 'pr-28' : ''}>
+        <p className="font-semibold text-white text-sm leading-snug mb-1">{item.title}</p>
+        {item.description && item.description !== item.title && (
+          <p className="text-white/50 text-xs leading-relaxed mb-2 line-clamp-3">{item.description}</p>
+        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {item.category && ROADMAP_CATEGORIES[item.category] && (
+            <span className="text-[10px] px-2 py-0.5 bg-white/10 text-white/40 rounded-full">
+              {ROADMAP_CATEGORIES[item.category]}
+            </span>
+          )}
+          {(item.publishedAt || item.createdAt) && (
+            <span className="text-[10px] text-white/30">
+              {item.status === 'shipped' ? 'Shipped ' : 'Added '}{timeAgo(item.publishedAt || item.createdAt)}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="mt-3">
+        <button
+          onClick={() => onVote(item)}
+          disabled={voting}
+          title={hasVoted ? 'Remove your vote' : (isLoggedIn ? 'Vote for this feature' : 'Sign in to vote')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
+            hasVoted
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+              : 'bg-white/10 text-white/60 hover:bg-white/20 border border-white/10 hover:border-white/20'
+          }`}
+        >
+          {voting ? (
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <ChevronUp className={`w-4 h-4 ${hasVoted ? 'text-emerald-400' : ''}`} />
+          )}
+          <span>{item.voteCount || 0}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// RoadmapView — in-app roadmap view rendered inside the ShowTracker shell
+function RoadmapView({ user }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userVotes, setUserVotes] = useState({});     // { [itemId]: boolean }
+  const [votingItemId, setVotingItemId] = useState(null);
+  const [signInPrompt, setSignInPrompt] = useState(false);
+
+  // Real-time listener for published roadmap items
+  useEffect(() => {
+    const q = query(
+      collection(db, 'roadmapItems'),
+      where('status', 'in', ['upnext', 'inprogress', 'shipped'])
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    }, (err) => {
+      console.log('Roadmap listener error:', err.message);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  // Load which items the current user has voted on
+  useEffect(() => {
+    if (!user || items.length === 0) {
+      setUserVotes({});
+      return;
+    }
+    Promise.all(
+      items.map(item =>
+        getDoc(doc(db, 'roadmapItems', item.id, 'voters', user.uid))
+          .then(d => [item.id, d.exists()])
+      )
+    ).then(results => setUserVotes(Object.fromEntries(results)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, items.length]);
+
+  // Top 3 most-voted item IDs (across all columns)
+  const topThreeIds = new Set(
+    [...items]
+      .sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+      .slice(0, 3)
+      .map(i => i.id)
+  );
+
+  // Toggle vote — uses runTransaction for atomic increment/decrement
+  const handleVote = async (item) => {
+    if (!user) { setSignInPrompt(true); return; }
+    if (votingItemId) return;
+    setVotingItemId(item.id);
+    const itemRef = doc(db, 'roadmapItems', item.id);
+    const voterRef = doc(db, 'roadmapItems', item.id, 'voters', user.uid);
+    const hasVoted = !!userVotes[item.id];
+    try {
+      await runTransaction(db, async (tx) => {
+        const voterSnap = await tx.get(voterRef);
+        if (!hasVoted && !voterSnap.exists()) {
+          tx.set(voterRef, { votedAt: serverTimestamp() });
+          tx.update(itemRef, { voteCount: increment(1), updatedAt: serverTimestamp() });
+        } else if (hasVoted && voterSnap.exists()) {
+          tx.delete(voterRef);
+          tx.update(itemRef, { voteCount: increment(-1), updatedAt: serverTimestamp() });
+        }
+      });
+      setUserVotes(prev => ({ ...prev, [item.id]: !hasVoted }));
+    } catch (err) {
+      console.error('Vote error:', err);
+    } finally {
+      setVotingItemId(null);
+    }
   };
 
   return (
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-xl md:text-2xl font-bold text-white mb-2">What's Coming to MySetlists</h1>
+        <p className="text-white/60">Vote on features you want most — the more votes, the higher it goes.</p>
+      </div>
+
+      {/* Sign-in prompt banner (for guests who click vote) */}
+      {signInPrompt && (
+        <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+          <p className="text-amber-400 text-sm">Sign in to vote on features you want!</p>
+          <button onClick={() => setSignInPrompt(false)} className="text-white/40 hover:text-white/70 transition-colors flex-shrink-0">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-16 text-white/40">Loading roadmap...</div>
+      ) : (
+        <div className="flex flex-col gap-6 md:grid md:grid-cols-3 md:gap-6">
+          {ROADMAP_COLUMNS.map(col => {
+            const colItems = items
+              .filter(i => i.status === col.key)
+              .sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
+            return (
+              <div key={col.key}>
+                {/* Column header */}
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-lg">{col.emoji}</span>
+                  <h2 className={`font-bold text-base ${col.headerColor}`}>{col.label}</h2>
+                  <span className="text-white/30 text-xs ml-auto">{colItems.length}</span>
+                </div>
+                {/* Cards */}
+                <div className="space-y-3">
+                  {colItems.map(item => (
+                    <RoadmapCard
+                      key={item.id}
+                      item={item}
+                      hasVoted={!!userVotes[item.id]}
+                      isTopThree={topThreeIds.has(item.id)}
+                      onVote={handleVote}
+                      voting={votingItemId === item.id}
+                      isLoggedIn={!!user}
+                    />
+                  ))}
+                  {colItems.length === 0 && (
+                    <p className="text-white/25 text-sm py-4">Nothing here yet</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ========== FEEDBACK VIEW COMPONENT ==========
+// Overhauled: type selector, category pills, Firestore storage, auto-draft roadmap items for feature requests
+function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
+  const [feedbackType, setFeedbackType] = useState('general'); // 'feature' | 'bug' | 'general'
+  const [category, setCategory] = useState('other');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
+  // Mark notifications read on mount (clears roadmap_published banner from badge)
+  useEffect(() => {
+    if (onMarkRead) onMarkRead();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const roadmapNotifications = (unreadNotifications || []).filter(n => n.type === 'roadmap_published');
+
+  const handleSubmit = async () => {
+    if (!message.trim() || !user) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      // Write to feedback collection
+      const feedbackData = {
+        type: feedbackType,
+        category: feedbackType === 'feature' ? category : null,
+        message: message.trim(),
+        submitterUid: user.uid,
+        submitterEmail: user.email || '',
+        submitterName: (user.displayName || '').split(' ')[0] || 'Anonymous',
+        status: feedbackType === 'feature' ? 'linked' : 'new',
+        roadmapItemId: null,
+        createdAt: serverTimestamp(),
+      };
+      const feedbackRef = await addDoc(collection(db, 'feedback'), feedbackData);
+
+      // If it's a feature request, auto-create a draft roadmap item
+      if (feedbackType === 'feature') {
+        const itemRef = await addDoc(collection(db, 'roadmapItems'), {
+          title: message.trim().slice(0, 100),
+          description: message.trim(),
+          status: 'draft',
+          category,
+          voteCount: 0,
+          sourceFeedbackId: feedbackRef.id,
+          submitterUid: user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          publishedAt: null,
+        });
+        await updateDoc(feedbackRef, { roadmapItemId: itemRef.id });
+      }
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError('Failed to submit. Please try again.');
+      console.error('Feedback submit error:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const FEEDBACK_TYPES = [
+    { id: 'feature', label: 'Feature Request' },
+    { id: 'bug',     label: 'Bug Report'      },
+    { id: 'general', label: 'General Feedback' },
+  ];
+
+  const CATEGORIES = [
+    { id: 'ui',     label: 'UI/Design'   },
+    { id: 'social', label: 'Social'      },
+    { id: 'data',   label: 'Data & Stats' },
+    { id: 'search', label: 'Search'      },
+    { id: 'other',  label: 'Other'       },
+  ];
+
+  if (submitted) {
+    return (
+      <div className="max-w-xl mx-auto">
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 text-center">
+          <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-6 h-6 text-emerald-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Thanks for your feedback!</h2>
+          <p className="text-white/60 mb-6">
+            {feedbackType === 'feature'
+              ? "Your idea has been added to the feedback queue. Check the roadmap to see what's coming!"
+              : "We read everything and use it to make MySetlists better."}
+          </p>
+          {feedbackType === 'feature' && (
+            <button
+              onClick={() => onNavigate && onNavigate('roadmap')}
+              className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-violet-500/25"
+            >
+              <TrendingUp className="w-4 h-4" />
+              View Roadmap
+            </button>
+          )}
+          <button
+            onClick={() => { setSubmitted(false); setMessage(''); setFeedbackType('general'); setCategory('other'); }}
+            className="text-white/40 hover:text-white/60 text-sm transition-colors"
+          >
+            Send more feedback
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
     <div className="max-w-xl mx-auto">
-      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Send Feedback</h1>
+      {/* Roadmap notification banner */}
+      {roadmapNotifications.length > 0 && (
+        <div className="mb-6 px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
+          <p className="text-emerald-400 text-sm font-medium mb-1">
+            Your feature idea is on the roadmap!
+          </p>
+          <p className="text-white/60 text-xs mb-2">
+            "{roadmapNotifications[0].itemTitle}" — check it out and see how the community votes on it.
+          </p>
+          <button
+            onClick={() => onNavigate && onNavigate('roadmap')}
+            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+          >
+            View Roadmap →
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between mb-2">
+        <h1 className="text-xl md:text-2xl font-bold text-white">Send Feedback</h1>
+        <button
+          onClick={() => onNavigate && onNavigate('roadmap')}
+          className="flex items-center gap-1 text-xs text-white/40 hover:text-white/60 transition-colors mt-1"
+        >
+          <TrendingUp className="w-3 h-3" />
+          View Roadmap
+        </button>
+      </div>
       <p className="text-white/60 mb-8">We'd love to hear your thoughts, suggestions, or bug reports.</p>
 
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-        <label className="block text-sm font-medium text-white/70 mb-2">
-          Your Feedback
-        </label>
-        <textarea
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-          placeholder="Tell us what you think..."
-          rows={6}
-          className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 mb-4 resize-none"
-        />
+      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 space-y-5">
+
+        {/* Feedback type selector */}
+        <div>
+          <label className="block text-sm font-medium text-white/70 mb-2">Type</label>
+          <div className="flex flex-wrap gap-2">
+            {FEEDBACK_TYPES.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setFeedbackType(t.id)}
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
+                  feedbackType === t.id
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Category selector — only for feature requests */}
+        {feedbackType === 'feature' && (
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Category</label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setCategory(c.id)}
+                  className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
+                    category === c.id
+                      ? 'bg-violet-500/20 text-violet-400 border-violet-500/30'
+                      : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Message textarea */}
+        <div>
+          <label className="block text-sm font-medium text-white/70 mb-2">
+            {feedbackType === 'feature' ? 'Describe your idea' : feedbackType === 'bug' ? 'What went wrong?' : 'Your Feedback'}
+          </label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={
+              feedbackType === 'feature' ? "What feature would make MySetlists better for you?" :
+              feedbackType === 'bug' ? "What happened? What were you trying to do?" :
+              "Tell us what you think..."
+            }
+            rows={6}
+            className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 resize-none"
+          />
+        </div>
+
+        {submitError && (
+          <p className="text-red-400 text-sm">{submitError}</p>
+        )}
+
         <button
           onClick={handleSubmit}
-          disabled={!feedback.trim()}
+          disabled={!message.trim() || submitting}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25"
         >
-          <Send className="w-4 h-4" />
-          Send Feedback
+          {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {submitting ? 'Sending...' : 'Send Feedback'}
         </button>
       </div>
     </div>
@@ -1611,6 +2007,19 @@ function FeedbackView() {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.24',
+      date: 'March 4, 2026',
+      title: 'Public Roadmap & Voting',
+      changes: [
+        "New: Public roadmap at mysetlists.net/roadmap \u2014 see what\u2019s Up Next, In Progress, and Shipped",
+        'Vote on features you want most \u2014 top 3 most-voted items get a \u201cMost Requested\u201d badge',
+        'Votes update in real time \u2014 no refresh needed',
+        'Feature requests now save to a feedback queue and automatically create draft roadmap items',
+        'Admin: new Roadmap tab for reviewing drafts, publishing items, creating items manually, and moving items between columns',
+        'Get an in-app notification when your feature request makes it to the roadmap',
+      ]
+    },
     {
       version: '1.0.23',
       date: 'March 4, 2026',
@@ -3456,7 +3865,7 @@ export default function ShowTracker() {
   // URL-based navigation (back/forward button support)
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const VALID_VIEWS = ['shows','stats','search','friends','invite','feedback','release-notes','import','community','profile','admin','upcoming-shows'];
+  const VALID_VIEWS = ['shows','stats','search','friends','invite','feedback','release-notes','import','community','profile','admin','upcoming-shows','roadmap'];
 
   // Initialize activeView from ?view= param on first load
   useEffect(() => {
@@ -3530,6 +3939,10 @@ export default function ShowTracker() {
   const [sharedComments, setSharedComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
 
+  // In-app notifications (e.g. roadmap_published)
+  // Collection: notifications/{notificationId} — { uid, type, message, itemId, itemTitle, read, createdAt }
+  const [unreadNotifications, setUnreadNotifications] = useState([]);
+
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
@@ -3540,7 +3953,7 @@ export default function ShowTracker() {
   const myPendingSuggestions   = showSuggestions.filter(s => s.responses?.[user?.uid] === 'pending' && s.overallStatus !== 'declined');
   const myConfirmedSuggestions = showSuggestions.filter(s => s.overallStatus === 'confirmed');
 
-  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length + myPendingSuggestions.length + pendingInvites.length;
+  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length + myPendingSuggestions.length + pendingInvites.length + unreadNotifications.length;
   const [upcomingShowsBadgeCount, setUpcomingShowsBadgeCount] = useState(null);
 
   // Post-signup welcome + pending tags
@@ -3654,12 +4067,26 @@ export default function ShowTracker() {
       console.log('Pending invites listener error:', error.message);
     });
 
+    // In-app notifications — e.g. "Your feature request made the roadmap!"
+    // Collection: notifications/{notificationId}
+    const qNotifications = query(
+      collection(db, 'notifications'),
+      where('uid', '==', user.uid),
+      where('read', '==', false)
+    );
+    const unsubNotifications = onSnapshot(qNotifications, (snapshot) => {
+      setUnreadNotifications(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.log('Notifications listener error:', error.message);
+    });
+
     return () => {
       unsubIncoming();
       unsubSent();
       unsubTags();
       unsubSuggestions();
       unsubInvites();
+      unsubNotifications();
     };
   }, [user, guestMode, loadFriends]);
 
@@ -4819,6 +5246,18 @@ export default function ShowTracker() {
     }
   };
 
+  // === NOTIFICATION MANAGEMENT ===
+
+  // Mark all unread notifications as read (called when user opens Feedback view)
+  const markNotificationsRead = useCallback(async () => {
+    if (!user || unreadNotifications.length === 0) return;
+    const batch = writeBatch(db);
+    unreadNotifications.forEach(n => {
+      batch.update(doc(db, 'notifications', n.id), { read: true });
+    });
+    await batch.commit().catch(() => {});
+  }, [user, unreadNotifications]);
+
   // === INVITE MANAGEMENT FUNCTIONS ===
 
   const loadInviteStats = async (uid) => {
@@ -5468,6 +5907,7 @@ export default function ShowTracker() {
     profile:        { title: 'Profile — MySetlists', description: 'Your MySetlists profile and account settings.' },
     'release-notes':{ title: 'Release Notes — MySetlists', description: 'What\'s new in MySetlists.' },
     feedback:       { title: 'Feedback — MySetlists', description: 'Share your feedback to help improve MySetlists.' },
+    roadmap:        { title: 'Roadmap — MySetlists', description: "See what's coming to MySetlists and vote on features you want most." },
   };
   const currentMeta = viewMeta[activeView] || { title: 'MySetlists — Track Your Concert Journey', description: 'Build your personal concert history with setlists, ratings, and stats.' };
 
@@ -6021,7 +6461,16 @@ export default function ShowTracker() {
         )}
 
         {activeView === 'feedback' && (
-          <FeedbackView />
+          <FeedbackView
+            user={user}
+            onNavigate={navigateTo}
+            unreadNotifications={unreadNotifications}
+            onMarkRead={markNotificationsRead}
+          />
+        )}
+
+        {activeView === 'roadmap' && (
+          <RoadmapView user={user} />
         )}
 
         {activeView === 'release-notes' && (
@@ -7938,7 +8387,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 }
 
 function AdminView() {
-  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials'
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'roadmap'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -7968,6 +8417,18 @@ function AdminView() {
   const [deleteConfirmUser, setDeleteConfirmUser] = useState(null); // null | { id, firstName, email }
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  // Roadmap admin state
+  // roadmapItems — Collection: roadmapItems/{itemId} — { title, description, status, category, voteCount, sourceFeedbackId, submitterUid, createdAt, updatedAt, publishedAt }
+  // feedbackItems — Collection: feedback/{docId} — { type, category, message, submitterUid, submitterEmail, submitterName, status, roadmapItemId, createdAt }
+  const [roadmapItems, setRoadmapItems] = useState([]);
+  const [feedbackItems, setFeedbackItems] = useState([]);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
+  const [creatingItem, setCreatingItem] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState('');
+  const [newItemDesc, setNewItemDesc] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('other');
+  const [savingItem, setSavingItem] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -8095,10 +8556,135 @@ function AdminView() {
     }
   };
 
+  // === ROADMAP ADMIN FUNCTIONS ===
+
+  const loadRoadmapData = useCallback(async () => {
+    setRoadmapLoading(true);
+    try {
+      const [itemsSnap, feedSnap] = await Promise.all([
+        getDocs(collection(db, 'roadmapItems')),
+        getDocs(query(collection(db, 'feedback'), where('type', '==', 'feature'))),
+      ]);
+      setRoadmapItems(
+        itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+      );
+      setFeedbackItems(feedSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error('Failed to load roadmap data:', err);
+    } finally {
+      setRoadmapLoading(false);
+    }
+  }, []);
+
+  const publishRoadmapItem = async (item, targetStatus) => {
+    setSavingItem(true);
+    try {
+      await updateDoc(doc(db, 'roadmapItems', item.id), {
+        status: targetStatus,
+        publishedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      // Notify the original submitter
+      if (item.submitterUid) {
+        await addDoc(collection(db, 'notifications'), {
+          uid: item.submitterUid,
+          type: 'roadmap_published',
+          message: 'Your feature idea was published to the roadmap!',
+          itemId: item.id,
+          itemTitle: item.title || '',
+          read: false,
+          createdAt: serverTimestamp(),
+        });
+        // Optional email notification (fire and forget)
+        const linkedFeedback = feedbackItems.find(f => f.id === item.sourceFeedbackId);
+        if (linkedFeedback?.submitterEmail) {
+          fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: linkedFeedback.submitterEmail,
+              subject: 'Your feature idea is on the MySetlists roadmap!',
+              html: `<p>Hey ${linkedFeedback.submitterName || 'there'}!</p><p>Great news — your feature idea <strong>"${item.title}"</strong> has been added to the <a href="https://mysetlists.net/roadmap">public roadmap</a>!</p><p>Head over and see how the community votes on it. Thanks for helping make MySetlists better!</p>`,
+            }),
+          }).catch(() => {});
+        }
+      }
+      setRoadmapItems(prev => prev.map(i =>
+        i.id === item.id ? { ...i, status: targetStatus, publishedAt: new Date() } : i
+      ));
+    } catch (err) {
+      console.error('Failed to publish roadmap item:', err);
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
+  const changeItemStatus = async (item, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'roadmapItems', item.id), {
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+        ...(newStatus !== 'draft' && !item.publishedAt ? { publishedAt: serverTimestamp() } : {}),
+      });
+      setRoadmapItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+    } catch (err) {
+      console.error('Failed to change item status:', err);
+    }
+  };
+
+  const dismissRoadmapItem = async (item) => {
+    if (!window.confirm(`Delete "${item.title}"? This cannot be undone.`)) return;
+    try {
+      await deleteDoc(doc(db, 'roadmapItems', item.id));
+      setRoadmapItems(prev => prev.filter(i => i.id !== item.id));
+    } catch (err) {
+      console.error('Failed to dismiss roadmap item:', err);
+    }
+  };
+
+  const createRoadmapItem = async () => {
+    if (!newItemTitle.trim()) return;
+    setSavingItem(true);
+    try {
+      const ref = await addDoc(collection(db, 'roadmapItems'), {
+        title: newItemTitle.trim(),
+        description: newItemDesc.trim(),
+        status: 'draft',
+        category: newItemCategory,
+        voteCount: 0,
+        sourceFeedbackId: null,
+        submitterUid: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+      });
+      setRoadmapItems(prev => [{
+        id: ref.id,
+        title: newItemTitle.trim(),
+        description: newItemDesc.trim(),
+        status: 'draft',
+        category: newItemCategory,
+        voteCount: 0,
+        sourceFeedbackId: null,
+        submitterUid: null,
+      }, ...prev]);
+      setCreatingItem(false);
+      setNewItemTitle('');
+      setNewItemDesc('');
+      setNewItemCategory('other');
+    } catch (err) {
+      console.error('Failed to create roadmap item:', err);
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
   useEffect(() => {
     loadUsers();
     loadGuestSessions();
-  }, [loadUsers, loadGuestSessions]);
+    loadRoadmapData();
+  }, [loadUsers, loadGuestSessions, loadRoadmapData]);
 
   const filteredUsers = users.filter(user =>
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -8405,7 +8991,7 @@ function AdminView() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
             <button
-              onClick={() => { loadUsers(); loadGuestSessions(); }}
+              onClick={() => { loadUsers(); loadGuestSessions(); loadRoadmapData(); }}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
             >
               Refresh
@@ -8435,6 +9021,17 @@ function AdminView() {
             >
               <Eye className="w-4 h-4" />
               Guest Trials
+            </button>
+            <button
+              onClick={() => setAdminTab('roadmap')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'roadmap'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" />
+              Roadmap
             </button>
           </div>
 
@@ -8637,6 +9234,133 @@ function AdminView() {
         </>
       )}
 
+      {/* Roadmap Tab */}
+      {adminTab === 'roadmap' && (
+        <div className="space-y-6">
+          {/* Header with New Item button */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Roadmap Items</h3>
+            <button
+              onClick={() => setCreatingItem(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-sm font-medium transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              New Item
+            </button>
+          </div>
+
+          {/* Create Item Form */}
+          {creatingItem && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+              <h4 className="text-sm font-semibold text-white">New Roadmap Item</h4>
+              <input
+                value={newItemTitle}
+                onChange={e => setNewItemTitle(e.target.value)}
+                placeholder="Title"
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              />
+              <textarea
+                value={newItemDesc}
+                onChange={e => setNewItemDesc(e.target.value)}
+                placeholder="Description (optional)"
+                rows={3}
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+              />
+              <select
+                value={newItemCategory}
+                onChange={e => setNewItemCategory(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              >
+                {Object.entries(ROADMAP_CATEGORIES).map(([k, v]) => (
+                  <option key={k} value={k} className="bg-slate-900">{v}</option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <button
+                  onClick={createRoadmapItem}
+                  disabled={!newItemTitle.trim() || savingItem}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                >
+                  {savingItem ? 'Creating...' : 'Create Draft'}
+                </button>
+                <button
+                  onClick={() => { setCreatingItem(false); setNewItemTitle(''); setNewItemDesc(''); setNewItemCategory('other'); }}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {roadmapLoading ? (
+            <div className="text-center py-8 text-white/40">Loading roadmap data...</div>
+          ) : (
+            <>
+              {/* Drafts section */}
+              {(() => {
+                const drafts = roadmapItems.filter(i => i.status === 'draft');
+                return (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">
+                      Drafts ({drafts.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {drafts.map(item => (
+                        <AdminRoadmapCard
+                          key={item.id}
+                          item={item}
+                          onStatusChange={(status) => changeItemStatus(item, status)}
+                          onPublish={(status) => publishRoadmapItem(item, status)}
+                          onDismiss={() => dismissRoadmapItem(item)}
+                          feedbackItems={feedbackItems}
+                          saving={savingItem}
+                        />
+                      ))}
+                      {drafts.length === 0 && (
+                        <p className="text-white/30 text-sm py-2">No draft items</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Published sections by status */}
+              {[
+                { key: 'upnext',     label: 'Up Next'     },
+                { key: 'inprogress', label: 'In Progress' },
+                { key: 'shipped',    label: 'Shipped'     },
+              ].map(({ key, label }) => {
+                const statusItems = roadmapItems.filter(i => i.status === key);
+                return (
+                  <div key={key}>
+                    <h4 className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">
+                      {label} ({statusItems.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {statusItems.map(item => (
+                        <AdminRoadmapCard
+                          key={item.id}
+                          item={item}
+                          onStatusChange={(status) => changeItemStatus(item, status)}
+                          onPublish={(status) => publishRoadmapItem(item, status)}
+                          onDismiss={() => dismissRoadmapItem(item)}
+                          feedbackItems={feedbackItems}
+                          saving={savingItem}
+                        />
+                      ))}
+                      {statusItems.length === 0 && (
+                        <p className="text-white/30 text-sm py-2">None</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Cache Management */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -8803,6 +9527,143 @@ function AdminView() {
   );
 }
 
+// ========== ADMIN ROADMAP CARD ==========
+// Per-item card shown in the Admin → Roadmap tab
+function AdminRoadmapCard({ item, onStatusChange, onPublish, onDismiss, feedbackItems, saving }) {
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(item.title || '');
+  const [editDesc, setEditDesc] = useState(item.description || '');
+  const [localSaving, setLocalSaving] = useState(false);
+
+  const linkedFeedback = feedbackItems.find(f => f.id === item.sourceFeedbackId);
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) return;
+    setLocalSaving(true);
+    try {
+      await updateDoc(doc(db, 'roadmapItems', item.id), {
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        updatedAt: serverTimestamp(),
+      });
+      setEditing(false);
+    } catch (err) {
+      console.error('Failed to save edit:', err);
+    } finally {
+      setLocalSaving(false);
+    }
+  };
+
+  const STATUS_OPTIONS = [
+    { value: 'draft',      label: 'Draft'       },
+    { value: 'upnext',     label: 'Up Next'     },
+    { value: 'inprogress', label: 'In Progress' },
+    { value: 'shipped',    label: 'Shipped'     },
+  ];
+
+  return (
+    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 space-y-3">
+      {editing ? (
+        <div className="space-y-2">
+          <input
+            value={editTitle}
+            onChange={e => setEditTitle(e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            placeholder="Title"
+          />
+          <textarea
+            value={editDesc}
+            onChange={e => setEditDesc(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+            placeholder="Description (optional)"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveEdit}
+              disabled={!editTitle.trim() || localSaving}
+              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+            >
+              {localSaving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setEditTitle(item.title || ''); setEditDesc(item.description || ''); }}
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/60 rounded-lg text-xs font-medium transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-white font-medium text-sm leading-snug">{item.title}</p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                {item.voteCount || 0} vote{item.voteCount !== 1 ? 's' : ''}
+              </span>
+              {item.category && ROADMAP_CATEGORIES[item.category] && (
+                <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full">
+                  {ROADMAP_CATEGORIES[item.category]}
+                </span>
+              )}
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs text-white/40 hover:text-white/70 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+          {item.description && item.description !== item.title && (
+            <p className="text-white/50 text-xs mt-1 leading-relaxed line-clamp-2">{item.description}</p>
+          )}
+          {linkedFeedback && (
+            <p className="text-white/30 text-xs mt-1.5 italic">
+              From feedback by {linkedFeedback.submitterName || 'user'}: "{(linkedFeedback.message || '').slice(0, 80)}{linkedFeedback.message?.length > 80 ? '...' : ''}"
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Status controls */}
+      <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-white/5">
+        <select
+          value={item.status}
+          onChange={e => onStatusChange(e.target.value)}
+          disabled={saving}
+          className="px-3 py-1.5 bg-white/10 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50"
+        >
+          {STATUS_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {item.status === 'draft' && (
+          <button
+            onClick={() => onPublish('upnext')}
+            disabled={saving}
+            className="flex items-center gap-1 px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/30 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
+          >
+            <TrendingUp className="w-3 h-3" />
+            Publish → Up Next
+          </button>
+        )}
+
+        <button
+          onClick={onDismiss}
+          disabled={saving}
+          className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-medium transition-colors ml-auto disabled:opacity-50"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // PWA Install Prompt Component
 function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -8862,6 +9723,209 @@ function InstallPrompt() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// PUBLIC ROADMAP PAGE  —  /roadmap
+// Standalone public page — no sidebar, auth detected via onAuthStateChanged
+// Uses same RoadmapCard and ROADMAP_COLUMNS constants as the in-app RoadmapView
+// ============================================================
+export function PublicRoadmapPage() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(undefined); // undefined = loading, null = no user
+  const [userVotes, setUserVotes] = useState({});
+  const [votingItemId, setVotingItemId] = useState(null);
+  const [signInPrompt, setSignInPrompt] = useState(false);
+
+  // Detect auth state
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setCurrentUser(u ?? null));
+    return () => unsub();
+  }, []);
+
+  // Real-time listener for published roadmap items
+  useEffect(() => {
+    const q = query(
+      collection(db, 'roadmapItems'),
+      where('status', 'in', ['upnext', 'inprogress', 'shipped'])
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    }, (err) => {
+      console.log('Public roadmap error:', err.message);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  // Load which items the logged-in user has voted on
+  useEffect(() => {
+    if (!currentUser || items.length === 0) {
+      setUserVotes({});
+      return;
+    }
+    Promise.all(
+      items.map(item =>
+        getDoc(doc(db, 'roadmapItems', item.id, 'voters', currentUser.uid))
+          .then(d => [item.id, d.exists()])
+      )
+    ).then(results => setUserVotes(Object.fromEntries(results)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.uid, items.length]);
+
+  // Top 3 most-voted item IDs
+  const topThreeIds = new Set(
+    [...items]
+      .sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+      .slice(0, 3)
+      .map(i => i.id)
+  );
+
+  // Toggle vote — runTransaction for atomic increment/decrement
+  const handleVote = async (item) => {
+    if (!currentUser) { setSignInPrompt(true); return; }
+    if (votingItemId) return;
+    setVotingItemId(item.id);
+    const itemRef = doc(db, 'roadmapItems', item.id);
+    const voterRef = doc(db, 'roadmapItems', item.id, 'voters', currentUser.uid);
+    const hasVoted = !!userVotes[item.id];
+    try {
+      await runTransaction(db, async (tx) => {
+        const voterSnap = await tx.get(voterRef);
+        if (!hasVoted && !voterSnap.exists()) {
+          tx.set(voterRef, { votedAt: serverTimestamp() });
+          tx.update(itemRef, { voteCount: increment(1), updatedAt: serverTimestamp() });
+        } else if (hasVoted && voterSnap.exists()) {
+          tx.delete(voterRef);
+          tx.update(itemRef, { voteCount: increment(-1), updatedAt: serverTimestamp() });
+        }
+      });
+      setUserVotes(prev => ({ ...prev, [item.id]: !hasVoted }));
+    } catch (err) {
+      console.error('Vote error:', err);
+    } finally {
+      setVotingItemId(null);
+    }
+  };
+
+  const pageTitle = 'Roadmap — MySetlists';
+  const pageDesc = "See what's coming to MySetlists and vote on features you want most.";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:url" content="https://mysetlists.net/roadmap" />
+        <link rel="canonical" href="https://mysetlists.net/roadmap" />
+      </Helmet>
+
+      {/* Header */}
+      <header className="border-b border-white/10 bg-slate-950/50 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <a href="/" className="flex-shrink-0">
+            <img src="/logo.svg" alt="MySetlists" className="h-8 w-auto" />
+          </a>
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <a
+                href="/"
+                className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
+              >
+                ← Back to app
+              </a>
+            ) : (
+              <a
+                href="/"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-sm font-medium transition-all"
+              >
+                Sign in to vote
+              </a>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">What's Coming to MySetlists</h1>
+          <p className="text-white/60">Vote on features you want most — the more votes, the higher it goes.</p>
+        </div>
+
+        {/* Sign-in prompt banner */}
+        {signInPrompt && (
+          <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+            <p className="text-amber-400 text-sm">
+              <a href="/" className="font-medium underline hover:text-amber-300">Sign in</a> to vote on features you want!
+            </p>
+            <button onClick={() => setSignInPrompt(false)} className="text-white/40 hover:text-white/70 transition-colors flex-shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="text-center py-16 text-white/40">Loading roadmap...</div>
+        ) : (
+          <div className="flex flex-col gap-6 md:grid md:grid-cols-3 md:gap-6">
+            {ROADMAP_COLUMNS.map(col => {
+              const colItems = items
+                .filter(i => i.status === col.key)
+                .sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
+              return (
+                <div key={col.key}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-lg">{col.emoji}</span>
+                    <h2 className={`font-bold text-base ${col.headerColor}`}>{col.label}</h2>
+                    <span className="text-white/30 text-xs ml-auto">{colItems.length}</span>
+                  </div>
+                  <div className="space-y-3">
+                    {colItems.map(item => (
+                      <RoadmapCard
+                        key={item.id}
+                        item={item}
+                        hasVoted={!!userVotes[item.id]}
+                        isTopThree={topThreeIds.has(item.id)}
+                        onVote={handleVote}
+                        voting={votingItemId === item.id}
+                        isLoggedIn={!!currentUser}
+                      />
+                    ))}
+                    {colItems.length === 0 && (
+                      <p className="text-white/25 text-sm py-4">Nothing here yet</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* CTA for non-signed-in users */}
+        {!currentUser && !loading && items.length > 0 && (
+          <div className="mt-12 text-center">
+            <p className="text-white/50 mb-4 text-sm">
+              Track concerts you've been to and vote on the features you want most.
+            </p>
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold shadow-lg shadow-emerald-500/25 transition-all"
+            >
+              <Music className="w-4 h-4" />
+              Start Tracking on MySetlists
+            </a>
+          </div>
+        )}
+      </main>
+
+      <Footer />
     </div>
   );
 }
