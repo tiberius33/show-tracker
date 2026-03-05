@@ -1,20 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200">
   <defs>
     <linearGradient id="pickMain" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" style="stop-color:#4a7fb5"/>
-      <stop offset="40%" style="stop-color:#2d6096"/>
-      <stop offset="100%" style="stop-color:#1a3d6b"/>
+      <stop offset="0%" style="stop-color:#10d98a"/>
+      <stop offset="40%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
     </linearGradient>
+    <!-- Left depth panel: darker emerald -->
     <linearGradient id="pickLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#1a3a5c"/>
-      <stop offset="100%" style="stop-color:#2d6096"/>
+      <stop offset="0%" style="stop-color:#047857"/>
+      <stop offset="100%" style="stop-color:#059669"/>
     </linearGradient>
+    <!-- Top highlight: bright shimmer -->
     <linearGradient id="pickHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6a9fd0;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#2d6096;stop-opacity:0"/>
+      <stop offset="0%" style="stop-color:#6ee7b7;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>
     </linearGradient>
     <filter id="pickShadow">
-      <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="rgba(20,50,90,0.35)"/>
+      <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="rgba(5,150,105,0.4)"/>
     </filter>
     <clipPath id="pickClip">
       <path d="M 95 15 C 130 15, 158 36, 158 65 C 158 94, 138 122, 95 175 C 52 122, 32 94, 32 65 C 32 36, 60 15, 95 15 Z"/>
@@ -41,19 +43,19 @@
     <circle cx="38" cy="112" r="3.5" fill="rgba(255,255,255,0.65)"/>
   </g>
 
-  <!-- TYPOGRAPHY — white text for dark backgrounds -->
+  <!-- TYPOGRAPHY — "my" + ".net" in slate; "setlists" in amber matching artist names -->
   <text y="112"
         font-family="'Helvetica Neue', Arial, sans-serif"
         font-size="66"
         xml:space="preserve">
-    <tspan x="182" font-weight="300" fill="rgba(255,255,255,0.75)">my</tspan><tspan font-weight="800" fill="#ffffff">setlists</tspan><tspan font-weight="300" fill="rgba(255,255,255,0.75)">.net</tspan>
+    <tspan x="182" font-weight="300" fill="#94a3b8">my</tspan><tspan font-weight="800" fill="#f59e0b">setlists</tspan><tspan font-weight="300" fill="#94a3b8">.net</tspan>
   </text>
 
-  <!-- Tagline -->
+  <!-- Tagline in muted slate, matching the site's secondary text -->
   <text x="182" y="148"
         font-family="'Helvetica Neue', Arial, sans-serif"
         font-size="21"
         font-weight="300"
-        fill="rgba(255,255,255,0.4)"
+        fill="#64748b"
         letter-spacing="1">Your Show History</text>
 </svg>
