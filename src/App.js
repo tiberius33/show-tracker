@@ -4309,6 +4309,15 @@ export default function ShowTracker() {
   const [sortBy, setSortBy] = useState('date');
   const [selectedArtist, setSelectedArtist] = useState(null);
 
+  // Auth state
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
+  const [localShowsToMigrate, setLocalShowsToMigrate] = useState([]);
+  const [authModal, setAuthModal] = useState(null); // null | 'login' | 'signup' | 'forgot-password'
+  const [guestMode, setGuestMode] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false); // Prompt to create account after first show
+
   // Onboarding tooltip state
   const [tooltipStep, setTooltipStep] = useState(0); // 0=hidden, 1=import, 2=scan
 
@@ -4324,7 +4333,6 @@ export default function ShowTracker() {
 
       if (shouldShow) {
         const timer = setTimeout(() => setTooltipStep(1), 800);
-        // Update lastVisit timestamp on every session load
         localStorage.setItem('mysetlists_lastVisit', String(now));
         return () => clearTimeout(timer);
       }
@@ -4343,15 +4351,6 @@ export default function ShowTracker() {
       localStorage.setItem('mysetlists_lastVisit', String(Date.now()));
     }
   };
-
-  // Auth state
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
-  const [localShowsToMigrate, setLocalShowsToMigrate] = useState([]);
-  const [authModal, setAuthModal] = useState(null); // null | 'login' | 'signup' | 'forgot-password'
-  const [guestMode, setGuestMode] = useState(false);
-  const [showGuestPrompt, setShowGuestPrompt] = useState(false); // Prompt to create account after first show
 
   // URL-based navigation (back/forward button support)
   const navigate = useNavigate();
