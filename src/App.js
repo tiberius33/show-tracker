@@ -2009,16 +2009,17 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '1.0.25',
+      version: '1.0.26',
       date: 'March 9, 2026',
-      title: 'Ticket Stub Scanner',
+      title: 'Onboarding Tooltips & Ticket Scanner',
       changes: [
+        'New: Onboarding tooltips guide first-time users through Import File and Scan Tickets features',
+        'Tooltips appear sequentially with a gentle animation and dismiss with "Got it"',
         'New: Scan Tickets — upload photos of physical ticket stubs, wristbands, or digital tickets',
         'AI reads artist, venue, date, and city from ticket images, even old or worn stubs',
         'Automatically searches setlist.fm for matching setlists after scanning',
         'Batch scanning: upload multiple tickets at once and process them all together',
-        'Add shows without setlists if no match is found on setlist.fm',
-        'Available from sidebar nav and the Scan Tickets button on the Shows page',
+        'Emerald green favicon now matches the site logo',
       ]
     },
     {
@@ -4307,6 +4308,25 @@ export default function ShowTracker() {
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('date');
   const [selectedArtist, setSelectedArtist] = useState(null);
+
+  // Onboarding tooltip state
+  const [tooltipStep, setTooltipStep] = useState(0); // 0=hidden, 1=import, 2=scan
+
+  useEffect(() => {
+    if (!isLoading && user && activeView === 'shows' && !localStorage.getItem('hasSeenOnboardingTooltips')) {
+      const timer = setTimeout(() => setTooltipStep(1), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, user, activeView]);
+
+  const dismissTooltip = () => {
+    if (tooltipStep === 1) {
+      setTooltipStep(2);
+    } else {
+      setTooltipStep(0);
+      localStorage.setItem('hasSeenOnboardingTooltips', '1');
+    }
+  };
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -6639,20 +6659,42 @@ export default function ShowTracker() {
                   <Plus className="w-4 h-4" />
                   Add Manually
                 </button>
-                <button
-                  onClick={() => navigateTo('import')}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all whitespace-nowrap border border-white/10"
-                >
-                  <Upload className="w-4 h-4" />
-                  Import File
-                </button>
-                <button
-                  onClick={() => navigateTo('scan-tickets')}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-all whitespace-nowrap border border-violet-500/30"
-                >
-                  <Camera className="w-4 h-4" />
-                  Scan Tickets
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => navigateTo('import')}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all whitespace-nowrap border border-white/10 ${tooltipStep === 1 ? 'ring-2 ring-violet-500/60 ring-offset-2 ring-offset-slate-900' : ''}`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import File
+                  </button>
+                  {tooltipStep === 1 && (
+                    <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
+                      <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                        <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
+                        <p className="text-white text-xs leading-relaxed mb-2">Upload a CSV or text file with your concert history to bulk import multiple shows at once</p>
+                        <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it →</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => navigateTo('scan-tickets')}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-all whitespace-nowrap border border-violet-500/30 ${tooltipStep === 2 ? 'ring-2 ring-violet-500/60 ring-offset-2 ring-offset-slate-900' : ''}`}
+                  >
+                    <Camera className="w-4 h-4" />
+                    Scan Tickets
+                  </button>
+                  {tooltipStep === 2 && (
+                    <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
+                      <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                        <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
+                        <p className="text-white text-xs leading-relaxed mb-2">Take photos of your concert ticket stubs and AI will automatically extract the show details and import them</p>
+                        <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
                   <button
                     onClick={scanForMissingSetlists}
