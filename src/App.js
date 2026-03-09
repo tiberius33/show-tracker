@@ -4313,9 +4313,24 @@ export default function ShowTracker() {
   const [tooltipStep, setTooltipStep] = useState(0); // 0=hidden, 1=import, 2=scan
 
   useEffect(() => {
-    if (!isLoading && user && activeView === 'shows' && !localStorage.getItem('hasSeenOnboardingTooltips')) {
-      const timer = setTimeout(() => setTooltipStep(1), 800);
-      return () => clearTimeout(timer);
+    if (!isLoading && user && activeView === 'shows') {
+      const now = Date.now();
+      const lastVisit = localStorage.getItem('mysetlists_lastVisit');
+      const hasSeenTooltips = localStorage.getItem('hasSeenOnboardingTooltips');
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+      // Show tooltips if: never visited OR last visit was more than 7 days ago
+      const shouldShow = !hasSeenTooltips || (lastVisit && (now - parseInt(lastVisit, 10)) > sevenDaysMs);
+
+      if (shouldShow) {
+        const timer = setTimeout(() => setTooltipStep(1), 800);
+        // Update lastVisit timestamp on every session load
+        localStorage.setItem('mysetlists_lastVisit', String(now));
+        return () => clearTimeout(timer);
+      }
+
+      // Update lastVisit timestamp on every session load (even if tooltips not shown)
+      localStorage.setItem('mysetlists_lastVisit', String(now));
     }
   }, [isLoading, user, activeView]);
 
@@ -4325,6 +4340,7 @@ export default function ShowTracker() {
     } else {
       setTooltipStep(0);
       localStorage.setItem('hasSeenOnboardingTooltips', '1');
+      localStorage.setItem('mysetlists_lastVisit', String(Date.now()));
     }
   };
 
