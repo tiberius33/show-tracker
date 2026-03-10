@@ -404,7 +404,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
       { id: 'community', label: 'Community', icon: Users },
     ]),
-    { id: 'upcoming-shows', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount },
+    { id: 'upcoming-shows', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
     { id: 'roadmap', label: 'Roadmap', icon: TrendingUp },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
   ];
@@ -481,7 +481,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
 
         {/* Scrollable middle */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {scrollItems.map(({ id, label, icon: Icon, badge }) => (
+          {scrollItems.map(({ id, label, icon: Icon, badge, beta }) => (
             <button
               key={id}
               onClick={() => handleNavClick(id)}
@@ -493,6 +493,11 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
             >
               <Icon className={`w-5 h-5 ${activeView === id ? 'text-emerald-400' : ''}`} />
               <span className="font-medium flex-1">{label}</span>
+              {beta && (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                  Beta
+                </span>
+              )}
               {badge > 0 && (
                 <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
                   {badge}
@@ -7715,11 +7720,21 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 bg-gradient-to-br from-emerald-400/20 to-teal-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20">
           <Ticket className="w-5 h-5 text-emerald-400" />
         </div>
         <h1 className="text-2xl font-bold text-white">Upcoming Shows</h1>
+        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+          Beta
+        </span>
+      </div>
+
+      <div className="flex items-start gap-3 px-4 py-3 mb-6 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-amber-200/80">
+          Upcoming Shows is in beta. Show dates and availability are pulled from third-party sources and may not always be accurate. We're actively improving this feature!
+        </p>
       </div>
 
       {/* Empty state */}
