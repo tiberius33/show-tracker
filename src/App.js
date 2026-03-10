@@ -10,6 +10,17 @@ import Footer from './Footer';
 import AuthModal from './components/auth/AuthModal';
 import ProfileView from './components/profile/ProfileView';
 
+// CSS-only tooltip wrapper (mobile-responsive, replaces native title attr)
+function Tip({ text, children }) {
+  if (!text) return children;
+  return (
+    <span className="tooltip-wrap">
+      {children}
+      <span className="tooltip-text">{text}</span>
+    </span>
+  );
+}
+
 // Admin email whitelist
 const ADMIN_EMAILS = ['phillip.leonard@gmail.com'];
 
@@ -740,22 +751,24 @@ function FriendsView({
                 </div>
                 <div className="flex items-center gap-2">
                   {getShowsTogether && (
-                    <button
-                      onClick={() => setShowingTogetherWith({ uid: friend.friendUid, name: friend.friendName || 'Friend' })}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border border-violet-500/30 rounded-xl text-xs font-medium transition-colors"
-                      title="Shows together"
-                    >
-                      <Music className="w-3.5 h-3.5" />
-                      Shows Together
-                    </button>
+                    <Tip text="Shows together">
+                      <button
+                        onClick={() => setShowingTogetherWith({ uid: friend.friendUid, name: friend.friendName || 'Friend' })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border border-violet-500/30 rounded-xl text-xs font-medium transition-colors"
+                      >
+                        <Music className="w-3.5 h-3.5" />
+                        Shows Together
+                      </button>
+                    </Tip>
                   )}
-                  <button
-                    onClick={() => onRemoveFriend(friend.friendUid)}
-                    className="p-2 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    title="Remove friend"
-                  >
-                    <UserX className="w-4 h-4" />
-                  </button>
+                  <Tip text="Remove friend">
+                    <button
+                      onClick={() => onRemoveFriend(friend.friendUid)}
+                      className="p-2 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <UserX className="w-4 h-4" />
+                    </button>
+                  </Tip>
                 </div>
               </div>
             ))
@@ -1630,23 +1643,24 @@ function RoadmapCard({ item, hasVoted, isTopThree, onVote, voting, isLoggedIn })
         </div>
       </div>
       <div className="mt-3">
-        <button
-          onClick={() => onVote(item)}
-          disabled={voting}
-          title={hasVoted ? 'Remove your vote' : (isLoggedIn ? 'Vote for this feature' : 'Sign in to vote')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
-            hasVoted
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-              : 'bg-white/10 text-white/60 hover:bg-white/20 border border-white/10 hover:border-white/20'
-          }`}
-        >
-          {voting ? (
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <ChevronUp className={`w-4 h-4 ${hasVoted ? 'text-emerald-400' : ''}`} />
-          )}
-          <span>{item.voteCount || 0}</span>
-        </button>
+        <Tip text={hasVoted ? 'Remove your vote' : (isLoggedIn ? 'Vote for this feature' : 'Sign in to vote')}>
+          <button
+            onClick={() => onVote(item)}
+            disabled={voting}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
+              hasVoted
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                : 'bg-white/10 text-white/60 hover:bg-white/20 border border-white/10 hover:border-white/20'
+            }`}
+          >
+            {voting ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ChevronUp className={`w-4 h-4 ${hasVoted ? 'text-emerald-400' : ''}`} />
+            )}
+            <span>{item.voteCount || 0}</span>
+          </button>
+        </Tip>
       </div>
     </div>
   );
@@ -2008,6 +2022,18 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.27',
+      date: 'March 9, 2026',
+      title: 'Mobile-Friendly Tooltips',
+      changes: [
+        'Fixed: Onboarding tooltips no longer get cut off on iPhone and small screens',
+        'Mobile: onboarding tooltips now appear below buttons instead of to the left, staying fully visible',
+        'All button tooltips (Rate Venue, Tag Friends, Share, etc.) now work on touch devices via tap',
+        'Desktop: hover tooltips continue to work as before',
+        'Tooltips auto-adjust to stay within screen boundaries with proper edge padding',
+      ]
+    },
     {
       version: '1.0.26',
       date: 'March 9, 2026',
@@ -3092,10 +3118,12 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                     <td className="px-3 py-2 text-white/60">{row.raw.city || '—'}</td>
                     <td className="px-3 py-2">
                       {row.errors.length > 0 ? (
-                        <span className="text-red-400 text-xs" title={row.errors.join(', ')}>
-                          <AlertTriangle className="w-4 h-4 inline mr-1" />
-                          Error
-                        </span>
+                        <Tip text={row.errors.join(', ')}>
+                          <span className="text-red-400 text-xs">
+                            <AlertTriangle className="w-4 h-4 inline mr-1" />
+                            Error
+                          </span>
+                        </Tip>
                       ) : row.isDuplicate ? (
                         <span className="text-amber-400 text-xs">Duplicate?</span>
                       ) : (
@@ -3272,14 +3300,15 @@ function CommunityStatsView({ communityStats, onAddFriend, currentUserUid, curre
                 </div>
                 <span className="text-white/80 flex-1">{user.firstName}</span>
                 {onAddFriend && user.odubleserId !== currentUserUid && !(currentFriendUids || []).includes(user.odubleserId) && (
-                  <button
-                    onClick={() => onAddFriend(user.odubleserId, user.firstName, '')}
-                    className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors"
-                    title="Add friend"
-                  >
-                    <UserPlus className="w-3 h-3 inline mr-1" />
-                    Add
-                  </button>
+                  <Tip text="Add friend">
+                    <button
+                      onClick={() => onAddFriend(user.odubleserId, user.firstName, '')}
+                      className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+                    >
+                      <UserPlus className="w-3 h-3 inline mr-1" />
+                      Add
+                    </button>
+                  </Tip>
                 )}
                 <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-semibold">
                   {user.count} shows
@@ -3308,14 +3337,15 @@ function CommunityStatsView({ communityStats, onAddFriend, currentUserUid, curre
                 </div>
                 <span className="text-white/80 flex-1">{user.firstName}</span>
                 {onAddFriend && user.odubleserId !== currentUserUid && !(currentFriendUids || []).includes(user.odubleserId) && (
-                  <button
-                    onClick={() => onAddFriend(user.odubleserId, user.firstName, '')}
-                    className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors"
-                    title="Add friend"
-                  >
-                    <UserPlus className="w-3 h-3 inline mr-1" />
-                    Add
-                  </button>
+                  <Tip text="Add friend">
+                    <button
+                      onClick={() => onAddFriend(user.odubleserId, user.firstName, '')}
+                      className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+                    >
+                      <UserPlus className="w-3 h-3 inline mr-1" />
+                      Add
+                    </button>
+                  </Tip>
                 )}
                 <span className="bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm font-semibold">
                   {user.count} ratings
@@ -3617,13 +3647,14 @@ function SearchView({ onImport, importedIds }) {
                     <span className="text-white/40 ml-1">({selectedArtist.disambiguation})</span>
                   )}
                 </span>
-                <button
-                  onClick={clearArtistSelection}
-                  className="text-white/60 hover:text-white p-1"
-                  title="Clear selection"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <Tip text="Clear selection">
+                  <button
+                    onClick={clearArtistSelection}
+                    className="text-white/60 hover:text-white p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </Tip>
               </div>
             )}
           </div>
@@ -6683,13 +6714,24 @@ export default function ShowTracker() {
                     Import File
                   </button>
                   {tooltipStep === 1 && (
-                    <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
-                      <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
-                        <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
-                        <p className="text-white text-xs leading-relaxed mb-2">Upload a CSV or text file with your concert history to bulk import multiple shows at once</p>
-                        <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it →</button>
+                    <>
+                      {/* Desktop: tooltip to the left */}
+                      <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
+                        <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                          <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
+                          <p className="text-white text-xs leading-relaxed mb-2">Upload a CSV or text file with your concert history to bulk import multiple shows at once</p>
+                          <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it →</button>
+                        </div>
                       </div>
-                    </div>
+                      {/* Mobile: tooltip below */}
+                      <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
+                        <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-violet-600" />
+                          <p className="text-white text-xs leading-relaxed mb-2">Upload a CSV or text file with your concert history to bulk import multiple shows at once</p>
+                          <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it →</button>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
                 <div className="relative">
@@ -6701,13 +6743,24 @@ export default function ShowTracker() {
                     Scan Tickets
                   </button>
                   {tooltipStep === 2 && (
-                    <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
-                      <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
-                        <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
-                        <p className="text-white text-xs leading-relaxed mb-2">Take photos of your concert ticket stubs and AI will automatically extract the show details and import them</p>
-                        <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                    <>
+                      {/* Desktop: tooltip to the left */}
+                      <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
+                        <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                          <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
+                          <p className="text-white text-xs leading-relaxed mb-2">Take photos of your concert ticket stubs and AI will automatically extract the show details and import them</p>
+                          <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                        </div>
                       </div>
-                    </div>
+                      {/* Mobile: tooltip below */}
+                      <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
+                        <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-violet-600" />
+                          <p className="text-white text-xs leading-relaxed mb-2">Take photos of your concert ticket stubs and AI will automatically extract the show details and import them</p>
+                          <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
                 {shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
@@ -7846,30 +7899,33 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {onRateVenue && show.venue && (
-              <button
-                onClick={() => onRateVenue(show)}
-                className="p-3 rounded-xl text-white/50 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors"
-                title="Rate this venue"
-              >
-                <Star className="w-6 h-6" />
-              </button>
+              <Tip text="Rate this venue">
+                <button
+                  onClick={() => onRateVenue(show)}
+                  className="p-3 rounded-xl text-white/50 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors"
+                >
+                  <Star className="w-6 h-6" />
+                </button>
+              </Tip>
             )}
             {onTagFriends && (
-              <button
-                onClick={() => onTagFriends(show)}
-                className="p-3 rounded-xl text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
-                title="Tag friends at this show"
-              >
-                <Tag className="w-6 h-6" />
-              </button>
+              <Tip text="Tag friends at this show">
+                <button
+                  onClick={() => onTagFriends(show)}
+                  className="p-3 rounded-xl text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+                >
+                  <Tag className="w-6 h-6" />
+                </button>
+              </Tip>
             )}
-            <button
-              onClick={handleShare}
-              className={`p-3 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20'}`}
-              title="Share setlist"
-            >
-              {shareSuccess ? <Check className="w-6 h-6" /> : <Share2 className="w-6 h-6" />}
-            </button>
+            <Tip text="Share setlist">
+              <button
+                onClick={handleShare}
+                className={`p-3 rounded-xl transition-colors ${shareSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20'}`}
+              >
+                {shareSuccess ? <Check className="w-6 h-6" /> : <Share2 className="w-6 h-6" />}
+              </button>
+            </Tip>
             <button onClick={onClose} className="p-3 rounded-xl text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors">
               <X className="w-6 h-6" />
             </button>
@@ -9638,16 +9694,17 @@ function AdminView() {
                           <ChevronRight className="w-4 h-4 text-white/20" />
                         </td>
                         <td className="px-2 py-4">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirmUser({ id: user.id, firstName: user.firstName || 'this user', email: user.email });
-                            }}
-                            className="p-1.5 rounded-lg text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                            title="Delete user"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <Tip text="Delete user">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmUser({ id: user.id, firstName: user.firstName || 'this user', email: user.email });
+                              }}
+                              className="p-1.5 rounded-lg text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </Tip>
                         </td>
                       </tr>
                     ))}
@@ -9976,13 +10033,14 @@ function AdminView() {
                       }
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => clearCache('key', null, entry.key)}
-                        className="text-red-400/50 hover:text-red-400 transition-colors"
-                        title="Delete this entry"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      <Tip text="Delete this entry">
+                        <button
+                          onClick={() => clearCache('key', null, entry.key)}
+                          className="text-red-400/50 hover:text-red-400 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </Tip>
                     </td>
                   </tr>
                 ))}

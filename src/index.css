@@ -16,6 +16,7 @@ code {
   box-sizing: border-box;
 }
 
+/* Desktop: slide in from right */
 @keyframes tooltip-in {
   from { opacity: 0; transform: translateY(-50%) translateX(8px); }
   to { opacity: 1; transform: translateY(-50%) translateX(0); }
@@ -23,4 +24,83 @@ code {
 
 .animate-in {
   animation: tooltip-in 0.3s ease-out forwards;
+}
+
+/* Mobile: slide down from top */
+@keyframes tooltip-in-mobile {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.animate-in-mobile {
+  animation: tooltip-in-mobile 0.3s ease-out forwards;
+}
+
+/* ── Hover Tooltip ──────────────────────────────── */
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-wrap .tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  z-index: 9999;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background: rgba(15, 23, 42, 0.95);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Arrow pointing down */
+.tooltip-wrap .tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
+}
+
+/* Show on hover (desktop) */
+@media (hover: hover) {
+  .tooltip-wrap:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+/* Mobile: keep tooltips within viewport */
+@media (max-width: 639px) {
+  .tooltip-wrap .tooltip-text {
+    max-width: calc(100vw - 32px);
+    white-space: normal;
+    text-align: center;
+    /* Override centering — use fixed positioning on mobile */
+    position: fixed;
+    bottom: auto;
+    left: 16px;
+    right: 16px;
+    top: auto;
+    transform: none;
+    width: auto;
+  }
+  .tooltip-wrap .tooltip-text::after {
+    display: none;
+  }
 }
