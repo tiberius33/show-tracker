@@ -392,21 +392,26 @@ function RatingSelect({ value, onChange, max = 10, label }) {
 
 // Sidebar Navigation Component
 function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount, pendingNotificationCount, upcomingShowsBadgeCount }) {
-  const navItems = [
+  const pinnedTopItems = [
     { id: 'search', label: 'Search', icon: Search },
+  ];
+
+  const scrollItems = [
     { id: 'shows', label: 'Shows', icon: List },
-    { id: 'import', label: 'Import', icon: Upload },
-    { id: 'scan-tickets', label: 'Scan Tickets', icon: Camera },
+    { id: 'scan-import', label: 'Scan / Import', icon: Camera },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
-    { id: 'upcoming-shows', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount },
     ...(isGuest ? [] : [
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
       { id: 'community', label: 'Community', icon: Users },
-      { id: 'invite', label: 'Invite', icon: Send },
     ]),
+    { id: 'upcoming-shows', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount },
     { id: 'roadmap', label: 'Roadmap', icon: TrendingUp },
-    { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
+  ];
+
+  const pinnedBottomItems = [
+    ...(isGuest ? [] : [{ id: 'invite', label: 'Invite', icon: Send }]),
+    { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   ];
 
   const handleNavClick = (id) => {
@@ -451,9 +456,32 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
 
         {/* User info - hidden for now */}
 
-        {/* Navigation */}
+        {/* Pinned top: Search */}
+        <div className="p-3 space-y-1 border-b border-white/5">
+          {pinnedTopItems.map(({ id, label, icon: Icon, badge }) => (
+            <button
+              key={id}
+              onClick={() => handleNavClick(id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+                activeView === id
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${activeView === id ? 'text-emerald-400' : ''}`} />
+              <span className="font-medium flex-1">{label}</span>
+              {badge > 0 && (
+                <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Scrollable middle */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map(({ id, label, icon: Icon, badge }) => (
+          {scrollItems.map(({ id, label, icon: Icon, badge }) => (
             <button
               key={id}
               onClick={() => handleNavClick(id)}
@@ -473,6 +501,29 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
             </button>
           ))}
         </nav>
+
+        {/* Pinned bottom: Invite + Feedback */}
+        <div className="p-3 space-y-1 border-t border-white/5">
+          {pinnedBottomItems.map(({ id, label, icon: Icon, badge }) => (
+            <button
+              key={id}
+              onClick={() => handleNavClick(id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+                activeView === id
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${activeView === id ? 'text-emerald-400' : ''}`} />
+              <span className="font-medium flex-1">{label}</span>
+              {badge > 0 && (
+                <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
         {/* Bottom section */}
         <div className="p-3 border-t border-white/5 space-y-1">
@@ -633,13 +684,16 @@ function FriendsView({
   onSendFriendRequestByEmail, onSendFriendRequest, onAcceptFriendRequest,
   onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag,
   initialTab, getShowsTogether, showSuggestions, respondToSuggestion, openMemories,
-  pendingInvites, inviteStats, onResendInvite, onCancelInvite
+  pendingInvites, inviteStats, onResendInvite, onCancelInvite,
+  onBulkAcceptAll, onBulkAcceptFromFriend
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'friends');
   const [searchEmail, setSearchEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [showingTogetherWith, setShowingTogetherWith] = useState(null); // null | { uid, name }
   const [resendingIds, setResendingIds] = useState(new Set()); // invite IDs currently being resent
+  const [bulkConfirm, setBulkConfirm] = useState(null); // null | { type: 'all' } | { type: 'friend', friendUid, friendName }
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const inviteList = pendingInvites || [];
 
@@ -684,6 +738,42 @@ function FriendsView({
   const partialSuggestions = (showSuggestions || []).filter(
     s => s.responses?.[user?.uid] === 'confirmed' && s.overallStatus === 'partially_confirmed'
   );
+
+  // Group pending items by friend for bulk accept
+  const friendGroups = useMemo(() => {
+    const groups = {};
+    pendingShowTags.forEach(tag => {
+      const uid = tag.fromUid;
+      if (!groups[uid]) groups[uid] = { name: tag.fromName, tags: [], suggestions: [] };
+      groups[uid].tags.push(tag);
+    });
+    pendingSuggestions.forEach(s => {
+      const otherUid = s.participants?.find(p => p !== user?.uid);
+      if (otherUid) {
+        if (!groups[otherUid]) groups[otherUid] = { name: s.names?.[otherUid] || 'A friend', tags: [], suggestions: [] };
+        groups[otherUid].suggestions.push(s);
+      }
+    });
+    return groups;
+  }, [pendingShowTags, pendingSuggestions, user?.uid]);
+
+  const totalPendingItems = pendingShowTags.length + pendingSuggestions.length;
+  const friendGroupKeys = Object.keys(friendGroups);
+
+  const handleBulkConfirm = async () => {
+    setBulkProcessing(true);
+    try {
+      if (bulkConfirm.type === 'all') {
+        await onBulkAcceptAll(pendingShowTags, pendingSuggestions);
+      } else {
+        await onBulkAcceptFromFriend(bulkConfirm.friendUid, pendingShowTags, pendingSuggestions);
+      }
+    } finally {
+      setBulkProcessing(false);
+      setBulkConfirm(null);
+    }
+  };
+
   const requestCount = pendingFriendRequests.length + pendingShowTags.length + pendingSuggestions.length;
 
   if (showingTogetherWith) {
@@ -779,6 +869,41 @@ function FriendsView({
       {/* Requests Tab */}
       {activeTab === 'requests' && (
         <div className="space-y-6">
+          {/* Bulk Accept Bar */}
+          {totalPendingItems > 0 && (
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-white/60">
+                  {totalPendingItems} pending show{totalPendingItems !== 1 ? 's' : ''} to review
+                </span>
+                <button
+                  onClick={() => setBulkConfirm({ type: 'all' })}
+                  className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/30 transition-colors"
+                >
+                  <Check className="w-4 h-4 inline mr-1" />
+                  Accept All ({totalPendingItems})
+                </button>
+              </div>
+              {friendGroupKeys.length > 1 && (
+                <div className="flex flex-wrap gap-2">
+                  {friendGroupKeys.map(uid => {
+                    const g = friendGroups[uid];
+                    const count = g.tags.length + g.suggestions.length;
+                    return (
+                      <button
+                        key={uid}
+                        onClick={() => setBulkConfirm({ type: 'friend', friendUid: uid, friendName: g.name })}
+                        className="px-3 py-1.5 bg-white/5 text-white/70 rounded-lg text-xs font-medium hover:bg-white/10 transition-colors border border-white/10"
+                      >
+                        {g.name} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Incoming Friend Requests */}
           {pendingFriendRequests.length > 0 && (
             <div>
@@ -1105,6 +1230,36 @@ function FriendsView({
                 })}
             </div>
           )}
+        </div>
+      )}
+      {/* Bulk Accept Confirmation Modal */}
+      {bulkConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !bulkProcessing && setBulkConfirm(null)}>
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-2">Accept Shows</h3>
+            <p className="text-white/60 text-sm mb-6">
+              {bulkConfirm.type === 'all'
+                ? `Accept all ${totalPendingItems} pending show${totalPendingItems !== 1 ? 's' : ''}? They'll be added to your collection.`
+                : `Accept all ${(friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)} pending show${((friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)) !== 1 ? 's' : ''} from ${bulkConfirm.friendName}?`
+              }
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setBulkConfirm(null)}
+                disabled={bulkProcessing}
+                className="px-4 py-2 bg-white/5 text-white/60 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkConfirm}
+                disabled={bulkProcessing}
+                className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-medium hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+              >
+                {bulkProcessing ? 'Accepting…' : 'Accept All'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -2023,6 +2178,18 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.28',
+      date: 'March 10, 2026',
+      title: 'Bulk Accept, Unified Scan/Import, Sidebar Refresh',
+      changes: [
+        'New: Bulk accept pending show tags and suggestions — accept all at once or per friend',
+        'New: Scan Tickets and Import File merged into a single "Scan / Import" tabbed view',
+        'Sidebar: Search pinned at top, Invite & Feedback pinned at bottom, everything else scrolls',
+        'Sidebar reordered for better flow — Friends and Community moved up, Upcoming Shows follows Stats',
+        'Simplified onboarding: single tooltip for the unified Scan / Import button',
+      ]
+    },
+    {
       version: '1.0.27',
       date: 'March 9, 2026',
       title: 'Mobile-Friendly Tooltips',
@@ -2849,9 +3016,6 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Import Shows</h1>
-      <p className="text-white/60 mb-8">Import your concert history from CSV, Excel, Google Sheets, or a screenshot</p>
-
       {/* Step indicator */}
       {(() => {
         const isScreenshotFlow = headers.length === 0 && step !== 'upload';
@@ -4096,9 +4260,6 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
 
   return (
     <div>
-      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Scan Tickets</h1>
-      <p className="text-white/60 mb-8">Upload photos of ticket stubs to find and import setlists</p>
-
       {/* Upload Area */}
       {extractedShows.length === 0 && (
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-6">
@@ -4327,6 +4488,46 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
   );
 }
 
+// Combined Scan / Import View
+function ScanImportView({ onImport, onUpdateShow, existingShows, importedIds, onNavigate }) {
+  const [activeTab, setActiveTab] = useState('scan');
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Scan / Import Tickets</h1>
+      <p className="text-white/60 mb-6">Add shows by scanning ticket stubs or importing a file</p>
+
+      {/* Tab bar */}
+      <div className="flex gap-2 mb-6">
+        {[
+          { id: 'scan', label: 'Scan Tickets', icon: Camera },
+          { id: 'import', label: 'Import File', icon: Upload },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'scan' && (
+        <TicketScanner onImport={onImport} importedIds={importedIds} existingShows={existingShows} />
+      )}
+      {activeTab === 'import' && (
+        <ImportView onImport={onImport} onUpdateShow={onUpdateShow} existingShows={existingShows} onNavigate={onNavigate} />
+      )}
+    </div>
+  );
+}
+
 export default function ShowTracker() {
   const [shows, setShows] = useState([]);
   const [activeView, setActiveView] = useState('shows');
@@ -4374,23 +4575,22 @@ export default function ShowTracker() {
   }, [isLoading, user, activeView]);
 
   const dismissTooltip = () => {
-    if (tooltipStep === 1) {
-      setTooltipStep(2);
-    } else {
-      setTooltipStep(0);
-      localStorage.setItem('hasSeenOnboardingTooltips', '1');
-      localStorage.setItem('mysetlists_lastVisit', String(Date.now()));
-    }
+    setTooltipStep(0);
+    localStorage.setItem('hasSeenOnboardingTooltips', '1');
+    localStorage.setItem('mysetlists_lastVisit', String(Date.now()));
   };
 
   // URL-based navigation (back/forward button support)
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const VALID_VIEWS = ['shows','stats','search','friends','invite','feedback','release-notes','import','community','profile','admin','upcoming-shows','roadmap'];
+  const VALID_VIEWS = ['shows','stats','search','friends','invite','feedback','release-notes','scan-import','community','profile','admin','upcoming-shows','roadmap'];
+  // Backward compat: old URLs for import/scan-tickets redirect to scan-import
+  const VIEW_REDIRECTS = { 'import': 'scan-import', 'scan-tickets': 'scan-import' };
 
   // Initialize activeView from ?view= param on first load
   useEffect(() => {
-    const v = searchParams.get('view');
+    let v = searchParams.get('view');
+    if (v && VIEW_REDIRECTS[v]) v = VIEW_REDIRECTS[v];
     if (v && VALID_VIEWS.includes(v)) setActiveView(v);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -4399,7 +4599,8 @@ export default function ShowTracker() {
   useEffect(() => {
     const handler = () => {
       const params = new URLSearchParams(window.location.search);
-      const v = params.get('view');
+      let v = params.get('view');
+      if (v && VIEW_REDIRECTS[v]) v = VIEW_REDIRECTS[v];
       setActiveView((v && VALID_VIEWS.includes(v)) ? v : 'shows');
       setSelectedArtist(null);
     };
@@ -5670,6 +5871,28 @@ export default function ShowTracker() {
     }
   };
 
+  // Bulk accept all pending show tags + suggestions
+  const bulkAcceptAll = async (tags, suggestions) => {
+    const results = await Promise.allSettled([
+      ...tags.map(tag => acceptShowTag(tag.id)),
+      ...suggestions.map(s => respondToSuggestion(s, 'confirmed')),
+    ]);
+    const accepted = results.filter(r => r.status === 'fulfilled').length;
+    setToast(`Accepted ${accepted} pending item${accepted !== 1 ? 's' : ''}`);
+  };
+
+  // Bulk accept pending items from a specific friend
+  const bulkAcceptFromFriend = async (friendUid, tags, suggestions) => {
+    const friendTags = tags.filter(t => t.fromUid === friendUid);
+    const friendSuggestions = suggestions.filter(s => s.participants?.includes(friendUid));
+    const results = await Promise.allSettled([
+      ...friendTags.map(tag => acceptShowTag(tag.id)),
+      ...friendSuggestions.map(s => respondToSuggestion(s, 'confirmed')),
+    ]);
+    const accepted = results.filter(r => r.status === 'fulfilled').length;
+    setToast(`Accepted ${accepted} item${accepted !== 1 ? 's' : ''}`);
+  };
+
   // Accept a pending email tag (new user confirming a show tagged before they joined)
   const acceptPendingEmailTag = async (tag) => {
     if (!user) return;
@@ -6424,7 +6647,7 @@ export default function ShowTracker() {
     friends:        { title: 'Friends — MySetlists', description: 'Connect with friends and share your live music journey.' },
     community:      { title: 'Community — MySetlists', description: 'See how you rank among all MySetlists users.' },
     invite:         { title: 'Invite Friends — MySetlists', description: 'Invite your friends to track shows together on MySetlists.' },
-    import:         { title: 'Import Shows — MySetlists', description: 'Import your concert history from a spreadsheet.' },
+    'scan-import':  { title: 'Scan / Import — MySetlists', description: 'Scan ticket stubs or import your concert history from a file.' },
     profile:        { title: 'Profile — MySetlists', description: 'Your MySetlists profile and account settings.' },
     'release-notes':{ title: 'Release Notes — MySetlists', description: 'What\'s new in MySetlists.' },
     feedback:       { title: 'Feedback — MySetlists', description: 'Share your feedback to help improve MySetlists.' },
@@ -6707,11 +6930,11 @@ export default function ShowTracker() {
                 </button>
                 <div className="relative">
                   <button
-                    onClick={() => navigateTo('import')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all whitespace-nowrap border border-white/10 ${tooltipStep === 1 ? 'ring-2 ring-violet-500/60 ring-offset-2 ring-offset-slate-900' : ''}`}
+                    onClick={() => navigateTo('scan-import')}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-all whitespace-nowrap border border-violet-500/30 ${tooltipStep === 1 ? 'ring-2 ring-violet-500/60 ring-offset-2 ring-offset-slate-900' : ''}`}
                   >
-                    <Upload className="w-4 h-4" />
-                    Import File
+                    <Camera className="w-4 h-4" />
+                    Scan / Import
                   </button>
                   {tooltipStep === 1 && (
                     <>
@@ -6719,36 +6942,7 @@ export default function ShowTracker() {
                       <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
                         <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
                           <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
-                          <p className="text-white text-xs leading-relaxed mb-2">Upload a CSV or text file with your concert history to bulk import multiple shows at once</p>
-                          <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it →</button>
-                        </div>
-                      </div>
-                      {/* Mobile: tooltip below */}
-                      <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
-                        <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
-                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-violet-600" />
-                          <p className="text-white text-xs leading-relaxed mb-2">Upload a CSV or text file with your concert history to bulk import multiple shows at once</p>
-                          <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it →</button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() => navigateTo('scan-tickets')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-all whitespace-nowrap border border-violet-500/30 ${tooltipStep === 2 ? 'ring-2 ring-violet-500/60 ring-offset-2 ring-offset-slate-900' : ''}`}
-                  >
-                    <Camera className="w-4 h-4" />
-                    Scan Tickets
-                  </button>
-                  {tooltipStep === 2 && (
-                    <>
-                      {/* Desktop: tooltip to the left */}
-                      <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
-                        <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
-                          <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
-                          <p className="text-white text-xs leading-relaxed mb-2">Take photos of your concert ticket stubs and AI will automatically extract the show details and import them</p>
+                          <p className="text-white text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
                           <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
                         </div>
                       </div>
@@ -6756,7 +6950,7 @@ export default function ShowTracker() {
                       <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
                         <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
                           <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-violet-600" />
-                          <p className="text-white text-xs leading-relaxed mb-2">Take photos of your concert ticket stubs and AI will automatically extract the show details and import them</p>
+                          <p className="text-white text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
                           <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
                         </div>
                       </div>
@@ -7025,6 +7219,8 @@ export default function ShowTracker() {
             inviteStats={inviteStats}
             onResendInvite={resendInvite}
             onCancelInvite={cancelInvite}
+            onBulkAcceptAll={bulkAcceptAll}
+            onBulkAcceptFromFriend={bulkAcceptFromFriend}
           />
         )}
 
@@ -7049,18 +7245,19 @@ export default function ShowTracker() {
           <ReleaseNotesView />
         )}
 
-        {activeView === 'import' && (
-          <ImportView onImport={addShow} onUpdateShow={updateShowData} existingShows={shows} onNavigate={(view) => {
-            navigateTo(view);
-            // Reload shows from Firestore to ensure imported shows + setlists are reflected
-            if (view === 'shows' && user && !guestMode) {
-              loadShows(user.uid);
-            }
-          }} />
-        )}
-
-        {activeView === 'scan-tickets' && (
-          <TicketScanner onImport={addShow} importedIds={importedIds} existingShows={shows} />
+        {activeView === 'scan-import' && (
+          <ScanImportView
+            onImport={addShow}
+            onUpdateShow={updateShowData}
+            existingShows={shows}
+            importedIds={importedIds}
+            onNavigate={(view) => {
+              navigateTo(view);
+              if (view === 'shows' && user && !guestMode) {
+                loadShows(user.uid);
+              }
+            }}
+          />
         )}
 
         {activeView === 'community' && !guestMode && (
