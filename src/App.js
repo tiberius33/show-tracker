@@ -2405,6 +2405,21 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.30',
+      date: 'March 11, 2026',
+      title: 'Guest Conversion Tracking in Admin',
+      changes: [
+        'New: Conversions tab in Admin portal — see all users who converted from guest accounts',
+        'Conversion details include name, email, conversion date, guest shows added, and total shows',
+        'New: "Converted" badge on user rows in the Users tab with amber sparkle icon',
+        'New: "Converted Only" filter toggle to quickly find converted users',
+        'New: Conversion details panel on user profile — guest start date, conversion date, shows before/after, session ID',
+        'New: Export converted users to CSV with one click',
+        'Sortable converted users list by conversion date, name, or email',
+        'Guest-to-user conversion now saves tracking data directly on user profile for fast lookups',
+      ]
+    },
+    {
       version: '1.0.29',
       date: 'March 11, 2026',
       title: 'Interactive Shows Together & Friend Annotations',
@@ -5144,11 +5159,29 @@ export default function ShowTracker() {
         try {
           const guestSessionId = localStorage.getItem('guest-session-id');
           if (guestSessionId) {
+            // Get guest session data before updating
+            let guestShowsAdded = 0;
+            try {
+              const guestSessionDoc = await getDoc(doc(db, 'guestSessions', guestSessionId));
+              if (guestSessionDoc.exists()) {
+                guestShowsAdded = guestSessionDoc.data().showsAdded || 0;
+              }
+            } catch (_) {}
+
             await updateDoc(doc(db, 'guestSessions', guestSessionId), {
               converted: true,
               convertedAt: serverTimestamp(),
               convertedUserId: currentUser.uid,
             });
+
+            // Save conversion info on the user profile for admin tracking
+            await setDoc(doc(db, 'userProfiles', currentUser.uid), {
+              convertedFromGuest: true,
+              guestSessionId: guestSessionId,
+              guestConvertedAt: serverTimestamp(),
+              guestShowsAdded: guestShowsAdded,
+            }, { merge: true });
+
             localStorage.removeItem('guest-session-id');
           }
         } catch (error) {
@@ -9496,7 +9529,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 }
 
 function AdminView() {
-  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'roadmap'
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'roadmap'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -9514,6 +9547,12 @@ function AdminView() {
   // Guest trials state
   const [guestSessions, setGuestSessions] = useState([]);
   const [loadingGuests, setLoadingGuests] = useState(false);
+
+  // User filter state
+  const [showOnlyConverted, setShowOnlyConverted] = useState(false);
+
+  // Conversions tab state
+  const [conversionSortBy, setConversionSortBy] = useState('conversionDate'); // 'conversionDate' | 'name' | 'email'
 
   // Email compose state
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -9547,7 +9586,8 @@ function AdminView() {
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-        lastLogin: doc.data().lastLogin?.toDate?.() || new Date()
+        lastLogin: doc.data().lastLogin?.toDate?.() || new Date(),
+        guestConvertedAt: doc.data().guestConvertedAt?.toDate?.() || null,
       }));
       setUsers(loadedUsers.sort((a, b) => b.createdAt - a.createdAt));
     } catch (error) {
@@ -9795,10 +9835,21 @@ function AdminView() {
     loadRoadmapData();
   }, [loadUsers, loadGuestSessions, loadRoadmapData]);
 
-  const filteredUsers = users.filter(user =>
-    user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Build set of converted user IDs for badge display
+  const convertedUserIds = useMemo(() => {
+    const ids = new Set();
+    guestSessions.forEach(s => { if (s.converted && s.convertedUserId) ids.add(s.convertedUserId); });
+    users.forEach(u => { if (u.convertedFromGuest) ids.add(u.id); });
+    return ids;
+  }, [users, guestSessions]);
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    if (showOnlyConverted) return convertedUserIds.has(user.id);
+    return true;
+  });
 
   const loadCacheStats = async () => {
     if (!auth.currentUser) return;
@@ -9863,6 +9914,42 @@ function AdminView() {
       totalShowsAdded,
     };
   }, [guestSessions]);
+
+  // Converted users — enriched with guest session data
+  const convertedUsers = useMemo(() => {
+    // Build a map of convertedUserId -> guestSession for quick lookup
+    const sessionByUser = {};
+    guestSessions.forEach(s => {
+      if (s.converted && s.convertedUserId) {
+        sessionByUser[s.convertedUserId] = s;
+      }
+    });
+
+    // Users that have convertedFromGuest flag OR appear in a converted guest session
+    const converted = users.filter(u => u.convertedFromGuest || sessionByUser[u.id]);
+    return converted.map(u => {
+      const session = sessionByUser[u.id];
+      return {
+        ...u,
+        guestSessionId: u.guestSessionId || session?.id || null,
+        guestConvertedAt: u.guestConvertedAt || session?.convertedAt || null,
+        guestShowsAdded: u.guestShowsAdded ?? session?.showsAdded ?? 0,
+        guestStartedAt: session?.startedAt || null,
+      };
+    });
+  }, [users, guestSessions]);
+
+  const sortedConvertedUsers = useMemo(() => {
+    const sorted = [...convertedUsers];
+    if (conversionSortBy === 'conversionDate') {
+      sorted.sort((a, b) => (b.guestConvertedAt || 0) - (a.guestConvertedAt || 0));
+    } else if (conversionSortBy === 'name') {
+      sorted.sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
+    } else if (conversionSortBy === 'email') {
+      sorted.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+    }
+    return sorted;
+  }, [convertedUsers, conversionSortBy]);
 
   const sortedFilteredUserShows = useMemo(() => {
     let filtered = userShows.filter(show =>
@@ -9961,6 +10048,52 @@ function AdminView() {
               </div>
             </div>
           )}
+
+          {/* Conversion details panel */}
+          {convertedUserIds.has(selectedUser.id) && (() => {
+            // Find guest session data for this user
+            const guestSession = guestSessions.find(s => s.convertedUserId === selectedUser.id);
+            const convertedAt = selectedUser.guestConvertedAt || guestSession?.convertedAt;
+            const guestStarted = guestSession?.startedAt;
+            const guestShowsCount = selectedUser.guestShowsAdded ?? guestSession?.showsAdded ?? 0;
+            const sessionId = selectedUser.guestSessionId || guestSession?.id;
+
+            return (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">Converted from Guest</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <div className="text-xs text-white/40 mb-1">Guest Started</div>
+                    <div className="text-sm text-white/80 font-medium">
+                      {guestStarted?.toLocaleDateString?.() || 'Unknown'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/40 mb-1">Converted On</div>
+                    <div className="text-sm text-white/80 font-medium">
+                      {convertedAt?.toLocaleDateString?.() || 'Unknown'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/40 mb-1">Shows as Guest</div>
+                    <div className="text-sm text-amber-400 font-bold">{guestShowsCount}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/40 mb-1">Shows After Conversion</div>
+                    <div className="text-sm text-emerald-400 font-bold">{(selectedUser.showCount || 0)}</div>
+                  </div>
+                </div>
+                {sessionId && (
+                  <div className="mt-3 pt-3 border-t border-amber-500/10">
+                    <div className="text-xs text-white/30">Guest Session ID: <span className="font-mono text-white/50">{sessionId}</span></div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* User stats summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -10132,6 +10265,20 @@ function AdminView() {
               Guest Trials
             </button>
             <button
+              onClick={() => setAdminTab('conversions')}
+              className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'conversions'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              Conversions
+              {convertedUsers.length > 0 && (
+                <span className="ml-1 bg-emerald-500/30 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{convertedUsers.length}</span>
+              )}
+            </button>
+            <button
               onClick={() => setAdminTab('roadmap')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'roadmap'
@@ -10164,16 +10311,32 @@ function AdminView() {
                 ))}
               </div>
 
-              {/* Search */}
-              <div className="relative">
-                <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search users by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
-                />
+              {/* Search + Filter */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search users by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowOnlyConverted(!showOnlyConverted)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
+                    showOnlyConverted
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Converted Only
+                  {showOnlyConverted && convertedUserIds.size > 0 && (
+                    <span className="text-[10px] font-bold bg-amber-500/30 px-1.5 py-0.5 rounded-full">{convertedUserIds.size}</span>
+                  )}
+                </button>
               </div>
 
               {/* Users Table */}
@@ -10200,11 +10363,18 @@ function AdminView() {
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                              <User className="w-5 h-5 text-white" />
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${convertedUserIds.has(user.id) ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 'bg-gradient-to-br from-emerald-500 to-teal-500'}`}>
+                              {convertedUserIds.has(user.id) ? <Sparkles className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
                             </div>
                             <div>
-                              <div className="font-medium text-white">{user.firstName || 'Anonymous'}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-white">{user.firstName || 'Anonymous'}</span>
+                                {convertedUserIds.has(user.id) && (
+                                  <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
+                                    Converted
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-sm text-white/40 md:hidden">{user.email}</div>
                             </div>
                           </div>
@@ -10339,6 +10509,135 @@ function AdminView() {
                   )}
                 </div>
               )}
+            </>
+          )}
+
+          {/* Conversions Tab */}
+          {adminTab === 'conversions' && (
+            <>
+              {/* Conversion Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total Converted', value: convertedUsers.length, color: 'from-emerald-500 to-teal-500' },
+                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-amber-500 to-orange-500' },
+                  { label: 'Guest Shows Added', value: convertedUsers.reduce((acc, u) => acc + (u.guestShowsAdded || 0), 0), color: 'from-violet-500 to-purple-500' },
+                  { label: 'Post-Conv Shows', value: convertedUsers.reduce((acc, u) => acc + (u.showCount || 0), 0), color: 'from-pink-500 to-rose-500' },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                    <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                      {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                    </div>
+                    <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sort + Export controls */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-white/50">Sort by:</span>
+                  {[
+                    { id: 'conversionDate', label: 'Conversion Date' },
+                    { id: 'name', label: 'Name' },
+                    { id: 'email', label: 'Email' },
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setConversionSortBy(opt.id)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        conversionSortBy === opt.id
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    const header = 'Name,Email,Conversion Date,Guest Shows,Total Shows,Guest Session ID\n';
+                    const rows = sortedConvertedUsers.map(u =>
+                      `"${u.displayName || u.firstName || ''}","${u.email || ''}","${u.guestConvertedAt?.toLocaleDateString?.() || ''}",${u.guestShowsAdded || 0},${u.showCount || 0},"${u.guestSessionId || ''}"`
+                    ).join('\n');
+                    const blob = new Blob([header + rows], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `converted-users-${new Date().toISOString().slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </button>
+              </div>
+
+              {/* Converted Users Table */}
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-white/5 border-b border-white/10">
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">User</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Guest Shows</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Total Shows</th>
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Converted</th>
+                      <th className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {sortedConvertedUsers.map(user => (
+                      <tr
+                        key={user.id}
+                        className="hover:bg-white/5 transition-colors cursor-pointer"
+                        onClick={() => handleSelectUser(user)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                              <Sparkles className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-white">{user.displayName || user.firstName || 'Anonymous'}</div>
+                              <div className="text-sm text-white/40 md:hidden">{user.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-sm font-semibold ${
+                            (user.guestShowsAdded || 0) > 0
+                              ? 'bg-violet-500/20 text-violet-300'
+                              : 'bg-white/10 text-white/40'
+                          }`}>
+                            {user.guestShowsAdded || 0}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                            {user.showCount || 0}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right text-white/40 text-sm hidden sm:table-cell">
+                          {user.guestConvertedAt?.toLocaleDateString?.() || 'Unknown'}
+                        </td>
+                        <td className="px-2 py-4">
+                          <ChevronRight className="w-4 h-4 text-white/20" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {convertedUsers.length === 0 && (
+                  <div className="text-center py-12 text-white/40">
+                    No converted guest users yet
+                  </div>
+                )}
+              </div>
             </>
           )}
         </>
