@@ -2405,6 +2405,22 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.31',
+      date: 'March 11, 2026',
+      title: 'Invitation & Referral Tracking in Admin',
+      changes: [
+        'New: Referrals tab in Admin portal — see all users who joined via invitation with inviter details',
+        'New: Inviter Leaderboard — ranked list of top inviters with sent/accepted counts, conversion rate, and invitee activity',
+        'New: "Invited" badge on user rows in the Users tab with blue envelope icon',
+        'New: "Invited Only" filter toggle to quickly find users who joined via referral',
+        'New: Invitation & Referral details panel on user profile — who invited them, who they\'ve invited, and invitee metrics',
+        'New: Export referral data to CSV with one click',
+        'Sortable invited users list by join date, name, or inviter',
+        'Invite acceptance now saves inviter data directly on user profile for fast admin lookups',
+        'Referral stats cards: total invites sent, accepted, acceptance rate, active inviters',
+      ]
+    },
+    {
       version: '1.0.30',
       date: 'March 11, 2026',
       title: 'Guest Conversion Tracking in Admin',
@@ -5281,6 +5297,14 @@ export default function ShowTracker() {
 
               // Mark invite as accepted
               await setDoc(doc(db, 'invites', inviteDoc.id), { status: 'accepted' }, { merge: true });
+
+              // Save invitedBy data on user profile for admin tracking
+              await setDoc(doc(db, 'userProfiles', currentUser.uid), {
+                invitedByUid: inviterUid,
+                invitedByName: inviterName || '',
+                invitedByEmail: inviterEmail || '',
+                inviteAcceptedAt: serverTimestamp(),
+              }, { merge: true });
 
               // Show welcome modal to the new user
               setWelcomeState({ inviterName: inviterName || 'your friend', inviterUid });
@@ -9529,7 +9553,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 }
 
 function AdminView() {
-  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'roadmap'
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -9550,9 +9574,15 @@ function AdminView() {
 
   // User filter state
   const [showOnlyConverted, setShowOnlyConverted] = useState(false);
+  const [showOnlyInvited, setShowOnlyInvited] = useState(false);
 
   // Conversions tab state
   const [conversionSortBy, setConversionSortBy] = useState('conversionDate'); // 'conversionDate' | 'name' | 'email'
+
+  // Referrals tab state
+  const [allInvites, setAllInvites] = useState([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [referralSortBy, setReferralSortBy] = useState('joinDate'); // 'joinDate' | 'name' | 'email' | 'inviter'
 
   // Email compose state
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -9636,6 +9666,24 @@ function AdminView() {
       console.error('Failed to load guest sessions:', error);
     } finally {
       setLoadingGuests(false);
+    }
+  }, []);
+
+  const loadAllInvites = useCallback(async () => {
+    setLoadingInvites(true);
+    try {
+      const snapshot = await getDocs(collection(db, 'invites'));
+      const invites = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate?.() || new Date(),
+        lastSentAt: d.data().lastSentAt?.toDate?.() || null,
+      }));
+      setAllInvites(invites);
+    } catch (error) {
+      console.error('Failed to load invites:', error);
+    } finally {
+      setLoadingInvites(false);
     }
   }, []);
 
@@ -9832,8 +9880,9 @@ function AdminView() {
   useEffect(() => {
     loadUsers();
     loadGuestSessions();
+    loadAllInvites();
     loadRoadmapData();
-  }, [loadUsers, loadGuestSessions, loadRoadmapData]);
+  }, [loadUsers, loadGuestSessions, loadAllInvites, loadRoadmapData]);
 
   // Build set of converted user IDs for badge display
   const convertedUserIds = useMemo(() => {
@@ -9843,11 +9892,95 @@ function AdminView() {
     return ids;
   }, [users, guestSessions]);
 
+  // Build invite lookup maps
+  const inviteData = useMemo(() => {
+    // Map: inviteeEmail (lowercase) -> accepted invite doc (who invited them)
+    const invitedByMap = {}; // email -> { inviterUid, inviterName, inviterEmail, createdAt }
+    // Map: inviterUid -> array of invite docs they sent
+    const inviterMap = {};
+    // Set of user IDs who joined via invite
+    const invitedUserIds = new Set();
+
+    allInvites.forEach(inv => {
+      const email = (inv.inviteeEmail || '').toLowerCase();
+      // Track accepted invites for "invited by" lookups
+      if (inv.status === 'accepted' && email) {
+        invitedByMap[email] = inv;
+      }
+      // Track all invites per inviter
+      const uid = inv.inviterUid;
+      if (uid) {
+        if (!inviterMap[uid]) inviterMap[uid] = [];
+        inviterMap[uid].push(inv);
+      }
+    });
+
+    // Map invited emails to user IDs
+    users.forEach(u => {
+      const email = (u.email || '').toLowerCase();
+      if (invitedByMap[email] || u.invitedByUid) {
+        invitedUserIds.add(u.id);
+      }
+    });
+
+    // Build inviter stats
+    const inviterStats = {};
+    Object.entries(inviterMap).forEach(([uid, invites]) => {
+      const accepted = invites.filter(i => i.status === 'accepted');
+      const acceptedEmails = new Set(accepted.map(i => (i.inviteeEmail || '').toLowerCase()));
+      const invitees = users.filter(u => acceptedEmails.has((u.email || '').toLowerCase()));
+      inviterStats[uid] = {
+        totalSent: invites.length,
+        totalAccepted: accepted.length,
+        conversionRate: invites.length > 0 ? ((accepted.length / invites.length) * 100).toFixed(1) : '0.0',
+        totalInviteeShows: invitees.reduce((acc, u) => acc + (u.showCount || 0), 0),
+        totalInviteeSongs: invitees.reduce((acc, u) => acc + (u.songCount || 0), 0),
+        invitees,
+      };
+    });
+
+    // Build list of invited users with their inviter info
+    const invitedUsers = users
+      .filter(u => invitedUserIds.has(u.id))
+      .map(u => {
+        const email = (u.email || '').toLowerCase();
+        const inv = invitedByMap[email];
+        return {
+          ...u,
+          inviterUid: u.invitedByUid || inv?.inviterUid || null,
+          inviterName: u.invitedByName || inv?.inviterName || null,
+          inviterEmail: inv?.inviterEmail || null,
+          inviteAcceptedAt: inv?.createdAt || null,
+        };
+      });
+
+    // Inviter leaderboard
+    const leaderboard = Object.entries(inviterStats)
+      .map(([uid, stats]) => {
+        const inviter = users.find(u => u.id === uid);
+        return { uid, name: inviter?.displayName || inviter?.firstName || 'Unknown', email: inviter?.email || '', ...stats };
+      })
+      .filter(l => l.totalSent > 0)
+      .sort((a, b) => b.totalAccepted - a.totalAccepted || b.totalSent - a.totalSent);
+
+    return { invitedByMap, inviterMap, invitedUserIds, inviterStats, invitedUsers, leaderboard };
+  }, [allInvites, users]);
+
+  const sortedInvitedUsers = useMemo(() => {
+    const sorted = [...inviteData.invitedUsers];
+    if (referralSortBy === 'joinDate') sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    else if (referralSortBy === 'name') sorted.sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
+    else if (referralSortBy === 'email') sorted.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+    else if (referralSortBy === 'inviter') sorted.sort((a, b) => (a.inviterName || '').localeCompare(b.inviterName || ''));
+    return sorted;
+  }, [inviteData.invitedUsers, referralSortBy]);
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesSearch) return false;
     if (showOnlyConverted) return convertedUserIds.has(user.id);
+    if (showOnlyInvited) return inviteData.invitedUserIds.has(user.id);
     return true;
   });
 
@@ -10095,6 +10228,104 @@ function AdminView() {
             );
           })()}
 
+          {/* Invite/Referral details panel */}
+          {(() => {
+            const isInvited = inviteData.invitedUserIds.has(selectedUser.id);
+            const email = (selectedUser.email || '').toLowerCase();
+            const inviteInfo = inviteData.invitedByMap[email];
+            const inviterUid = selectedUser.invitedByUid || inviteInfo?.inviterUid;
+            const inviterName = selectedUser.invitedByName || inviteInfo?.inviterName;
+            const inviterEmail = selectedUser.invitedByEmail || inviteInfo?.inviterEmail;
+            const sentInvites = inviteData.inviterMap[selectedUser.id] || [];
+            const stats = inviteData.inviterStats[selectedUser.id];
+
+            if (!isInvited && sentInvites.length === 0) return null;
+
+            return (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Send className="w-5 h-5 text-blue-400" />
+                  <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Invitation & Referral Info</h3>
+                </div>
+
+                {/* Who invited this user */}
+                {isInvited && (
+                  <div className="mb-4">
+                    <div className="text-xs text-white/40 mb-2">Invited By</div>
+                    <div className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white">{inviterName || 'Unknown'}</div>
+                        <div className="text-xs text-white/40">{inviterEmail || ''}</div>
+                      </div>
+                      {inviteInfo?.createdAt && (
+                        <div className="ml-auto text-xs text-white/30">
+                          Invited {inviteInfo.createdAt.toLocaleDateString?.() || ''}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Who this user has invited */}
+                {sentInvites.length > 0 && (
+                  <div>
+                    <div className="text-xs text-white/40 mb-2">
+                      Invitations Sent ({sentInvites.length} total, {sentInvites.filter(i => i.status === 'accepted').length} accepted)
+                    </div>
+                    <div className="space-y-2">
+                      {sentInvites.map(inv => {
+                        const invitee = users.find(u => (u.email || '').toLowerCase() === (inv.inviteeEmail || '').toLowerCase());
+                        return (
+                          <div key={inv.id} className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${inv.status === 'accepted' ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm text-white/80 truncate">
+                                {invitee ? (invitee.firstName || invitee.displayName || inv.inviteeEmail) : inv.inviteeEmail}
+                              </div>
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                              inv.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white/40'
+                            }`}>
+                              {inv.status === 'accepted' ? 'Joined' : 'Pending'}
+                            </span>
+                            {invitee && (
+                              <span className="text-xs text-white/30">{invitee.showCount || 0} shows</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {stats && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 pt-3 border-t border-blue-500/10">
+                        <div>
+                          <div className="text-xs text-white/40">Conversion Rate</div>
+                          <div className="text-sm text-blue-400 font-bold">{stats.conversionRate}%</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-white/40">Invitee Shows</div>
+                          <div className="text-sm text-emerald-400 font-bold">{stats.totalInviteeShows}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-white/40">Invitee Songs</div>
+                          <div className="text-sm text-cyan-400 font-bold">{stats.totalInviteeSongs}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-white/40">Rank</div>
+                          <div className="text-sm text-amber-400 font-bold">
+                            #{inviteData.leaderboard.findIndex(l => l.uid === selectedUser.id) + 1 || '—'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* User stats summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -10233,7 +10464,7 @@ function AdminView() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
             <button
-              onClick={() => { loadUsers(); loadGuestSessions(); loadRoadmapData(); }}
+              onClick={() => { loadUsers(); loadGuestSessions(); loadAllInvites(); loadRoadmapData(); }}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
             >
               Refresh
@@ -10276,6 +10507,20 @@ function AdminView() {
               Conversions
               {convertedUsers.length > 0 && (
                 <span className="ml-1 bg-emerald-500/30 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{convertedUsers.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => setAdminTab('referrals')}
+              className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'referrals'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <Send className="w-4 h-4" />
+              Referrals
+              {inviteData.invitedUsers.length > 0 && (
+                <span className="ml-1 bg-emerald-500/30 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{inviteData.invitedUsers.length}</span>
               )}
             </button>
             <button
@@ -10324,7 +10569,7 @@ function AdminView() {
                   />
                 </div>
                 <button
-                  onClick={() => setShowOnlyConverted(!showOnlyConverted)}
+                  onClick={() => { setShowOnlyConverted(!showOnlyConverted); setShowOnlyInvited(false); }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
                     showOnlyConverted
                       ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
@@ -10335,6 +10580,20 @@ function AdminView() {
                   Converted Only
                   {showOnlyConverted && convertedUserIds.size > 0 && (
                     <span className="text-[10px] font-bold bg-amber-500/30 px-1.5 py-0.5 rounded-full">{convertedUserIds.size}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setShowOnlyInvited(!showOnlyInvited); setShowOnlyConverted(false); }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
+                    showOnlyInvited
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  Invited Only
+                  {showOnlyInvited && inviteData.invitedUserIds.size > 0 && (
+                    <span className="text-[10px] font-bold bg-blue-500/30 px-1.5 py-0.5 rounded-full">{inviteData.invitedUserIds.size}</span>
                   )}
                 </button>
               </div>
@@ -10363,8 +10622,14 @@ function AdminView() {
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${convertedUserIds.has(user.id) ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 'bg-gradient-to-br from-emerald-500 to-teal-500'}`}>
-                              {convertedUserIds.has(user.id) ? <Sparkles className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              convertedUserIds.has(user.id) ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
+                              inviteData.invitedUserIds.has(user.id) ? 'bg-gradient-to-br from-blue-500 to-cyan-500' :
+                              'bg-gradient-to-br from-emerald-500 to-teal-500'
+                            }`}>
+                              {convertedUserIds.has(user.id) ? <Sparkles className="w-5 h-5 text-white" /> :
+                               inviteData.invitedUserIds.has(user.id) ? <Mail className="w-5 h-5 text-white" /> :
+                               <User className="w-5 h-5 text-white" />}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
@@ -10372,6 +10637,11 @@ function AdminView() {
                                 {convertedUserIds.has(user.id) && (
                                   <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
                                     Converted
+                                  </span>
+                                )}
+                                {inviteData.invitedUserIds.has(user.id) && (
+                                  <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">
+                                    Invited
                                   </span>
                                 )}
                               </div>
@@ -10641,6 +10911,199 @@ function AdminView() {
             </>
           )}
         </>
+      )}
+
+      {/* Referrals Tab */}
+      {adminTab === 'referrals' && (
+        <div className="space-y-6">
+          {/* Referral Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Invites Sent', value: allInvites.length, color: 'from-violet-500 to-purple-500' },
+              { label: 'Accepted', value: allInvites.filter(i => i.status === 'accepted').length, color: 'from-emerald-500 to-teal-500' },
+              { label: 'Acceptance Rate', value: allInvites.length > 0 ? `${((allInvites.filter(i => i.status === 'accepted').length / allInvites.length) * 100).toFixed(1)}%` : '0%', color: 'from-amber-500 to-orange-500' },
+              { label: 'Active Inviters', value: inviteData.leaderboard.length, color: 'from-pink-500 to-rose-500' },
+            ].map(stat => (
+              <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                  {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                </div>
+                <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Invited Users Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Invited Users ({sortedInvitedUsers.length})</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white/50">Sort:</span>
+                {[
+                  { key: 'joinDate', label: 'Join Date' },
+                  { key: 'name', label: 'Name' },
+                  { key: 'inviter', label: 'Inviter' },
+                ].map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setReferralSortBy(opt.key)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      referralSortBy === opt.key
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-white/5 border-b border-white/10">
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Invited User</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Invited By</th>
+                    <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
+                    <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Songs</th>
+                    <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {sortedInvitedUsers.map(user => (
+                    <tr
+                      key={user.id}
+                      className="hover:bg-white/5 transition-colors cursor-pointer"
+                      onClick={() => handleSelectUser(user)}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-white" />
+                          </div>
+                          <span className="font-medium text-white">{user.firstName || user.displayName || 'Anonymous'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-emerald-400 font-medium">{user.inviterName || 'Unknown'}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                          {user.showCount || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center text-white/60 hidden sm:table-cell">{user.songCount || 0}</td>
+                      <td className="px-6 py-4 text-right text-white/40 text-sm hidden lg:table-cell">
+                        {user.createdAt?.toLocaleDateString?.() || 'Unknown'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {sortedInvitedUsers.length === 0 && (
+                <div className="text-center py-12 text-white/40">
+                  No users have joined via invitation yet
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Inviter Leaderboard */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-400" />
+                Inviter Leaderboard
+              </h3>
+              <button
+                onClick={() => {
+                  const rows = [['Rank', 'Name', 'Email', 'Sent', 'Accepted', 'Rate', 'Invitee Shows', 'Invitee Songs']];
+                  inviteData.leaderboard.forEach((l, i) => {
+                    rows.push([i + 1, l.name, l.email, l.totalSent, l.totalAccepted, `${l.conversionRate}%`, l.totalInviteeShows, l.totalInviteeSongs]);
+                  });
+                  sortedInvitedUsers.forEach(u => {
+                    rows.push(['', u.firstName || u.displayName || '', u.email || '', '', '', '', u.showCount || 0, u.songCount || 0, u.inviterName || '']);
+                  });
+                  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `referral-data-${new Date().toISOString().split('T')[0]}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl text-sm font-medium transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {inviteData.leaderboard.map((inviter, idx) => (
+                <div
+                  key={inviter.uid}
+                  className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors cursor-pointer"
+                  onClick={() => {
+                    const user = users.find(u => u.id === inviter.uid);
+                    if (user) handleSelectUser(user);
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
+                      idx === 0 ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white' :
+                      idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white' :
+                      idx === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white' :
+                      'bg-white/10 text-white/60'
+                    }`}>
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-white">{inviter.name}</div>
+                      <div className="text-sm text-white/40">{inviter.email}</div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                      <div>
+                        <div className="text-lg font-bold text-violet-400">{inviter.totalSent}</div>
+                        <div className="text-[10px] text-white/40 uppercase">Sent</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-emerald-400">{inviter.totalAccepted}</div>
+                        <div className="text-[10px] text-white/40 uppercase">Accepted</div>
+                      </div>
+                      <div className="hidden md:block">
+                        <div className="text-lg font-bold text-amber-400">{inviter.conversionRate}%</div>
+                        <div className="text-[10px] text-white/40 uppercase">Rate</div>
+                      </div>
+                      <div className="hidden md:block">
+                        <div className="text-lg font-bold text-cyan-400">{inviter.totalInviteeShows}</div>
+                        <div className="text-[10px] text-white/40 uppercase">Invitee Shows</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-white/20 flex-shrink-0" />
+                  </div>
+                </div>
+              ))}
+
+              {inviteData.leaderboard.length === 0 && (
+                <div className="text-center py-12 text-white/40">
+                  No inviters yet
+                </div>
+              )}
+            </div>
+          </div>
+
+          {loadingInvites && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-white/50 font-medium">Loading invite data...</div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Roadmap Tab */}
