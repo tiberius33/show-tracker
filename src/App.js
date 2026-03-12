@@ -2405,6 +2405,19 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.32',
+      date: 'March 12, 2026',
+      title: 'Friend Notes Visible on Shared Shows',
+      changes: [
+        'Fix: Friends can now see each other\'s notes and ratings when viewing tagged/shared shows',
+        'When you open a show you were tagged in, the tagger\'s comments and song ratings appear in violet alongside yours',
+        'When you open a show you tagged friends in, their notes appear once they\'ve added them',
+        'Works for show-level comments, song-level comments, and ratings — all displayed with clear attribution',
+        'Tagged friend UIDs are now saved on the tagger\'s show for fast bidirectional lookups',
+        'Friend annotations also appear for shows both users independently added (matched by artist + venue + date)',
+      ]
+    },
+    {
       version: '1.0.31',
       date: 'March 11, 2026',
       title: 'Invitation & Referral Tracking in Admin',
@@ -4933,6 +4946,9 @@ export default function ShowTracker() {
   const [sharedComments, setSharedComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
 
+  // Friend annotations for the currently selected show (main view)
+  const [friendAnnotationsForShow, setFriendAnnotationsForShow] = useState(null);
+
   // In-app notifications (e.g. roadmap_published)
   // Collection: notifications/{notificationId} — { uid, type, message, itemId, itemTitle, read, createdAt }
   const [unreadNotifications, setUnreadNotifications] = useState([]);
@@ -5876,6 +5892,15 @@ export default function ShowTracker() {
         });
       }
       await batch.commit();
+
+      // Save tagged friend UIDs on the tagger's show for bidirectional annotation lookup
+      const existingUids = show.taggedFriendUids || [];
+      const mergedUids = [...new Set([...existingUids, ...selectedFriendUids])];
+      const updatedShow = { ...show, taggedFriendUids: mergedUids };
+      const updatedShows = shows.map(s => s.id === show.id ? updatedShow : s);
+      setShows(updatedShows);
+      await saveShow(updatedShow);
+
       setTagFriendsShow(null);
       setToast(`Tagged ${selectedFriendUids.length} friend${selectedFriendUids.length !== 1 ? 's' : ''} at ${show.artist}!`);
     } catch (error) {
@@ -5901,6 +5926,77 @@ export default function ShowTracker() {
       .filter(s => theirMap[key(s)])
       .map(s => ({ ...s, friendShow: theirMap[key(s)] }));
   };
+
+  // === FRIEND ANNOTATIONS FOR SHOW VIEW ===
+  // Fetches a friend's copy of the same show so their notes/ratings appear in the main SetlistEditor.
+  // Works bidirectionally: if you were tagged (taggedByUid) or you tagged friends (taggedFriendUids).
+  const fetchFriendAnnotations = useCallback(async (show) => {
+    if (!user || !show || guestMode) { setFriendAnnotationsForShow(null); return; }
+    try {
+      // Case 1: I was tagged in this show — fetch the tagger's version
+      if (show.taggedByUid) {
+        const friendUid = show.taggedByUid;
+        const friendName = show.taggedBy || 'Friend';
+        const snap = await getDocs(collection(db, 'users', friendUid, 'shows'));
+        const norm = v => (v || '').trim().toLowerCase();
+        const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
+        const showKey = key(show);
+        const friendShow = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(s => key(s) === showKey);
+        if (friendShow) {
+          setFriendAnnotationsForShow({ friendName, friendShow });
+          return;
+        }
+      }
+
+      // Case 2: I tagged friends in this show — fetch the first friend's version that has notes
+      if (show.taggedFriendUids && show.taggedFriendUids.length > 0) {
+        const norm = v => (v || '').trim().toLowerCase();
+        const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
+        const showKey = key(show);
+        for (const friendUid of show.taggedFriendUids) {
+          const friend = friends.find(f => f.friendUid === friendUid);
+          if (!friend) continue;
+          const snap = await getDocs(collection(db, 'users', friendUid, 'shows'));
+          const friendShow = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(s => key(s) === showKey);
+          if (friendShow && (friendShow.comment || friendShow.rating || friendShow.setlist?.some(s => s.comment || s.rating))) {
+            setFriendAnnotationsForShow({ friendName: friend.name || friend.displayName || 'Friend', friendShow });
+            return;
+          }
+        }
+      }
+
+      // Case 3: No tagging link — check all friends for a matching show with notes
+      // (covers the case where both users independently added the same show)
+      if (friends.length > 0) {
+        const norm = v => (v || '').trim().toLowerCase();
+        const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
+        const showKey = key(show);
+        for (const friend of friends) {
+          const snap = await getDocs(collection(db, 'users', friend.friendUid, 'shows'));
+          const friendShow = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(s => key(s) === showKey);
+          if (friendShow && (friendShow.comment || friendShow.rating || friendShow.setlist?.some(s => s.comment || s.rating))) {
+            setFriendAnnotationsForShow({ friendName: friend.name || friend.displayName || 'Friend', friendShow });
+            return;
+          }
+        }
+      }
+
+      setFriendAnnotationsForShow(null);
+    } catch (e) {
+      console.error('Failed to fetch friend annotations:', e);
+      setFriendAnnotationsForShow(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, guestMode, friends]);
+
+  // Fetch friend annotations whenever a show is selected in the main view
+  useEffect(() => {
+    if (selectedShow && activeView === 'shows') {
+      fetchFriendAnnotations(selectedShow);
+    } else {
+      setFriendAnnotationsForShow(null);
+    }
+  }, [selectedShow, activeView, fetchFriendAnnotations]);
 
   // === SHOW SUGGESTIONS ===
   // Proactive "were you there together?" prompts when friends have the same show.
@@ -7452,6 +7548,7 @@ export default function ShowTracker() {
                   onEditComment={confirmedSuggestion ? (cid, txt) => editSharedComment(confirmedSuggestion.id, cid, txt) : null}
                   onDeleteComment={confirmedSuggestion ? (cid) => deleteSharedComment(confirmedSuggestion.id, cid) : null}
                   currentUserUid={user?.uid}
+                  friendAnnotations={friendAnnotationsForShow}
                 />
               );
             })()}
