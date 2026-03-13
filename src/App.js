@@ -175,6 +175,18 @@ function autoDetectMapping(headers) {
   return mapping;
 }
 
+// Shared import field definitions (used by ImportView and admin bulk import)
+const IMPORT_FIELDS = [
+  { key: 'artist', label: 'Artist', required: true },
+  { key: 'venue', label: 'Venue', required: true },
+  { key: 'date', label: 'Date', required: true },
+  { key: 'city', label: 'City', required: false },
+  { key: 'country', label: 'Country', required: false },
+  { key: 'rating', label: 'Rating', required: false },
+  { key: 'comment', label: 'Comment', required: false },
+  { key: 'tour', label: 'Tour', required: false },
+];
+
 // Skeleton Loader Component
 function SkeletonCard() {
   return (
@@ -2405,6 +2417,22 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.33',
+      date: 'March 12, 2026',
+      title: 'Admin Bulk Import for User Profiles',
+      changes: [
+        'New: Admins can now bulk-import shows into any user\'s profile via CSV or Excel upload',
+        'New: "Bulk Import" tab in Admin panel with full multi-step wizard',
+        'Step-by-step flow: select user \u2192 upload file \u2192 map columns \u2192 preview \u2192 import',
+        'Auto-detects column headers (Artist, Venue, Date, City, Rating, Comment, Tour)',
+        'Preview table shows validation errors and flags duplicate shows before import',
+        'Server-side duplicate detection prevents duplicates even on concurrent imports',
+        'Imported shows are marked with importedByAdmin field for traceability',
+        'Admin audit log records every bulk import with who, for whom, and how many shows',
+        'Maximum 500 shows per import to stay within serverless function limits',
+      ]
+    },
+    {
       version: '1.0.32',
       date: 'March 12, 2026',
       title: 'Friend Notes Visible on Shared Shows',
@@ -2897,16 +2925,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [screenshotAnalyzing, setScreenshotAnalyzing] = useState(false);
   const [screenshotError, setScreenshotError] = useState(null);
 
-  const fields = useMemo(() => [
-    { key: 'artist', label: 'Artist', required: true },
-    { key: 'venue', label: 'Venue', required: true },
-    { key: 'date', label: 'Date', required: true },
-    { key: 'city', label: 'City', required: false },
-    { key: 'country', label: 'Country', required: false },
-    { key: 'rating', label: 'Rating', required: false },
-    { key: 'comment', label: 'Comment', required: false },
-    { key: 'tour', label: 'Tour', required: false },
-  ], []);
+  const fields = IMPORT_FIELDS;
 
   const processFileData = (rows) => {
     if (rows.length < 2) {
@@ -9705,6 +9724,19 @@ function AdminView() {
   const [newItemCategory, setNewItemCategory] = useState('other');
   const [savingItem, setSavingItem] = useState(false);
 
+  // Bulk import state
+  const [bulkImportStep, setBulkImportStep] = useState('select-user'); // 'select-user' | 'upload' | 'mapping' | 'preview' | 'importing' | 'complete'
+  const [bulkImportTargetUser, setBulkImportTargetUser] = useState(null);
+  const [bulkImportFileName, setBulkImportFileName] = useState('');
+  const [bulkImportRawData, setBulkImportRawData] = useState([]);
+  const [bulkImportHeaders, setBulkImportHeaders] = useState([]);
+  const [bulkImportMapping, setBulkImportMapping] = useState({});
+  const [bulkImportPreviewRows, setBulkImportPreviewRows] = useState([]);
+  const [bulkImportProgress, setBulkImportProgress] = useState(null);
+  const [bulkImportTargetShows, setBulkImportTargetShows] = useState([]);
+  const [bulkImportLoadingShows, setBulkImportLoadingShows] = useState(false);
+  const [bulkImportError, setBulkImportError] = useState(null);
+
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -9972,6 +10004,165 @@ function AdminView() {
     } finally {
       setSavingItem(false);
     }
+  };
+
+  // === BULK IMPORT FUNCTIONS ===
+
+  const loadBulkImportTargetShows = useCallback(async (userId) => {
+    setBulkImportLoadingShows(true);
+    try {
+      const showsRef = collection(db, 'users', userId, 'shows');
+      const snapshot = await getDocs(showsRef);
+      setBulkImportTargetShows(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+      console.error('Failed to load target user shows:', error);
+      setBulkImportTargetShows([]);
+    } finally {
+      setBulkImportLoadingShows(false);
+    }
+  }, []);
+
+  const handleBulkImportSelectUser = (u) => {
+    setBulkImportTargetUser(u);
+    loadBulkImportTargetShows(u.id);
+    setBulkImportStep('upload');
+    setBulkImportError(null);
+  };
+
+  const handleBulkImportFile = async (file) => {
+    setBulkImportFileName(file.name);
+    setBulkImportError(null);
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    let rows;
+    if (ext === 'csv') {
+      const text = await file.text();
+      rows = parseCSV(text);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      try {
+        const XLSX = await import('xlsx');
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        rows = rows.map(row => row.map(cell => String(cell)));
+      } catch (err) {
+        setBulkImportError('Failed to read Excel file.');
+        return;
+      }
+    } else {
+      setBulkImportError('Unsupported file type. Use .csv, .xlsx, or .xls.');
+      return;
+    }
+
+    if (rows.length < 2) {
+      setBulkImportError('File must contain a header row and at least one data row.');
+      return;
+    }
+    const hdrs = rows[0];
+    const data = rows.slice(1).filter(row => row.some(cell => cell !== ''));
+    if (data.length === 0) {
+      setBulkImportError('No data rows found.');
+      return;
+    }
+    setBulkImportHeaders(hdrs);
+    setBulkImportRawData(data);
+    setBulkImportMapping(autoDetectMapping(hdrs));
+    setBulkImportStep('mapping');
+  };
+
+  const buildBulkImportPreview = useCallback(() => {
+    return bulkImportRawData.map((row) => {
+      const record = {};
+      const errors = [];
+      IMPORT_FIELDS.forEach(field => {
+        const colIndex = bulkImportMapping[field.key];
+        record[field.key] = colIndex !== undefined && colIndex !== '' ? (row[colIndex] || '') : '';
+      });
+
+      if (!record.artist) errors.push('Missing artist');
+      if (!record.venue) errors.push('Missing venue');
+      if (!record.date) errors.push('Missing date');
+
+      let parsedDate = null;
+      if (record.date) {
+        parsedDate = parseImportDate(record.date);
+        if (!parsedDate) errors.push('Invalid date');
+      }
+
+      let rating = null;
+      if (record.rating) {
+        const r = Number(record.rating);
+        if (isNaN(r) || r < 1 || r > 10) errors.push('Rating must be 1-10');
+        else rating = r;
+      }
+
+      const isDuplicate = parsedDate && bulkImportTargetShows.some(show =>
+        show.artist?.toLowerCase() === record.artist?.toLowerCase() &&
+        show.venue?.toLowerCase() === record.venue?.toLowerCase() &&
+        show.date === parsedDate
+      );
+
+      return { raw: record, parsedDate, rating, errors, isDuplicate };
+    });
+  }, [bulkImportRawData, bulkImportMapping, bulkImportTargetShows]);
+
+  const handleBulkImportExecute = async () => {
+    const toImport = bulkImportPreviewRows.filter(r => r.errors.length === 0 && !r.isDuplicate);
+    if (toImport.length === 0) return;
+
+    setBulkImportStep('importing');
+    setBulkImportProgress({ importing: true });
+    setBulkImportError(null);
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const shows = toImport.map(r => ({
+        artist: r.raw.artist,
+        venue: r.raw.venue,
+        date: r.parsedDate,
+        city: r.raw.city || '',
+        country: r.raw.country || '',
+        rating: r.rating || null,
+        comment: r.raw.comment || '',
+        tour: r.raw.tour || '',
+      }));
+
+      const res = await fetch('/.netlify/functions/admin-bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ targetUid: bulkImportTargetUser.id, shows }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Import failed');
+
+      setBulkImportProgress({ imported: json.imported, duplicatesSkipped: json.duplicatesSkipped });
+      setBulkImportStep('complete');
+      setUsers(prev => prev.map(u =>
+        u.id === bulkImportTargetUser.id
+          ? { ...u, showCount: (u.showCount || 0) + json.imported }
+          : u
+      ));
+    } catch (err) {
+      setBulkImportError(err.message);
+      setBulkImportProgress(null);
+      setBulkImportStep('preview');
+    }
+  };
+
+  const resetBulkImport = () => {
+    setBulkImportStep('select-user');
+    setBulkImportTargetUser(null);
+    setBulkImportFileName('');
+    setBulkImportRawData([]);
+    setBulkImportHeaders([]);
+    setBulkImportMapping({});
+    setBulkImportPreviewRows([]);
+    setBulkImportProgress(null);
+    setBulkImportTargetShows([]);
+    setBulkImportLoadingShows(false);
+    setBulkImportError(null);
   };
 
   useEffect(() => {
@@ -10630,6 +10821,17 @@ function AdminView() {
             >
               <TrendingUp className="w-4 h-4" />
               Roadmap
+            </button>
+            <button
+              onClick={() => setAdminTab('bulkImport')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'bulkImport'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              Bulk Import
             </button>
           </div>
 
@@ -11326,6 +11528,262 @@ function AdminView() {
                 );
               })}
             </>
+          )}
+        </div>
+      )}
+
+      {/* Bulk Import Tab */}
+      {adminTab === 'bulkImport' && (
+        <div className="space-y-6">
+          {/* Step 1: Select User */}
+          {bulkImportStep === 'select-user' && (
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+              <h3 className="text-lg font-semibold text-white mb-1">Bulk Import Shows</h3>
+              <p className="text-white/50 text-sm mb-6">Select a user to import shows into their profile.</p>
+              <div className="relative mb-4">
+                <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+              </div>
+              <div className="max-h-96 overflow-y-auto space-y-2">
+                {users
+                  .filter(u => {
+                    const term = searchTerm.toLowerCase();
+                    return !term || (u.displayName || '').toLowerCase().includes(term)
+                      || (u.email || '').toLowerCase().includes(term)
+                      || (u.firstName || '').toLowerCase().includes(term);
+                  })
+                  .map(u => (
+                    <button
+                      key={u.id}
+                      onClick={() => handleBulkImportSelectUser(u)}
+                      className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-left transition-all"
+                    >
+                      <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-sm font-bold flex-shrink-0">
+                        {(u.firstName || u.displayName || '?')[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-medium text-sm truncate">{u.displayName || u.firstName || 'Anonymous'}</div>
+                        <div className="text-white/40 text-xs truncate">{u.email}</div>
+                      </div>
+                      <div className="text-white/30 text-xs">{u.showCount || 0} shows</div>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Upload File */}
+          {bulkImportStep === 'upload' && (
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+              <div className="flex items-center gap-3 mb-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                <User className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <span className="text-white font-medium text-sm">Importing for: </span>
+                  <span className="text-emerald-400 font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                  <span className="text-white/40 text-xs ml-2">({bulkImportTargetUser?.email})</span>
+                </div>
+                <button onClick={resetBulkImport} className="ml-auto text-white/40 hover:text-white/70 text-xs">Change user</button>
+              </div>
+              {bulkImportLoadingShows ? (
+                <div className="flex items-center justify-center py-12 text-white/40">
+                  <RefreshCw className="w-5 h-5 animate-spin mr-3" />
+                  Loading existing shows for duplicate detection...
+                </div>
+              ) : (
+                <>
+                  <div
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleBulkImportFile(f); }}
+                    onClick={() => document.getElementById('bulk-import-file-input').click()}
+                    className="border-2 border-dashed border-white/20 hover:border-white/40 rounded-2xl p-12 text-center cursor-pointer transition-all"
+                  >
+                    <Upload className="w-12 h-12 mx-auto mb-4 text-white/30" />
+                    <p className="text-lg font-medium text-white mb-2">Drag & drop your file here</p>
+                    <p className="text-white/50 mb-4">or click to browse</p>
+                    <p className="text-white/30 text-sm">Supports .csv, .xlsx, .xls</p>
+                    <input id="bulk-import-file-input" type="file" accept=".csv,.xlsx,.xls" onChange={e => { const f = e.target.files[0]; if (f) handleBulkImportFile(f); }} className="hidden" />
+                  </div>
+                  <p className="text-white/30 text-xs mt-3">Target user has {bulkImportTargetShows.length} existing show{bulkImportTargetShows.length !== 1 ? 's' : ''} (used for duplicate detection)</p>
+                </>
+              )}
+              {bulkImportError && (
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-300 text-sm">{bulkImportError}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Column Mapping */}
+          {bulkImportStep === 'mapping' && (
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+              <div className="flex items-center gap-3 mb-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                <User className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <span className="text-white font-medium text-sm">Importing for: </span>
+                  <span className="text-emerald-400 font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Map Your Columns</h3>
+              <p className="text-white/50 text-sm mb-6">{bulkImportHeaders.length} columns detected from {bulkImportFileName} &middot; {bulkImportRawData.length} data row{bulkImportRawData.length !== 1 ? 's' : ''}</p>
+              <div className="space-y-4 mb-8">
+                {IMPORT_FIELDS.map(field => (
+                  <div key={field.key} className="flex items-center gap-4">
+                    <label className="w-28 text-sm text-white/80 flex items-center gap-1">
+                      {field.label}{field.required && <span className="text-red-400">*</span>}
+                    </label>
+                    <select
+                      value={bulkImportMapping[field.key] !== undefined ? bulkImportMapping[field.key] : ''}
+                      onChange={e => setBulkImportMapping(prev => ({ ...prev, [field.key]: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                      className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 [&>option]:bg-slate-800"
+                    >
+                      <option value="">-- Skip --</option>
+                      {bulkImportHeaders.map((h, i) => (<option key={i} value={i}>{h || `Column ${i + 1}`}</option>))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setBulkImportStep('upload')} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors">Back</button>
+                <button
+                  onClick={() => {
+                    const missing = IMPORT_FIELDS.filter(f => f.required && bulkImportMapping[f.key] === undefined).map(f => f.label);
+                    if (missing.length > 0) { setBulkImportError(`Map required columns: ${missing.join(', ')}`); return; }
+                    setBulkImportError(null);
+                    setBulkImportPreviewRows(buildBulkImportPreview());
+                    setBulkImportStep('preview');
+                  }}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25"
+                >Preview Import</button>
+              </div>
+              {bulkImportError && (
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-300 text-sm">{bulkImportError}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Preview */}
+          {bulkImportStep === 'preview' && (() => {
+            const validRows = bulkImportPreviewRows.filter(r => r.errors.length === 0);
+            const errorRows = bulkImportPreviewRows.filter(r => r.errors.length > 0);
+            const duplicateRows = validRows.filter(r => r.isDuplicate);
+            const importableRows = validRows.filter(r => !r.isDuplicate);
+            return (
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+                <div className="flex items-center gap-3 mb-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                  <User className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <span className="text-white font-medium text-sm">Importing for: </span>
+                    <span className="text-emerald-400 font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                    <span className="text-white/40 text-xs ml-2">({bulkImportTargetUser?.email})</span>
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Review Import</h3>
+                <p className="text-white/50 text-sm mb-4">{bulkImportPreviewRows.length} rows from {bulkImportFileName}</p>
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <span className="px-3 py-1.5 bg-emerald-500/15 text-emerald-400 rounded-lg text-sm font-medium">{importableRows.length} ready to import</span>
+                  {errorRows.length > 0 && <span className="px-3 py-1.5 bg-red-500/15 text-red-400 rounded-lg text-sm font-medium">{errorRows.length} with errors</span>}
+                  {duplicateRows.length > 0 && <span className="px-3 py-1.5 bg-amber-500/15 text-amber-400 rounded-lg text-sm font-medium">{duplicateRows.length} duplicate{duplicateRows.length !== 1 ? 's' : ''} (will skip)</span>}
+                </div>
+                <div className="overflow-x-auto mb-6 max-h-96 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-slate-800/95">
+                      <tr className="border-b border-white/10">
+                        <th className="text-left px-3 py-2 text-white/60 font-medium w-8">#</th>
+                        <th className="text-left px-3 py-2 text-white/60 font-medium">Artist</th>
+                        <th className="text-left px-3 py-2 text-white/60 font-medium">Venue</th>
+                        <th className="text-left px-3 py-2 text-white/60 font-medium">Date</th>
+                        <th className="text-left px-3 py-2 text-white/60 font-medium">City</th>
+                        <th className="text-left px-3 py-2 text-white/60 font-medium w-24">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bulkImportPreviewRows.map((row, i) => (
+                        <tr key={i} className={`border-b border-white/5 ${row.errors.length > 0 ? 'bg-red-500/5' : row.isDuplicate ? 'bg-amber-500/5' : ''}`}>
+                          <td className="px-3 py-2 text-white/40">{i + 1}</td>
+                          <td className="px-3 py-2 text-white/80">{row.raw.artist || '—'}</td>
+                          <td className="px-3 py-2 text-white/80">{row.raw.venue || '—'}</td>
+                          <td className="px-3 py-2 text-white/80">{row.parsedDate ? formatDate(row.parsedDate) : <span className="text-red-400">{row.raw.date || '—'}</span>}</td>
+                          <td className="px-3 py-2 text-white/60">{row.raw.city || '—'}</td>
+                          <td className="px-3 py-2">
+                            {row.errors.length > 0 ? (
+                              <Tip text={row.errors.join(', ')}><span className="text-red-400 text-xs flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />Error</span></Tip>
+                            ) : row.isDuplicate ? (
+                              <span className="text-amber-400 text-xs">Duplicate</span>
+                            ) : (
+                              <span className="text-emerald-400 text-xs"><Check className="w-4 h-4 inline" /></span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {bulkImportError && (
+                  <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-red-300 text-sm">{bulkImportError}</p>
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <button onClick={() => setBulkImportStep('mapping')} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors">Back</button>
+                  <button
+                    onClick={handleBulkImportExecute}
+                    disabled={importableRows.length === 0}
+                    className={`px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg ${importableRows.length > 0 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-emerald-500/25' : 'bg-white/5 text-white/30 cursor-not-allowed shadow-none'}`}
+                  >
+                    Import {importableRows.length} Show{importableRows.length !== 1 ? 's' : ''} for {(bulkImportTargetUser?.firstName || bulkImportTargetUser?.displayName || 'User').split(' ')[0]}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Step 5: Importing */}
+          {bulkImportStep === 'importing' && (
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Importing Shows...</h3>
+              <p className="text-white/50">Writing shows to {(bulkImportTargetUser?.firstName || bulkImportTargetUser?.displayName || 'user').split(' ')[0]}'s profile</p>
+            </div>
+          )}
+
+          {/* Step 6: Complete */}
+          {bulkImportStep === 'complete' && bulkImportProgress && (
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Check className="w-8 h-8 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Import Complete</h3>
+              <div className="flex justify-center gap-6 mb-6">
+                <div>
+                  <div className="text-2xl font-bold text-emerald-400">{bulkImportProgress.imported}</div>
+                  <div className="text-xs text-white/50">Imported</div>
+                </div>
+                {bulkImportProgress.duplicatesSkipped > 0 && (
+                  <div>
+                    <div className="text-2xl font-bold text-amber-400">{bulkImportProgress.duplicatesSkipped}</div>
+                    <div className="text-xs text-white/50">Duplicates Skipped</div>
+                  </div>
+                )}
+              </div>
+              <p className="text-white/40 text-sm mb-6">Shows imported to {bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}'s profile</p>
+              <button onClick={resetBulkImport} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+                Import More
+              </button>
+            </div>
           )}
         </div>
       )}
