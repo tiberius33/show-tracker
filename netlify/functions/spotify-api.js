@@ -9,9 +9,9 @@ const CORS_HEADERS = {
 
 function friendlySpotifyError(statusCode, rawMessage, context) {
   if (statusCode === 403) {
-    return 'Spotify access denied. Your account may need to be added as a test user in the Spotify Developer Dashboard.';
+    return `Spotify access denied during "${context}". Ensure your account is added as a test user in the Spotify Developer Dashboard and you have accepted the email invitation.`;
   }
-  return rawMessage || `Spotify returned ${statusCode}${context ? ` (${context})` : ''}`;
+  return `${rawMessage || `Spotify error ${statusCode}`} (during ${context})`;
 }
 
 // --- Promisified HTTPS request to Spotify API ---
@@ -105,6 +105,7 @@ exports.handler = async function (event) {
       }
       if (statusCode < 200 || statusCode >= 300) {
         const raw = body?.error?.message || body?.error;
+        console.error('Spotify getMe error:', statusCode, JSON.stringify(body));
         const msg = friendlySpotifyError(statusCode, raw, 'get user');
         return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
@@ -141,6 +142,7 @@ exports.handler = async function (event) {
       }
       if (statusCode < 200 || statusCode >= 300) {
         const raw = body?.error?.message || body?.error;
+        console.error('Spotify search error:', statusCode, JSON.stringify(body));
         const msg = friendlySpotifyError(statusCode, raw, 'search');
         return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
