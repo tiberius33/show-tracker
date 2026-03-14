@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '2.2.1',
+      date: 'March 14, 2026',
+      title: 'Playlist Creation Bug Fix',
+      changes: [
+        'Fixed: Spotify playlist creation no longer fails with "Missing playlistId or trackUris" error',
+        'Improved: Spotify API proxy now properly handles and surfaces non-success responses',
+        'Added: Defensive validation for playlist ID before attempting to add tracks',
+      ]
+    },
+    {
       version: '2.2.0',
       date: 'March 14, 2026',
       title: 'Create Playlists on Spotify & Apple Music',

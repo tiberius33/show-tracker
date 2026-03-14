@@ -94,6 +94,10 @@ exports.handler = async function (event) {
       if (statusCode === 401) {
         return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
       }
+      if (statusCode < 200 || statusCode >= 300) {
+        const msg = body?.error?.message || body?.error || `Spotify returned ${statusCode}`;
+        return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
+      }
       return {
         statusCode: 200,
         headers: CORS_HEADERS,
@@ -124,6 +128,10 @@ exports.handler = async function (event) {
       }
       if (statusCode === 401) {
         return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
+      }
+      if (statusCode < 200 || statusCode >= 300) {
+        const msg = body?.error?.message || body?.error || `Spotify search returned ${statusCode}`;
+        return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
 
       const tracks = (body.tracks?.items || []).map(t => ({
@@ -166,6 +174,11 @@ exports.handler = async function (event) {
       if (statusCode === 401) {
         return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
       }
+      if (statusCode < 200 || statusCode >= 300) {
+        const msg = body?.error?.message || body?.error || `Spotify returned ${statusCode} creating playlist`;
+        console.error('Spotify createPlaylist error:', statusCode, JSON.stringify(body));
+        return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
+      }
 
       return {
         statusCode: 200,
@@ -205,6 +218,11 @@ exports.handler = async function (event) {
         }
         if (statusCode === 401) {
           return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
+        }
+        if (statusCode < 200 || statusCode >= 300) {
+          const msg = body?.error?.message || body?.error || `Spotify returned ${statusCode} adding tracks`;
+          console.error('Spotify addTracks error:', statusCode, JSON.stringify(body));
+          return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
         }
         snapshotId = body.snapshot_id;
       }

@@ -168,6 +168,10 @@ function PlaylistCreatorModal({ show, onClose }) {
 
       const playlist = await createSpotifyPlaylist(user.id, playlistName, description);
 
+      if (!playlist?.id) {
+        throw new Error('Failed to create playlist — no playlist ID returned from Spotify.');
+      }
+
       if (trackUris.length > 0) {
         await addTracksToPlaylist(playlist.id, trackUris);
       }
