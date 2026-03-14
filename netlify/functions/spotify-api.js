@@ -191,7 +191,7 @@ exports.handler = async function (event) {
         const raw = body?.error?.message || body?.error;
         const msg = friendlySpotifyError(statusCode, raw, 'create playlist');
         console.error('Spotify createPlaylist error:', statusCode, JSON.stringify(body));
-        return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
+        return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg, spotifyStatus: statusCode, spotifyError: body?.error }) };
       }
 
       return {
