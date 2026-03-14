@@ -6,6 +6,32 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.36',
+      date: 'March 14, 2026',
+      title: 'Artist & Venue Info from Wikipedia',
+      changes: [
+        'New: "About [Artist]" collapsible panel in show detail view — see Wikipedia summary, image, and link',
+        'New: "About [Venue]" collapsible panel with city disambiguation for accurate results',
+        'New: Netlify function proxies Wikipedia API with 7-day Firestore cache',
+        'Info panels load lazily — only fetches when you expand, and caches for instant re-access',
+        'Graceful handling when no Wikipedia article exists',
+      ]
+    },
+    {
+      version: '1.0.35',
+      date: 'March 14, 2026',
+      title: 'Next.js 14 Migration',
+      changes: [
+        'Migrated from Create React App to Next.js 14 App Router with file-based routing',
+        'Real URL routes replace query-parameter navigation (e.g., /stats, /friends, /search)',
+        'Native SEO metadata on every page via Next.js metadata API',
+        'New: Shareable collection links at /shared/[id] with server-rendered previews and JSON-LD structured data',
+        'New: Dynamic artist page metadata for better search engine previews',
+        'Updated sitemap.xml and robots.txt for improved crawlability',
+        'PWA support preserved — install prompt, manifest, and service worker continue to work',
+      ]
+    },
+    {
       version: '1.0.34',
       date: 'March 14, 2026',
       title: 'SEO & Discoverability Improvements',
