@@ -115,6 +115,7 @@ exports.handler = async function (event) {
         };
       }
 
+      console.log('Spotify token exchange success — scopes:', body.scope);
       return {
         statusCode: 200,
         headers: CORS_HEADERS,
@@ -123,6 +124,7 @@ exports.handler = async function (event) {
           refresh_token: body.refresh_token,
           expires_in: body.expires_in,
           token_type: body.token_type,
+          scope: body.scope,
         }),
       };
     }
