@@ -6,6 +6,7 @@ import { formatDate, artistColor } from '@/lib/utils';
 import RatingSelect from '@/components/ui/RatingSelect';
 import Tip from '@/components/ui/Tip';
 import UpcomingShows from '@/components/UpcomingShows';
+import EntityInfoPanel from '@/components/EntityInfoPanel';
 
 function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onTagFriends, onRateVenue, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations }) {
   const [songName, setSongName] = useState('');
@@ -216,6 +217,12 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Wikipedia info panels */}
+            <EntityInfoPanel name={show.artist} type="artist" />
+            {show.venue && (
+              <EntityInfoPanel name={show.venue} type="venue" city={show.city} />
             )}
 
             {/* Add song form */}
