@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { formatDate } from '@/lib/utils';
 import ShowForm from '@/components/ShowForm';
 import SetlistEditor from '@/components/SetlistEditor';
 import TagFriendsModal from '@/components/TagFriendsModal';
+import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import {
@@ -36,6 +38,8 @@ export default function ShowsPage() {
     openMemories, addSharedComment, editSharedComment, deleteSharedComment,
     pendingTagsForReview, acceptPendingEmailTag, declinePendingEmailTag,
   } = useApp();
+
+  const [playlistShow, setPlaylistShow] = useState(null);
 
   if (isLoading) {
     return <ShowsListSkeleton />;
@@ -386,6 +390,7 @@ export default function ShowsPage() {
                 onCommentShow={(comment) => updateShowComment(selectedShow.id, comment)}
                 onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
                 onClose={() => setSelectedShow(null)}
+                onCreatePlaylist={(show) => setPlaylistShow(show)}
                 onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
                 onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
                 confirmedSuggestion={confirmedSuggestion || null}
@@ -409,6 +414,14 @@ export default function ShowsPage() {
               onTag={(selectedFriendUids) => tagFriendsAtShow(tagFriendsShow, selectedFriendUids)}
               onInviteByEmail={(params) => tagFriendByEmail({ ...params, show: tagFriendsShow })}
               onClose={() => setTagFriendsShow(null)}
+            />
+          )}
+
+          {/* Playlist creator modal */}
+          {playlistShow && (
+            <PlaylistCreatorModal
+              show={playlistShow}
+              onClose={() => setPlaylistShow(null)}
             />
           )}
         </>

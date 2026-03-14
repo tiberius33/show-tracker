@@ -6,7 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '1.0.36',
+      version: '2.2.0',
+      date: 'March 14, 2026',
+      title: 'Create Playlists on Spotify & Apple Music',
+      changes: [
+        'New: "Create Playlist" button in show detail view — turn any setlist into a streaming playlist',
+        'New: Spotify integration with secure OAuth login — creates a playlist with your setlist songs in one tap',
+        'New: Apple Music integration via MusicKit — add setlist playlists directly to your library',
+        'Smart song matching handles covers, jam annotations, and song name variations',
+        'Results screen shows matched/unmatched songs with a direct link to your new playlist',
+        'Playlist auto-named "[Artist] - [Venue] [Date]" with show details in the description',
+      ]
+    },
+    {
+      version: '2.1.0',
       date: 'March 14, 2026',
       title: 'Artist & Venue Info from Wikipedia',
       changes: [
@@ -18,7 +31,7 @@ function ReleaseNotesView() {
       ]
     },
     {
-      version: '1.0.35',
+      version: '2.0.0',
       date: 'March 14, 2026',
       title: 'Next.js 14 Migration',
       changes: [
