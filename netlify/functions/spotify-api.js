@@ -5,6 +5,15 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
 };
 
+// --- Friendly error messages for common Spotify status codes ---
+
+function friendlySpotifyError(statusCode, rawMessage, context) {
+  if (statusCode === 403) {
+    return 'Spotify access denied. Your account may need to be added as a test user in the Spotify Developer Dashboard.';
+  }
+  return rawMessage || `Spotify returned ${statusCode}${context ? ` (${context})` : ''}`;
+}
+
 // --- Promisified HTTPS request to Spotify API ---
 
 function spotifyRequest(method, path, accessToken, body) {
@@ -95,7 +104,8 @@ exports.handler = async function (event) {
         return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
       }
       if (statusCode < 200 || statusCode >= 300) {
-        const msg = body?.error?.message || body?.error || `Spotify returned ${statusCode}`;
+        const raw = body?.error?.message || body?.error;
+        const msg = friendlySpotifyError(statusCode, raw, 'get user');
         return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
       return {
@@ -130,7 +140,8 @@ exports.handler = async function (event) {
         return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
       }
       if (statusCode < 200 || statusCode >= 300) {
-        const msg = body?.error?.message || body?.error || `Spotify search returned ${statusCode}`;
+        const raw = body?.error?.message || body?.error;
+        const msg = friendlySpotifyError(statusCode, raw, 'search');
         return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
 
@@ -175,7 +186,8 @@ exports.handler = async function (event) {
         return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
       }
       if (statusCode < 200 || statusCode >= 300) {
-        const msg = body?.error?.message || body?.error || `Spotify returned ${statusCode} creating playlist`;
+        const raw = body?.error?.message || body?.error;
+        const msg = friendlySpotifyError(statusCode, raw, 'create playlist');
         console.error('Spotify createPlaylist error:', statusCode, JSON.stringify(body));
         return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
@@ -220,7 +232,8 @@ exports.handler = async function (event) {
           return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Token expired' }) };
         }
         if (statusCode < 200 || statusCode >= 300) {
-          const msg = body?.error?.message || body?.error || `Spotify returned ${statusCode} adding tracks`;
+          const raw = body?.error?.message || body?.error;
+          const msg = friendlySpotifyError(statusCode, raw, 'add tracks');
           console.error('Spotify addTracks error:', statusCode, JSON.stringify(body));
           return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
         }
