@@ -5,7 +5,7 @@ import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverT
 import { logEvent } from 'firebase/analytics';
 import { auth, db, googleProvider, analytics } from './firebase';
 import { Link, useSearchParams, useNavigate, useParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import SEOHead from './components/SEOHead';
 import Footer from './Footer';
 import AuthModal from './components/auth/AuthModal';
 import ProfileView from './components/profile/ProfileView';
@@ -2416,6 +2416,22 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '1.0.34',
+      date: 'March 14, 2026',
+      title: 'SEO & Discoverability Improvements',
+      changes: [
+        'New: Reusable SEOHead component for consistent meta tags across all pages',
+        'New: Dynamic page titles and Open Graph tags on show detail views',
+        'New: JSON-LD MusicEvent structured data on show detail views (schema.org)',
+        'New: Netlify _headers file to allow indexing on public pages and block on private routes',
+        'New: Google Search Console verification placeholder in index.html',
+        'Updated: Default homepage title and description for better search visibility',
+        'Updated: sitemap.xml now includes /roadmap route',
+        'Updated: robots.txt with explicit allow/disallow rules and /.netlify/ exclusion',
+        'Updated: Twitter Card and Open Graph fallback tags in index.html',
+      ]
+    },
     {
       version: '1.0.33',
       date: 'March 12, 2026',
@@ -7073,13 +7089,11 @@ export default function ShowTracker() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <Helmet>
-        <title>{currentMeta.title}</title>
-        <meta name="description" content={currentMeta.description} />
-        <meta property="og:title" content={currentMeta.title} />
-        <meta property="og:description" content={currentMeta.description} />
-        <meta property="og:url" content="https://mysetlists.net/" />
-      </Helmet>
+      <SEOHead
+        title={currentMeta.title}
+        description={currentMeta.description}
+        canonicalUrl="https://mysetlists.net/"
+      />
 
       {/* Migration Prompt Modal */}
       {showMigrationPrompt && (
@@ -8536,8 +8550,28 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
     return map;
   }, [friendAnnotations]);
 
+  const showSeoTitle = `${show.artist} at ${show.venue} — ${formatDate(show.date)} | MySetlists`;
+  const showSeoDesc = `Setlist and details for ${show.artist} at ${show.venue}${show.city ? `, ${show.city}` : ''} on ${formatDate(show.date)}.${show.tour ? ` ${show.tour}.` : ''} Tracked on MySetlists.`;
+
   return (
     <div className="fixed inset-0 md:left-64 bg-black/60 backdrop-blur-xl flex items-end md:items-center justify-center md:p-4 z-[60]">
+      <SEOHead title={showSeoTitle} description={showSeoDesc}>
+        <script type="application/ld+json">{JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'MusicEvent',
+          name: `${show.artist} live`,
+          startDate: show.date,
+          location: {
+            '@type': 'Place',
+            name: show.venue,
+            ...(show.city ? { address: { '@type': 'PostalAddress', addressLocality: show.city } } : {}),
+          },
+          performer: {
+            '@type': 'MusicGroup',
+            name: show.artist,
+          },
+        })}</script>
+      </SEOHead>
       <div className="bg-slate-900 border border-white/10 rounded-t-2xl md:rounded-3xl max-w-[100vw] sm:max-w-lg md:max-w-2xl w-full max-h-[92vh] md:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         {/* Compact top bar with close, share, and tag */}
         <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/10 bg-slate-900 flex-shrink-0">
@@ -12245,14 +12279,11 @@ export function PublicRoadmapPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDesc} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDesc} />
-        <meta property="og:url" content="https://mysetlists.net/roadmap" />
-        <link rel="canonical" href="https://mysetlists.net/roadmap" />
-      </Helmet>
+      <SEOHead
+        title={pageTitle}
+        description={pageDesc}
+        canonicalUrl="https://mysetlists.net/roadmap"
+      />
 
       {/* Header */}
       <header className="border-b border-white/10 bg-slate-950/50 backdrop-blur-xl">
@@ -12388,14 +12419,11 @@ export function PublicArtistPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <Helmet>
-        <title>{ogTitle}</title>
-        <meta name="description" content={ogDescription} />
-        <meta property="og:title" content={ogTitle} />
-        <meta property="og:description" content={ogDescription} />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:type" content="website" />
-        <link rel="canonical" href={canonicalUrl} />
+      <SEOHead
+        title={ogTitle}
+        description={ogDescription}
+        canonicalUrl={canonicalUrl}
+      >
         {stats && (
           <script type="application/ld+json">{JSON.stringify({
             '@context': 'https://schema.org',
@@ -12405,7 +12433,7 @@ export function PublicArtistPage() {
             description: ogDescription,
           })}</script>
         )}
-      </Helmet>
+      </SEOHead>
 
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Header */}

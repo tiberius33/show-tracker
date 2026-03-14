@@ -1,0 +1,23 @@
+# ── Default: block indexing on all paths ──────────────────────
+# Netlify matches top-to-bottom; more-specific paths below override.
+/*
+  X-Robots-Tag: noindex, nofollow
+
+# ── Public pages: allow indexing ──────────────────────────────
+/
+  X-Robots-Tag: index, follow
+
+/artist/*
+  X-Robots-Tag: index, follow
+
+/roadmap
+  X-Robots-Tag: index, follow
+
+/privacy
+  X-Robots-Tag: index, follow
+
+/terms
+  X-Robots-Tag: index, follow
+
+/cookies
+  X-Robots-Tag: index, follow
