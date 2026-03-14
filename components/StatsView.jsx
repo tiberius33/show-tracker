@@ -5,6 +5,7 @@ import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSq
 import { formatDate, parseDate, artistColor, avgSongRating } from '@/lib/utils';
 import SongStatsRow from '@/components/SongStatsRow';
 import SetlistEditor from '@/components/SetlistEditor';
+import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
 function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onRateVenue, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
   const [tab, setTab] = useState(initialTab || 'years');
@@ -16,6 +17,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
   const [expandedYear, setExpandedYear] = useState(null);
   const [expandedShow, setExpandedShow] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
+  const [playlistShow, setPlaylistShow] = useState(null);
   const [venueRatingsMap, setVenueRatingsMap] = useState({}); // venueKey -> aggregate | null
 
   useEffect(() => {
@@ -654,6 +656,14 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           onCommentShow={(comment) => onCommentShow(selectedShow.id, comment)}
           onBatchRate={(rating) => onBatchRate(selectedShow.id, rating)}
           onClose={() => setSelectedShow(null)}
+          onCreatePlaylist={(show) => setPlaylistShow(show)}
+        />
+      )}
+
+      {playlistShow && (
+        <PlaylistCreatorModal
+          show={playlistShow}
+          onClose={() => setPlaylistShow(null)}
         />
       )}
     </div>
