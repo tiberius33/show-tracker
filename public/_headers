@@ -21,3 +21,6 @@
 
 /cookies
   X-Robots-Tag: index, follow
+
+/shared/*
+  X-Robots-Tag: index, follow
