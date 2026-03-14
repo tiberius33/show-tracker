@@ -5,7 +5,7 @@ import { X, Check, AlertTriangle, ExternalLink, Music, ChevronDown, Loader2 } fr
 import {
   generateCodeVerifier, generateCodeChallenge, buildSpotifyAuthUrl,
   storeCodeVerifier, getCodeVerifier, storePlaylistContext,
-  exchangeCodeForTokens, getAccessToken,
+  exchangeCodeForTokens, getAccessToken, getGrantedScopes, hasPlaylistScopes,
   getSpotifyUser, searchSpotifyTrack, createSpotifyPlaylist, addTracksToPlaylist,
   clearSpotifySession,
 } from '@/lib/spotify';
@@ -107,6 +107,16 @@ function PlaylistCreatorModal({ show, onClose }) {
     setProgress({ current: 0, total: songs.length, matches: [] });
 
     try {
+      // Verify scopes before proceeding
+      const scopes = getGrantedScopes();
+      console.log('[Playlist] Granted Spotify scopes:', scopes);
+      if (!hasPlaylistScopes()) {
+        throw new Error(
+          `Spotify did not grant playlist permissions. Granted scopes: "${scopes || 'none'}". ` +
+          'Try removing MySetlists from your Spotify account (spotify.com/account/apps) and connecting again.'
+        );
+      }
+
       // Get user ID
       const user = await getSpotifyUser();
 
@@ -166,7 +176,7 @@ function PlaylistCreatorModal({ show, onClose }) {
       const trackUris = matches.map(m => m.trackUri).filter(Boolean);
       const description = buildPlaylistDescription(show);
 
-      const playlist = await createSpotifyPlaylist(user.id, playlistName, description);
+      const playlist = await createSpotifyPlaylist(user.id, playlistName, description, false);
 
       if (!playlist?.id) {
         throw new Error('Failed to create playlist — no playlist ID returned from Spotify.');
