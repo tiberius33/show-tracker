@@ -23,9 +23,6 @@ export const metadata = {
     description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
     images: ['/og-image.svg'],
   },
-  verification: {
-    google: 'PASTE_YOUR_VERIFICATION_CODE_HERE',
-  },
   icons: {
     icon: '/favicon.svg',
     apple: '/icon-192.png',
