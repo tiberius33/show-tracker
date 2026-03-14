@@ -3,6 +3,8 @@ node_modules/
 
 # Production build
 build/
+.next/
+out/
 
 # Environment variables
 .env

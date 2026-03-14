@@ -5,6 +5,7 @@ Allow: /artist/
 Allow: /privacy
 Allow: /terms
 Allow: /cookies
+Allow: /shared/
 Disallow: /admin
 Disallow: /.netlify/
 
