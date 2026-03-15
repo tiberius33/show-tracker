@@ -18,13 +18,63 @@ function generateDeveloperToken() {
     throw new Error('Apple Music credentials not configured');
   }
 
+  // Diagnostic logging (safe — no key content exposed)
+  console.log('[APPLE MUSIC] Key ID:', keyId);
+  console.log('[APPLE MUSIC] Team ID:', teamId);
+  console.log('[APPLE MUSIC] Raw key length:', privateKeyPem.length);
+  console.log('[APPLE MUSIC] Raw key first 30 chars:', privateKeyPem.substring(0, 30));
+  console.log('[APPLE MUSIC] Raw key last 30 chars:', privateKeyPem.substring(privateKeyPem.length - 30));
+  console.log('[APPLE MUSIC] Contains literal \\n:', privateKeyPem.includes('\\n'));
+  console.log('[APPLE MUSIC] Contains real newlines:', privateKeyPem.includes('\n'));
+  console.log('[APPLE MUSIC] Contains -----BEGIN:', privateKeyPem.includes('-----BEGIN'));
+
   // Handle both literal \n strings and actual newlines in env var
   privateKeyPem = privateKeyPem.replace(/\\n/g, '\n');
 
-  // Ensure PEM headers are present
-  if (!privateKeyPem.includes('-----BEGIN')) {
-    privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${privateKeyPem}\n-----END PRIVATE KEY-----`;
+  // Some env var UIs store as a single line with spaces instead of newlines
+  // Apple .p8 files use "-----BEGIN PRIVATE KEY-----" header
+  // Try to detect and fix common formatting issues:
+
+  // 1. If key has no newlines and no headers, it's raw base64
+  // 2. If key has headers but no newlines between them and the body, fix that
+  // 3. If key uses EC PRIVATE KEY header instead of PRIVATE KEY, convert
+
+  // Strip any surrounding quotes that might have been included
+  privateKeyPem = privateKeyPem.replace(/^["']|["']$/g, '');
+
+  // Handle the case where the entire PEM is on one line with spaces
+  if (!privateKeyPem.includes('\n') && privateKeyPem.includes('-----BEGIN')) {
+    // Replace spaces between PEM sections with newlines
+    privateKeyPem = privateKeyPem
+      .replace(/-----BEGIN (EC )?PRIVATE KEY----- ?/, '-----BEGIN PRIVATE KEY-----\n')
+      .replace(/ ?-----END (EC )?PRIVATE KEY-----/, '\n-----END PRIVATE KEY-----');
+    // The base64 body might have spaces — remove them
+    const lines = privateKeyPem.split('\n');
+    if (lines.length === 3) {
+      lines[1] = lines[1].replace(/ /g, '');
+      privateKeyPem = lines.join('\n');
+    }
   }
+
+  // Normalize EC PRIVATE KEY to PRIVATE KEY (Apple .p8 files are PKCS#8)
+  privateKeyPem = privateKeyPem.replace('-----BEGIN EC PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----');
+  privateKeyPem = privateKeyPem.replace('-----END EC PRIVATE KEY-----', '-----END PRIVATE KEY-----');
+
+  // Ensure PEM headers are present (raw base64 without headers)
+  if (!privateKeyPem.includes('-----BEGIN')) {
+    // Clean any whitespace/newlines from the raw base64
+    const cleanBase64 = privateKeyPem.replace(/\s+/g, '');
+    privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${cleanBase64}\n-----END PRIVATE KEY-----`;
+  }
+
+  // Ensure there are newlines after header and before footer
+  privateKeyPem = privateKeyPem
+    .replace(/(-----BEGIN PRIVATE KEY-----)([^\n])/, '$1\n$2')
+    .replace(/([^\n])(-----END PRIVATE KEY-----)/, '$1\n$2');
+
+  console.log('[APPLE MUSIC] Processed key first 50 chars:', privateKeyPem.substring(0, 50));
+  console.log('[APPLE MUSIC] Processed key length:', privateKeyPem.length);
+  console.log('[APPLE MUSIC] Processed key line count:', privateKeyPem.split('\n').length);
 
   // JWT Header
   const header = {
@@ -53,10 +103,20 @@ function generateDeveloperToken() {
   const signingInput = `${headerB64}.${payloadB64}`;
 
   // Parse the private key explicitly as PKCS#8 PEM
-  const privateKey = crypto.createPrivateKey({
-    key: privateKeyPem,
-    format: 'pem',
-  });
+  let privateKey;
+  try {
+    privateKey = crypto.createPrivateKey({
+      key: privateKeyPem,
+      format: 'pem',
+    });
+    console.log('[APPLE MUSIC] Private key parsed successfully, type:', privateKey.asymmetricKeyType);
+  } catch (keyErr) {
+    console.error('[APPLE MUSIC] Failed to parse private key:', keyErr.message);
+    console.error('[APPLE MUSIC] Key starts with:', privateKeyPem.substring(0, 60));
+    console.error('[APPLE MUSIC] Key ends with:', privateKeyPem.substring(privateKeyPem.length - 60));
+    console.error('[APPLE MUSIC] Key lines:', privateKeyPem.split('\n').map((l, i) => `  line ${i}: len=${l.length} "${l.substring(0, 20)}..."`).join('\n'));
+    throw new Error(`Failed to parse Apple Music private key: ${keyErr.message}. Check that APPLE_MUSIC_PRIVATE_KEY contains the full .p8 file contents.`);
+  }
 
   // Sign with ES256 (ECDSA using P-256 and SHA-256)
   const sign = crypto.createSign('SHA256');
