@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
 import RatingSelect from '@/components/ui/RatingSelect';
 import Tip from '@/components/ui/Tip';
 import UpcomingShows from '@/components/UpcomingShows';
@@ -20,6 +21,23 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const [newMemoryText, setNewMemoryText] = useState('');
   const [editingMemoryId, setEditingMemoryId] = useState(null);
   const [editingMemoryText, setEditingMemoryText] = useState('');
+  const [showPlaylistTip, setShowPlaylistTip] = useState(false);
+
+  // Show playlist tooltip for users who haven't seen it yet
+  useEffect(() => {
+    if (show.setlist?.length > 0 && onCreatePlaylist) {
+      const seen = storage.get(STORAGE_KEYS.PLAYLIST_TOOLTIP_SEEN);
+      if (!seen) {
+        const timer = setTimeout(() => setShowPlaylistTip(true), 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [show.setlist, onCreatePlaylist]);
+
+  const dismissPlaylistTip = () => {
+    setShowPlaylistTip(false);
+    storage.set(STORAGE_KEYS.PLAYLIST_TOOLTIP_SEEN, '1');
+  };
 
   const handleShare = async () => {
     const setlistText = show.setlist.map((song, i) => `${i + 1}. ${song.name}${song.rating ? ` (${song.rating}/10)` : ''}`).join('\n');
@@ -125,14 +143,43 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               </button>
             </Tip>
             {show.setlist?.length > 0 && onCreatePlaylist && (
-              <Tip text="Create playlist">
-                <button
-                  onClick={() => onCreatePlaylist(show)}
-                  className="p-3 rounded-xl text-white/50 hover:text-emerald-400 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors"
-                >
-                  <ListMusic className="w-6 h-6" />
-                </button>
-              </Tip>
+              <div className="relative">
+                <Tip text={showPlaylistTip ? '' : 'Create playlist'}>
+                  <button
+                    onClick={() => {
+                      dismissPlaylistTip();
+                      onCreatePlaylist(show);
+                    }}
+                    className={`p-3 rounded-xl text-white/50 hover:text-emerald-400 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors ${showPlaylistTip ? 'ring-2 ring-emerald-500/60 ring-offset-2 ring-offset-slate-900' : ''}`}
+                  >
+                    <ListMusic className="w-6 h-6" />
+                  </button>
+                </Tip>
+                {showPlaylistTip && (
+                  <>
+                    {/* Desktop: tooltip below the button */}
+                    <div className="hidden md:block absolute top-full mt-2 right-0 w-60 z-20 animate-in">
+                      <div className="bg-emerald-600 border border-emerald-400/30 rounded-xl p-3 shadow-xl shadow-emerald-500/20 relative">
+                        <div className="absolute -top-2 right-4 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-emerald-600" />
+                        <p className="text-white text-xs leading-relaxed mb-2">
+                          Create a Spotify or Apple Music playlist from this setlist with one tap!
+                        </p>
+                        <button onClick={dismissPlaylistTip} className="text-emerald-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                      </div>
+                    </div>
+                    {/* Mobile: tooltip below the button */}
+                    <div className="md:hidden absolute top-full mt-2 right-0 w-56 z-20 animate-in-mobile">
+                      <div className="bg-emerald-600 border border-emerald-400/30 rounded-xl p-3 shadow-xl shadow-emerald-500/20 relative">
+                        <div className="absolute -top-2 right-4 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-emerald-600" />
+                        <p className="text-white text-xs leading-relaxed mb-2">
+                          Create a Spotify or Apple Music playlist from this setlist!
+                        </p>
+                        <button onClick={dismissPlaylistTip} className="text-emerald-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
             <button onClick={onClose} className="p-3 rounded-xl text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors">
               <X className="w-6 h-6" />
