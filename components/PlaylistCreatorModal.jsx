@@ -24,16 +24,17 @@ function PlaylistCreatorModal({ show, onClose }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [unmatchedOpen, setUnmatchedOpen] = useState(false);
-  const callbackListenerRef = useRef(null);
+  const channelRef = useRef(null);
 
   const songs = getPlayableSongs(show.setlist);
   const playlistName = buildPlaylistName(show);
 
-  // Clean up message listener on unmount
+  // Clean up BroadcastChannel and message listener on unmount
   useEffect(() => {
     return () => {
-      if (callbackListenerRef.current) {
-        window.removeEventListener('message', callbackListenerRef.current);
+      if (channelRef.current) {
+        channelRef.current.close();
+        channelRef.current = null;
       }
     };
   }, []);
@@ -64,26 +65,27 @@ function PlaylistCreatorModal({ show, onClose }) {
         return;
       }
 
-      // Listen for the callback message from the popup
-      const handleMessage = async (event) => {
-        if (event.origin !== window.location.origin) return;
-        if (event.data?.type !== 'spotify-callback') return;
+      // Listen for the callback via BroadcastChannel (reliable across cross-origin popup navigations)
+      const channel = new BroadcastChannel('spotify-auth');
+      channelRef.current = channel;
 
-        window.removeEventListener('message', handleMessage);
-        callbackListenerRef.current = null;
+      const handleCallback = async (data) => {
+        // Clean up
+        channel.close();
+        channelRef.current = null;
 
-        if (event.data.error) {
-          setError(event.data.error === 'access_denied'
+        if (data.error) {
+          setError(data.error === 'access_denied'
             ? 'You cancelled the Spotify login.'
-            : `Spotify error: ${event.data.error}`);
+            : `Spotify error: ${data.error}`);
           setStep('error');
           return;
         }
 
-        if (event.data.code) {
+        if (data.code) {
           try {
             const codeVerifier = getCodeVerifier();
-            await exchangeCodeForTokens(event.data.code, codeVerifier);
+            await exchangeCodeForTokens(data.code, codeVerifier);
             await createSpotifyPlaylistFlow();
           } catch (err) {
             setError(err.message || 'Failed to connect to Spotify.');
@@ -92,7 +94,21 @@ function PlaylistCreatorModal({ show, onClose }) {
         }
       };
 
-      callbackListenerRef.current = handleMessage;
+      channel.onmessage = (event) => {
+        console.log('[Playlist] Received BroadcastChannel message:', event.data);
+        if (event.data?.type === 'spotify-callback') {
+          handleCallback(event.data);
+        }
+      };
+
+      // Also listen for window.postMessage as a fallback
+      const handleMessage = (event) => {
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type !== 'spotify-callback') return;
+        window.removeEventListener('message', handleMessage);
+        console.log('[Playlist] Received postMessage callback');
+        handleCallback(event.data);
+      };
       window.addEventListener('message', handleMessage);
     } catch (err) {
       setError(err.message || 'Failed to start Spotify authentication.');
