@@ -257,10 +257,21 @@ exports.handler = async function (event) {
     };
   } catch (err) {
     console.error('apple-music-token error:', err);
+    const rawKey = process.env.APPLE_MUSIC_PRIVATE_KEY || '';
     return {
       statusCode: 500,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ error: err.message || 'Failed to generate Apple Music token' }),
+      body: JSON.stringify({
+        error: err.message || 'Failed to generate Apple Music token',
+        debug: {
+          rawKeyLength: rawKey.length,
+          hasBeginHeader: rawKey.includes('-----BEGIN'),
+          hasLiteralNewlines: rawKey.includes('\\n'),
+          hasRealNewlines: rawKey.includes('\n'),
+          firstChars: rawKey.substring(0, 30),
+          lastChars: rawKey.substring(rawKey.length - 30),
+        },
+      }),
     };
   }
 };
