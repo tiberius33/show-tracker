@@ -95,7 +95,6 @@ function PlaylistCreatorModal({ show, onClose }) {
       };
 
       channel.onmessage = (event) => {
-        console.log('[Playlist] Received BroadcastChannel message:', event.data);
         if (event.data?.type === 'spotify-callback') {
           handleCallback(event.data);
         }
@@ -106,7 +105,6 @@ function PlaylistCreatorModal({ show, onClose }) {
         if (event.origin !== window.location.origin) return;
         if (event.data?.type !== 'spotify-callback') return;
         window.removeEventListener('message', handleMessage);
-        console.log('[Playlist] Received postMessage callback');
         handleCallback(event.data);
       };
       window.addEventListener('message', handleMessage);
@@ -124,9 +122,8 @@ function PlaylistCreatorModal({ show, onClose }) {
 
     try {
       // Verify scopes before proceeding
-      const scopes = getGrantedScopes();
-      console.log('[Playlist] Granted Spotify scopes:', scopes);
       if (!hasPlaylistScopes()) {
+        const scopes = getGrantedScopes();
         throw new Error(
           `Spotify did not grant playlist permissions. Granted scopes: "${scopes || 'none'}". ` +
           'Try removing MySetlists from your Spotify account (spotify.com/account/apps) and connecting again.'
@@ -226,28 +223,19 @@ function PlaylistCreatorModal({ show, onClose }) {
 
     try {
       // Dynamically import Apple Music helpers
-      console.log('[Playlist] Starting Apple Music flow...');
       const appleMusic = await import('@/lib/appleMusic');
-      console.log('[Playlist] Apple Music module imported');
-
       await appleMusic.loadMusicKit();
-      console.log('[Playlist] MusicKit JS loaded');
 
       // Get developer token from server
-      console.log('[Playlist] Fetching developer token...');
       const tokenRes = await fetch('/.netlify/functions/apple-music-token');
       if (!tokenRes.ok) {
         const errBody = await tokenRes.json().catch(() => ({}));
-        console.error('[Playlist] Token fetch failed:', tokenRes.status, errBody);
         throw new Error(errBody.error || 'Failed to get Apple Music developer token');
       }
       const { token: developerToken } = await tokenRes.json();
-      console.log('[Playlist] Developer token received, length:', developerToken?.length);
 
       // Initialize and authorize
-      console.log('[Playlist] Initializing MusicKit...');
       const music = await appleMusic.initMusicKit(developerToken);
-      console.log('[Playlist] MusicKit authorized, proceeding to search');
 
       // Search and create playlist
       setStep('searching');

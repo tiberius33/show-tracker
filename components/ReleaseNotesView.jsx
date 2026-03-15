@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '2.3.0',
+      date: 'March 15, 2026',
+      title: 'What\'s New Announcements & Feature Tooltips',
+      changes: [
+        'New: "What\'s New" modal highlights recent features for returning users — playlist creation, ticket scanning, CSV import, and more',
+        'New: Playlist creation tooltip appears on the setlist view to introduce the Spotify/Apple Music playlist button',
+        'Each announcement links directly to the relevant feature (e.g., "Try Scan / Import →")',
+        'Announcements show once per release and are tracked in localStorage — won\'t pester you',
+        'Tooltips dismiss on tap and won\'t reappear after dismissal',
+      ]
+    },
+    {
       version: '2.2.1',
       date: 'March 14, 2026',
       title: 'Playlist Creation Bug Fix',

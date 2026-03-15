@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { formatDate } from '@/lib/utils';
 import ShowForm from '@/components/ShowForm';
 import SetlistEditor from '@/components/SetlistEditor';
 import TagFriendsModal from '@/components/TagFriendsModal';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
+import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import {
@@ -40,6 +41,15 @@ export default function ShowsPage() {
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+
+  // Show "What's New" modal for returning users who have shows (not first-time users)
+  useEffect(() => {
+    if (!isLoading && user && shows.length > 0 && shouldShowWhatsNew()) {
+      const timer = setTimeout(() => setShowWhatsNew(true), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, user, shows.length]);
 
   if (isLoading) {
     return <ShowsListSkeleton />;
@@ -422,6 +432,14 @@ export default function ShowsPage() {
             <PlaylistCreatorModal
               show={playlistShow}
               onClose={() => setPlaylistShow(null)}
+            />
+          )}
+
+          {/* What's New modal */}
+          {showWhatsNew && (
+            <WhatsNewModal
+              onClose={() => setShowWhatsNew(false)}
+              navigateTo={navigateTo}
             />
           )}
         </>

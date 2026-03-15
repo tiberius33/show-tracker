@@ -105,7 +105,6 @@ exports.handler = async function (event) {
       }
       if (statusCode < 200 || statusCode >= 300) {
         const raw = body?.error?.message || body?.error;
-        console.error('Spotify getMe error:', statusCode, JSON.stringify(body));
         const msg = friendlySpotifyError(statusCode, raw, 'get user');
         return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
@@ -142,7 +141,6 @@ exports.handler = async function (event) {
       }
       if (statusCode < 200 || statusCode >= 300) {
         const raw = body?.error?.message || body?.error;
-        console.error('Spotify search error:', statusCode, JSON.stringify(body));
         const msg = friendlySpotifyError(statusCode, raw, 'search');
         return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
@@ -190,8 +188,7 @@ exports.handler = async function (event) {
       if (statusCode < 200 || statusCode >= 300) {
         const raw = body?.error?.message || body?.error;
         const msg = friendlySpotifyError(statusCode, raw, 'create playlist');
-        console.error('Spotify createPlaylist error:', statusCode, JSON.stringify(body));
-        return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg, spotifyStatus: statusCode, spotifyError: body?.error }) };
+        return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
       }
 
       return {
@@ -236,7 +233,6 @@ exports.handler = async function (event) {
         if (statusCode < 200 || statusCode >= 300) {
           const raw = body?.error?.message || body?.error;
           const msg = friendlySpotifyError(statusCode, raw, 'add tracks');
-          console.error('Spotify addTracks error:', statusCode, JSON.stringify(body));
           return { statusCode, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) };
         }
         snapshotId = body.snapshot_id;
