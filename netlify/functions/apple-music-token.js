@@ -12,10 +12,18 @@ const CORS_HEADERS = {
 function generateDeveloperToken() {
   const keyId = process.env.APPLE_MUSIC_KEY_ID;
   const teamId = process.env.APPLE_MUSIC_TEAM_ID;
-  const privateKeyPem = (process.env.APPLE_MUSIC_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  let privateKeyPem = (process.env.APPLE_MUSIC_PRIVATE_KEY || '');
 
   if (!keyId || !teamId || !privateKeyPem) {
     throw new Error('Apple Music credentials not configured');
+  }
+
+  // Handle both literal \n strings and actual newlines in env var
+  privateKeyPem = privateKeyPem.replace(/\\n/g, '\n');
+
+  // Ensure PEM headers are present
+  if (!privateKeyPem.includes('-----BEGIN')) {
+    privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${privateKeyPem}\n-----END PRIVATE KEY-----`;
   }
 
   // JWT Header
@@ -44,12 +52,18 @@ function generateDeveloperToken() {
   const payloadB64 = b64url(payload);
   const signingInput = `${headerB64}.${payloadB64}`;
 
+  // Parse the private key explicitly as PKCS#8 PEM
+  const privateKey = crypto.createPrivateKey({
+    key: privateKeyPem,
+    format: 'pem',
+  });
+
   // Sign with ES256 (ECDSA using P-256 and SHA-256)
   const sign = crypto.createSign('SHA256');
   sign.update(signingInput);
   sign.end();
 
-  const derSignature = sign.sign(privateKeyPem);
+  const derSignature = sign.sign(privateKey);
 
   // Convert DER-encoded signature to raw r||s format (64 bytes) for JWT
   const rawSignature = derToRaw(derSignature);
