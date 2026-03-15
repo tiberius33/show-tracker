@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Music } from 'lucide-react';
 
-export default function SpotifyCallbackPage() {
+function SpotifyCallbackContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState('processing');
   const [error, setError] = useState(null);
@@ -16,32 +16,59 @@ export default function SpotifyCallbackPage() {
     const errorParam = searchParams.get('error');
 
     if (errorParam) {
-      // User denied access or something went wrong
-      if (window.opener) {
-        window.opener.postMessage({ type: 'spotify-callback', error: errorParam }, window.location.origin);
-        window.close();
-      } else {
-        setStatus('error');
-        setError(errorParam === 'access_denied' ? 'You cancelled the Spotify login.' : `Spotify error: ${errorParam}`);
-      }
+      sendToOpener({ type: 'spotify-callback', error: errorParam });
       return;
     }
 
     if (code) {
-      // Send the code back to the opener window
-      if (window.opener) {
-        window.opener.postMessage({ type: 'spotify-callback', code }, window.location.origin);
-        setStatus('success');
-        setTimeout(() => window.close(), 500);
-      } else {
-        // Fallback: redirect flow (no popup opener)
-        // Store code and redirect to shows page where PlaylistCreatorModal will pick it up
-        sessionStorage.setItem('spotify_auth_code', code);
-        window.location.href = '/shows';
-      }
+      sendToOpener({ type: 'spotify-callback', code });
     } else {
       setStatus('error');
       setError('No authorization code received from Spotify.');
+    }
+
+    function sendToOpener(message) {
+      let sent = false;
+
+      // Method 1: BroadcastChannel (works cross-tab, no window.opener needed)
+      try {
+        const channel = new BroadcastChannel('spotify-auth');
+        channel.postMessage(message);
+        sent = true;
+        console.log('[Spotify Callback] Sent via BroadcastChannel');
+      } catch (e) {
+        console.warn('[Spotify Callback] BroadcastChannel not available:', e);
+      }
+
+      // Method 2: window.opener.postMessage (works if opener reference exists)
+      if (window.opener) {
+        try {
+          window.opener.postMessage(message, window.location.origin);
+          sent = true;
+          console.log('[Spotify Callback] Sent via window.opener');
+        } catch (e) {
+          console.warn('[Spotify Callback] window.opener.postMessage failed:', e);
+        }
+      }
+
+      if (sent) {
+        if (message.error) {
+          setStatus('error');
+          setError(message.error === 'access_denied'
+            ? 'You cancelled the Spotify login.'
+            : `Spotify error: ${message.error}`);
+        } else {
+          setStatus('success');
+          setTimeout(() => window.close(), 800);
+        }
+      } else {
+        // Fallback: store in sessionStorage and redirect
+        console.log('[Spotify Callback] Falling back to redirect');
+        if (message.code) {
+          sessionStorage.setItem('spotify_auth_code', message.code);
+        }
+        window.location.href = '/shows';
+      }
     }
   }, [searchParams]);
 
@@ -82,5 +109,22 @@ export default function SpotifyCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SpotifyCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 max-w-sm w-full text-center">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+            <Music className="w-6 h-6 text-emerald-400" />
+          </div>
+          <h1 className="text-lg font-bold text-white mb-2">Connecting to Spotify...</h1>
+        </div>
+      </div>
+    }>
+      <SpotifyCallbackContent />
+    </Suspense>
   );
 }
