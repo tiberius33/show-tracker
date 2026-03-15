@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '2.3.1',
+      date: 'March 15, 2026',
+      title: 'Landing Page Restored',
+      changes: [
+        'Fix: Logged-out users now see a full landing page with hero section, feature showcase, and community stats instead of a bare login screen',
+        'Landing page highlights all major features: show tracking, ticket scanning, CSV import, playlist creation, stats, and social features',
+        '"How it works" section walks new visitors through the 3-step onboarding flow',
+        'Community leaderboards visible to logged-out visitors to showcase the active user base',
+        '"Try it First" guest mode button lets visitors explore the app without signing up',
+      ]
+    },
+    {
       version: '2.3.0',
       date: 'March 15, 2026',
       title: 'What\'s New Announcements & Feature Tooltips',

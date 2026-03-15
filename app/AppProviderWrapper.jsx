@@ -7,6 +7,7 @@ import VenueRatingModal from '@/components/VenueRatingModal';
 import InstallPrompt from '@/components/InstallPrompt';
 import Footer from '@/components/Footer';
 import AuthModal from '@/components/auth/AuthModal';
+import LandingPage from '@/components/LandingPage';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import { extractFirstName } from '@/lib/utils';
 import { Music, Check, Sparkles } from 'lucide-react';
@@ -32,6 +33,7 @@ function AppShell({ children }) {
     showCelebration, welcomeState, setWelcomeState,
     pendingNotificationCount, upcomingShowsBadgeCount,
     friends, handleLogout,
+    enterGuestMode, communityStats,
   } = useApp();
 
   // Show loading state while auth initializes
@@ -43,19 +45,24 @@ function AppShell({ children }) {
     );
   }
 
-  // Show auth modal if not logged in and not in guest mode
+  // Show landing page with optional auth modal overlay when logged out
   if (!user && !guestMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <AuthModal
-          mode={authModal || 'login'}
-          onClose={() => setAuthModal(null)}
-          onSwitchMode={setAuthModal}
-          onGuestMode={() => {
-            // Guest mode logic is handled in AppContext
-          }}
+      <>
+        <LandingPage
+          onSignUp={() => setAuthModal('signup')}
+          onSignIn={() => setAuthModal('login')}
+          onGuest={enterGuestMode}
+          communityStats={communityStats}
         />
-      </div>
+        {authModal && (
+          <AuthModal
+            mode={authModal}
+            onClose={() => setAuthModal(null)}
+            onSwitchMode={setAuthModal}
+          />
+        )}
+      </>
     );
   }
 
