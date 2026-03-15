@@ -5,6 +5,7 @@ import { Music, Check, Download, Upload, AlertTriangle, Camera, RefreshCw } from
 import { formatDate, parseCSV, parseImportDate, autoDetectMapping, resizeImageForUpload } from '@/lib/utils';
 import { IMPORT_FIELDS } from '@/lib/constants';
 import Tip from '@/components/ui/Tip';
+import { apiUrl } from '@/lib/api';
 
 function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [step, setStep] = useState('upload');
@@ -83,7 +84,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     try {
       const { base64, mediaType } = await resizeImageForUpload(file);
 
-      const response = await fetch('/.netlify/functions/analyze-screenshot', {
+      const response = await fetch(apiUrl('/.netlify/functions/analyze-screenshot'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: base64, mediaType })
@@ -240,7 +241,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       const searchAndMatch = async (searchArtist) => {
         for (let page = 1; page <= 3; page++) {
           const params = new URLSearchParams({ artistName: searchArtist, year, p: String(page) });
-          const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+          const response = await fetch(apiUrl(`/.netlify/functions/search-setlists?${params.toString()}`));
           if (!response.ok) return null;
           const data = await response.json();
           if (!data.setlist || data.setlist.length === 0) return null;

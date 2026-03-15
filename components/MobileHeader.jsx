@@ -5,7 +5,7 @@ import { Menu } from 'lucide-react';
 
 function MobileHeader({ onMenuClick }) {
   return (
-    <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-b border-white/5">
+    <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-b border-white/5" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="flex items-center justify-between px-4 py-3">
         <button
           onClick={onMenuClick}

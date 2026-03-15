@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
@@ -10,6 +11,7 @@ import AuthModal from '@/components/auth/AuthModal';
 import LandingPage from '@/components/LandingPage';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import { extractFirstName } from '@/lib/utils';
+import { initCapacitorPlugins } from '@/lib/capacitor';
 import { Music, Check, Sparkles } from 'lucide-react';
 
 export default function AppProviderWrapper({ children }) {
@@ -35,6 +37,11 @@ function AppShell({ children }) {
     friends, handleLogout,
     enterGuestMode, communityStats,
   } = useApp();
+
+  // Initialize Capacitor native plugins on mount
+  useEffect(() => {
+    initCapacitorPlugins();
+  }, []);
 
   // Show loading state while auth initializes
   if (authLoading) {

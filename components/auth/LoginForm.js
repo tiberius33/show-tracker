@@ -8,6 +8,7 @@ import {
   browserSessionPersistence
 } from 'firebase/auth';
 import { auth, authProviders } from '@/lib/firebase';
+import { nativeGoogleSignIn, nativeAppleSignIn } from '@/lib/native-auth';
 import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
@@ -43,11 +44,24 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
     try {
       // Set persistence based on "Remember me" checkbox
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
-      const provider = authProviders[providerName];
-      await signInWithPopup(auth, provider);
+
+      // Try native sign-in first (returns null on web → fall through to popup)
+      let result = null;
+      if (providerName === 'google') {
+        result = await nativeGoogleSignIn();
+      } else if (providerName === 'apple') {
+        result = await nativeAppleSignIn();
+      }
+
+      // If native didn't handle it, use web popup
+      if (!result) {
+        const provider = authProviders[providerName];
+        await signInWithPopup(auth, provider);
+      }
+
       onSuccess?.();
     } catch (err) {
-      console.error('Google sign-in error:', err.code, err.message);
+      console.error('OAuth sign-in error:', err.code, err.message);
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(getErrorMessage(err.code));
       }

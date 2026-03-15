@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { ChevronDown, ExternalLink, BookOpen } from 'lucide-react';
+import { apiUrl } from '@/lib/api';
 
 const styles = {
   artist: {
@@ -36,14 +37,14 @@ function EntityInfoPanel({ name, type, city }) {
       // For venues, try "VenueName, City" first for better disambiguation
       const queryName = !isArtist && city ? `${name}, ${city}` : name;
       const params = new URLSearchParams({ name: queryName, type });
-      const res = await fetch(`/.netlify/functions/get-entity-info?${params}`);
+      const res = await fetch(apiUrl(`/.netlify/functions/get-entity-info?${params}`));
       if (!res.ok) throw new Error('fetch failed');
       const json = await res.json();
 
       // If venue+city lookup returned not-found, retry with just venue name
       if (!json.found && !isArtist && city) {
         const retryParams = new URLSearchParams({ name, type });
-        const retryRes = await fetch(`/.netlify/functions/get-entity-info?${retryParams}`);
+        const retryRes = await fetch(apiUrl(`/.netlify/functions/get-entity-info?${retryParams}`));
         if (retryRes.ok) {
           const retryJson = await retryRes.json();
           setData(retryJson);

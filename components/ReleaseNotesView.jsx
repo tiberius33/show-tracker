@@ -6,6 +6,24 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.0.0',
+      date: 'March 15, 2026',
+      title: 'Native iOS App with Capacitor',
+      changes: [
+        'New: MySetlists is now available as a native iOS app via Capacitor — same great web app, native App Store experience',
+        'New: Sign in with Apple — required by the App Store and now available on both web and iOS',
+        'New: Native Google Sign-In on iOS — uses the system sign-in sheet instead of a web popup',
+        'New: Native camera support for ticket scanning — choose camera or photo library on iOS',
+        'New: Spotify OAuth uses in-app browser on iOS with custom URL scheme (mysetlists://) callback',
+        'Improved: Tailwind CSS migrated from CDN to build-time — ~20KB purged CSS vs 300KB+ CDN, works offline',
+        'Improved: All API calls route through centralized apiUrl() helper for native/web compatibility',
+        'Improved: iOS safe area support — content respects the notch, Dynamic Island, and home indicator',
+        'Improved: StatusBar, Keyboard tracking, and SplashScreen configured for native iOS polish',
+        'Technical: Next.js static export (output: \'export\') generates pre-rendered HTML for all 21 routes',
+        'Technical: PWA install prompt automatically hidden when running as a native app',
+      ]
+    },
+    {
       version: '2.3.1',
       date: 'March 15, 2026',
       title: 'Landing Page Restored',

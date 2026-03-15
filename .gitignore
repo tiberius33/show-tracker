@@ -27,3 +27,16 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# iOS / Capacitor
+ios/App/App/public/
+ios/App/Pods/
+ios/App/output/
+ios/capacitor-cordova-ios-plugins/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/
+DerivedData/
+
+# Firebase (sensitive - download from Firebase Console)
+GoogleService-Info.plist
