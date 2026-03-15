@@ -35,9 +35,8 @@ function SpotifyCallbackContent() {
         const channel = new BroadcastChannel('spotify-auth');
         channel.postMessage(message);
         sent = true;
-        console.log('[Spotify Callback] Sent via BroadcastChannel');
       } catch (e) {
-        console.warn('[Spotify Callback] BroadcastChannel not available:', e);
+        // BroadcastChannel not supported
       }
 
       // Method 2: window.opener.postMessage (works if opener reference exists)
@@ -45,9 +44,8 @@ function SpotifyCallbackContent() {
         try {
           window.opener.postMessage(message, window.location.origin);
           sent = true;
-          console.log('[Spotify Callback] Sent via window.opener');
         } catch (e) {
-          console.warn('[Spotify Callback] window.opener.postMessage failed:', e);
+          // opener not available
         }
       }
 
@@ -63,7 +61,6 @@ function SpotifyCallbackContent() {
         }
       } else {
         // Fallback: store in sessionStorage and redirect
-        console.log('[Spotify Callback] Falling back to redirect');
         if (message.code) {
           sessionStorage.setItem('spotify_auth_code', message.code);
         }
