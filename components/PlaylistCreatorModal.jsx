@@ -58,7 +58,12 @@ function PlaylistCreatorModal({ show, onClose }) {
 
       const authUrl = buildSpotifyAuthUrl(codeChallenge, state);
 
+      // Guard against double-delivery (BroadcastChannel + postMessage both fire)
+      let callbackHandled = false;
       const handleCallback = async (data) => {
+        if (callbackHandled) return;
+        callbackHandled = true;
+
         if (data.error) {
           setError(data.error === 'access_denied'
             ? 'You cancelled the Spotify login.'
@@ -112,10 +117,16 @@ function PlaylistCreatorModal({ show, onClose }) {
       const channel = new BroadcastChannel('spotify-auth');
       channelRef.current = channel;
 
+      // Clean up both listeners when either fires first
+      const cleanupListeners = () => {
+        try { channel.close(); } catch {}
+        channelRef.current = null;
+        window.removeEventListener('message', handleMessage);
+      };
+
       channel.onmessage = (event) => {
         if (event.data?.type === 'spotify-callback') {
-          channel.close();
-          channelRef.current = null;
+          cleanupListeners();
           handleCallback(event.data);
         }
       };
@@ -124,7 +135,7 @@ function PlaylistCreatorModal({ show, onClose }) {
       const handleMessage = (event) => {
         if (event.origin !== window.location.origin) return;
         if (event.data?.type !== 'spotify-callback') return;
-        window.removeEventListener('message', handleMessage);
+        cleanupListeners();
         handleCallback(event.data);
       };
       window.addEventListener('message', handleMessage);
