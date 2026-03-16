@@ -40,3 +40,4 @@ DerivedData/
 
 # Firebase (sensitive - download from Firebase Console)
 GoogleService-Info.plist
+GoogleService-Info*.plist
