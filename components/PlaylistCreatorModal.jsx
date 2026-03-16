@@ -13,6 +13,8 @@ import {
   getPlayableSongs, buildSearchQuery, buildAppleMusicSearchQuery,
   findBestMatch, buildPlaylistName, buildPlaylistDescription, delay,
 } from '@/lib/playlistCreator';
+import { apiUrl } from '@/lib/api';
+import { isNativePlatform } from '@/lib/native-auth';
 
 // States: select | authenticating | searching | creating | results | error
 const SPOTIFY_GREEN = '#1DB954';
@@ -56,24 +58,7 @@ function PlaylistCreatorModal({ show, onClose }) {
 
       const authUrl = buildSpotifyAuthUrl(codeChallenge, state);
 
-      // Open popup for Spotify auth
-      const popup = window.open(authUrl, 'spotify-auth', 'width=500,height=700,scrollbars=yes');
-
-      if (!popup || popup.closed) {
-        // Popup blocked — fall back to redirect
-        window.location.href = authUrl;
-        return;
-      }
-
-      // Listen for the callback via BroadcastChannel (reliable across cross-origin popup navigations)
-      const channel = new BroadcastChannel('spotify-auth');
-      channelRef.current = channel;
-
       const handleCallback = async (data) => {
-        // Clean up
-        channel.close();
-        channelRef.current = null;
-
         if (data.error) {
           setError(data.error === 'access_denied'
             ? 'You cancelled the Spotify login.'
@@ -94,8 +79,43 @@ function PlaylistCreatorModal({ show, onClose }) {
         }
       };
 
+      // --- Native: use in-app browser + custom URL scheme ---
+      if (isNativePlatform()) {
+        const { Browser } = await import('@capacitor/browser');
+        const { App } = await import('@capacitor/app');
+
+        // Listen for custom URL scheme callback (mysetlists://spotify-callback?code=...)
+        const urlListener = await App.addListener('appUrlOpen', async (event) => {
+          const url = new URL(event.url);
+          if (url.pathname === '/spotify-callback' || url.host === 'spotify-callback') {
+            urlListener.remove();
+            await Browser.close();
+            const code = url.searchParams.get('code');
+            const error = url.searchParams.get('error');
+            handleCallback({ code, error });
+          }
+        });
+
+        await Browser.open({ url: authUrl, presentationStyle: 'popover' });
+        return;
+      }
+
+      // --- Web: popup + BroadcastChannel ---
+      const popup = window.open(authUrl, 'spotify-auth', 'width=500,height=700,scrollbars=yes');
+
+      if (!popup || popup.closed) {
+        // Popup blocked — fall back to redirect
+        window.location.href = authUrl;
+        return;
+      }
+
+      const channel = new BroadcastChannel('spotify-auth');
+      channelRef.current = channel;
+
       channel.onmessage = (event) => {
         if (event.data?.type === 'spotify-callback') {
+          channel.close();
+          channelRef.current = null;
           handleCallback(event.data);
         }
       };
@@ -227,7 +247,7 @@ function PlaylistCreatorModal({ show, onClose }) {
       await appleMusic.loadMusicKit();
 
       // Get developer token from server
-      const tokenRes = await fetch('/.netlify/functions/apple-music-token');
+      const tokenRes = await fetch(apiUrl('/.netlify/functions/apple-music-token'));
       if (!tokenRes.ok) {
         const errBody = await tokenRes.json().catch(() => ({}));
         throw new Error(errBody.error || 'Failed to get Apple Music developer token');

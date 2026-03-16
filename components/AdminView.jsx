@@ -9,6 +9,7 @@ import Tip from '@/components/ui/Tip';
 import AdminRoadmapCard from '@/components/AdminRoadmapCard';
 import { formatDate, parseDate, artistColor, avgSongRating, parseCSV, parseImportDate, autoDetectMapping } from '@/lib/utils';
 import { ROADMAP_CATEGORIES, IMPORT_FIELDS } from '@/lib/constants';
+import { apiUrl } from '@/lib/api';
 
 export default
 function AdminView() {
@@ -105,7 +106,7 @@ function AdminView() {
     setDeleteError(null);
     try {
       const token = await auth.currentUser.getIdToken();
-      const res = await fetch('/.netlify/functions/delete-user', {
+      const res = await fetch(apiUrl('/.netlify/functions/delete-user'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ targetUid: deleteConfirmUser.id }),
@@ -201,7 +202,7 @@ function AdminView() {
     setEmailSending(true);
     setEmailStatus(null);
     try {
-      const res = await fetch('/.netlify/functions/send-email', {
+      const res = await fetch(apiUrl('/.netlify/functions/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -268,7 +269,7 @@ function AdminView() {
         // Optional email notification (fire and forget)
         const linkedFeedback = feedbackItems.find(f => f.id === item.sourceFeedbackId);
         if (linkedFeedback?.submitterEmail) {
-          fetch('/.netlify/functions/send-email', {
+          fetch(apiUrl('/.netlify/functions/send-email'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -472,7 +473,7 @@ function AdminView() {
         tour: r.raw.tour || '',
       }));
 
-      const res = await fetch('/.netlify/functions/admin-bulk-import', {
+      const res = await fetch(apiUrl('/.netlify/functions/admin-bulk-import'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ targetUid: bulkImportTargetUser.id, shows }),
@@ -620,7 +621,7 @@ function AdminView() {
     setCacheLoading(true);
     try {
       const token = await auth.currentUser.getIdToken();
-      const res = await fetch('/.netlify/functions/cache-stats', {
+      const res = await fetch(apiUrl('/.netlify/functions/cache-stats'), {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to load cache stats');
@@ -641,7 +642,7 @@ function AdminView() {
       const body = by === 'artist' ? { by: 'artist', name }
         : by === 'key' ? { key }
         : { by: 'all' };
-      const res = await fetch('/.netlify/functions/clear-cache', {
+      const res = await fetch(apiUrl('/.netlify/functions/clear-cache'), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

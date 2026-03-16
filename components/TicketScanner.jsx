@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Camera, X, RefreshCw, Search, Check, Download, Plus, ChevronDown } from 'lucide-react';
 import { resizeImageForUpload } from '@/lib/utils';
+import { apiUrl } from '@/lib/api';
+import { isNativePlatform } from '@/lib/native-auth';
 
 function TicketScanner({ onImport, importedIds, existingShows }) {
   const [files, setFiles] = useState([]);
@@ -31,6 +33,33 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
     setError('');
   };
 
+  // Native camera: use @capacitor/camera for a better experience on iOS
+  const handleNativeCamera = async () => {
+    try {
+      const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const photo = await CapCamera.getPhoto({
+        quality: 90,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt, // Let user choose camera or gallery
+        correctOrientation: true,
+      });
+
+      if (photo.dataUrl) {
+        // Convert data URL to a File object for the existing analysis flow
+        const res = await fetch(photo.dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `ticket-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setFiles(prev => [...prev, file]);
+        setPreviews(prev => [...prev, { name: file.name, url: photo.dataUrl }]);
+        setError('');
+      }
+    } catch (err) {
+      if (!err.message?.includes('cancel') && !err.message?.includes('User cancelled')) {
+        setError('Failed to capture photo. Please try again.');
+      }
+    }
+  };
+
   const removeImage = (index) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
     setPreviews(prev => prev.filter((_, i) => i !== index));
@@ -49,7 +78,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
         images.push({ base64, mediaType });
       }
 
-      const response = await fetch('/.netlify/functions/analyze-tickets', {
+      const response = await fetch(apiUrl('/.netlify/functions/analyze-tickets'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ images })
@@ -93,7 +122,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
 
         try {
           const artistParams = new URLSearchParams({ artistName: show.artist });
-          const artistRes = await fetch(`/.netlify/functions/search-artists?${artistParams.toString()}`);
+          const artistRes = await fetch(apiUrl(`/.netlify/functions/search-artists?${artistParams.toString()}`));
           let artistMbid = null;
 
           if (artistRes.ok) {
@@ -115,7 +144,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
             if (yearMatch) params.set('year', yearMatch[1]);
           }
 
-          const setlistRes = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+          const setlistRes = await fetch(apiUrl(`/.netlify/functions/search-setlists?${params.toString()}`));
 
           if (setlistRes.ok) {
             const setlistData = await setlistRes.json();
@@ -221,17 +250,27 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
             <p className="text-white/60 mb-4 text-center">
               Upload photos of your concert ticket stubs, wristbands, or digital tickets
             </p>
-            <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-violet-500/25">
-              <Camera className="w-4 h-4" />
-              {files.length > 0 ? 'Add More Images' : 'Select Images'}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </label>
+            {isNativePlatform() ? (
+              <button
+                onClick={handleNativeCamera}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-violet-500/25"
+              >
+                <Camera className="w-4 h-4" />
+                {files.length > 0 ? 'Add More Photos' : 'Take Photo or Choose'}
+              </button>
+            ) : (
+              <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-violet-500/25">
+                <Camera className="w-4 h-4" />
+                {files.length > 0 ? 'Add More Images' : 'Select Images'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           {/* Image Previews */}

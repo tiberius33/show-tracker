@@ -2,12 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
+import { isNativePlatform } from '@/lib/native-auth';
 
 export default function InstallPrompt() {
+  const native = isNativePlatform();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
+    // Don't listen for PWA install events on native app
+    if (native) return;
+
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -17,7 +22,7 @@ export default function InstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+  }, [native]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;

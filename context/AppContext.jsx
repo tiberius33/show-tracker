@@ -11,6 +11,7 @@ import { auth, db, googleProvider } from '@/lib/firebase';
 import { formatDate, parseDate, extractFirstName } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { apiUrl } from '@/lib/api';
 
 // ── Helper: update the user's profile doc with current stats ────────────
 async function updateUserProfile(user, shows = []) {
@@ -616,7 +617,7 @@ export function AppProvider({ children }) {
               // Notify inviter via email
               if (inviterEmail) {
                 const newUserFirstName = (currentUser.displayName || 'Your friend').split(' ')[0];
-                fetch('/api/send-email', {
+                fetch(apiUrl('/api/send-email'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -866,7 +867,7 @@ export function AppProvider({ children }) {
     const searchAndMatch = async (searchArtist, date, year) => {
       for (let page = 1; page <= 3; page++) {
         const params = new URLSearchParams({ artistName: searchArtist, year, p: String(page) });
-        const response = await fetch(`/api/search-setlists?${params.toString()}`);
+        const response = await fetch(apiUrl(`/api/search-setlists?${params.toString()}`));
         if (!response.ok) return null;
         const data = await response.json();
         if (!data.setlist || data.setlist.length === 0) return null;
@@ -1384,7 +1385,7 @@ export function AppProvider({ children }) {
         if (friendData?.friendEmail) {
           const friendName = suggestion.names?.[friendUid] || 'your friend';
           const { artist, venue, date } = suggestion.showData;
-          await fetch('/api/send-email', {
+          await fetch(apiUrl('/api/send-email'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1454,7 +1455,7 @@ export function AppProvider({ children }) {
         const friendData = friends.find(f => f.friendUid === otherUid);
         if (friendData?.friendEmail) {
           const { artist, date } = suggestion.showData;
-          await fetch('/api/send-email', {
+          await fetch(apiUrl('/api/send-email'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1548,7 +1549,7 @@ export function AppProvider({ children }) {
       await setDoc(doc(db, 'pendingEmailTags', tag.id), { status: 'accepted' }, { merge: true });
       if (tag.fromEmail) {
         const newUserFirstName = (user.displayName || 'Your friend').split(' ')[0];
-        fetch('/api/send-email', {
+        fetch(apiUrl('/api/send-email'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1621,7 +1622,7 @@ export function AppProvider({ children }) {
           <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
         </div>
       `;
-      await fetch('/api/send-email', {
+      await fetch(apiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1697,7 +1698,7 @@ export function AppProvider({ children }) {
           <p style="color:#94a3b8;font-size:12px">mysetlists.net \u2014 track every show you've ever been to</p>
         </div>
       `;
-      await fetch('/api/send-email', {
+      await fetch(apiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1738,7 +1739,7 @@ export function AppProvider({ children }) {
           <p style="color:#94a3b8;font-size:12px">mysetlists.net \u2014 track every show you've ever been to</p>
         </div>
       `;
-      const res = await fetch('/api/send-email', {
+      const res = await fetch(apiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2007,7 +2008,7 @@ export function AppProvider({ children }) {
     try {
       if (user && !guestMode) {
         const token = await user.getIdToken();
-        const res = await fetch('/.netlify/functions/create-shared-collection', {
+        const res = await fetch(apiUrl('/.netlify/functions/create-shared-collection'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({

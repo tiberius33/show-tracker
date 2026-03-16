@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import Script from 'next/script';
 import './globals.css';
 import AppProviderWrapper from './AppProviderWrapper';
 
@@ -37,6 +36,7 @@ export const metadata = {
 
 export const viewport = {
   themeColor: '#0f172a',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }) {
@@ -46,7 +46,6 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
       </head>
       <body>
         <Suspense fallback={

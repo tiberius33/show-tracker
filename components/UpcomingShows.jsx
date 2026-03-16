@@ -7,6 +7,7 @@ import { logEvent } from 'firebase/analytics';
 import { db, analytics } from '@/lib/firebase';
 import { mergeTicketEvents, formatTicketDate } from '@/lib/utils';
 import { TICKET_CACHE_TTL } from '@/lib/constants';
+import { apiUrl } from '@/lib/api';
 
 function UpcomingShows({ artistName }) {
   const [loading, setLoading] = useState(true);
@@ -40,7 +41,7 @@ function UpcomingShows({ artistName }) {
       } catch (_) { /* cache miss — continue */ }
 
       try {
-        let url = `/.netlify/functions/ticketmaster-events?artistName=${encodeURIComponent(artistName)}`;
+        let url = apiUrl(`/.netlify/functions/ticketmaster-events?artistName=${encodeURIComponent(artistName)}`);
         // Pass the cached attraction ID so the function skips the attractions lookup
         if (cachedAttractionId) url += `&attractionId=${encodeURIComponent(cachedAttractionId)}`;
         const res = await fetch(url);
@@ -73,7 +74,7 @@ function UpcomingShows({ artistName }) {
       } catch (_) { /* cache miss — continue */ }
 
       try {
-        const res = await fetch(`/.netlify/functions/seatgeek-events?artistName=${encodeURIComponent(artistName)}`);
+        const res = await fetch(apiUrl(`/.netlify/functions/seatgeek-events?artistName=${encodeURIComponent(artistName)}`));
         if (!res.ok) return [];
         const json = await res.json();
         const evts = json.events || [];

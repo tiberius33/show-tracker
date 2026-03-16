@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Search, X, ChevronDown, ChevronLeft, ChevronRight, Check, Download } from 'lucide-react';
 import Tip from '@/components/ui/Tip';
+import { apiUrl } from '@/lib/api';
 
 function SearchView({ onImport, importedIds }) {
   const [artistName, setArtistName] = useState('');
@@ -34,7 +35,7 @@ function SearchView({ onImport, importedIds }) {
 
     try {
       const params = new URLSearchParams({ artistName: artistName.trim() });
-      const response = await fetch(`/.netlify/functions/search-artists?${params.toString()}`);
+      const response = await fetch(apiUrl(`/.netlify/functions/search-artists?${params.toString()}`));
 
       if (!response.ok) {
         throw new Error('Failed to search artists');
@@ -100,7 +101,7 @@ function SearchView({ onImport, importedIds }) {
       if (year.trim()) params.set('year', year.trim());
       if (venueName.trim()) params.set('venueName', venueName.trim());
       if (cityName.trim()) params.set('cityName', cityName.trim());
-      const response = await fetch(`/.netlify/functions/search-setlists?${params.toString()}`);
+      const response = await fetch(apiUrl(`/.netlify/functions/search-setlists?${params.toString()}`));
 
       if (response.status === 404) {
         setError('No setlists found. Try adjusting your search.');
