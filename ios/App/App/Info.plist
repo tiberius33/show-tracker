@@ -51,6 +51,8 @@
 	<string>MySetlists uses the camera to scan concert ticket stubs and wristbands</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>MySetlists accesses your photos to scan ticket stubs and import concert memorabilia</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>MySetlists can save scanned ticket photos to your library</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
