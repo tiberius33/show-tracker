@@ -481,7 +481,17 @@ export function AppProvider({ children }) {
 
   // ── Auth state listener ─────────────────────────────────────────────
   useEffect(() => {
+    // Safety timeout: if onAuthStateChanged never fires (e.g. IndexedDB hang
+    // in WKWebView), stop showing the loading screen after 5 seconds
+    const authTimeout = setTimeout(() => {
+      setAuthLoading((prev) => {
+        if (prev) console.warn('Auth state listener timed out — proceeding without auth');
+        return false;
+      });
+    }, 5000);
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      clearTimeout(authTimeout);
       setUser(currentUser);
       setAuthLoading(false);
 
@@ -670,7 +680,10 @@ export function AppProvider({ children }) {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(authTimeout);
+      unsubscribe();
+    };
   }, [checkForLocalData, loadShows, guestMode, loadGuestShows]);
 
   // ── Data migration ──────────────────────────────────────────────────

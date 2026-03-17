@@ -37,26 +37,44 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
   const handleNativeCamera = async () => {
     try {
       const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+
+      // Explicitly request permissions first — on some iOS versions getPhoto()
+      // silently fails without this step, and the permission prompt never appears
+      const perms = await CapCamera.requestPermissions({ permissions: ['camera', 'photos'] });
+      if (perms.camera === 'denied') {
+        setError('Camera access denied. Go to Settings → MySetlists → Camera to enable it.');
+        return;
+      }
+
       const photo = await CapCamera.getPhoto({
         quality: 90,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Prompt, // Let user choose camera or gallery
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
         correctOrientation: true,
+        width: 1600,
+        height: 1600,
+        presentationStyle: 'fullScreen',
       });
 
-      if (photo.dataUrl) {
-        // Convert data URL to a File object for the existing analysis flow
-        const res = await fetch(photo.dataUrl);
+      // Read the photo from its URI and convert to a File for the analysis flow
+      const photoUrl = photo.webPath || photo.dataUrl;
+      if (photoUrl) {
+        const res = await fetch(photoUrl);
         const blob = await res.blob();
-        const file = new File([blob], `ticket-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const file = new File([blob], `ticket-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
         setFiles(prev => [...prev, file]);
-        setPreviews(prev => [...prev, { name: file.name, url: photo.dataUrl }]);
+        const previewUrl = URL.createObjectURL(blob);
+        setPreviews(prev => [...prev, { name: file.name, url: previewUrl }]);
         setError('');
       }
     } catch (err) {
-      if (!err.message?.includes('cancel') && !err.message?.includes('User cancelled')) {
-        setError('Failed to capture photo. Please try again.');
+      // Ignore user cancellation
+      const msg = err?.message || '';
+      if (msg.includes('cancel') || msg.includes('User cancelled') || msg.includes('dismissed')) {
+        return;
       }
+      console.error('Camera error:', err);
+      setError(`Camera error: ${msg || 'Unknown error'}. Please try again.`);
     }
   };
 
