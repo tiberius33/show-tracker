@@ -27,7 +27,7 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
       { id: 'community', label: 'Community', icon: Users },
     ]),
-    { id: 'upcoming-shows', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
+    { id: 'upcoming', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
     { id: 'roadmap', label: 'Roadmap', icon: TrendingUp },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
   ];

@@ -1104,10 +1104,10 @@ function AdminView() {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button
               onClick={() => setAdminTab('users')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'users'
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
@@ -1118,7 +1118,7 @@ function AdminView() {
             </button>
             <button
               onClick={() => setAdminTab('guestTrials')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'guestTrials'
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
@@ -1129,7 +1129,7 @@ function AdminView() {
             </button>
             <button
               onClick={() => setAdminTab('conversions')}
-              className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`relative shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'conversions'
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
@@ -1143,7 +1143,7 @@ function AdminView() {
             </button>
             <button
               onClick={() => setAdminTab('referrals')}
-              className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`relative shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'referrals'
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
@@ -1157,7 +1157,7 @@ function AdminView() {
             </button>
             <button
               onClick={() => setAdminTab('roadmap')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'roadmap'
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
@@ -1168,7 +1168,7 @@ function AdminView() {
             </button>
             <button
               onClick={() => setAdminTab('bulkImport')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'bulkImport'
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'

@@ -496,6 +496,8 @@ export function AppProvider({ children }) {
       setAuthLoading(false);
 
       if (currentUser) {
+        // Close auth modal when user signs in (belt-and-suspenders)
+        setAuthModal(null);
         // Mark guest session as converted if the user was in guest mode
         try {
           const guestSessionId = storage.get(STORAGE_KEYS.GUEST_SESSION);
