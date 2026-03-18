@@ -36,6 +36,7 @@ function AppShell({ children }) {
     pendingNotificationCount, upcomingShowsBadgeCount,
     friends, handleLogout,
     enterGuestMode, communityStats,
+    handleAuthSuccess,
   } = useApp();
 
   // Initialize Capacitor native plugins on mount
@@ -67,6 +68,7 @@ function AppShell({ children }) {
             mode={authModal}
             onClose={() => setAuthModal(null)}
             onSwitchMode={setAuthModal}
+            onSuccess={handleAuthSuccess}
           />
         )}
       </>

@@ -44,13 +44,13 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
       await Promise.all(
         artistData.map(async ({ name }) => {
           try {
-            const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+            const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
             const snap = await getDoc(doc(db, 'ticketCache', `tm_${slug}`));
             if (snap.exists()) {
               const cached = snap.data();
               const cachedAt = cached.cachedAt?.toMillis?.() || 0;
               if (Date.now() - cachedAt < TICKET_CACHE_TTL) {
-                const events = cached.events || [];
+                const events = cached.data || cached.events || [];
                 if (events.length > 0) {
                   dots[name] = true;
                   totalEvents += events.length;

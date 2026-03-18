@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '2.4.0',
+      date: 'March 18, 2026',
+      title: 'Bug Fixes: Login, Upcoming Shows & Admin Panel',
+      changes: [
+        'Fix: Login modal now auto-closes after successful Google or Apple sign-in',
+        'Fix: Upcoming Shows page is now reachable from the sidebar navigation (was linking to a 404)',
+        'Fix: Upcoming Shows green indicator dots now display correctly for artists with cached events',
+        'Fix: Admin panel tabs are now horizontally scrollable on mobile — all tabs accessible on iPhone',
+      ]
+    },
+    {
       version: '3.0.0',
       date: 'March 15, 2026',
       title: 'Native iOS App with Capacitor',
