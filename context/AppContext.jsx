@@ -153,6 +153,8 @@ export function AppProvider({ children }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterDate, setFilterDate] = useState('');
   const [shareSuccess, setShareSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('date');
@@ -2071,18 +2073,35 @@ export function AppProvider({ children }) {
   // ── Derived / memoized data ─────────────────────────────────────────
   const importedIds = useMemo(() => new Set(shows.map(s => s.setlistfmId).filter(Boolean)), [shows]);
 
+  const availableYears = useMemo(() => {
+    const years = [...new Set(shows.map(s => {
+      const d = parseDate(s.date);
+      return d.getFullYear();
+    }).filter(y => y > 1900))];
+    return years.sort((a, b) => b - a);
+  }, [shows]);
+
   const sortedFilteredShows = useMemo(() => {
-    const filtered = shows.filter(show =>
+    let filtered = shows.filter(show =>
       show.artist.toLowerCase().includes(searchTerm.toLowerCase()) ||
       show.venue.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    if (filterYear) {
+      filtered = filtered.filter(show => {
+        const d = parseDate(show.date);
+        return d.getFullYear() === parseInt(filterYear);
+      });
+    }
+    if (filterDate) {
+      filtered = filtered.filter(show => show.date === filterDate);
+    }
     return filtered.sort((a, b) => {
       if (sortBy === 'date') return parseDate(b.date) - parseDate(a.date);
       if (sortBy === 'artist') return a.artist.localeCompare(b.artist);
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       return 0;
     });
-  }, [shows, searchTerm, sortBy]);
+  }, [shows, searchTerm, sortBy, filterYear, filterDate]);
 
   const artistGroups = useMemo(() => {
     const groups = {};
@@ -2136,6 +2155,11 @@ export function AppProvider({ children }) {
     setSelectedShow,
     searchTerm,
     setSearchTerm,
+    filterYear,
+    setFilterYear,
+    filterDate,
+    setFilterDate,
+    availableYears,
     shareSuccess,
     setShareSuccess,
     isLoading,
