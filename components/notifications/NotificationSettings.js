@@ -82,8 +82,8 @@ export default function NotificationSettings({ userId }) {
 
   if (!notificationsSupported) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-        <div className="flex items-center gap-3 text-white/50">
+      <div className="bg-highlight border border-subtle rounded-2xl p-6">
+        <div className="flex items-center gap-3 text-secondary">
           <BellOff className="w-5 h-5" />
           <span>Notifications are not supported in this browser</span>
         </div>
@@ -92,24 +92,24 @@ export default function NotificationSettings({ userId }) {
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Bell className="w-5 h-5 text-emerald-400" />
+    <div className="bg-highlight border border-subtle rounded-2xl p-6">
+      <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+        <Bell className="w-5 h-5 text-accent-amber" />
         Notifications
       </h3>
 
       {permission !== 'granted' ? (
         <div className="space-y-4">
-          <p className="text-white/60 text-sm">
+          <p className="text-secondary text-sm">
             Enable notifications to get reminders to rate your shows and stay updated on new features.
           </p>
 
           {permission === 'denied' ? (
-            <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-              <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-4 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
+              <AlertCircle className="w-5 h-5 text-accent-amber flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-amber-400 font-medium text-sm">Notifications are blocked</p>
-                <p className="text-white/50 text-xs mt-1">
+                <p className="text-accent-amber font-medium text-sm">Notifications are blocked</p>
+                <p className="text-secondary text-xs mt-1">
                   To enable notifications, click the lock icon in your browser's address bar and allow notifications for this site.
                 </p>
               </div>
@@ -118,7 +118,7 @@ export default function NotificationSettings({ userId }) {
             <button
               onClick={handleEnableNotifications}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white rounded-xl font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-accent-amber hover:bg-accent-amber disabled:opacity-50 text-primary rounded-xl font-medium transition-colors"
             >
               <Bell className="w-4 h-4" />
               {loading ? 'Enabling...' : 'Enable Notifications'}
@@ -127,7 +127,7 @@ export default function NotificationSettings({ userId }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-emerald-400 text-sm">
+          <div className="flex items-center gap-2 text-accent-amber text-sm">
             <Check className="w-4 h-4" />
             Notifications enabled
           </div>
@@ -143,13 +143,13 @@ export default function NotificationSettings({ userId }) {
                   type="checkbox"
                   checked={preferences[key]}
                   onChange={(e) => handlePreferenceChange(key, e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded border-white/20 bg-white/10 text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                  className="mt-1 w-4 h-4 rounded border-active bg-highlight text-accent-amber focus:ring-accent-amber/50 focus:ring-offset-0 cursor-pointer"
                 />
                 <div>
-                  <span className="text-white text-sm font-medium group-hover:text-emerald-400 transition-colors">
+                  <span className="text-primary text-sm font-medium group-hover:text-accent-amber transition-colors">
                     {label}
                   </span>
-                  <p className="text-white/50 text-xs">{desc}</p>
+                  <p className="text-secondary text-xs">{desc}</p>
                 </div>
               </label>
             ))}

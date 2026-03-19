@@ -35,7 +35,7 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: '#0f172a',
+  themeColor: '#0a0a0c',
   viewportFit: 'cover',
 };
 
@@ -45,12 +45,12 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
       </head>
       <body>
         <Suspense fallback={
-          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-            <div className="text-white/40 font-medium">Loading...</div>
+          <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-void)' }}>
+            <div className="text-muted font-medium font-body">Loading...</div>
           </div>
         }>
           <AppProviderWrapper>

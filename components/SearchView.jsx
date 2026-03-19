@@ -187,14 +187,14 @@ function SearchView({ onImport, importedIds }) {
 
   return (
     <div>
-      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Search Shows</h1>
-      <p className="text-white/60 mb-8">Find and import setlists from Setlist.fm</p>
+      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2 font-display">Search Shows</h1>
+      <p className="text-secondary mb-8">Find and import setlists from Setlist.fm</p>
 
       {/* Search Form */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-6">
+      <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">Artist Name *</label>
+            <label className="block text-sm font-medium text-secondary mb-2">Artist Name *</label>
             <input
               type="text"
               placeholder="e.g., Radiohead"
@@ -202,20 +202,20 @@ function SearchView({ onImport, importedIds }) {
               onChange={(e) => setArtistName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchArtists()}
               disabled={selectedArtist !== null}
-              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 disabled:opacity-50"
+              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted disabled:opacity-50"
             />
             {selectedArtist && (
-              <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-lg">
-                <span className="text-emerald-400 text-sm flex-1">
-                  <span className="text-white/60">Searching:</span> {selectedArtist.name}
+              <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-accent-amber-glow border border-accent-amber/30 rounded-lg">
+                <span className="text-accent-amber text-sm flex-1">
+                  <span className="text-secondary">Searching:</span> {selectedArtist.name}
                   {selectedArtist.disambiguation && (
-                    <span className="text-white/40 ml-1">({selectedArtist.disambiguation})</span>
+                    <span className="text-muted ml-1">({selectedArtist.disambiguation})</span>
                   )}
                 </span>
                 <Tip text="Clear selection">
                   <button
                     onClick={clearArtistSelection}
-                    className="text-white/60 hover:text-white p-1"
+                    className="text-secondary hover:text-primary p-1"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -224,43 +224,43 @@ function SearchView({ onImport, importedIds }) {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">Year</label>
+            <label className="block text-sm font-medium text-secondary mb-2">Year</label>
             <input
               type="text"
               placeholder="e.g., 2024"
               value={year}
               onChange={(e) => setYear(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">Venue</label>
+            <label className="block text-sm font-medium text-secondary mb-2">Venue</label>
             <input
               type="text"
               placeholder="e.g., Madison Square Garden"
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">City</label>
+            <label className="block text-sm font-medium text-secondary mb-2">City</label>
             <input
               type="text"
               placeholder="e.g., New York"
               value={cityName}
               onChange={(e) => setCityName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && (selectedArtist ? searchSetlists(1) : searchArtists())}
-              className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
             />
           </div>
         </div>
         <button
           onClick={() => selectedArtist ? searchSetlists(1) : searchArtists()}
           disabled={isSearching || !artistName.trim()}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/25"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-accent-amber/20"
         >
           <Search className="w-4 h-4" />
           {isSearching ? 'Searching...' : (selectedArtist ? 'Search Setlists' : 'Search Artists')}
@@ -269,18 +269,18 @@ function SearchView({ onImport, importedIds }) {
 
       {/* Artist Picker */}
       {showArtistPicker && artistOptions.length > 0 && (
-        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-6">
+        <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Select Artist</h2>
-              <p className="text-sm text-white/50">Multiple artists found - please select the correct one</p>
+              <h2 className="text-lg font-semibold text-primary font-display">Select Artist</h2>
+              <p className="text-sm text-secondary">Multiple artists found - please select the correct one</p>
             </div>
             <button
               onClick={() => {
                 setShowArtistPicker(false);
                 setArtistOptions([]);
               }}
-              className="text-white/60 hover:text-white p-1"
+              className="text-secondary hover:text-primary p-1"
             >
               <X className="w-5 h-5" />
             </button>
@@ -290,16 +290,16 @@ function SearchView({ onImport, importedIds }) {
               <button
                 key={artist.mbid || artist.name}
                 onClick={() => selectArtist(artist)}
-                className="w-full text-left p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/30 rounded-xl transition-all group"
+                className="w-full text-left p-4 bg-highlight hover:bg-highlight border border-subtle hover:border-accent-amber/30 rounded-xl transition-all group"
               >
-                <div className="font-medium text-white group-hover:text-emerald-400 transition-colors">
+                <div className="font-medium text-primary group-hover:text-accent-amber transition-colors">
                   {artist.name}
                 </div>
                 {artist.disambiguation && (
-                  <div className="text-sm text-white/50 mt-1">{artist.disambiguation}</div>
+                  <div className="text-sm text-secondary mt-1">{artist.disambiguation}</div>
                 )}
                 {artist.sortName && artist.sortName !== artist.name && (
-                  <div className="text-xs text-white/30 mt-1">Sort: {artist.sortName}</div>
+                  <div className="text-xs text-muted mt-1">Sort: {artist.sortName}</div>
                 )}
               </button>
             ))}
@@ -309,8 +309,8 @@ function SearchView({ onImport, importedIds }) {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="bg-danger/10 border border-danger/20 rounded-xl p-4 mb-6">
+          <p className="text-danger text-sm">{error}</p>
         </div>
       )}
 
@@ -318,8 +318,8 @@ function SearchView({ onImport, importedIds }) {
       {results.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Search Results</h2>
-            <span className="text-sm text-white/50">Page {page} of {totalPages}</span>
+            <h2 className="text-lg font-semibold text-primary font-display">Search Results</h2>
+            <span className="text-sm text-secondary">Page {page} of {totalPages}</span>
           </div>
 
           {results.map((setlist) => {
@@ -329,23 +329,23 @@ function SearchView({ onImport, importedIds }) {
             return (
               <div
                 key={setlist.id}
-                className="bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all"
+                className="bg-highlight border border-subtle rounded-xl overflow-hidden transition-all"
               >
-                <div className="p-4 hover:bg-white/5">
+                <div className="p-4 hover:bg-highlight">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-white">{setlist.artist.name}</div>
-                      <div className="text-sm text-white/60 mt-1">
+                      <div className="font-semibold text-primary font-display">{setlist.artist.name}</div>
+                      <div className="text-sm text-secondary mt-1">
                         {setlist.venue.name} &middot; {setlist.venue.city.name}, {setlist.venue.city.country.name}
                       </div>
-                      <div className="text-sm text-white/40 mt-1">
+                      <div className="text-sm text-muted mt-1">
                         {formatSetlistDate(setlist.eventDate)}
-                        {setlist.tour && <span className="text-emerald-400 ml-2">{setlist.tour.name}</span>}
+                        {setlist.tour && <span className="text-accent-amber ml-2">{setlist.tour.name}</span>}
                       </div>
                       {songCount > 0 && (
                         <button
                           onClick={() => setExpandedSetlist(isExpanded ? null : setlist.id)}
-                          className="flex items-center gap-1 text-xs text-white/50 hover:text-white/70 mt-2 transition-colors"
+                          className="flex items-center gap-1 text-xs text-secondary hover:text-primary mt-2 transition-colors"
                         >
                           <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                           {songCount} songs
@@ -357,8 +357,8 @@ function SearchView({ onImport, importedIds }) {
                       disabled={isImported(setlist.id)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                         isImported(setlist.id)
-                          ? 'bg-emerald-500/20 text-emerald-400 cursor-default'
-                          : 'bg-white/10 hover:bg-white/20 text-white'
+                          ? 'bg-accent-amber-glow text-accent-amber cursor-default'
+                          : 'bg-highlight hover:bg-highlight text-primary'
                       }`}
                     >
                       {isImported(setlist.id) ? (
@@ -378,29 +378,29 @@ function SearchView({ onImport, importedIds }) {
 
                 {/* Expandable Setlist */}
                 {isExpanded && setlist.sets?.set && (
-                  <div className="border-t border-white/10 bg-white/5 p-4">
+                  <div className="border-t border-subtle bg-highlight p-4">
                     <div className="space-y-1 max-h-64 overflow-y-auto">
                       {setlist.sets.set.map((set, setIdx) => (
                         <div key={setIdx}>
                           {set.name && (
-                            <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wide mt-2 mb-1">
+                            <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-2 mb-1">
                               {set.name || (set.encore ? 'Encore' : `Set ${setIdx + 1}`)}
                             </div>
                           )}
                           {set.encore && !set.name && (
-                            <div className="text-xs font-semibold text-amber-400 uppercase tracking-wide mt-2 mb-1">
+                            <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-2 mb-1">
                               Encore
                             </div>
                           )}
                           {set.song?.map((song, songIdx) => (
                             <div
                               key={songIdx}
-                              className="flex items-center gap-2 py-1 text-sm text-white/70"
+                              className="flex items-center gap-2 py-1 text-sm text-secondary"
                             >
-                              <span className="text-white/30 w-6 text-right text-xs">{songIdx + 1}.</span>
+                              <span className="text-muted w-6 text-right text-xs">{songIdx + 1}.</span>
                               <span>{song.name}</span>
                               {song.cover && (
-                                <span className="text-xs text-white/40">
+                                <span className="text-xs text-muted">
                                   ({song.cover.name} cover)
                                 </span>
                               )}
@@ -421,19 +421,19 @@ function SearchView({ onImport, importedIds }) {
               <button
                 onClick={() => searchSetlists(page - 1)}
                 disabled={page === 1 || isSearching}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-highlight hover:bg-highlight disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-white" />
+                <ChevronLeft className="w-5 h-5 text-primary" />
               </button>
-              <span className="text-sm text-white/60 px-4">
+              <span className="text-sm text-secondary px-4">
                 Page {page} of {totalPages}
               </span>
               <button
                 onClick={() => searchSetlists(page + 1)}
                 disabled={page === totalPages || isSearching}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-highlight hover:bg-highlight disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight className="w-5 h-5 text-white" />
+                <ChevronRight className="w-5 h-5 text-primary" />
               </button>
             </div>
           )}
@@ -443,8 +443,8 @@ function SearchView({ onImport, importedIds }) {
       {/* Empty State */}
       {!isSearching && results.length === 0 && !error && (
         <div className="text-center py-16">
-          <Search className="w-12 h-12 text-white/20 mx-auto mb-4" />
-          <p className="text-white/40">Enter an artist name to search for setlists</p>
+          <Search className="w-12 h-12 text-muted mx-auto mb-4" />
+          <p className="text-muted">Enter an artist name to search for setlists</p>
         </div>
       )}
     </div>

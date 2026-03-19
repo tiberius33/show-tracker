@@ -61,21 +61,21 @@ export default function ShowsPage() {
       {pendingTagsForReview && pendingTagsForReview.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-              <Tag className="w-5 h-5 text-emerald-400" />
+            <div className="w-10 h-10 bg-accent-amber-glow rounded-xl flex items-center justify-center">
+              <Tag className="w-5 h-5 text-accent-amber" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Your friends tagged you in some shows!</h1>
-              <p className="text-white/50 text-sm">Review them and add any to your history.</p>
+              <h1 className="text-xl font-bold text-primary font-display">Your friends tagged you in some shows!</h1>
+              <p className="text-secondary text-sm">Review them and add any to your history.</p>
             </div>
           </div>
           <div className="space-y-4">
             {pendingTagsForReview.map(tag => (
-              <div key={tag.id} className="bg-white/5 border border-white/10 rounded-2xl p-5">
+              <div key={tag.id} className="bg-highlight border border-subtle rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
-                    <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
-                    <div className="flex items-center gap-3 text-sm text-white/60 mt-1 flex-wrap">
+                    <div className="text-lg font-bold font-display" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
+                    <div className="flex items-center gap-3 text-sm text-secondary mt-1 flex-wrap">
                       {tag.showData?.date && (
                         <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDate(tag.showData.date)}</span>
                       )}
@@ -84,22 +84,22 @@ export default function ShowsPage() {
                       )}
                       {tag.showData?.city && <span>{tag.showData.city}</span>}
                     </div>
-                    <div className="text-sm text-white/40 mt-1">Tagged by {tag.fromName}</div>
+                    <div className="text-sm text-muted mt-1">Tagged by {tag.fromName}</div>
                     {tag.personalMessage && (
-                      <p className="text-sm text-white/50 italic mt-2">&ldquo;{tag.personalMessage}&rdquo;</p>
+                      <p className="text-sm text-secondary italic mt-2">&ldquo;{tag.personalMessage}&rdquo;</p>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => acceptPendingEmailTag(tag)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-xl font-medium transition-colors text-sm"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-amber-glow hover:bg-accent-amber/30 text-accent-amber border border-accent-amber/30 rounded-xl font-medium transition-colors text-sm"
                   >
                     <Check className="w-4 h-4" /> Add to My History
                   </button>
                   <button
                     onClick={() => declinePendingEmailTag(tag)}
-                    className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white/50 rounded-xl font-medium transition-colors text-sm"
+                    className="flex-1 px-4 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
                   >
                     Not Me — Skip
                   </button>
@@ -119,13 +119,13 @@ export default function ShowsPage() {
                 setFriendsInitialTab('requests');
                 navigateTo('friends');
               }}
-              className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl hover:from-violet-500/30 hover:to-purple-500/30 transition-all group"
+              className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-accent-teal/20 to-accent-amber-glow border border-accent-teal/30 rounded-xl hover:from-accent-teal/30 hover:to-accent-amber-glow transition-all group"
             >
               <div className="relative">
-                <Bell className="w-5 h-5 text-violet-400" />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                <Bell className="w-5 h-5 text-accent-teal" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-danger rounded-full animate-pulse" />
               </div>
-              <span className="text-white/90 text-sm font-medium">
+              <span className="text-primary text-sm font-medium">
                 {pendingFriendRequests.length > 0 && pendingShowTags.length > 0
                   ? `You have ${pendingFriendRequests.length} friend request${pendingFriendRequests.length !== 1 ? 's' : ''} and ${pendingShowTags.length} show tag${pendingShowTags.length !== 1 ? 's' : ''}`
                   : pendingFriendRequests.length > 0
@@ -133,7 +133,7 @@ export default function ShowsPage() {
                     : `You were tagged in ${pendingShowTags.length} show${pendingShowTags.length !== 1 ? 's' : ''} by friends`
                 }
               </span>
-              <ChevronRight className="w-4 h-4 text-violet-400/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="w-4 h-4 text-accent-teal/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
             </button>
           )}
 
@@ -141,24 +141,24 @@ export default function ShowsPage() {
           {shows.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
               {[
-                { label: 'Shows', value: shows.length, color: 'from-emerald-400 to-teal-400', action: () => {} },
-                { label: 'Songs', value: summaryStats.totalSongs, color: 'from-violet-400 to-purple-400', action: () => { setStatsTab('songs'); navigateTo('stats'); } },
-                { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-amber-400 to-orange-400', action: () => { setStatsTab('artists'); navigateTo('stats'); } },
-                { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-cyan-400 to-blue-400', action: () => { setStatsTab('venues'); navigateTo('stats'); } },
-                { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-pink-400 to-rose-400', action: () => { setStatsTab('top'); navigateTo('stats'); } },
+                { label: 'Shows', value: shows.length, color: 'from-accent-amber to-accent-teal', action: () => {} },
+                { label: 'Songs', value: summaryStats.totalSongs, color: 'from-accent-teal to-accent-teal', action: () => { setStatsTab('songs'); navigateTo('stats'); } },
+                { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-accent-amber to-accent-amber', action: () => { setStatsTab('artists'); navigateTo('stats'); } },
+                { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-accent-teal to-accent-teal', action: () => { setStatsTab('venues'); navigateTo('stats'); } },
+                { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-danger to-danger', action: () => { setStatsTab('top'); navigateTo('stats'); } },
               ].map(stat => (
-                <button key={stat.label} onClick={stat.action} className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-2.5 text-center hover:bg-white/15 transition-all cursor-pointer">
+                <button key={stat.label} onClick={stat.action} className="bg-highlight backdrop-blur-xl border border-subtle rounded-xl p-2.5 text-center hover:bg-highlight transition-all cursor-pointer">
                   <div className={`text-xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
-                  <div className="text-[10px] font-medium text-white/50 uppercase tracking-wide mt-0.5">{stat.label}</div>
+                  <div className="text-[10px] font-medium text-secondary uppercase tracking-wide mt-0.5">{stat.label}</div>
                 </button>
               ))}
               {userRank && (
-                <button onClick={() => navigateTo('community')} className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-xl border border-amber-500/30 rounded-xl p-2.5 text-center hover:from-amber-500/30 hover:to-orange-500/30 transition-all cursor-pointer">
+                <button onClick={() => navigateTo('community')} className="bg-gradient-to-br from-accent-amber/20 to-accent-amber/20 backdrop-blur-xl border border-accent-amber/30 rounded-xl p-2.5 text-center hover:from-accent-amber/30 hover:to-accent-amber/30 transition-all cursor-pointer">
                   <div className="flex items-center justify-center gap-1">
-                    <Crown className="w-4 h-4 text-amber-400" />
-                    <div className="text-xl font-bold text-amber-400">#{userRank.rank}</div>
+                    <Crown className="w-4 h-4 text-accent-amber" />
+                    <div className="text-xl font-bold text-accent-amber">#{userRank.rank}</div>
                   </div>
-                  <div className="text-[10px] font-medium text-amber-200/70 uppercase tracking-wide mt-0.5">of {userRank.total}</div>
+                  <div className="text-[10px] font-medium text-accent-amber/70 uppercase tracking-wide mt-0.5">of {userRank.total}</div>
                 </button>
               )}
             </div>
@@ -167,23 +167,23 @@ export default function ShowsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-white mb-1">My Shows</h1>
-              <p className="text-white/60">All the concerts you&apos;ve attended</p>
+              <h1 className="text-xl md:text-2xl font-bold text-primary mb-1 font-display">My Shows</h1>
+              <p className="text-secondary">All the concerts you&apos;ve attended</p>
             </div>
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => navigateTo('search')}
-                className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-emerald-500/25 ${shows.length === 0 ? 'animate-pulse' : ''}`}
+                className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-accent-amber/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
               >
                 {shows.length === 0 && (
-                  <span className="absolute inset-0 rounded-xl bg-emerald-400 animate-ping opacity-20" />
+                  <span className="absolute inset-0 rounded-xl bg-accent-amber animate-ping opacity-20" />
                 )}
                 <Search className="w-4 h-4" />
                 Search for a Show
               </button>
               <button
                 onClick={() => setShowForm(true)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all whitespace-nowrap border border-white/10"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-highlight hover:bg-highlight text-primary rounded-xl font-medium transition-all whitespace-nowrap border border-subtle"
               >
                 <Plus className="w-4 h-4" />
                 Add Manually
@@ -191,7 +191,7 @@ export default function ShowsPage() {
               <div className="relative">
                 <button
                   onClick={() => navigateTo('scan-import')}
-                  className={`flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-all whitespace-nowrap border border-violet-500/30 ${tooltipStep === 1 ? 'ring-2 ring-violet-500/60 ring-offset-2 ring-offset-slate-900' : ''}`}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-medium transition-all whitespace-nowrap border border-accent-teal/30 ${tooltipStep === 1 ? 'ring-2 ring-accent-teal/60 ring-offset-2 ring-offset-void' : ''}`}
                 >
                   <Camera className="w-4 h-4" />
                   Scan / Import
@@ -199,17 +199,17 @@ export default function ShowsPage() {
                 {tooltipStep === 1 && (
                   <>
                     <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
-                      <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                      <div className="bg-accent-teal border border-accent-teal/30 rounded-xl p-3 shadow-xl shadow-accent-teal/20 relative">
                         <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
-                        <p className="text-white text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                        <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                        <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
+                        <button onClick={dismissTooltip} className="text-accent-teal hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
                       </div>
                     </div>
                     <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
-                      <div className="bg-violet-600 border border-violet-400/30 rounded-xl p-3 shadow-xl shadow-violet-500/20 relative">
+                      <div className="bg-accent-teal border border-accent-teal/30 rounded-xl p-3 shadow-xl shadow-accent-teal/20 relative">
                         <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-violet-600" />
-                        <p className="text-white text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                        <button onClick={dismissTooltip} className="text-violet-200 hover:text-white text-xs font-medium transition-colors">Got it ✓</button>
+                        <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
+                        <button onClick={dismissTooltip} className="text-accent-teal hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
                       </div>
                     </div>
                   </>
@@ -219,7 +219,7 @@ export default function ShowsPage() {
                 <button
                   onClick={scanForMissingSetlists}
                   disabled={setlistScanning}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-all whitespace-nowrap border border-violet-500/30 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-medium transition-all whitespace-nowrap border border-accent-teal/30 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
                   {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}
@@ -230,48 +230,48 @@ export default function ShowsPage() {
 
           {/* Setlist scanning progress */}
           {setlistScanning && (
-            <div className="bg-violet-500/10 border border-violet-500/30 rounded-2xl p-4 mb-6">
+            <div className="bg-accent-teal-glow border border-accent-teal/30 rounded-2xl p-4 mb-6">
               <div className="flex items-center gap-3 mb-2">
-                <RefreshCw className="w-5 h-5 text-violet-400 animate-spin" />
-                <span className="text-white font-medium">Scanning for setlists...</span>
-                <span className="text-white/50 text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
+                <RefreshCw className="w-5 h-5 text-accent-teal animate-spin" />
+                <span className="text-primary font-medium">Scanning for setlists...</span>
+                <span className="text-secondary text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
               </div>
-              <div className="w-full bg-white/10 rounded-full h-2">
+              <div className="w-full bg-highlight rounded-full h-2">
                 <div
-                  className="bg-violet-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-accent-teal h-2 rounded-full transition-all duration-300"
                   style={{ width: `${setlistScanProgress.total > 0 ? (setlistScanProgress.current / setlistScanProgress.total) * 100 : 0}%` }}
                 />
               </div>
               {setlistScanProgress.found > 0 && (
-                <p className="text-violet-300 text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
+                <p className="text-accent-teal text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
               )}
             </div>
           )}
 
           {/* Search & Sort */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-6">
+          <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-4 mb-6">
             <div className="flex gap-3 flex-wrap items-center">
               <div className="flex-1 min-w-[200px] relative">
-                <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Filter shows..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                  className="w-full pl-11 pr-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
                 />
               </div>
               {shows.length > 1 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-white/50">Sort:</span>
+                  <span className="text-sm font-medium text-secondary">Sort:</span>
                   {['date', 'artist', 'rating'].map(opt => (
                     <button
                       key={opt}
                       onClick={() => setSortBy(opt)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                         sortBy === opt
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                          ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                          : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
                       }`}
                     >
                       {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -285,58 +285,58 @@ export default function ShowsPage() {
           {/* Empty state */}
           {sortedFilteredShows.length === 0 && !showForm && (
             <div className="text-center py-12 md:py-16">
-              <div className="w-24 h-24 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
-                <Sparkles className="w-12 h-12 text-emerald-400" />
+              <div className="w-24 h-24 bg-gradient-to-br from-accent-amber/20 to-accent-teal/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-accent-amber/30">
+                <Sparkles className="w-12 h-12 text-accent-amber" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Your Concert Journey Starts Here</h2>
-              <p className="text-white/60 mb-6 max-w-md mx-auto">
+              <h2 className="text-2xl font-bold text-primary mb-2 font-display">Your Concert Journey Starts Here</h2>
+              <p className="text-secondary mb-6 max-w-md mx-auto">
                 Build your personal concert history with setlists, ratings, and stats.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
                 <button
                   onClick={() => navigateTo('search')}
-                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
+                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-semibold transition-all shadow-lg shadow-accent-amber/20 hover:shadow-accent-amber/50 hover:scale-105"
                 >
-                  <span className="absolute inset-0 rounded-xl bg-emerald-400 animate-ping opacity-20" />
+                  <span className="absolute inset-0 rounded-xl bg-accent-amber animate-ping opacity-20" />
                   <Search className="w-5 h-5" />
                   Search for a Show
                 </button>
                 <button
                   onClick={() => navigateTo('scan-import')}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-semibold transition-all border border-violet-500/30 hover:scale-105"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-semibold transition-all border border-accent-teal/30 hover:scale-105"
                 >
                   <Upload className="w-5 h-5" />
                   Bulk Import
                 </button>
               </div>
-              <div className="max-w-lg mx-auto bg-white/5 border border-white/10 rounded-2xl p-6 text-left">
-                <h3 className="text-white font-semibold mb-4 text-center">Quick ways to add your shows</h3>
+              <div className="max-w-lg mx-auto bg-highlight border border-subtle rounded-2xl p-6 text-left">
+                <h3 className="text-primary font-semibold mb-4 text-center">Quick ways to add your shows</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Camera className="w-4 h-4 text-violet-400" />
+                    <div className="w-8 h-8 bg-accent-teal-glow rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Camera className="w-4 h-4 text-accent-teal" />
                     </div>
                     <div>
-                      <p className="text-white/90 font-medium text-sm">Screenshot Import</p>
-                      <p className="text-white/50 text-xs">Take a screenshot of your Ticketmaster, AXS, or StubHub past events and our AI will extract your shows</p>
+                      <p className="text-primary font-medium text-sm">Screenshot Import</p>
+                      <p className="text-secondary text-xs">Take a screenshot of your Ticketmaster, AXS, or StubHub past events and our AI will extract your shows</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Upload className="w-4 h-4 text-emerald-400" />
+                    <div className="w-8 h-8 bg-accent-amber-glow rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Upload className="w-4 h-4 text-accent-amber" />
                     </div>
                     <div>
-                      <p className="text-white/90 font-medium text-sm">CSV / Excel Import</p>
-                      <p className="text-white/50 text-xs">Upload a .csv, .xlsx, or .xls spreadsheet with your concert history</p>
+                      <p className="text-primary font-medium text-sm">CSV / Excel Import</p>
+                      <p className="text-secondary text-xs">Upload a .csv, .xlsx, or .xls spreadsheet with your concert history</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Search className="w-4 h-4 text-emerald-400" />
+                    <div className="w-8 h-8 bg-accent-amber-glow rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Search className="w-4 h-4 text-accent-amber" />
                     </div>
                     <div>
-                      <p className="text-white/90 font-medium text-sm">Search setlist.fm</p>
-                      <p className="text-white/50 text-xs">Search by artist to find shows with full setlists from setlist.fm</p>
+                      <p className="text-primary font-medium text-sm">Search setlist.fm</p>
+                      <p className="text-secondary text-xs">Search by artist to find shows with full setlists from setlist.fm</p>
                     </div>
                   </div>
                 </div>
@@ -356,16 +356,16 @@ export default function ShowsPage() {
 
           {/* Artist groups table */}
           {sortedFilteredShows.length > 0 && (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Artist</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Avg Rating</th>
+                  <tr className="bg-highlight border-b border-subtle">
+                    <th className="text-left px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Artist</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Avg Rating</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-subtle">
                   {artistGroups.map(([artist, artistShows]) => (
                     <ArtistShowsRow
                       key={artist}

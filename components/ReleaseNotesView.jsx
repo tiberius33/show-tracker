@@ -6,6 +6,27 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.0.0',
+      date: 'March 19, 2026',
+      title: 'Concert Venue Theme — Complete Visual Redesign',
+      changes: [
+        'New: Dark, moody concert venue aesthetic — near-black backgrounds with warm amber and electric teal accents',
+        'New: Custom color system with CSS variables for consistent theming across every screen',
+        'New: Stage-lighting background effect — subtle radial gradients suggesting amber and teal stage lights',
+        'New: DM Serif Display headings paired with DM Sans body text for a vinyl-sleeve, gig-poster feel',
+        'New: Themed scrollbars, amber-glow hover states, and teal secondary accents throughout',
+        'Redesigned: Sidebar navigation with left accent bars, amber active states, and muted bottom items',
+        'Redesigned: Cards and show entries with subtle borders, amber hover glow, and serif titles',
+        'Redesigned: Buttons — amber primary CTAs with dark text, ghost secondary with teal hover',
+        'Redesigned: Modals with blurred backdrop, elevated surface backgrounds, and subtle borders',
+        'Redesigned: Form inputs with void background, amber focus rings, and muted placeholders',
+        'Redesigned: Star ratings with amber fill and glow effect',
+        'Redesigned: Stats badges, pill tags, and count indicators in the new color system',
+        'Technical: All hardcoded Tailwind color classes replaced with CSS variable-backed theme tokens',
+        'Technical: Tailwind config extended with semantic color names (void, surface, elevated, etc.)',
+      ]
+    },
+    {
       version: '2.4.0',
       date: 'March 18, 2026',
       title: 'Bug Fixes: Login, Upcoming Shows & Admin Panel',
@@ -534,35 +555,35 @@ function ReleaseNotesView() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Release Notes</h1>
-      <p className="text-white/60 mb-8">What's new in Setlist Tracker</p>
+      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2 font-display">Release Notes</h1>
+      <p className="text-secondary mb-8">What's new in Setlist Tracker</p>
 
       <div className="space-y-6">
         {releases.map((release, index) => (
           <div
             key={release.version}
-            className={`bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 ${
-              index === 0 ? 'ring-2 ring-emerald-500/30' : ''
+            className={`bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 ${
+              index === 0 ? 'ring-2 ring-accent-amber/30' : ''
             }`}
           >
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-lg font-bold text-white">v{release.version}</span>
+                  <span className="text-lg font-bold text-primary font-display">v{release.version}</span>
                   {index === 0 && (
-                    <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold">
+                    <span className="px-2 py-0.5 bg-accent-amber-glow text-accent-amber rounded-full text-xs font-semibold">
                       Latest
                     </span>
                   )}
                 </div>
-                <h3 className="text-emerald-400 font-medium">{release.title}</h3>
+                <h3 className="text-accent-amber font-medium">{release.title}</h3>
               </div>
-              <span className="text-white/40 text-sm">{release.date}</span>
+              <span className="text-muted text-sm">{release.date}</span>
             </div>
             <ul className="space-y-2">
               {release.changes.map((change, i) => (
-                <li key={i} className="flex items-start gap-3 text-white/70">
-                  <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <li key={i} className="flex items-start gap-3 text-secondary">
+                  <Check className="w-4 h-4 text-accent-amber mt-0.5 flex-shrink-0" />
                   <span>{change}</span>
                 </li>
               ))}

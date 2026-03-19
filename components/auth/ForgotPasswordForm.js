@@ -28,16 +28,16 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
   if (success) {
     return (
       <div className="text-center">
-        <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Mail className="w-8 h-8 text-emerald-400" />
+        <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-4">
+          <Mail className="w-8 h-8 text-accent-amber" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Check Your Email</h2>
-        <p className="text-white/60 mb-6">
-          We've sent a password reset link to <span className="text-white">{email}</span>
+        <h2 className="text-2xl font-bold text-primary mb-2">Check Your Email</h2>
+        <p className="text-secondary mb-6">
+          We've sent a password reset link to <span className="text-primary">{email}</span>
         </p>
         <button
           onClick={onBackToLogin}
-          className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-2 mx-auto"
+          className="text-accent-amber hover:text-accent-amber font-medium flex items-center gap-2 mx-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to sign in
@@ -50,14 +50,14 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
     <div>
       <button
         onClick={onBackToLogin}
-        className="text-white/50 hover:text-white/80 flex items-center gap-2 mb-6 transition-colors"
+        className="text-secondary hover:text-primary flex items-center gap-2 mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to sign in
       </button>
 
-      <h2 className="text-2xl font-bold text-white mb-2">Reset Password</h2>
-      <p className="text-white/60 mb-6">
+      <h2 className="text-2xl font-bold text-primary mb-2">Reset Password</h2>
+      <p className="text-secondary mb-6">
         Enter your email and we'll send you a link to reset your password.
       </p>
 
@@ -67,20 +67,20 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+          className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
           required
           disabled={loading}
           autoFocus
         />
 
         {error && (
-          <p className="text-red-400 text-sm">{error}</p>
+          <p className="text-danger text-sm">{error}</p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25"
+          className="w-full px-4 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
         >
           {loading ? 'Sending...' : 'Send Reset Link'}
         </button>

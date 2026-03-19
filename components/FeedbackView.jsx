@@ -82,12 +82,12 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
   if (submitted) {
     return (
       <div className="max-w-xl mx-auto">
-        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 text-center">
-          <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-6 h-6 text-emerald-400" />
+        <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-8 text-center">
+          <div className="w-12 h-12 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-6 h-6 text-accent-amber" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Thanks for your feedback!</h2>
-          <p className="text-white/60 mb-6">
+          <h2 className="text-xl font-bold text-primary mb-2 font-display">Thanks for your feedback!</h2>
+          <p className="text-secondary mb-6">
             {feedbackType === 'feature'
               ? "Your idea has been added to the feedback queue. Check the roadmap to see what's coming!"
               : "We read everything and use it to make MySetlists better."}
@@ -95,7 +95,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
           {feedbackType === 'feature' && (
             <button
               onClick={() => onNavigate && onNavigate('roadmap')}
-              className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-violet-500/25"
+              className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-accent-teal to-accent-teal hover:from-accent-teal hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-teal/20"
             >
               <TrendingUp className="w-4 h-4" />
               View Roadmap
@@ -103,7 +103,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
           )}
           <button
             onClick={() => { setSubmitted(false); setMessage(''); setFeedbackType('general'); setCategory('other'); }}
-            className="text-white/40 hover:text-white/60 text-sm transition-colors"
+            className="text-muted hover:text-primary text-sm transition-colors"
           >
             Send more feedback
           </button>
@@ -116,16 +116,16 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
     <div className="max-w-xl mx-auto">
       {/* Roadmap notification banner */}
       {roadmapNotifications.length > 0 && (
-        <div className="mb-6 px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
-          <p className="text-emerald-400 text-sm font-medium mb-1">
+        <div className="mb-6 px-4 py-3 bg-accent-amber-glow border border-accent-amber/30 rounded-2xl">
+          <p className="text-accent-amber text-sm font-medium mb-1">
             Your feature idea is on the roadmap!
           </p>
-          <p className="text-white/60 text-xs mb-2">
+          <p className="text-secondary text-xs mb-2">
             "{roadmapNotifications[0].itemTitle}" -- check it out and see how the community votes on it.
           </p>
           <button
             onClick={() => onNavigate && onNavigate('roadmap')}
-            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+            className="text-xs text-accent-amber hover:text-accent-amber font-medium transition-colors"
           >
             View Roadmap &rarr;
           </button>
@@ -133,22 +133,22 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
       )}
 
       <div className="flex items-start justify-between mb-2">
-        <h1 className="text-xl md:text-2xl font-bold text-white">Send Feedback</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-primary font-display">Send Feedback</h1>
         <button
           onClick={() => onNavigate && onNavigate('roadmap')}
-          className="flex items-center gap-1 text-xs text-white/40 hover:text-white/60 transition-colors mt-1"
+          className="flex items-center gap-1 text-xs text-muted hover:text-primary transition-colors mt-1"
         >
           <TrendingUp className="w-3 h-3" />
           View Roadmap
         </button>
       </div>
-      <p className="text-white/60 mb-8">We'd love to hear your thoughts, suggestions, or bug reports.</p>
+      <p className="text-secondary mb-8">We'd love to hear your thoughts, suggestions, or bug reports.</p>
 
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 space-y-5">
+      <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 space-y-5">
 
         {/* Feedback type selector */}
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-2">Type</label>
+          <label className="block text-sm font-medium text-secondary mb-2">Type</label>
           <div className="flex flex-wrap gap-2">
             {FEEDBACK_TYPES.map(t => (
               <button
@@ -156,8 +156,8 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
                 onClick={() => setFeedbackType(t.id)}
                 className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
                   feedbackType === t.id
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                    : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+                    ? 'bg-accent-amber-glow text-accent-amber border-accent-amber/30'
+                    : 'bg-highlight text-secondary border-subtle hover:bg-highlight'
                 }`}
               >
                 {t.label}
@@ -169,7 +169,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
         {/* Category selector -- only for feature requests */}
         {feedbackType === 'feature' && (
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">Category</label>
+            <label className="block text-sm font-medium text-secondary mb-2">Category</label>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(c => (
                 <button
@@ -177,8 +177,8 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
                   onClick={() => setCategory(c.id)}
                   className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
                     category === c.id
-                      ? 'bg-violet-500/20 text-violet-400 border-violet-500/30'
-                      : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+                      ? 'bg-accent-teal-glow text-accent-teal border-accent-teal/30'
+                      : 'bg-highlight text-secondary border-subtle hover:bg-highlight'
                   }`}
                 >
                   {c.label}
@@ -190,7 +190,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 
         {/* Message textarea */}
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-2">
+          <label className="block text-sm font-medium text-secondary mb-2">
             {feedbackType === 'feature' ? 'Describe your idea' : feedbackType === 'bug' ? 'What went wrong?' : 'Your Feedback'}
           </label>
           <textarea
@@ -202,18 +202,18 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
               "Tell us what you think..."
             }
             rows={6}
-            className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 resize-none"
+            className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted resize-none"
           />
         </div>
 
         {submitError && (
-          <p className="text-red-400 text-sm">{submitError}</p>
+          <p className="text-danger text-sm">{submitError}</p>
         )}
 
         <button
           onClick={handleSubmit}
           disabled={!message.trim() || submitting}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-amber/20"
         >
           {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {submitting ? 'Sending...' : 'Send Feedback'}

@@ -733,7 +733,7 @@ function AdminView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="text-white/50 font-medium">Loading users...</div>
+        <div className="text-secondary font-medium">Loading users...</div>
       </div>
     );
   }
@@ -747,25 +747,25 @@ function AdminView() {
           <div className="flex items-center gap-4">
             <button
               onClick={handleBackToUsers}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+              className="p-2 bg-highlight hover:bg-highlight rounded-xl transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-white" />
+              <ChevronLeft className="w-5 h-5 text-primary" />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                <User className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center">
+                <User className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-xl font-bold text-primary font-display">
                   {selectedUser.displayName || selectedUser.firstName || 'Anonymous'}'s Shows
                 </h2>
-                <p className="text-sm text-white/50">{selectedUser.email}</p>
+                <p className="text-sm text-secondary">{selectedUser.email}</p>
               </div>
             </div>
             {selectedUser.email && (
               <button
                 onClick={() => { setShowEmailForm(!showEmailForm); setEmailStatus(null); }}
-                className="ml-auto flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-medium text-white/70 transition-colors"
+                className="ml-auto flex items-center gap-2 px-3 py-2 bg-highlight hover:bg-highlight rounded-xl text-sm font-medium text-secondary transition-colors"
               >
                 <Mail className="w-4 h-4" />
                 Email
@@ -775,8 +775,8 @@ function AdminView() {
 
           {/* Inline email compose */}
           {showEmailForm && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm text-white/50">
+            <div className="bg-highlight border border-subtle rounded-2xl p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-secondary">
                 <Mail className="w-4 h-4" />
                 <span>To: {selectedUser.email}</span>
               </div>
@@ -785,31 +785,31 @@ function AdminView() {
                 placeholder="Subject"
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
               />
               <textarea
                 placeholder="Message body..."
                 value={emailBody}
                 onChange={(e) => setEmailBody(e.target.value)}
                 rows={5}
-                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50 resize-none"
               />
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleSendEmail}
                   disabled={emailSending || !emailSubject.trim() || !emailBody.trim()}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal disabled:opacity-50 disabled:cursor-not-allowed text-primary rounded-xl font-medium transition-all text-sm"
                 >
                   {emailSending ? 'Sending...' : 'Send'}
                 </button>
                 <button
                   onClick={() => { setShowEmailForm(false); setEmailSubject(''); setEmailBody(''); setEmailStatus(null); }}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl font-medium transition-colors text-sm"
+                  className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
                 >
                   Cancel
                 </button>
-                {emailStatus === 'success' && <span className="text-sm text-emerald-400">Sent!</span>}
-                {emailStatus === 'error' && <span className="text-sm text-red-400">Failed to send. Check RESEND_API_KEY.</span>}
+                {emailStatus === 'success' && <span className="text-sm text-accent-amber">Sent!</span>}
+                {emailStatus === 'error' && <span className="text-sm text-danger">Failed to send. Check RESEND_API_KEY.</span>}
               </div>
             </div>
           )}
@@ -824,36 +824,36 @@ function AdminView() {
             const sessionId = selectedUser.guestSessionId || guestSession?.id;
 
             return (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5">
+              <div className="bg-accent-amber-glow border border-accent-amber/20 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">Converted from Guest</h3>
+                  <Sparkles className="w-5 h-5 text-accent-amber" />
+                  <h3 className="text-sm font-semibold text-accent-amber uppercase tracking-wide">Converted from Guest</h3>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <div className="text-xs text-white/40 mb-1">Guest Started</div>
-                    <div className="text-sm text-white/80 font-medium">
+                    <div className="text-xs text-muted mb-1">Guest Started</div>
+                    <div className="text-sm text-secondary font-medium">
                       {guestStarted?.toLocaleDateString?.() || 'Unknown'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-white/40 mb-1">Converted On</div>
-                    <div className="text-sm text-white/80 font-medium">
+                    <div className="text-xs text-muted mb-1">Converted On</div>
+                    <div className="text-sm text-secondary font-medium">
                       {convertedAt?.toLocaleDateString?.() || 'Unknown'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-white/40 mb-1">Shows as Guest</div>
-                    <div className="text-sm text-amber-400 font-bold">{guestShowsCount}</div>
+                    <div className="text-xs text-muted mb-1">Shows as Guest</div>
+                    <div className="text-sm text-accent-amber font-bold">{guestShowsCount}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-white/40 mb-1">Shows After Conversion</div>
-                    <div className="text-sm text-emerald-400 font-bold">{(selectedUser.showCount || 0)}</div>
+                    <div className="text-xs text-muted mb-1">Shows After Conversion</div>
+                    <div className="text-sm text-accent-amber font-bold">{(selectedUser.showCount || 0)}</div>
                   </div>
                 </div>
                 {sessionId && (
-                  <div className="mt-3 pt-3 border-t border-amber-500/10">
-                    <div className="text-xs text-white/30">Guest Session ID: <span className="font-mono text-white/50">{sessionId}</span></div>
+                  <div className="mt-3 pt-3 border-t border-accent-amber/10">
+                    <div className="text-xs text-muted">Guest Session ID: <span className="font-mono text-secondary">{sessionId}</span></div>
                   </div>
                 )}
               </div>
@@ -874,26 +874,26 @@ function AdminView() {
             if (!isInvited && sentInvites.length === 0) return null;
 
             return (
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5">
+              <div className="bg-accent-teal/10 border border-accent-teal/20 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Send className="w-5 h-5 text-blue-400" />
-                  <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Invitation & Referral Info</h3>
+                  <Send className="w-5 h-5 text-accent-teal" />
+                  <h3 className="text-sm font-semibold text-accent-teal uppercase tracking-wide">Invitation & Referral Info</h3>
                 </div>
 
                 {/* Who invited this user */}
                 {isInvited && (
                   <div className="mb-4">
-                    <div className="text-xs text-white/40 mb-2">Invited By</div>
-                    <div className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
+                    <div className="text-xs text-muted mb-2">Invited By</div>
+                    <div className="flex items-center gap-3 bg-highlight rounded-xl p-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center">
+                        <User className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-white">{inviterName || 'Unknown'}</div>
-                        <div className="text-xs text-white/40">{inviterEmail || ''}</div>
+                        <div className="text-sm font-medium text-primary">{inviterName || 'Unknown'}</div>
+                        <div className="text-xs text-muted">{inviterEmail || ''}</div>
                       </div>
                       {inviteInfo?.createdAt && (
-                        <div className="ml-auto text-xs text-white/30">
+                        <div className="ml-auto text-xs text-muted">
                           Invited {inviteInfo.createdAt.toLocaleDateString?.() || ''}
                         </div>
                       )}
@@ -904,49 +904,49 @@ function AdminView() {
                 {/* Who this user has invited */}
                 {sentInvites.length > 0 && (
                   <div>
-                    <div className="text-xs text-white/40 mb-2">
+                    <div className="text-xs text-muted mb-2">
                       Invitations Sent ({sentInvites.length} total, {sentInvites.filter(i => i.status === 'accepted').length} accepted)
                     </div>
                     <div className="space-y-2">
                       {sentInvites.map(inv => {
                         const invitee = users.find(u => (u.email || '').toLowerCase() === (inv.inviteeEmail || '').toLowerCase());
                         return (
-                          <div key={inv.id} className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${inv.status === 'accepted' ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                          <div key={inv.id} className="flex items-center gap-3 bg-highlight rounded-xl p-3">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${inv.status === 'accepted' ? 'bg-accent-amber' : 'bg-highlight'}`} />
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm text-white/80 truncate">
+                              <div className="text-sm text-secondary truncate">
                                 {invitee ? (invitee.firstName || invitee.displayName || inv.inviteeEmail) : inv.inviteeEmail}
                               </div>
                             </div>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                              inv.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white/40'
+                              inv.status === 'accepted' ? 'bg-accent-amber-glow text-accent-amber' : 'bg-highlight text-muted'
                             }`}>
                               {inv.status === 'accepted' ? 'Joined' : 'Pending'}
                             </span>
                             {invitee && (
-                              <span className="text-xs text-white/30">{invitee.showCount || 0} shows</span>
+                              <span className="text-xs text-muted">{invitee.showCount || 0} shows</span>
                             )}
                           </div>
                         );
                       })}
                     </div>
                     {stats && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 pt-3 border-t border-blue-500/10">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 pt-3 border-t border-accent-teal/10">
                         <div>
-                          <div className="text-xs text-white/40">Conversion Rate</div>
-                          <div className="text-sm text-blue-400 font-bold">{stats.conversionRate}%</div>
+                          <div className="text-xs text-muted">Conversion Rate</div>
+                          <div className="text-sm text-accent-teal font-bold">{stats.conversionRate}%</div>
                         </div>
                         <div>
-                          <div className="text-xs text-white/40">Invitee Shows</div>
-                          <div className="text-sm text-emerald-400 font-bold">{stats.totalInviteeShows}</div>
+                          <div className="text-xs text-muted">Invitee Shows</div>
+                          <div className="text-sm text-accent-amber font-bold">{stats.totalInviteeShows}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-white/40">Invitee Songs</div>
-                          <div className="text-sm text-cyan-400 font-bold">{stats.totalInviteeSongs}</div>
+                          <div className="text-xs text-muted">Invitee Songs</div>
+                          <div className="text-sm text-accent-teal font-bold">{stats.totalInviteeSongs}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-white/40">Rank</div>
-                          <div className="text-sm text-amber-400 font-bold">
+                          <div className="text-xs text-muted">Rank</div>
+                          <div className="text-sm text-accent-amber font-bold">
                             #{inviteData.leaderboard.findIndex(l => l.uid === selectedUser.id) + 1 || '—'}
                           </div>
                         </div>
@@ -966,11 +966,11 @@ function AdminView() {
               { label: 'Venues', value: selectedUser.venueCount || 0 },
               { label: 'Joined', value: selectedUser.createdAt?.toLocaleDateString?.() || 'Unknown', isDate: true },
             ].map(stat => (
-              <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
-                <div className="text-2xl font-bold text-emerald-400">
+              <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-4 border border-subtle">
+                <div className="text-2xl font-bold text-accent-amber">
                   {stat.isDate ? stat.value : stat.value.toLocaleString()}
                 </div>
-                <div className="text-xs font-medium text-white/50 mt-1">{stat.label}</div>
+                <div className="text-xs font-medium text-secondary mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -978,25 +978,25 @@ function AdminView() {
           {/* Search + Sort controls */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Filter shows by artist, venue, or city..."
                 value={showSearchTerm}
                 onChange={(e) => setShowSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                className="w-full pl-11 pr-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white/50">Sort:</span>
+              <span className="text-sm font-medium text-secondary">Sort:</span>
               {['date', 'artist', 'rating'].map(opt => (
                 <button
                   key={opt}
                   onClick={() => setShowSortBy(opt)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     showSortBy === opt
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                      ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                      : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
                   }`}
                 >
                   {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -1008,7 +1008,7 @@ function AdminView() {
           {/* Loading state */}
           {loadingShows && (
             <div className="flex items-center justify-center py-16">
-              <div className="text-white/50 font-medium">Loading shows...</div>
+              <div className="text-secondary font-medium">Loading shows...</div>
             </div>
           )}
 
@@ -1020,7 +1020,7 @@ function AdminView() {
                 return (
                   <div
                     key={show.id}
-                    className="bg-white/5 rounded-2xl p-4 border border-white/10 hover:bg-white/10 hover:border-white/20 cursor-pointer transition-all"
+                    className="bg-highlight rounded-2xl p-4 border border-subtle hover:bg-highlight hover:border-active cursor-pointer transition-all"
                     onClick={() => setSelectedAdminShow(show)}
                   >
                     <div className="flex items-center justify-between">
@@ -1030,45 +1030,45 @@ function AdminView() {
                             {show.artist}
                           </span>
                           {show.isManual && (
-                            <span className="text-xs bg-white/10 text-white/40 px-2 py-0.5 rounded-full">Manual</span>
+                            <span className="text-xs bg-highlight text-muted px-2 py-0.5 rounded-full">Manual</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
-                          <Calendar className="w-3.5 h-3.5 text-white/40" />
-                          <span className="text-white/80">{formatDate(show.date)}</span>
-                          <span className="text-white/20">&middot;</span>
-                          <MapPin className="w-3.5 h-3.5 text-white/40" />
-                          <span className="text-white/60">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
-                          <span className="text-white/20">&middot;</span>
-                          <Music className="w-3.5 h-3.5 text-white/40" />
-                          <span className="text-white/60">{(show.setlist || []).length} songs</span>
+                          <Calendar className="w-3.5 h-3.5 text-muted" />
+                          <span className="text-secondary">{formatDate(show.date)}</span>
+                          <span className="text-muted">&middot;</span>
+                          <MapPin className="w-3.5 h-3.5 text-muted" />
+                          <span className="text-secondary">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                          <span className="text-muted">&middot;</span>
+                          <Music className="w-3.5 h-3.5 text-muted" />
+                          <span className="text-secondary">{(show.setlist || []).length} songs</span>
                         </div>
                         {show.tour && (
-                          <div className="text-xs text-emerald-400 font-medium mt-1.5">Tour: {show.tour}</div>
+                          <div className="text-xs text-accent-amber font-medium mt-1.5">Tour: {show.tour}</div>
                         )}
                         {show.comment && (
-                          <div className="flex items-start gap-1.5 mt-1.5 text-xs text-white/50 italic">
+                          <div className="flex items-start gap-1.5 mt-1.5 text-xs text-secondary italic">
                             <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
                             {show.comment}
                           </div>
                         )}
                         <div className="flex items-center gap-3 mt-2">
                           {show.rating && (
-                            <span className="text-sm font-semibold text-emerald-400">Show: {show.rating}/10</span>
+                            <span className="text-sm font-semibold text-accent-amber">Show: {show.rating}/10</span>
                           )}
                           {songAvg && (
-                            <span className="text-xs font-medium text-white/40">Songs avg: {songAvg}/10</span>
+                            <span className="text-xs font-medium text-muted">Songs avg: {songAvg}/10</span>
                           )}
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-white/20 flex-shrink-0 ml-3" />
+                      <ChevronRight className="w-5 h-5 text-muted flex-shrink-0 ml-3" />
                     </div>
                   </div>
                 );
               })}
 
               {sortedFilteredUserShows.length === 0 && (
-                <div className="text-center py-12 text-white/40">
+                <div className="text-center py-12 text-muted">
                   {showSearchTerm ? 'No shows match your filter' : 'This user has no shows'}
                 </div>
               )}
@@ -1094,10 +1094,10 @@ function AdminView() {
         <>
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-primary font-display">Admin Portal</h2>
             <button
               onClick={() => { loadUsers(); loadGuestSessions(); loadAllInvites(); loadRoadmapData(); }}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm"
+              className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
             >
               Refresh
             </button>
@@ -1109,8 +1109,8 @@ function AdminView() {
               onClick={() => setAdminTab('users')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'users'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -1120,8 +1120,8 @@ function AdminView() {
               onClick={() => setAdminTab('guestTrials')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'guestTrials'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
               }`}
             >
               <Eye className="w-4 h-4" />
@@ -1131,36 +1131,36 @@ function AdminView() {
               onClick={() => setAdminTab('conversions')}
               className={`relative shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'conversions'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
               }`}
             >
               <Sparkles className="w-4 h-4" />
               Conversions
               {convertedUsers.length > 0 && (
-                <span className="ml-1 bg-emerald-500/30 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{convertedUsers.length}</span>
+                <span className="ml-1 bg-accent-amber/30 text-accent-amber text-[10px] font-bold px-1.5 py-0.5 rounded-full">{convertedUsers.length}</span>
               )}
             </button>
             <button
               onClick={() => setAdminTab('referrals')}
               className={`relative shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'referrals'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
               }`}
             >
               <Send className="w-4 h-4" />
               Referrals
               {inviteData.invitedUsers.length > 0 && (
-                <span className="ml-1 bg-emerald-500/30 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{inviteData.invitedUsers.length}</span>
+                <span className="ml-1 bg-accent-amber/30 text-accent-amber text-[10px] font-bold px-1.5 py-0.5 rounded-full">{inviteData.invitedUsers.length}</span>
               )}
             </button>
             <button
               onClick={() => setAdminTab('roadmap')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'roadmap'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
               }`}
             >
               <TrendingUp className="w-4 h-4" />
@@ -1170,8 +1170,8 @@ function AdminView() {
               onClick={() => setAdminTab('bulkImport')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'bulkImport'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
               }`}
             >
               <Upload className="w-4 h-4" />
@@ -1185,16 +1185,16 @@ function AdminView() {
               {/* Stats Overview */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Users', value: totalStats.totalUsers, color: 'from-violet-500 to-purple-500' },
-                  { label: 'Total Shows', value: totalStats.totalShows, color: 'from-emerald-500 to-teal-500' },
-                  { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-amber-500 to-orange-500' },
-                  { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-pink-500 to-rose-500' },
+                  { label: 'Total Users', value: totalStats.totalUsers, color: 'from-accent-teal to-accent-teal' },
+                  { label: 'Total Shows', value: totalStats.totalShows, color: 'from-accent-amber to-accent-teal' },
+                  { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-accent-amber to-accent-amber' },
+                  { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-accent-teal to-danger' },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                  <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                     <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                       {stat.value.toLocaleString()}
                     </div>
-                    <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+                    <div className="text-sm font-medium text-secondary mt-1">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -1202,56 +1202,56 @@ function AdminView() {
               {/* Search + Filter */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <Search className="w-5 h-5 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Search users by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                    className="w-full pl-12 pr-4 py-3 bg-highlight border border-subtle rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
                   />
                 </div>
                 <button
                   onClick={() => { setShowOnlyConverted(!showOnlyConverted); setShowOnlyInvited(false); }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
                     showOnlyConverted
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'
+                      ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                      : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
                   }`}
                 >
                   <Sparkles className="w-4 h-4" />
                   Converted Only
                   {showOnlyConverted && convertedUserIds.size > 0 && (
-                    <span className="text-[10px] font-bold bg-amber-500/30 px-1.5 py-0.5 rounded-full">{convertedUserIds.size}</span>
+                    <span className="text-[10px] font-bold bg-accent-amber/30 px-1.5 py-0.5 rounded-full">{convertedUserIds.size}</span>
                   )}
                 </button>
                 <button
                   onClick={() => { setShowOnlyInvited(!showOnlyInvited); setShowOnlyConverted(false); }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
                     showOnlyInvited
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'
+                      ? 'bg-accent-teal/20 text-accent-teal border border-accent-teal/30'
+                      : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
                   }`}
                 >
                   <Mail className="w-4 h-4" />
                   Invited Only
                   {showOnlyInvited && inviteData.invitedUserIds.size > 0 && (
-                    <span className="text-[10px] font-bold bg-blue-500/30 px-1.5 py-0.5 rounded-full">{inviteData.invitedUserIds.size}</span>
+                    <span className="text-[10px] font-bold bg-accent-teal/30 px-1.5 py-0.5 rounded-full">{inviteData.invitedUserIds.size}</span>
                   )}
                 </button>
               </div>
 
               {/* Users Table */}
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+              <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-white/5 border-b border-white/10">
-                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">User</th>
-                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
-                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Songs</th>
-                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Venues</th>
-                      <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
+                    <tr className="bg-highlight border-b border-subtle">
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">User</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">Email</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Songs</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden sm:table-cell">Venues</th>
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden lg:table-cell">Joined</th>
                       <th className="w-10"></th>
                       <th className="w-10"></th>
                     </tr>
@@ -1260,51 +1260,51 @@ function AdminView() {
                     {filteredUsers.map((user) => (
                       <tr
                         key={user.id}
-                        className="hover:bg-white/5 transition-colors cursor-pointer"
+                        className="hover:bg-highlight transition-colors cursor-pointer"
                         onClick={() => handleSelectUser(user)}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              convertedUserIds.has(user.id) ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
-                              inviteData.invitedUserIds.has(user.id) ? 'bg-gradient-to-br from-blue-500 to-cyan-500' :
-                              'bg-gradient-to-br from-emerald-500 to-teal-500'
+                              convertedUserIds.has(user.id) ? 'bg-gradient-to-br from-accent-amber to-accent-amber' :
+                              inviteData.invitedUserIds.has(user.id) ? 'bg-gradient-to-br from-accent-teal to-accent-teal' :
+                              'bg-gradient-to-br from-accent-amber to-accent-teal'
                             }`}>
-                              {convertedUserIds.has(user.id) ? <Sparkles className="w-5 h-5 text-white" /> :
-                               inviteData.invitedUserIds.has(user.id) ? <Mail className="w-5 h-5 text-white" /> :
-                               <User className="w-5 h-5 text-white" />}
+                              {convertedUserIds.has(user.id) ? <Sparkles className="w-5 h-5 text-primary" /> :
+                               inviteData.invitedUserIds.has(user.id) ? <Mail className="w-5 h-5 text-primary" /> :
+                               <User className="w-5 h-5 text-primary" />}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-white">{user.firstName || 'Anonymous'}</span>
+                                <span className="font-medium text-primary">{user.firstName || 'Anonymous'}</span>
                                 {convertedUserIds.has(user.id) && (
-                                  <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
+                                  <span className="text-[10px] bg-accent-amber-glow text-accent-amber px-1.5 py-0.5 rounded-full font-semibold">
                                     Converted
                                   </span>
                                 )}
                                 {inviteData.invitedUserIds.has(user.id) && (
-                                  <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">
+                                  <span className="text-[10px] bg-accent-teal/20 text-accent-teal px-1.5 py-0.5 rounded-full font-semibold">
                                     Invited
                                   </span>
                                 )}
                               </div>
-                              <div className="text-sm text-white/40 md:hidden">{user.email}</div>
+                              <div className="text-sm text-muted md:hidden">{user.email}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
+                        <td className="px-6 py-4 text-secondary hidden md:table-cell">{user.email}</td>
                         <td className="px-6 py-4 text-center">
-                          <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
                             {user.showCount || 0}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-center text-white/60">{user.songCount || 0}</td>
-                        <td className="px-6 py-4 text-center text-white/60 hidden sm:table-cell">{user.venueCount || 0}</td>
-                        <td className="px-6 py-4 text-right text-white/40 text-sm hidden lg:table-cell">
+                        <td className="px-6 py-4 text-center text-secondary">{user.songCount || 0}</td>
+                        <td className="px-6 py-4 text-center text-secondary hidden sm:table-cell">{user.venueCount || 0}</td>
+                        <td className="px-6 py-4 text-right text-muted text-sm hidden lg:table-cell">
                           {user.createdAt?.toLocaleDateString?.() || 'Unknown'}
                         </td>
                         <td className="px-2 py-4">
-                          <ChevronRight className="w-4 h-4 text-white/20" />
+                          <ChevronRight className="w-4 h-4 text-muted" />
                         </td>
                         <td className="px-2 py-4">
                           <Tip text="Delete user">
@@ -1313,7 +1313,7 @@ function AdminView() {
                                 e.stopPropagation();
                                 setDeleteConfirmUser({ id: user.id, firstName: user.firstName || 'this user', email: user.email });
                               }}
-                              className="p-1.5 rounded-lg text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1325,7 +1325,7 @@ function AdminView() {
                 </table>
 
                 {filteredUsers.length === 0 && (
-                  <div className="text-center py-12 text-white/40">
+                  <div className="text-center py-12 text-muted">
                     {searchTerm ? 'No users match your search' : 'No users yet'}
                   </div>
                 )}
@@ -1339,75 +1339,75 @@ function AdminView() {
               {/* Guest Trial Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Trials', value: guestTrialStats.total, color: 'from-violet-500 to-purple-500' },
-                  { label: 'Converted', value: guestTrialStats.converted, color: 'from-emerald-500 to-teal-500' },
-                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-amber-500 to-orange-500' },
-                  { label: 'Shows Added', value: guestTrialStats.totalShowsAdded, color: 'from-pink-500 to-rose-500' },
+                  { label: 'Total Trials', value: guestTrialStats.total, color: 'from-accent-teal to-accent-teal' },
+                  { label: 'Converted', value: guestTrialStats.converted, color: 'from-accent-amber to-accent-teal' },
+                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-accent-amber to-accent-amber' },
+                  { label: 'Shows Added', value: guestTrialStats.totalShowsAdded, color: 'from-accent-teal to-danger' },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                  <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                     <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                       {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                     </div>
-                    <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+                    <div className="text-sm font-medium text-secondary mt-1">{stat.label}</div>
                   </div>
                 ))}
               </div>
 
               {/* Engaged Guests (added shows) */}
-              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
-                <div className="text-sm font-medium text-white/50 mb-1">Engaged Guests</div>
-                <div className="text-2xl font-bold text-emerald-400">{guestTrialStats.withShows}</div>
-                <div className="text-xs text-white/40 mt-1">Guests who added at least one show</div>
+              <div className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
+                <div className="text-sm font-medium text-secondary mb-1">Engaged Guests</div>
+                <div className="text-2xl font-bold text-accent-amber">{guestTrialStats.withShows}</div>
+                <div className="text-xs text-muted mt-1">Guests who added at least one show</div>
               </div>
 
               {/* Guest Sessions Table */}
               {loadingGuests ? (
                 <div className="flex items-center justify-center py-16">
-                  <div className="text-white/50 font-medium">Loading guest sessions...</div>
+                  <div className="text-secondary font-medium">Loading guest sessions...</div>
                 </div>
               ) : (
-                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+                <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-white/5 border-b border-white/10">
-                        <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Started</th>
-                        <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows Added</th>
-                        <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Status</th>
-                        <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Converted</th>
+                      <tr className="bg-highlight border-b border-subtle">
+                        <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Started</th>
+                        <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows Added</th>
+                        <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Status</th>
+                        <th className="text-right px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">Converted</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {guestSessions.map((session) => (
-                        <tr key={session.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4 text-white/80 text-sm">
+                        <tr key={session.id} className="hover:bg-highlight transition-colors">
+                          <td className="px-6 py-4 text-secondary text-sm">
                             {session.startedAt?.toLocaleDateString?.() || 'Unknown'}
-                            <span className="text-white/40 ml-2 hidden sm:inline">
+                            <span className="text-muted ml-2 hidden sm:inline">
                               {session.startedAt?.toLocaleTimeString?.([], { hour: '2-digit', minute: '2-digit' }) || ''}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`px-2.5 py-1 rounded-full text-sm font-semibold ${
                               (session.showsAdded || 0) > 0
-                                ? 'bg-emerald-500/20 text-emerald-400'
-                                : 'bg-white/10 text-white/40'
+                                ? 'bg-accent-amber-glow text-accent-amber'
+                                : 'bg-highlight text-muted'
                             }`}>
                               {session.showsAdded || 0}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             {session.converted ? (
-                              <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-xs font-semibold">
+                              <span className="inline-flex items-center gap-1 bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-xs font-semibold">
                                 <Check className="w-3 h-3" />
                                 Converted
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 bg-white/10 text-white/40 px-2.5 py-1 rounded-full text-xs font-semibold">
+                              <span className="inline-flex items-center gap-1 bg-highlight text-muted px-2.5 py-1 rounded-full text-xs font-semibold">
                                 <Eye className="w-3 h-3" />
                                 Browsing
                               </span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-right text-white/40 text-sm hidden md:table-cell">
+                          <td className="px-6 py-4 text-right text-muted text-sm hidden md:table-cell">
                             {session.convertedAt?.toLocaleDateString?.() || '—'}
                           </td>
                         </tr>
@@ -1416,7 +1416,7 @@ function AdminView() {
                   </table>
 
                   {guestSessions.length === 0 && (
-                    <div className="text-center py-12 text-white/40">
+                    <div className="text-center py-12 text-muted">
                       No guest trial sessions recorded yet
                     </div>
                   )}
@@ -1431,16 +1431,16 @@ function AdminView() {
               {/* Conversion Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Converted', value: convertedUsers.length, color: 'from-emerald-500 to-teal-500' },
-                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-amber-500 to-orange-500' },
-                  { label: 'Guest Shows Added', value: convertedUsers.reduce((acc, u) => acc + (u.guestShowsAdded || 0), 0), color: 'from-violet-500 to-purple-500' },
-                  { label: 'Post-Conv Shows', value: convertedUsers.reduce((acc, u) => acc + (u.showCount || 0), 0), color: 'from-pink-500 to-rose-500' },
+                  { label: 'Total Converted', value: convertedUsers.length, color: 'from-accent-amber to-accent-teal' },
+                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-accent-amber to-accent-amber' },
+                  { label: 'Guest Shows Added', value: convertedUsers.reduce((acc, u) => acc + (u.guestShowsAdded || 0), 0), color: 'from-accent-teal to-accent-teal' },
+                  { label: 'Post-Conv Shows', value: convertedUsers.reduce((acc, u) => acc + (u.showCount || 0), 0), color: 'from-accent-teal to-danger' },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                  <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                     <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                       {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                     </div>
-                    <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+                    <div className="text-sm font-medium text-secondary mt-1">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -1448,7 +1448,7 @@ function AdminView() {
               {/* Sort + Export controls */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-white/50">Sort by:</span>
+                  <span className="text-sm font-medium text-secondary">Sort by:</span>
                   {[
                     { id: 'conversionDate', label: 'Conversion Date' },
                     { id: 'name', label: 'Name' },
@@ -1459,8 +1459,8 @@ function AdminView() {
                       onClick={() => setConversionSortBy(opt.id)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                         conversionSortBy === opt.id
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                          ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                          : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
                       }`}
                     >
                       {opt.label}
@@ -1481,7 +1481,7 @@ function AdminView() {
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   Export CSV
@@ -1489,15 +1489,15 @@ function AdminView() {
               </div>
 
               {/* Converted Users Table */}
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+              <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-white/5 border-b border-white/10">
-                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">User</th>
-                      <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
-                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Guest Shows</th>
-                      <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Total Shows</th>
-                      <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Converted</th>
+                    <tr className="bg-highlight border-b border-subtle">
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">User</th>
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">Email</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Guest Shows</th>
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Total Shows</th>
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden sm:table-cell">Converted</th>
                       <th className="w-10"></th>
                     </tr>
                   </thead>
@@ -1505,40 +1505,40 @@ function AdminView() {
                     {sortedConvertedUsers.map(user => (
                       <tr
                         key={user.id}
-                        className="hover:bg-white/5 transition-colors cursor-pointer"
+                        className="hover:bg-highlight transition-colors cursor-pointer"
                         onClick={() => handleSelectUser(user)}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                              <Sparkles className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-amber to-accent-amber flex items-center justify-center">
+                              <Sparkles className="w-5 h-5 text-primary" />
                             </div>
                             <div>
-                              <div className="font-medium text-white">{user.displayName || user.firstName || 'Anonymous'}</div>
-                              <div className="text-sm text-white/40 md:hidden">{user.email}</div>
+                              <div className="font-medium text-primary">{user.displayName || user.firstName || 'Anonymous'}</div>
+                              <div className="text-sm text-muted md:hidden">{user.email}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
+                        <td className="px-6 py-4 text-secondary hidden md:table-cell">{user.email}</td>
                         <td className="px-6 py-4 text-center">
                           <span className={`px-2.5 py-1 rounded-full text-sm font-semibold ${
                             (user.guestShowsAdded || 0) > 0
-                              ? 'bg-violet-500/20 text-violet-300'
-                              : 'bg-white/10 text-white/40'
+                              ? 'bg-accent-teal-glow text-accent-teal'
+                              : 'bg-highlight text-muted'
                           }`}>
                             {user.guestShowsAdded || 0}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
                             {user.showCount || 0}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right text-white/40 text-sm hidden sm:table-cell">
+                        <td className="px-6 py-4 text-right text-muted text-sm hidden sm:table-cell">
                           {user.guestConvertedAt?.toLocaleDateString?.() || 'Unknown'}
                         </td>
                         <td className="px-2 py-4">
-                          <ChevronRight className="w-4 h-4 text-white/20" />
+                          <ChevronRight className="w-4 h-4 text-muted" />
                         </td>
                       </tr>
                     ))}
@@ -1546,7 +1546,7 @@ function AdminView() {
                 </table>
 
                 {convertedUsers.length === 0 && (
-                  <div className="text-center py-12 text-white/40">
+                  <div className="text-center py-12 text-muted">
                     No converted guest users yet
                   </div>
                 )}
@@ -1562,16 +1562,16 @@ function AdminView() {
           {/* Referral Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Invites Sent', value: allInvites.length, color: 'from-violet-500 to-purple-500' },
-              { label: 'Accepted', value: allInvites.filter(i => i.status === 'accepted').length, color: 'from-emerald-500 to-teal-500' },
-              { label: 'Acceptance Rate', value: allInvites.length > 0 ? `${((allInvites.filter(i => i.status === 'accepted').length / allInvites.length) * 100).toFixed(1)}%` : '0%', color: 'from-amber-500 to-orange-500' },
-              { label: 'Active Inviters', value: inviteData.leaderboard.length, color: 'from-pink-500 to-rose-500' },
+              { label: 'Total Invites Sent', value: allInvites.length, color: 'from-accent-teal to-accent-teal' },
+              { label: 'Accepted', value: allInvites.filter(i => i.status === 'accepted').length, color: 'from-accent-amber to-accent-teal' },
+              { label: 'Acceptance Rate', value: allInvites.length > 0 ? `${((allInvites.filter(i => i.status === 'accepted').length / allInvites.length) * 100).toFixed(1)}%` : '0%', color: 'from-accent-amber to-accent-amber' },
+              { label: 'Active Inviters', value: inviteData.leaderboard.length, color: 'from-accent-teal to-danger' },
             ].map(stat => (
-              <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+              <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                 <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                   {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                 </div>
-                <div className="text-sm font-medium text-white/50 mt-1">{stat.label}</div>
+                <div className="text-sm font-medium text-secondary mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -1579,9 +1579,9 @@ function AdminView() {
           {/* Invited Users Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Invited Users ({sortedInvitedUsers.length})</h3>
+              <h3 className="text-lg font-semibold text-primary font-display">Invited Users ({sortedInvitedUsers.length})</h3>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white/50">Sort:</span>
+                <span className="text-sm font-medium text-secondary">Sort:</span>
                 {[
                   { key: 'joinDate', label: 'Join Date' },
                   { key: 'name', label: 'Name' },
@@ -1592,8 +1592,8 @@ function AdminView() {
                     onClick={() => setReferralSortBy(opt.key)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                       referralSortBy === opt.key
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                        ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
+                        : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
                     }`}
                   >
                     {opt.label}
@@ -1602,44 +1602,44 @@ function AdminView() {
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Invited User</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">Email</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Invited By</th>
-                    <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-                    <th className="text-center px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Songs</th>
-                    <th className="text-right px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Joined</th>
+                  <tr className="bg-highlight border-b border-subtle">
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Invited User</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">Email</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Invited By</th>
+                    <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows</th>
+                    <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden sm:table-cell">Songs</th>
+                    <th className="text-right px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden lg:table-cell">Joined</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {sortedInvitedUsers.map(user => (
                     <tr
                       key={user.id}
-                      className="hover:bg-white/5 transition-colors cursor-pointer"
+                      className="hover:bg-highlight transition-colors cursor-pointer"
                       onClick={() => handleSelectUser(user)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                            <Mail className="w-5 h-5 text-white" />
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-teal to-accent-teal flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-primary" />
                           </div>
-                          <span className="font-medium text-white">{user.firstName || user.displayName || 'Anonymous'}</span>
+                          <span className="font-medium text-primary">{user.firstName || user.displayName || 'Anonymous'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-white/60 hidden md:table-cell">{user.email}</td>
+                      <td className="px-6 py-4 text-secondary hidden md:table-cell">{user.email}</td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-emerald-400 font-medium">{user.inviterName || 'Unknown'}</span>
+                        <span className="text-sm text-accent-amber font-medium">{user.inviterName || 'Unknown'}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                        <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
                           {user.showCount || 0}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center text-white/60 hidden sm:table-cell">{user.songCount || 0}</td>
-                      <td className="px-6 py-4 text-right text-white/40 text-sm hidden lg:table-cell">
+                      <td className="px-6 py-4 text-center text-secondary hidden sm:table-cell">{user.songCount || 0}</td>
+                      <td className="px-6 py-4 text-right text-muted text-sm hidden lg:table-cell">
                         {user.createdAt?.toLocaleDateString?.() || 'Unknown'}
                       </td>
                     </tr>
@@ -1648,7 +1648,7 @@ function AdminView() {
               </table>
 
               {sortedInvitedUsers.length === 0 && (
-                <div className="text-center py-12 text-white/40">
+                <div className="text-center py-12 text-muted">
                   No users have joined via invitation yet
                 </div>
               )}
@@ -1658,8 +1658,8 @@ function AdminView() {
           {/* Inviter Leaderboard */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-amber-400" />
+              <h3 className="text-lg font-semibold text-primary font-display flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-accent-amber" />
                 Inviter Leaderboard
               </h3>
               <button
@@ -1680,7 +1680,7 @@ function AdminView() {
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
               >
                 <Download className="w-4 h-4" />
                 Export CSV
@@ -1691,7 +1691,7 @@ function AdminView() {
               {inviteData.leaderboard.map((inviter, idx) => (
                 <div
                   key={inviter.uid}
-                  className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="bg-highlight border border-subtle rounded-2xl p-5 hover:bg-highlight transition-colors cursor-pointer"
                   onClick={() => {
                     const user = users.find(u => u.id === inviter.uid);
                     if (user) handleSelectUser(user);
@@ -1699,42 +1699,42 @@ function AdminView() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                      idx === 0 ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white' :
-                      idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white' :
-                      idx === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white' :
-                      'bg-white/10 text-white/60'
+                      idx === 0 ? 'bg-gradient-to-br from-accent-amber to-accent-amber text-primary' :
+                      idx === 1 ? 'bg-gradient-to-br from-secondary to-muted text-primary' :
+                      idx === 2 ? 'bg-gradient-to-br from-accent-amber to-accent-amber text-primary' :
+                      'bg-highlight text-secondary'
                     }`}>
                       {idx + 1}
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-white">{inviter.name}</div>
-                      <div className="text-sm text-white/40">{inviter.email}</div>
+                      <div className="font-semibold text-primary">{inviter.name}</div>
+                      <div className="text-sm text-muted">{inviter.email}</div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                       <div>
-                        <div className="text-lg font-bold text-violet-400">{inviter.totalSent}</div>
-                        <div className="text-[10px] text-white/40 uppercase">Sent</div>
+                        <div className="text-lg font-bold text-accent-teal">{inviter.totalSent}</div>
+                        <div className="text-[10px] text-muted uppercase">Sent</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-emerald-400">{inviter.totalAccepted}</div>
-                        <div className="text-[10px] text-white/40 uppercase">Accepted</div>
+                        <div className="text-lg font-bold text-accent-amber">{inviter.totalAccepted}</div>
+                        <div className="text-[10px] text-muted uppercase">Accepted</div>
                       </div>
                       <div className="hidden md:block">
-                        <div className="text-lg font-bold text-amber-400">{inviter.conversionRate}%</div>
-                        <div className="text-[10px] text-white/40 uppercase">Rate</div>
+                        <div className="text-lg font-bold text-accent-amber">{inviter.conversionRate}%</div>
+                        <div className="text-[10px] text-muted uppercase">Rate</div>
                       </div>
                       <div className="hidden md:block">
-                        <div className="text-lg font-bold text-cyan-400">{inviter.totalInviteeShows}</div>
-                        <div className="text-[10px] text-white/40 uppercase">Invitee Shows</div>
+                        <div className="text-lg font-bold text-accent-teal">{inviter.totalInviteeShows}</div>
+                        <div className="text-[10px] text-muted uppercase">Invitee Shows</div>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-white/20 flex-shrink-0" />
+                    <ChevronRight className="w-5 h-5 text-muted flex-shrink-0" />
                   </div>
                 </div>
               ))}
 
               {inviteData.leaderboard.length === 0 && (
-                <div className="text-center py-12 text-white/40">
+                <div className="text-center py-12 text-muted">
                   No inviters yet
                 </div>
               )}
@@ -1743,7 +1743,7 @@ function AdminView() {
 
           {loadingInvites && (
             <div className="flex items-center justify-center py-8">
-              <div className="text-white/50 font-medium">Loading invite data...</div>
+              <div className="text-secondary font-medium">Loading invite data...</div>
             </div>
           )}
         </div>
@@ -1754,10 +1754,10 @@ function AdminView() {
         <div className="space-y-6">
           {/* Header with New Item button */}
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">Roadmap Items</h3>
+            <h3 className="text-lg font-semibold text-primary font-display">Roadmap Items</h3>
             <button
               onClick={() => setCreatingItem(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-sm font-medium transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-accent-amber-glow hover:bg-accent-amber/30 text-accent-amber border border-accent-amber/30 rounded-xl text-sm font-medium transition-all"
             >
               <Plus className="w-4 h-4" />
               New Item
@@ -1766,41 +1766,41 @@ function AdminView() {
 
           {/* Create Item Form */}
           {creatingItem && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
-              <h4 className="text-sm font-semibold text-white">New Roadmap Item</h4>
+            <div className="bg-highlight border border-subtle rounded-2xl p-5 space-y-3">
+              <h4 className="text-sm font-semibold text-primary">New Roadmap Item</h4>
               <input
                 value={newItemTitle}
                 onChange={e => setNewItemTitle(e.target.value)}
                 placeholder="Title"
-                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
               />
               <textarea
                 value={newItemDesc}
                 onChange={e => setNewItemDesc(e.target.value)}
                 placeholder="Description (optional)"
                 rows={3}
-                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50 resize-none"
               />
               <select
                 value={newItemCategory}
                 onChange={e => setNewItemCategory(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
               >
                 {Object.entries(ROADMAP_CATEGORIES).map(([k, v]) => (
-                  <option key={k} value={k} className="bg-slate-900">{v}</option>
+                  <option key={k} value={k} className="bg-surface">{v}</option>
                 ))}
               </select>
               <div className="flex gap-2">
                 <button
                   onClick={createRoadmapItem}
                   disabled={!newItemTitle.trim() || savingItem}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-accent-amber hover:bg-accent-amber text-primary rounded-xl text-sm font-medium transition-all disabled:opacity-50"
                 >
                   {savingItem ? 'Creating...' : 'Create Draft'}
                 </button>
                 <button
                   onClick={() => { setCreatingItem(false); setNewItemTitle(''); setNewItemDesc(''); setNewItemCategory('other'); }}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl text-sm font-medium transition-colors"
+                  className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -1809,7 +1809,7 @@ function AdminView() {
           )}
 
           {roadmapLoading ? (
-            <div className="text-center py-8 text-white/40">Loading roadmap data...</div>
+            <div className="text-center py-8 text-muted">Loading roadmap data...</div>
           ) : (
             <>
               {/* Drafts section */}
@@ -1817,7 +1817,7 @@ function AdminView() {
                 const drafts = roadmapItems.filter(i => i.status === 'draft');
                 return (
                   <div>
-                    <h4 className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">
+                    <h4 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-3">
                       Drafts ({drafts.length})
                     </h4>
                     <div className="space-y-3">
@@ -1833,7 +1833,7 @@ function AdminView() {
                         />
                       ))}
                       {drafts.length === 0 && (
-                        <p className="text-white/30 text-sm py-2">No draft items</p>
+                        <p className="text-muted text-sm py-2">No draft items</p>
                       )}
                     </div>
                   </div>
@@ -1849,7 +1849,7 @@ function AdminView() {
                 const statusItems = roadmapItems.filter(i => i.status === key);
                 return (
                   <div key={key}>
-                    <h4 className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">
+                    <h4 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-3">
                       {label} ({statusItems.length})
                     </h4>
                     <div className="space-y-3">
@@ -1865,7 +1865,7 @@ function AdminView() {
                         />
                       ))}
                       {statusItems.length === 0 && (
-                        <p className="text-white/30 text-sm py-2">None</p>
+                        <p className="text-muted text-sm py-2">None</p>
                       )}
                     </div>
                   </div>
@@ -1881,17 +1881,17 @@ function AdminView() {
         <div className="space-y-6">
           {/* Step 1: Select User */}
           {bulkImportStep === 'select-user' && (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
-              <h3 className="text-lg font-semibold text-white mb-1">Bulk Import Shows</h3>
-              <p className="text-white/50 text-sm mb-6">Select a user to import shows into their profile.</p>
+            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
+              <h3 className="text-lg font-semibold text-primary mb-1 font-display">Bulk Import Shows</h3>
+              <p className="text-secondary text-sm mb-6">Select a user to import shows into their profile.</p>
               <div className="relative mb-4">
-                <Search className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Search className="w-5 h-5 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search users by name or email..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="w-full pl-12 pr-4 py-3 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
                 />
               </div>
               <div className="max-h-96 overflow-y-auto space-y-2">
@@ -1906,16 +1906,16 @@ function AdminView() {
                     <button
                       key={u.id}
                       onClick={() => handleBulkImportSelectUser(u)}
-                      className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-left transition-all"
+                      className="w-full flex items-center gap-3 p-3 bg-highlight hover:bg-highlight border border-subtle rounded-xl text-left transition-all"
                     >
-                      <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-sm font-bold flex-shrink-0">
+                      <div className="w-8 h-8 bg-accent-amber-glow rounded-full flex items-center justify-center text-accent-amber text-sm font-bold flex-shrink-0">
                         {(u.firstName || u.displayName || '?')[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-white font-medium text-sm truncate">{u.displayName || u.firstName || 'Anonymous'}</div>
-                        <div className="text-white/40 text-xs truncate">{u.email}</div>
+                        <div className="text-primary font-medium text-sm truncate">{u.displayName || u.firstName || 'Anonymous'}</div>
+                        <div className="text-muted text-xs truncate">{u.email}</div>
                       </div>
-                      <div className="text-white/30 text-xs">{u.showCount || 0} shows</div>
+                      <div className="text-muted text-xs">{u.showCount || 0} shows</div>
                     </button>
                   ))}
               </div>
@@ -1924,18 +1924,18 @@ function AdminView() {
 
           {/* Step 2: Upload File */}
           {bulkImportStep === 'upload' && (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                <User className="w-5 h-5 text-emerald-400" />
+            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
+              <div className="flex items-center gap-3 mb-6 p-3 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
+                <User className="w-5 h-5 text-accent-amber" />
                 <div>
-                  <span className="text-white font-medium text-sm">Importing for: </span>
-                  <span className="text-emerald-400 font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
-                  <span className="text-white/40 text-xs ml-2">({bulkImportTargetUser?.email})</span>
+                  <span className="text-primary font-medium text-sm">Importing for: </span>
+                  <span className="text-accent-amber font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                  <span className="text-muted text-xs ml-2">({bulkImportTargetUser?.email})</span>
                 </div>
-                <button onClick={resetBulkImport} className="ml-auto text-white/40 hover:text-white/70 text-xs">Change user</button>
+                <button onClick={resetBulkImport} className="ml-auto text-muted hover:text-primary text-xs">Change user</button>
               </div>
               {bulkImportLoadingShows ? (
-                <div className="flex items-center justify-center py-12 text-white/40">
+                <div className="flex items-center justify-center py-12 text-muted">
                   <RefreshCw className="w-5 h-5 animate-spin mr-3" />
                   Loading existing shows for duplicate detection...
                 </div>
@@ -1945,21 +1945,21 @@ function AdminView() {
                     onDragOver={e => e.preventDefault()}
                     onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleBulkImportFile(f); }}
                     onClick={() => document.getElementById('bulk-import-file-input').click()}
-                    className="border-2 border-dashed border-white/20 hover:border-white/40 rounded-2xl p-12 text-center cursor-pointer transition-all"
+                    className="border-2 border-dashed border-active hover:border-white/40 rounded-2xl p-12 text-center cursor-pointer transition-all"
                   >
-                    <Upload className="w-12 h-12 mx-auto mb-4 text-white/30" />
-                    <p className="text-lg font-medium text-white mb-2">Drag & drop your file here</p>
-                    <p className="text-white/50 mb-4">or click to browse</p>
-                    <p className="text-white/30 text-sm">Supports .csv, .xlsx, .xls</p>
+                    <Upload className="w-12 h-12 mx-auto mb-4 text-muted" />
+                    <p className="text-lg font-medium text-primary mb-2">Drag & drop your file here</p>
+                    <p className="text-secondary mb-4">or click to browse</p>
+                    <p className="text-muted text-sm">Supports .csv, .xlsx, .xls</p>
                     <input id="bulk-import-file-input" type="file" accept=".csv,.xlsx,.xls" onChange={e => { const f = e.target.files[0]; if (f) handleBulkImportFile(f); }} className="hidden" />
                   </div>
-                  <p className="text-white/30 text-xs mt-3">Target user has {bulkImportTargetShows.length} existing show{bulkImportTargetShows.length !== 1 ? 's' : ''} (used for duplicate detection)</p>
+                  <p className="text-muted text-xs mt-3">Target user has {bulkImportTargetShows.length} existing show{bulkImportTargetShows.length !== 1 ? 's' : ''} (used for duplicate detection)</p>
                 </>
               )}
               {bulkImportError && (
-                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-300 text-sm">{bulkImportError}</p>
+                <div className="mt-4 p-4 bg-danger/10 border border-danger/30 rounded-xl flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                  <p className="text-danger text-sm">{bulkImportError}</p>
                 </div>
               )}
             </div>
@@ -1967,26 +1967,26 @@ function AdminView() {
 
           {/* Step 3: Column Mapping */}
           {bulkImportStep === 'mapping' && (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                <User className="w-5 h-5 text-emerald-400" />
+            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
+              <div className="flex items-center gap-3 mb-6 p-3 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
+                <User className="w-5 h-5 text-accent-amber" />
                 <div>
-                  <span className="text-white font-medium text-sm">Importing for: </span>
-                  <span className="text-emerald-400 font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                  <span className="text-primary font-medium text-sm">Importing for: </span>
+                  <span className="text-accent-amber font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Map Your Columns</h3>
-              <p className="text-white/50 text-sm mb-6">{bulkImportHeaders.length} columns detected from {bulkImportFileName} &middot; {bulkImportRawData.length} data row{bulkImportRawData.length !== 1 ? 's' : ''}</p>
+              <h3 className="text-lg font-semibold text-primary mb-2 font-display">Map Your Columns</h3>
+              <p className="text-secondary text-sm mb-6">{bulkImportHeaders.length} columns detected from {bulkImportFileName} &middot; {bulkImportRawData.length} data row{bulkImportRawData.length !== 1 ? 's' : ''}</p>
               <div className="space-y-4 mb-8">
                 {IMPORT_FIELDS.map(field => (
                   <div key={field.key} className="flex items-center gap-4">
-                    <label className="w-28 text-sm text-white/80 flex items-center gap-1">
-                      {field.label}{field.required && <span className="text-red-400">*</span>}
+                    <label className="w-28 text-sm text-secondary flex items-center gap-1">
+                      {field.label}{field.required && <span className="text-danger">*</span>}
                     </label>
                     <select
                       value={bulkImportMapping[field.key] !== undefined ? bulkImportMapping[field.key] : ''}
                       onChange={e => setBulkImportMapping(prev => ({ ...prev, [field.key]: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                      className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 [&>option]:bg-slate-800"
+                      className="flex-1 px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-accent-amber/50 [&>option]:bg-elevated"
                     >
                       <option value="">-- Skip --</option>
                       {bulkImportHeaders.map((h, i) => (<option key={i} value={i}>{h || `Column ${i + 1}`}</option>))}
@@ -1995,7 +1995,7 @@ function AdminView() {
                 ))}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setBulkImportStep('upload')} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors">Back</button>
+                <button onClick={() => setBulkImportStep('upload')} className="px-5 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors">Back</button>
                 <button
                   onClick={() => {
                     const missing = IMPORT_FIELDS.filter(f => f.required && bulkImportMapping[f.key] === undefined).map(f => f.label);
@@ -2004,13 +2004,13 @@ function AdminView() {
                     setBulkImportPreviewRows(buildBulkImportPreview());
                     setBulkImportStep('preview');
                   }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25"
+                  className="px-5 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
                 >Preview Import</button>
               </div>
               {bulkImportError && (
-                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-300 text-sm">{bulkImportError}</p>
+                <div className="mt-4 p-4 bg-danger/10 border border-danger/30 rounded-xl flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                  <p className="text-danger text-sm">{bulkImportError}</p>
                 </div>
               )}
             </div>
@@ -2023,49 +2023,49 @@ function AdminView() {
             const duplicateRows = validRows.filter(r => r.isDuplicate);
             const importableRows = validRows.filter(r => !r.isDuplicate);
             return (
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
-                <div className="flex items-center gap-3 mb-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                  <User className="w-5 h-5 text-emerald-400" />
+              <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
+                <div className="flex items-center gap-3 mb-6 p-3 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
+                  <User className="w-5 h-5 text-accent-amber" />
                   <div>
-                    <span className="text-white font-medium text-sm">Importing for: </span>
-                    <span className="text-emerald-400 font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
-                    <span className="text-white/40 text-xs ml-2">({bulkImportTargetUser?.email})</span>
+                    <span className="text-primary font-medium text-sm">Importing for: </span>
+                    <span className="text-accent-amber font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                    <span className="text-muted text-xs ml-2">({bulkImportTargetUser?.email})</span>
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Review Import</h3>
-                <p className="text-white/50 text-sm mb-4">{bulkImportPreviewRows.length} rows from {bulkImportFileName}</p>
+                <h3 className="text-lg font-semibold text-primary mb-2 font-display">Review Import</h3>
+                <p className="text-secondary text-sm mb-4">{bulkImportPreviewRows.length} rows from {bulkImportFileName}</p>
                 <div className="flex flex-wrap gap-3 mb-6">
-                  <span className="px-3 py-1.5 bg-emerald-500/15 text-emerald-400 rounded-lg text-sm font-medium">{importableRows.length} ready to import</span>
-                  {errorRows.length > 0 && <span className="px-3 py-1.5 bg-red-500/15 text-red-400 rounded-lg text-sm font-medium">{errorRows.length} with errors</span>}
-                  {duplicateRows.length > 0 && <span className="px-3 py-1.5 bg-amber-500/15 text-amber-400 rounded-lg text-sm font-medium">{duplicateRows.length} duplicate{duplicateRows.length !== 1 ? 's' : ''} (will skip)</span>}
+                  <span className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium">{importableRows.length} ready to import</span>
+                  {errorRows.length > 0 && <span className="px-3 py-1.5 bg-danger/15 text-danger rounded-lg text-sm font-medium">{errorRows.length} with errors</span>}
+                  {duplicateRows.length > 0 && <span className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium">{duplicateRows.length} duplicate{duplicateRows.length !== 1 ? 's' : ''} (will skip)</span>}
                 </div>
                 <div className="overflow-x-auto mb-6 max-h-96 overflow-y-auto">
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-slate-800/95">
-                      <tr className="border-b border-white/10">
-                        <th className="text-left px-3 py-2 text-white/60 font-medium w-8">#</th>
-                        <th className="text-left px-3 py-2 text-white/60 font-medium">Artist</th>
-                        <th className="text-left px-3 py-2 text-white/60 font-medium">Venue</th>
-                        <th className="text-left px-3 py-2 text-white/60 font-medium">Date</th>
-                        <th className="text-left px-3 py-2 text-white/60 font-medium">City</th>
-                        <th className="text-left px-3 py-2 text-white/60 font-medium w-24">Status</th>
+                    <thead className="sticky top-0 bg-elevated/95">
+                      <tr className="border-b border-subtle">
+                        <th className="text-left px-3 py-2 text-secondary font-medium w-8">#</th>
+                        <th className="text-left px-3 py-2 text-secondary font-medium">Artist</th>
+                        <th className="text-left px-3 py-2 text-secondary font-medium">Venue</th>
+                        <th className="text-left px-3 py-2 text-secondary font-medium">Date</th>
+                        <th className="text-left px-3 py-2 text-secondary font-medium">City</th>
+                        <th className="text-left px-3 py-2 text-secondary font-medium w-24">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {bulkImportPreviewRows.map((row, i) => (
-                        <tr key={i} className={`border-b border-white/5 ${row.errors.length > 0 ? 'bg-red-500/5' : row.isDuplicate ? 'bg-amber-500/5' : ''}`}>
-                          <td className="px-3 py-2 text-white/40">{i + 1}</td>
-                          <td className="px-3 py-2 text-white/80">{row.raw.artist || '—'}</td>
-                          <td className="px-3 py-2 text-white/80">{row.raw.venue || '—'}</td>
-                          <td className="px-3 py-2 text-white/80">{row.parsedDate ? formatDate(row.parsedDate) : <span className="text-red-400">{row.raw.date || '—'}</span>}</td>
-                          <td className="px-3 py-2 text-white/60">{row.raw.city || '—'}</td>
+                        <tr key={i} className={`border-b border-subtle ${row.errors.length > 0 ? 'bg-danger/5' : row.isDuplicate ? 'bg-accent-amber/5' : ''}`}>
+                          <td className="px-3 py-2 text-muted">{i + 1}</td>
+                          <td className="px-3 py-2 text-secondary">{row.raw.artist || '—'}</td>
+                          <td className="px-3 py-2 text-secondary">{row.raw.venue || '—'}</td>
+                          <td className="px-3 py-2 text-secondary">{row.parsedDate ? formatDate(row.parsedDate) : <span className="text-danger">{row.raw.date || '—'}</span>}</td>
+                          <td className="px-3 py-2 text-secondary">{row.raw.city || '—'}</td>
                           <td className="px-3 py-2">
                             {row.errors.length > 0 ? (
-                              <Tip text={row.errors.join(', ')}><span className="text-red-400 text-xs flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />Error</span></Tip>
+                              <Tip text={row.errors.join(', ')}><span className="text-danger text-xs flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />Error</span></Tip>
                             ) : row.isDuplicate ? (
-                              <span className="text-amber-400 text-xs">Duplicate</span>
+                              <span className="text-accent-amber text-xs">Duplicate</span>
                             ) : (
-                              <span className="text-emerald-400 text-xs"><Check className="w-4 h-4 inline" /></span>
+                              <span className="text-accent-amber text-xs"><Check className="w-4 h-4 inline" /></span>
                             )}
                           </td>
                         </tr>
@@ -2074,17 +2074,17 @@ function AdminView() {
                   </table>
                 </div>
                 {bulkImportError && (
-                  <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-red-300 text-sm">{bulkImportError}</p>
+                  <div className="mb-4 p-4 bg-danger/10 border border-danger/30 rounded-xl flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                    <p className="text-danger text-sm">{bulkImportError}</p>
                   </div>
                 )}
                 <div className="flex gap-3">
-                  <button onClick={() => setBulkImportStep('mapping')} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors">Back</button>
+                  <button onClick={() => setBulkImportStep('mapping')} className="px-5 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors">Back</button>
                   <button
                     onClick={handleBulkImportExecute}
                     disabled={importableRows.length === 0}
-                    className={`px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg ${importableRows.length > 0 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-emerald-500/25' : 'bg-white/5 text-white/30 cursor-not-allowed shadow-none'}`}
+                    className={`px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg ${importableRows.length > 0 ? 'bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary shadow-accent-amber/20' : 'bg-highlight text-muted cursor-not-allowed shadow-none'}`}
                   >
                     Import {importableRows.length} Show{importableRows.length !== 1 ? 's' : ''} for {(bulkImportTargetUser?.firstName || bulkImportTargetUser?.displayName || 'User').split(' ')[0]}
                   </button>
@@ -2095,36 +2095,36 @@ function AdminView() {
 
           {/* Step 5: Importing */}
           {bulkImportStep === 'importing' && (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
+            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-6">
+                <RefreshCw className="w-8 h-8 text-accent-amber animate-spin" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Importing Shows...</h3>
-              <p className="text-white/50">Writing shows to {(bulkImportTargetUser?.firstName || bulkImportTargetUser?.displayName || 'user').split(' ')[0]}'s profile</p>
+              <h3 className="text-lg font-semibold text-primary mb-2 font-display">Importing Shows...</h3>
+              <p className="text-secondary">Writing shows to {(bulkImportTargetUser?.firstName || bulkImportTargetUser?.displayName || 'user').split(' ')[0]}'s profile</p>
             </div>
           )}
 
           {/* Step 6: Complete */}
           {bulkImportStep === 'complete' && bulkImportProgress && (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Check className="w-8 h-8 text-emerald-400" />
+            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-6">
+                <Check className="w-8 h-8 text-accent-amber" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Import Complete</h3>
+              <h3 className="text-lg font-semibold text-primary mb-2 font-display">Import Complete</h3>
               <div className="flex justify-center gap-6 mb-6">
                 <div>
-                  <div className="text-2xl font-bold text-emerald-400">{bulkImportProgress.imported}</div>
-                  <div className="text-xs text-white/50">Imported</div>
+                  <div className="text-2xl font-bold text-accent-amber">{bulkImportProgress.imported}</div>
+                  <div className="text-xs text-secondary">Imported</div>
                 </div>
                 {bulkImportProgress.duplicatesSkipped > 0 && (
                   <div>
-                    <div className="text-2xl font-bold text-amber-400">{bulkImportProgress.duplicatesSkipped}</div>
-                    <div className="text-xs text-white/50">Duplicates Skipped</div>
+                    <div className="text-2xl font-bold text-accent-amber">{bulkImportProgress.duplicatesSkipped}</div>
+                    <div className="text-xs text-secondary">Duplicates Skipped</div>
                   </div>
                 )}
               </div>
-              <p className="text-white/40 text-sm mb-6">Shows imported to {bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}'s profile</p>
-              <button onClick={resetBulkImport} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+              <p className="text-muted text-sm mb-6">Shows imported to {bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}'s profile</p>
+              <button onClick={resetBulkImport} className="px-5 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20">
                 Import More
               </button>
             </div>
@@ -2135,14 +2135,14 @@ function AdminView() {
       {/* Cache Management */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Database className="w-5 h-5 text-violet-400" />
+          <h3 className="text-lg font-semibold text-primary font-display flex items-center gap-2">
+            <Database className="w-5 h-5 text-accent-teal" />
             Setlist.fm Cache
           </h3>
           <button
             onClick={loadCacheStats}
             disabled={cacheLoading}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+            className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
           >
             {cacheLoading ? 'Loading...' : 'Refresh'}
           </button>
@@ -2150,15 +2150,15 @@ function AdminView() {
 
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Cached Searches', value: cacheEntries.length, color: 'from-violet-500 to-purple-500' },
-            { label: 'Active Entries', value: cacheEntries.filter(e => e.isActive).length, color: 'from-emerald-500 to-teal-500' },
-            { label: 'Total Cache Hits', value: cacheEntries.reduce((a, e) => a + e.hitCount, 0), color: 'from-amber-500 to-orange-500' },
+            { label: 'Cached Searches', value: cacheEntries.length, color: 'from-accent-teal to-accent-teal' },
+            { label: 'Active Entries', value: cacheEntries.filter(e => e.isActive).length, color: 'from-accent-amber to-accent-teal' },
+            { label: 'Total Cache Hits', value: cacheEntries.reduce((a, e) => a + e.hitCount, 0), color: 'from-accent-amber to-accent-amber' },
           ].map(stat => (
-            <div key={stat.label} className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+            <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-4 border border-subtle">
               <div className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                 {stat.value.toLocaleString()}
               </div>
-              <div className="text-xs font-medium text-white/50 mt-1">{stat.label}</div>
+              <div className="text-xs font-medium text-secondary mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -2170,64 +2170,64 @@ function AdminView() {
             value={cacheClearArtist}
             onChange={e => setCacheClearArtist(e.target.value)}
             onKeyPress={e => e.key === 'Enter' && cacheClearArtist.trim() && clearCache('artist', cacheClearArtist)}
-            className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-white placeholder-white/40 text-sm"
+            className="flex-1 px-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-teal/50 text-primary placeholder-muted text-sm"
           />
           <button
             onClick={() => clearCache('artist', cacheClearArtist)}
             disabled={!cacheClearArtist.trim()}
-            className="px-4 py-2.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl font-medium transition-colors text-sm disabled:opacity-40"
+            className="px-4 py-2.5 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-medium transition-colors text-sm disabled:opacity-40"
           >
             Clear Artist
           </button>
           <button
             onClick={() => clearCache('all')}
-            className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl font-medium transition-colors text-sm"
+            className="px-4 py-2.5 bg-danger/20 hover:bg-danger/30 text-danger rounded-xl font-medium transition-colors text-sm"
           >
             Clear All
           </button>
         </div>
 
         {cacheStatus && (
-          <div className={`px-4 py-2.5 rounded-xl text-sm font-medium ${cacheStatus.startsWith('Error') ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+          <div className={`px-4 py-2.5 rounded-xl text-sm font-medium ${cacheStatus.startsWith('Error') ? 'bg-danger/20 text-danger' : 'bg-accent-amber-glow text-accent-amber'}`}>
             {cacheStatus}
           </div>
         )}
 
         {cacheEntries.length > 0 && (
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+          <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-white/5 border-b border-white/10">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Artist</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide hidden sm:table-cell">Page</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Hits</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide hidden md:table-cell">TTL</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide hidden lg:table-cell">Expires</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Status</th>
+                <tr className="bg-highlight border-b border-subtle">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Artist</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide hidden sm:table-cell">Page</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Hits</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">TTL</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide hidden lg:table-cell">Expires</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Status</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {cacheEntries.map(entry => (
-                  <tr key={entry.key} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3 text-white font-medium capitalize">{entry.artistName || '—'}</td>
-                    <td className="px-4 py-3 text-white/60 text-center hidden sm:table-cell">{entry.page}</td>
+                  <tr key={entry.key} className="hover:bg-highlight transition-colors">
+                    <td className="px-4 py-3 text-primary font-medium capitalize">{entry.artistName || '—'}</td>
+                    <td className="px-4 py-3 text-secondary text-center hidden sm:table-cell">{entry.page}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full text-xs font-semibold">{entry.hitCount}</span>
+                      <span className="bg-accent-teal-glow text-accent-teal px-2 py-0.5 rounded-full text-xs font-semibold">{entry.hitCount}</span>
                     </td>
-                    <td className="px-4 py-3 text-white/60 text-center hidden md:table-cell">{entry.ttlHours}h</td>
-                    <td className="px-4 py-3 text-white/40 text-center text-xs hidden lg:table-cell">{entry.expiresAt}</td>
+                    <td className="px-4 py-3 text-secondary text-center hidden md:table-cell">{entry.ttlHours}h</td>
+                    <td className="px-4 py-3 text-muted text-center text-xs hidden lg:table-cell">{entry.expiresAt}</td>
                     <td className="px-4 py-3 text-center">
                       {entry.isActive
-                        ? <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full text-xs">Active</span>
-                        : <span className="bg-white/10 text-white/40 px-2 py-0.5 rounded-full text-xs">Expired</span>
+                        ? <span className="bg-accent-amber-glow text-accent-amber px-2 py-0.5 rounded-full text-xs">Active</span>
+                        : <span className="bg-highlight text-muted px-2 py-0.5 rounded-full text-xs">Expired</span>
                       }
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Tip text="Delete this entry">
                         <button
                           onClick={() => clearCache('key', null, entry.key)}
-                          className="text-red-400/50 hover:text-red-400 transition-colors"
+                          className="text-danger/50 hover:text-danger transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -2241,7 +2241,7 @@ function AdminView() {
         )}
 
         {!cacheLoading && cacheEntries.length === 0 && (
-          <div className="text-center py-8 text-white/40 text-sm">
+          <div className="text-center py-8 text-muted text-sm">
             No cache entries yet. Cache will populate as users search for setlists.
           </div>
         )}
@@ -2250,24 +2250,24 @@ function AdminView() {
       {/* Delete User Confirmation Dialog */}
       {deleteConfirmUser && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
-          <div className="bg-slate-800 border border-rose-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl shadow-rose-500/10">
+          <div className="bg-elevated border border-danger/30 rounded-2xl w-full max-w-md p-6 shadow-2xl shadow-danger/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Trash2 className="w-5 h-5 text-rose-400" />
+              <div className="w-10 h-10 bg-danger/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-danger" />
               </div>
-              <h2 className="text-lg font-semibold text-white">Delete User</h2>
+              <h2 className="text-lg font-semibold text-primary font-display">Delete User</h2>
             </div>
-            <p className="text-white/70 mb-2 leading-relaxed">
+            <p className="text-secondary mb-2 leading-relaxed">
               Are you sure you want to permanently delete{' '}
-              <span className="text-white font-medium">{deleteConfirmUser.firstName}</span>
+              <span className="text-primary font-medium">{deleteConfirmUser.firstName}</span>
               {deleteConfirmUser.email ? ` (${deleteConfirmUser.email})` : ''}?
             </p>
-            <p className="text-white/50 text-sm mb-6 leading-relaxed">
+            <p className="text-secondary text-sm mb-6 leading-relaxed">
               This will delete their account, all shows, friend connections, show tags, and invites.{' '}
-              <span className="text-rose-400 font-medium">This cannot be undone.</span>
+              <span className="text-danger font-medium">This cannot be undone.</span>
             </p>
             {deleteError && (
-              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 mb-4 text-sm text-rose-400">
+              <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 mb-4 text-sm text-danger">
                 {deleteError}
               </div>
             )}
@@ -2275,14 +2275,14 @@ function AdminView() {
               <button
                 onClick={() => { setDeleteConfirmUser(null); setDeleteError(null); }}
                 disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteUser}
                 disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 bg-rose-500 hover:bg-rose-400 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 bg-danger hover:bg-danger/80 text-primary rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {deleteLoading ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />

@@ -112,14 +112,14 @@ function UpcomingShows({ artistName }) {
 
   if (loading) {
     return (
-      <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div className="mt-4 bg-highlight border border-subtle rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Calendar className="w-4 h-4 text-white/40" />
-          <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Upcoming Shows</span>
+          <Calendar className="w-4 h-4 text-muted" />
+          <span className="text-xs font-semibold text-muted uppercase tracking-wide">Upcoming Shows</span>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-10 bg-white/5 rounded-xl animate-pulse" />
+            <div key={i} className="h-10 bg-highlight rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -129,17 +129,17 @@ function UpcomingShows({ artistName }) {
   if (hasNoShows) {
     const bandsintownUrl = `https://www.bandsintown.com/a/${encodeURIComponent(artistName)}?came_from=461&app_id=mysetlists`;
     return (
-      <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div className="mt-4 bg-highlight border border-subtle rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-2">
-          <Calendar className="w-4 h-4 text-white/40" />
-          <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Upcoming Shows</span>
+          <Calendar className="w-4 h-4 text-muted" />
+          <span className="text-xs font-semibold text-muted uppercase tracking-wide">Upcoming Shows</span>
         </div>
-        <p className="text-sm text-white/40 mb-3">No upcoming shows found for {artistName}.</p>
+        <p className="text-sm text-muted mb-3">No upcoming shows found for {artistName}.</p>
         <a
           href={bandsintownUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-white/10 text-white/60 hover:bg-white/20 hover:text-white/80 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-highlight text-secondary hover:bg-highlight hover:text-primary transition-colors"
         >
           <ExternalLink className="w-3 h-3" />
           Follow on Bandsintown for updates
@@ -153,10 +153,10 @@ function UpcomingShows({ artistName }) {
   const sgSearchUrl = `https://seatgeek.com/${encodeURIComponent(artistName.toLowerCase().replace(/\s+/g, '-'))}-tickets`;
 
   return (
-    <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+    <div className="mt-4 bg-highlight border border-subtle rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Calendar className="w-4 h-4 text-emerald-400" />
-        <span className="text-xs font-semibold text-white/50 uppercase tracking-wide">Upcoming Shows</span>
+        <Calendar className="w-4 h-4 text-accent-amber" />
+        <span className="text-xs font-semibold text-secondary uppercase tracking-wide">Upcoming Shows</span>
       </div>
 
       <div className="space-y-0">
@@ -170,20 +170,20 @@ function UpcomingShows({ artistName }) {
           const locationParts = [event.venue, [event.city, event.state].filter(Boolean).join(', ')].filter(Boolean);
 
           return (
-            <div key={event.id} className="py-3 border-b border-white/5 last:border-0">
+            <div key={event.id} className="py-3 border-b border-subtle last:border-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-white/80">{formatTicketDate(event.date)}</span>
+                    <span className="text-sm font-medium text-secondary">{formatTicketDate(event.date)}</span>
                     {locationParts.length > 0 && (
                       <>
-                        <span className="text-white/20">&middot;</span>
-                        <span className="text-sm text-white/60 truncate">{locationParts.join(' \u00b7 ')}</span>
+                        <span className="text-muted">&middot;</span>
+                        <span className="text-sm text-secondary truncate">{locationParts.join(' \u00b7 ')}</span>
                       </>
                     )}
                   </div>
                   {priceLabel && (
-                    <div className="text-xs text-white/40 mt-0.5">{priceLabel}</div>
+                    <div className="text-xs text-muted mt-0.5">{priceLabel}</div>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -193,7 +193,7 @@ function UpcomingShows({ artistName }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => handleTicketClick('ticketmaster')}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-accent-teal/20 text-accent-teal hover:bg-accent-teal/30 border border-accent-teal/30 transition-colors whitespace-nowrap"
                     >
                       <ExternalLink className="w-3 h-3" />
                       {hasBothPlatforms ? 'Official' : 'Official Tickets'}
@@ -205,7 +205,7 @@ function UpcomingShows({ artistName }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => handleTicketClick('seatgeek')}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-accent-amber-glow text-accent-amber hover:bg-accent-amber/30 border border-accent-amber/30 transition-colors whitespace-nowrap"
                     >
                       <ExternalLink className="w-3 h-3" />
                       {hasBothPlatforms ? 'Resale' : 'Resale Tickets'}
@@ -218,22 +218,22 @@ function UpcomingShows({ artistName }) {
         })}
       </div>
 
-      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
-        <span className="text-xs text-white/30">See all on:</span>
+      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-subtle">
+        <span className="text-xs text-muted">See all on:</span>
         <a
           href={tmSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-blue-400/60 hover:text-blue-400 transition-colors"
+          className="text-xs text-accent-teal/60 hover:text-accent-teal transition-colors"
         >
           Ticketmaster ↗
         </a>
-        <span className="text-white/20">&middot;</span>
+        <span className="text-muted">&middot;</span>
         <a
           href={sgSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-amber-400/60 hover:text-amber-400 transition-colors"
+          className="text-xs text-accent-amber/60 hover:text-accent-amber transition-colors"
         >
           SeatGeek ↗
         </a>

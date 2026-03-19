@@ -1,53 +1,53 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Camera, Upload, Users, MessageSquare, Music, ChevronRight } from 'lucide-react';
+import { X, Sparkles, Camera, Upload, Users, MessageSquare, Music, Palette, ChevronRight } from 'lucide-react';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 // Bump this version string whenever you add new features to announce.
 // Users who have seen this version won't see the modal again.
-const CURRENT_WHATS_NEW_VERSION = '2.2';
+const CURRENT_WHATS_NEW_VERSION = '3.0';
 
 const FEATURES = [
   {
+    icon: Palette,
+    color: 'text-accent-amber',
+    bg: 'bg-accent-amber-glow',
+    title: 'Concert Venue Theme',
+    description: 'A complete visual overhaul — dark, moody backgrounds with warm amber and electric teal accents inspired by live concert venues.',
+    cta: null,
+  },
+  {
     icon: Music,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/15',
+    color: 'text-accent-amber',
+    bg: 'bg-accent-amber-glow',
     title: 'Create Playlists from Setlists',
     description: 'Turn any setlist into a Spotify or Apple Music playlist with one tap.',
-    cta: null, // shown inline in SetlistEditor
+    cta: null,
   },
   {
     icon: Camera,
-    color: 'text-violet-400',
-    bg: 'bg-violet-500/15',
+    color: 'text-accent-teal',
+    bg: 'bg-accent-teal-glow',
     title: 'AI Ticket Stub Scanner',
     description: 'Snap a photo of any ticket stub, wristband, or digital ticket to add shows instantly.',
     cta: { label: 'Try Scan / Import', view: 'scan-import' },
   },
   {
     icon: Upload,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/15',
+    color: 'text-accent-teal',
+    bg: 'bg-accent-teal/15',
     title: 'Bulk Import from CSV',
     description: 'Import hundreds of shows at once from a spreadsheet or CSV file.',
     cta: { label: 'Try Scan / Import', view: 'scan-import' },
   },
   {
     icon: Users,
-    color: 'text-pink-400',
-    bg: 'bg-pink-500/15',
+    color: 'text-accent-teal',
+    bg: 'bg-accent-teal-glow',
     title: 'Bulk Accept Friend Tags',
     description: 'Accept all pending show tags from friends in one tap — no more clicking one by one.',
     cta: { label: 'View Friends', view: 'friends' },
-  },
-  {
-    icon: MessageSquare,
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/15',
-    title: 'Friend Notes on Shared Shows',
-    description: 'See your friends\' ratings and comments on shows you attended together.',
-    cta: null,
   },
 ];
 
@@ -74,26 +74,26 @@ function WhatsNewModal({ onClose, navigateTo }) {
 
   return (
     <div
-      className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-200 ${visible ? 'bg-black/60 backdrop-blur-sm' : 'bg-black/0'}`}
+      className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-200 ${visible ? 'bg-black/75 backdrop-blur-sm' : 'bg-black/0'}`}
       onClick={handleClose}
     >
       <div
-        className={`bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transition-all duration-200 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+        className={`bg-elevated border border-subtle rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transition-all duration-200 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative px-5 pt-6 pb-4 text-center border-b border-white/10 bg-gradient-to-b from-violet-500/10 to-transparent">
+        <div className="relative px-5 pt-6 pb-4 text-center border-b border-subtle bg-gradient-to-b from-accent-teal/10 to-transparent">
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-xl text-muted hover:text-primary hover:bg-highlight transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
-          <div className="w-12 h-12 rounded-full bg-violet-500/20 flex items-center justify-center mx-auto mb-3">
-            <Sparkles className="w-6 h-6 text-violet-400" />
+          <div className="w-12 h-12 rounded-full bg-accent-teal-glow flex items-center justify-center mx-auto mb-3">
+            <Sparkles className="w-6 h-6 text-accent-teal" />
           </div>
-          <h2 className="text-lg font-bold text-white">What&apos;s New</h2>
-          <p className="text-xs text-white/40 mt-1">Recent features added to MySetlists</p>
+          <h2 className="text-lg font-bold text-primary font-display">What&apos;s New</h2>
+          <p className="text-xs text-muted mt-1">Recent features added to MySetlists</p>
         </div>
 
         {/* Feature list */}
@@ -104,18 +104,18 @@ function WhatsNewModal({ onClose, navigateTo }) {
               return (
                 <div
                   key={i}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                  className="flex items-start gap-3 p-3 rounded-xl bg-highlight/30 hover:bg-highlight transition-colors"
                 >
                   <div className={`w-9 h-9 rounded-lg ${feature.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
                     <Icon className={`w-4.5 h-4.5 ${feature.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-white">{feature.title}</h3>
-                    <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{feature.description}</p>
+                    <h3 className="text-sm font-semibold text-primary">{feature.title}</h3>
+                    <p className="text-xs text-secondary mt-0.5 leading-relaxed">{feature.description}</p>
                     {feature.cta && (
                       <button
                         onClick={() => handleCta(feature.cta.view)}
-                        className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors"
+                        className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-accent-teal hover:text-accent-teal transition-colors"
                       >
                         {feature.cta.label}
                         <ChevronRight className="w-3 h-3" />
@@ -129,14 +129,14 @@ function WhatsNewModal({ onClose, navigateTo }) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/10">
+        <div className="px-5 py-4 border-t border-subtle">
           <button
             onClick={handleClose}
-            className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+            className="w-full py-3 rounded-xl bg-accent-teal hover:bg-accent-teal text-primary text-sm font-semibold transition-colors"
           >
             Got it
           </button>
-          <p className="text-center text-[10px] text-white/30 mt-2">
+          <p className="text-center text-[10px] text-muted mt-2">
             See all updates in Release Notes
           </p>
         </div>

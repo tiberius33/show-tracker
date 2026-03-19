@@ -88,7 +88,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Profile Header */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+      <div className="bg-highlight border border-subtle rounded-2xl p-6">
         <div className="flex items-start gap-6">
           {/* Profile Photo */}
           <div className="relative">
@@ -104,13 +104,13 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
               />
             ) : null}
             <div
-              className={`w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center ${photoURL || user?.photoURL ? 'hidden' : ''}`}
+              className={`w-24 h-24 rounded-2xl bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center ${photoURL || user?.photoURL ? 'hidden' : ''}`}
             >
-              <User className="w-12 h-12 text-white" />
+              <User className="w-12 h-12 text-primary" />
             </div>
             {isEditing && (
               <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
-                <Camera className="w-6 h-6 text-white" />
+                <Camera className="w-6 h-6 text-primary" />
               </div>
             )}
           </div>
@@ -124,21 +124,21 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Display name"
-                  className="w-full px-4 py-2 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+                  className="w-full px-4 py-2 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
                 />
                 <input
                   type="url"
                   value={photoURL}
                   onChange={(e) => setPhotoURL(e.target.value)}
                   placeholder="Photo URL (optional)"
-                  className="w-full px-4 py-2 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40 text-sm"
+                  className="w-full px-4 py-2 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted text-sm"
                 />
-                {error && <p className="text-red-400 text-sm">{error}</p>}
+                {error && <p className="text-danger text-sm">{error}</p>}
                 <div className="flex gap-2">
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white rounded-xl font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-accent-amber hover:bg-accent-amber disabled:opacity-50 text-primary rounded-xl font-medium transition-colors"
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'Saving...' : 'Save'}
@@ -146,7 +146,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
                   <button
                     onClick={handleCancel}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
                   >
                     <X className="w-4 h-4" />
                     Cancel
@@ -156,22 +156,22 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
             ) : (
               <>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white">
+                  <h2 className="text-2xl font-bold text-primary font-display">
                     {user?.displayName || 'Anonymous'}
                   </h2>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-highlight hover:bg-highlight text-secondary rounded-lg text-sm font-medium transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit
                   </button>
                 </div>
-                <div className="flex items-center gap-2 text-white/60 mt-1">
+                <div className="flex items-center gap-2 text-secondary mt-1">
                   <Mail className="w-4 h-4" />
                   <span className="text-sm">{user?.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-white/60 mt-1">
+                <div className="flex items-center gap-2 text-secondary mt-1">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">Member since {formatDate(memberSince)}</span>
                 </div>
@@ -224,16 +224,16 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
 
       {/* Average Rating */}
       {stats.avgShowRating && (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <div className="bg-highlight border border-subtle rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-white">Average Show Rating</h3>
-              <p className="text-white/50 text-sm">Based on {shows.filter(s => s.rating).length} rated shows</p>
+              <h3 className="text-lg font-semibold text-primary font-display">Average Show Rating</h3>
+              <p className="text-secondary text-sm">Based on {shows.filter(s => s.rating).length} rated shows</p>
             </div>
             <div className="flex items-center gap-2">
-              <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
-              <span className="text-3xl font-bold text-white">{stats.avgShowRating}</span>
-              <span className="text-white/50">/10</span>
+              <Star className="w-6 h-6 text-accent-amber fill-accent-amber" />
+              <span className="text-3xl font-bold text-primary">{stats.avgShowRating}</span>
+              <span className="text-secondary">/10</span>
             </div>
           </div>
         </div>
@@ -247,21 +247,21 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
 
 function StatCard({ icon, label, value, subtext, color }) {
   const colorClasses = {
-    emerald: 'from-emerald-400 to-emerald-600',
-    teal: 'from-teal-400 to-teal-600',
-    amber: 'from-amber-400 to-amber-600',
-    cyan: 'from-cyan-400 to-cyan-600',
-    purple: 'from-purple-400 to-purple-600',
+    emerald: 'from-accent-amber to-accent-amber',
+    teal: 'from-accent-teal to-accent-teal',
+    amber: 'from-accent-amber to-accent-amber',
+    cyan: 'from-accent-teal to-accent-teal',
+    purple: 'from-accent-teal to-accent-amber',
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+    <div className="bg-highlight border border-subtle rounded-2xl p-4">
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center mb-3`}>
-        <span className="text-white">{icon}</span>
+        <span className="text-primary">{icon}</span>
       </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      {subtext && <div className="text-sm text-white/40">{subtext}</div>}
-      <div className="text-sm text-white/60">{label}</div>
+      <div className="text-2xl font-bold text-primary">{value}</div>
+      {subtext && <div className="text-sm text-muted">{subtext}</div>}
+      <div className="text-sm text-secondary">{label}</div>
     </div>
   );
 }
