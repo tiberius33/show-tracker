@@ -39,33 +39,33 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
   ];
 
   return (
-    <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-4 space-y-3">
+    <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-4 space-y-3">
       {editing ? (
         <div className="space-y-2">
           <input
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
-            className="w-full px-3 py-2 bg-highlight border border-subtle rounded-xl text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
+            className="w-full px-3 py-2 bg-hover border border-subtle rounded-xl text-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand/50"
             placeholder="Title"
           />
           <textarea
             value={editDesc}
             onChange={e => setEditDesc(e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 bg-highlight border border-subtle rounded-xl text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent-amber/50 resize-none"
+            className="w-full px-3 py-2 bg-hover border border-subtle rounded-xl text-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 resize-none"
             placeholder="Description (optional)"
           />
           <div className="flex gap-2">
             <button
               onClick={handleSaveEdit}
               disabled={!editTitle.trim() || localSaving}
-              className="px-3 py-1.5 bg-accent-amber hover:bg-accent-amber text-primary rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+              className="px-3 py-1.5 bg-brand hover:bg-brand text-on-dark rounded-lg text-xs font-medium transition-all disabled:opacity-50"
             >
               {localSaving ? 'Saving...' : 'Save'}
             </button>
             <button
               onClick={() => { setEditing(false); setEditTitle(item.title || ''); setEditDesc(item.description || ''); }}
-              className="px-3 py-1.5 bg-highlight hover:bg-highlight text-secondary rounded-lg text-xs font-medium transition-colors"
+              className="px-3 py-1.5 bg-hover hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
             >
               Cancel
             </button>
@@ -76,17 +76,17 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
           <div className="flex items-start justify-between gap-3">
             <p className="text-primary font-medium text-sm leading-snug">{item.title}</p>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-muted bg-highlight px-2 py-0.5 rounded-full whitespace-nowrap">
+              <span className="text-xs text-muted bg-hover px-2 py-0.5 rounded-full whitespace-nowrap">
                 {item.voteCount || 0} vote{item.voteCount !== 1 ? 's' : ''}
               </span>
               {item.category && ROADMAP_CATEGORIES[item.category] && (
-                <span className="text-xs text-muted bg-highlight px-2 py-0.5 rounded-full">
+                <span className="text-xs text-muted bg-hover px-2 py-0.5 rounded-full">
                   {ROADMAP_CATEGORIES[item.category]}
                 </span>
               )}
               <button
                 onClick={() => setEditing(true)}
-                className="text-xs text-muted hover:text-primary px-2 py-1 rounded-lg hover:bg-highlight transition-colors"
+                className="text-xs text-muted hover:text-primary px-2 py-1 rounded-lg hover:bg-hover transition-colors"
               >
                 Edit
               </button>
@@ -109,7 +109,7 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
           value={item.status}
           onChange={e => onStatusChange(e.target.value)}
           disabled={saving}
-          className="px-3 py-1.5 bg-highlight border border-subtle rounded-xl text-primary text-xs focus:outline-none focus:ring-2 focus:ring-accent-amber/50 disabled:opacity-50"
+          className="px-3 py-1.5 bg-hover border border-subtle rounded-xl text-primary text-xs focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50"
         >
           {STATUS_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value} className="bg-surface text-primary">
@@ -122,7 +122,7 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
           <button
             onClick={() => onPublish('upnext')}
             disabled={saving}
-            className="flex items-center gap-1 px-3 py-1.5 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal border border-accent-teal/30 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 bg-amber-subtle hover:bg-amber-subtle text-amber border border-amber/30 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
           >
             <TrendingUp className="w-3 h-3" />
             Publish → Up Next

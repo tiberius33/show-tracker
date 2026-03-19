@@ -262,7 +262,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
     <div>
       {/* Upload Area */}
       {extractedShows.length === 0 && (
-        <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
+        <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
           <div className="flex flex-col items-center justify-center py-8">
             <Camera className="w-12 h-12 text-muted mb-4" />
             <p className="text-secondary mb-4 text-center">
@@ -271,13 +271,13 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
             {isNativePlatform() ? (
               <button
                 onClick={handleNativeCamera}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-teal to-accent-teal hover:from-accent-teal hover:to-accent-teal text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-accent-teal/20"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-amber/20"
               >
                 <Camera className="w-4 h-4" />
                 {files.length > 0 ? 'Add More Photos' : 'Take Photo or Choose'}
               </button>
             ) : (
-              <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-teal to-accent-teal hover:from-accent-teal hover:to-accent-teal text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-accent-teal/20">
+              <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-amber/20">
                 <Camera className="w-4 h-4" />
                 {files.length > 0 ? 'Add More Images' : 'Select Images'}
                 <input
@@ -304,11 +304,11 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                     />
                     <button
                       onClick={() => removeImage(i)}
-                      className="absolute top-1 right-1 p-1 bg-black/75 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-sidebar/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-4 h-4 text-primary" />
                     </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-secondary text-xs px-2 py-1 rounded-b-xl truncate">
+                    <div className="absolute bottom-0 left-0 right-0 bg-sidebar/50 text-secondary text-xs px-2 py-1 rounded-b-xl truncate">
                       {preview.name}
                     </div>
                   </div>
@@ -318,7 +318,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                 <button
                   onClick={analyzeTickets}
                   disabled={analyzing}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-accent-amber/20"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-brand/20"
                 >
                   {analyzing ? (
                     <>
@@ -335,7 +335,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                 <button
                   onClick={reset}
                   disabled={analyzing}
-                  className="px-4 py-3 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors disabled:opacity-50"
+                  className="px-4 py-3 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors disabled:opacity-50"
                 >
                   Clear
                 </button>
@@ -361,7 +361,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
             </h2>
             <button
               onClick={reset}
-              className="flex items-center gap-2 px-3 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-hover hover:bg-hover text-secondary rounded-xl text-sm font-medium transition-colors"
             >
               <Camera className="w-4 h-4" />
               Scan More
@@ -369,9 +369,9 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
           </div>
 
           {extractedShows.map((show, showIdx) => (
-            <div key={showIdx} className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle overflow-hidden">
+            <div key={showIdx} className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle overflow-hidden">
               {/* Extracted show header */}
-              <div className="p-4 border-b border-subtle bg-highlight">
+              <div className="p-4 border-b border-subtle bg-hover">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-semibold text-primary">{show.artist || 'Unknown Artist'}</div>
@@ -386,7 +386,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                     )}
                   </div>
                   {show.imported && (
-                    <span className="flex items-center gap-1 text-sm text-accent-amber">
+                    <span className="flex items-center gap-1 text-sm text-brand">
                       <Check className="w-4 h-4" />
                       Imported
                     </span>
@@ -408,7 +408,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                     <p className="text-muted text-sm mb-3">No setlists found on setlist.fm</p>
                     <button
                       onClick={() => importManually(showIdx)}
-                      className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-primary rounded-xl text-sm font-medium transition-all mx-auto"
+                      className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-primary rounded-xl text-sm font-medium transition-all mx-auto"
                     >
                       <Plus className="w-4 h-4" />
                       Add Without Setlist
@@ -425,8 +425,8 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                       const alreadyAdded = isAlreadyImported(setlist.id);
 
                       return (
-                        <div key={setlist.id} className="bg-highlight border border-subtle rounded-xl overflow-hidden">
-                          <div className="p-3 hover:bg-highlight">
+                        <div key={setlist.id} className="bg-hover border border-subtle rounded-xl overflow-hidden">
+                          <div className="p-3 hover:bg-hover">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-primary">{setlist.artist.name}</div>
@@ -435,7 +435,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                                 </div>
                                 <div className="text-xs text-muted mt-0.5">
                                   {formatSetlistDate(setlist.eventDate)}
-                                  {setlist.tour && <span className="text-accent-amber ml-2">{setlist.tour.name}</span>}
+                                  {setlist.tour && <span className="text-brand ml-2">{setlist.tour.name}</span>}
                                 </div>
                                 {songCount > 0 && (
                                   <button
@@ -452,8 +452,8 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                                 disabled={alreadyAdded}
                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                   alreadyAdded
-                                    ? 'bg-accent-amber-glow text-accent-amber cursor-default'
-                                    : 'bg-highlight hover:bg-highlight text-primary'
+                                    ? 'bg-brand-subtle text-brand cursor-default'
+                                    : 'bg-hover hover:bg-hover text-primary'
                                 }`}
                               >
                                 {alreadyAdded ? <><Check className="w-3 h-3" /> Added</> : <><Download className="w-3 h-3" /> Add</>}
@@ -462,15 +462,15 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                           </div>
 
                           {isExpanded && setlist.sets?.set && (
-                            <div className="border-t border-subtle bg-highlight p-3">
+                            <div className="border-t border-subtle bg-hover p-3">
                               <div className="space-y-1 max-h-48 overflow-y-auto">
                                 {setlist.sets.set.map((set, setIdx) => (
                                   <div key={setIdx}>
                                     {set.name && (
-                                      <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-1 mb-1">{set.name}</div>
+                                      <div className="text-xs font-semibold text-brand uppercase tracking-wide mt-1 mb-1">{set.name}</div>
                                     )}
                                     {set.encore && !set.name && (
-                                      <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-1 mb-1">Encore</div>
+                                      <div className="text-xs font-semibold text-brand uppercase tracking-wide mt-1 mb-1">Encore</div>
                                     )}
                                     {set.song?.map((song, songIdx) => (
                                       <div key={songIdx} className="flex items-center gap-2 py-0.5 text-xs text-secondary">

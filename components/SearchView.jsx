@@ -187,11 +187,11 @@ function SearchView({ onImport, importedIds }) {
 
   return (
     <div>
-      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2 font-display">Search Shows</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">Search Shows</h1>
       <p className="text-secondary mb-8">Find and import setlists from Setlist.fm</p>
 
       {/* Search Form */}
-      <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
+      <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-secondary mb-2">Artist Name *</label>
@@ -202,11 +202,11 @@ function SearchView({ onImport, importedIds }) {
               onChange={(e) => setArtistName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchArtists()}
               disabled={selectedArtist !== null}
-              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted disabled:opacity-50"
+              className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted disabled:opacity-50"
             />
             {selectedArtist && (
-              <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-accent-amber-glow border border-accent-amber/30 rounded-lg">
-                <span className="text-accent-amber text-sm flex-1">
+              <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-brand-subtle border border-brand/30 rounded-lg">
+                <span className="text-brand text-sm flex-1">
                   <span className="text-secondary">Searching:</span> {selectedArtist.name}
                   {selectedArtist.disambiguation && (
                     <span className="text-muted ml-1">({selectedArtist.disambiguation})</span>
@@ -231,7 +231,7 @@ function SearchView({ onImport, importedIds }) {
               value={year}
               onChange={(e) => setYear(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
-              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+              className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
             />
           </div>
           <div>
@@ -242,7 +242,7 @@ function SearchView({ onImport, importedIds }) {
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
-              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+              className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
             />
           </div>
           <div>
@@ -253,14 +253,14 @@ function SearchView({ onImport, importedIds }) {
               value={cityName}
               onChange={(e) => setCityName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && (selectedArtist ? searchSetlists(1) : searchArtists())}
-              className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+              className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
             />
           </div>
         </div>
         <button
           onClick={() => selectedArtist ? searchSetlists(1) : searchArtists()}
           disabled={isSearching || !artistName.trim()}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-accent-amber/20"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-brand/20"
         >
           <Search className="w-4 h-4" />
           {isSearching ? 'Searching...' : (selectedArtist ? 'Search Setlists' : 'Search Artists')}
@@ -269,10 +269,10 @@ function SearchView({ onImport, importedIds }) {
 
       {/* Artist Picker */}
       {showArtistPicker && artistOptions.length > 0 && (
-        <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
+        <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-primary font-display">Select Artist</h2>
+              <h2 className="text-lg font-semibold text-primary">Select Artist</h2>
               <p className="text-sm text-secondary">Multiple artists found - please select the correct one</p>
             </div>
             <button
@@ -290,9 +290,9 @@ function SearchView({ onImport, importedIds }) {
               <button
                 key={artist.mbid || artist.name}
                 onClick={() => selectArtist(artist)}
-                className="w-full text-left p-4 bg-highlight hover:bg-highlight border border-subtle hover:border-accent-amber/30 rounded-xl transition-all group"
+                className="w-full text-left p-4 bg-hover hover:bg-hover border border-subtle hover:border-brand/30 rounded-xl transition-all group"
               >
-                <div className="font-medium text-primary group-hover:text-accent-amber transition-colors">
+                <div className="font-medium text-primary group-hover:text-brand transition-colors">
                   {artist.name}
                 </div>
                 {artist.disambiguation && (
@@ -318,7 +318,7 @@ function SearchView({ onImport, importedIds }) {
       {results.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-primary font-display">Search Results</h2>
+            <h2 className="text-lg font-semibold text-primary">Search Results</h2>
             <span className="text-sm text-secondary">Page {page} of {totalPages}</span>
           </div>
 
@@ -329,18 +329,18 @@ function SearchView({ onImport, importedIds }) {
             return (
               <div
                 key={setlist.id}
-                className="bg-highlight border border-subtle rounded-xl overflow-hidden transition-all"
+                className="bg-hover border border-subtle rounded-xl overflow-hidden transition-all"
               >
-                <div className="p-4 hover:bg-highlight">
+                <div className="p-4 hover:bg-hover">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-primary font-display">{setlist.artist.name}</div>
+                      <div className="font-semibold text-primary">{setlist.artist.name}</div>
                       <div className="text-sm text-secondary mt-1">
                         {setlist.venue.name} &middot; {setlist.venue.city.name}, {setlist.venue.city.country.name}
                       </div>
                       <div className="text-sm text-muted mt-1">
                         {formatSetlistDate(setlist.eventDate)}
-                        {setlist.tour && <span className="text-accent-amber ml-2">{setlist.tour.name}</span>}
+                        {setlist.tour && <span className="text-brand ml-2">{setlist.tour.name}</span>}
                       </div>
                       {songCount > 0 && (
                         <button
@@ -357,8 +357,8 @@ function SearchView({ onImport, importedIds }) {
                       disabled={isImported(setlist.id)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                         isImported(setlist.id)
-                          ? 'bg-accent-amber-glow text-accent-amber cursor-default'
-                          : 'bg-highlight hover:bg-highlight text-primary'
+                          ? 'bg-brand-subtle text-brand cursor-default'
+                          : 'bg-hover hover:bg-hover text-primary'
                       }`}
                     >
                       {isImported(setlist.id) ? (
@@ -378,17 +378,17 @@ function SearchView({ onImport, importedIds }) {
 
                 {/* Expandable Setlist */}
                 {isExpanded && setlist.sets?.set && (
-                  <div className="border-t border-subtle bg-highlight p-4">
+                  <div className="border-t border-subtle bg-hover p-4">
                     <div className="space-y-1 max-h-64 overflow-y-auto">
                       {setlist.sets.set.map((set, setIdx) => (
                         <div key={setIdx}>
                           {set.name && (
-                            <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-2 mb-1">
+                            <div className="text-xs font-semibold text-brand uppercase tracking-wide mt-2 mb-1">
                               {set.name || (set.encore ? 'Encore' : `Set ${setIdx + 1}`)}
                             </div>
                           )}
                           {set.encore && !set.name && (
-                            <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-2 mb-1">
+                            <div className="text-xs font-semibold text-brand uppercase tracking-wide mt-2 mb-1">
                               Encore
                             </div>
                           )}
@@ -421,7 +421,7 @@ function SearchView({ onImport, importedIds }) {
               <button
                 onClick={() => searchSetlists(page - 1)}
                 disabled={page === 1 || isSearching}
-                className="p-2 rounded-lg bg-highlight hover:bg-highlight disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-hover hover:bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-5 h-5 text-primary" />
               </button>
@@ -431,7 +431,7 @@ function SearchView({ onImport, importedIds }) {
               <button
                 onClick={() => searchSetlists(page + 1)}
                 disabled={page === totalPages || isSearching}
-                className="p-2 rounded-lg bg-highlight hover:bg-highlight disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-hover hover:bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="w-5 h-5 text-primary" />
               </button>

@@ -7,20 +7,20 @@ import Footer from '@/components/Footer';
 
 export default function CookiePolicy() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-void via-surface to-void text-primary">
+    <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base text-primary">
       {/* Header */}
       <div className="bg-black/20 backdrop-blur-xl border-b border-subtle">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="w-11 h-11 bg-gradient-to-br from-accent-amber to-accent-teal rounded-2xl flex items-center justify-center shadow-lg shadow-accent-amber/20">
+              <div className="w-11 h-11 bg-gradient-to-br from-brand to-amber rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
                 <Music className="w-6 h-6 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight">MySetlists</h1>
             </Link>
             <Link
               to="/"
-              className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
@@ -31,7 +31,7 @@ export default function CookiePolicy() {
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-3xl p-8 sm:p-12">
+        <div className="bg-hover backdrop-blur-xl border border-subtle rounded-3xl p-8 sm:p-12">
           <h1 className="text-3xl font-bold mb-2">Cookie Policy</h1>
           <p className="text-secondary mb-8">Last Updated: February 7, 2026</p>
 
@@ -53,7 +53,7 @@ export default function CookiePolicy() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border border-subtle rounded-xl overflow-hidden">
                   <thead>
-                    <tr className="bg-highlight">
+                    <tr className="bg-hover">
                       <th className="text-left px-4 py-3 font-semibold text-primary border-b border-subtle">Cookie</th>
                       <th className="text-left px-4 py-3 font-semibold text-primary border-b border-subtle">Purpose</th>
                       <th className="text-left px-4 py-3 font-semibold text-primary border-b border-subtle">Duration</th>
@@ -79,7 +79,7 @@ export default function CookiePolicy() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border border-subtle rounded-xl overflow-hidden">
                   <thead>
-                    <tr className="bg-highlight">
+                    <tr className="bg-hover">
                       <th className="text-left px-4 py-3 font-semibold text-primary border-b border-subtle">Cookie</th>
                       <th className="text-left px-4 py-3 font-semibold text-primary border-b border-subtle">Purpose</th>
                       <th className="text-left px-4 py-3 font-semibold text-primary border-b border-subtle">Duration</th>
@@ -98,7 +98,7 @@ export default function CookiePolicy() {
 
             <section>
               <h2 className="text-xl font-semibold text-primary mb-4">Third-Party Cookies</h2>
-              <p>Firebase (operated by Google) may set cookies or use local storage as part of the authentication and hosting services. For more information, see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-accent-amber hover:text-accent-amber underline">Google's Privacy Policy</a> and <a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer" className="text-accent-amber hover:text-accent-amber underline">Google's Cookie Policy</a>.</p>
+              <p>Firebase (operated by Google) may set cookies or use local storage as part of the authentication and hosting services. For more information, see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand underline">Google's Privacy Policy</a> and <a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand underline">Google's Cookie Policy</a>.</p>
             </section>
 
             <section>
@@ -114,10 +114,10 @@ export default function CookiePolicy() {
 
               <h3 className="text-lg font-medium text-primary mt-6 mb-3">Browser-Specific Instructions</h3>
               <ul className="list-disc list-inside space-y-2 ml-2">
-                <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer" className="text-accent-amber hover:text-accent-amber underline">Chrome</a></li>
-                <li><a href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer" target="_blank" rel="noopener noreferrer" className="text-accent-amber hover:text-accent-amber underline">Firefox</a></li>
-                <li><a href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac" target="_blank" rel="noopener noreferrer" className="text-accent-amber hover:text-accent-amber underline">Safari</a></li>
-                <li><a href="https://support.microsoft.com/en-us/microsoft-edge/manage-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" target="_blank" rel="noopener noreferrer" className="text-accent-amber hover:text-accent-amber underline">Edge</a></li>
+                <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand underline">Chrome</a></li>
+                <li><a href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand underline">Firefox</a></li>
+                <li><a href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand underline">Safari</a></li>
+                <li><a href="https://support.microsoft.com/en-us/microsoft-edge/manage-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand underline">Edge</a></li>
               </ul>
             </section>
 
@@ -134,7 +134,7 @@ export default function CookiePolicy() {
             <section>
               <h2 className="text-xl font-semibold text-primary mb-4">Contact Us</h2>
               <p>If you have questions about this Cookie Policy, please contact us at:</p>
-              <p className="mt-2"><strong className="text-primary">Email:</strong> <a href="mailto:support@mysetlists.net" className="text-accent-amber hover:text-accent-amber underline">support@mysetlists.net</a></p>
+              <p className="mt-2"><strong className="text-primary">Email:</strong> <a href="mailto:support@mysetlists.net" className="text-brand hover:text-brand underline">support@mysetlists.net</a></p>
             </section>
           </div>
         </div>

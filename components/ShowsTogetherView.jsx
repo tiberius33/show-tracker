@@ -71,7 +71,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
             </span>
             {mostSeenArtist && (
               <span className="text-secondary">
-                Most seen: <span className="text-accent-amber font-semibold">{mostSeenArtist.artist}</span>
+                Most seen: <span className="text-brand font-semibold">{mostSeenArtist.artist}</span>
                 {mostSeenArtist.count > 1 && <span className="text-muted"> ({mostSeenArtist.count}x)</span>}
               </span>
             )}
@@ -92,10 +92,10 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                 const friendHasRatings = friendShow?.rating || friendShow?.setlist?.some(s => s.rating);
 
                 return (
-                  <div key={show.id} className="bg-highlight border border-subtle rounded-2xl overflow-hidden transition-all">
+                  <div key={show.id} className="bg-hover border border-subtle rounded-2xl overflow-hidden transition-all">
                     {/* Clickable show header */}
                     <div
-                      className="p-4 cursor-pointer hover:bg-highlight transition-colors"
+                      className="p-4 cursor-pointer hover:bg-hover transition-colors"
                       onClick={() => setExpandedShowId(isExpanded ? null : show.id)}
                     >
                       <div className="flex items-center justify-between">
@@ -109,19 +109,19 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                         <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                           {/* Your rating */}
                           {show.rating && (
-                            <span className="text-xs bg-accent-amber-glow text-accent-amber px-2 py-0.5 rounded-full font-semibold">
+                            <span className="text-xs bg-brand-subtle text-brand px-2 py-0.5 rounded-full font-semibold">
                               {show.rating}/10
                             </span>
                           )}
                           {/* Friend rating */}
                           {friendShow?.rating && (
-                            <span className="text-xs bg-accent-teal-glow text-accent-teal px-2 py-0.5 rounded-full font-semibold">
+                            <span className="text-xs bg-amber-subtle text-amber px-2 py-0.5 rounded-full font-semibold">
                               {friend.name.split(' ')[0]}: {friendShow.rating}/10
                             </span>
                           )}
                           {/* Indicators */}
                           {(friendHasComments || friendHasRatings) && (
-                            <span className="w-2 h-2 rounded-full bg-accent-teal flex-shrink-0" title={`${friend.name} has notes on this show`} />
+                            <span className="w-2 h-2 rounded-full bg-amber flex-shrink-0" title={`${friend.name} has notes on this show`} />
                           )}
                           <ChevronDown className={`w-4 h-4 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
@@ -133,13 +133,13 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                       <div className="border-t border-subtle">
                         {/* Friend's show comment */}
                         {friendShow?.comment && (
-                          <div className="px-4 py-3 bg-accent-teal-glow border-b border-accent-teal/10">
+                          <div className="px-4 py-3 bg-amber-subtle border-b border-amber/10">
                             <div className="flex items-start gap-2">
-                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent-teal to-accent-teal flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber to-amber flex items-center justify-center flex-shrink-0 mt-0.5">
                                 <User className="w-3 h-3 text-primary" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <span className="text-xs font-semibold text-accent-teal">{friend.name}</span>
+                                <span className="text-xs font-semibold text-amber">{friend.name}</span>
                                 <p className="text-sm text-secondary italic mt-0.5">{friendShow.comment}</p>
                               </div>
                             </div>
@@ -148,11 +148,11 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
 
                         {/* Your show comment */}
                         {show.comment && (
-                          <div className="px-4 py-3 bg-accent-amber/5 border-b border-accent-amber/10">
+                          <div className="px-4 py-3 bg-brand/5 border-b border-brand/10">
                             <div className="flex items-start gap-2">
-                              <MessageSquare className="w-4 h-4 text-accent-amber mt-0.5 flex-shrink-0" />
+                              <MessageSquare className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                               <div>
-                                <span className="text-xs font-semibold text-accent-amber">You</span>
+                                <span className="text-xs font-semibold text-brand">You</span>
                                 <p className="text-sm text-secondary italic mt-0.5">{show.comment}</p>
                               </div>
                             </div>
@@ -161,7 +161,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
 
                         {/* Venue info with friend's venue context */}
                         {show.venue && (
-                          <div className="px-4 py-2 border-b border-subtle bg-highlight/30">
+                          <div className="px-4 py-2 border-b border-subtle bg-hover/30">
                             <div className="flex items-center gap-2 text-sm text-secondary">
                               <MapPin className="w-3.5 h-3.5" />
                               <span>{show.venue}{show.city ? `, ${show.city}` : ''}</span>
@@ -182,7 +182,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                                 return (
                                   <React.Fragment key={song.id || i}>
                                     {song.setBreak && (
-                                      <div className="text-accent-amber font-semibold text-xs pt-2 pb-1 border-t border-subtle mt-2">
+                                      <div className="text-brand font-semibold text-xs pt-2 pb-1 border-t border-subtle mt-2">
                                         {song.setBreak}
                                       </div>
                                     )}
@@ -191,16 +191,16 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
                                           <span className="text-sm text-primary">{song.name}</span>
-                                          {song.cover && <span className="text-xs text-accent-amber">({song.cover})</span>}
+                                          {song.cover && <span className="text-xs text-brand">({song.cover})</span>}
                                           {/* Your rating */}
                                           {song.rating && (
-                                            <span className="text-[10px] bg-accent-amber-glow text-accent-amber px-1.5 py-0.5 rounded-full font-semibold">
+                                            <span className="text-[10px] bg-brand-subtle text-brand px-1.5 py-0.5 rounded-full font-semibold">
                                               {song.rating}/10
                                             </span>
                                           )}
                                           {/* Friend's rating */}
                                           {friendSong?.rating && (
-                                            <span className="text-[10px] bg-accent-teal-glow text-accent-teal px-1.5 py-0.5 rounded-full font-semibold">
+                                            <span className="text-[10px] bg-amber-subtle text-amber px-1.5 py-0.5 rounded-full font-semibold">
                                               {friend.name.split(' ')[0]}: {friendSong.rating}/10
                                             </span>
                                           )}
@@ -208,18 +208,18 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                                         {/* Your song comment */}
                                         {song.comment && (
                                           <div className="flex items-start gap-1.5 mt-1">
-                                            <MessageSquare className="w-3 h-3 text-accent-amber mt-0.5 flex-shrink-0" />
+                                            <MessageSquare className="w-3 h-3 text-brand mt-0.5 flex-shrink-0" />
                                             <span className="text-xs text-secondary italic">{song.comment}</span>
                                           </div>
                                         )}
                                         {/* Friend's song comment */}
                                         {friendSong?.comment && (
                                           <div className="flex items-start gap-1.5 mt-1">
-                                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-accent-teal to-accent-teal flex items-center justify-center flex-shrink-0">
+                                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-amber to-amber flex items-center justify-center flex-shrink-0">
                                               <User className="w-2 h-2 text-primary" />
                                             </div>
-                                            <span className="text-xs text-accent-teal/80 italic">
-                                              <span className="font-semibold not-italic text-accent-teal">{friend.name.split(' ')[0]}:</span> {friendSong.comment}
+                                            <span className="text-xs text-amber/80 italic">
+                                              <span className="font-semibold not-italic text-amber">{friend.name.split(' ')[0]}:</span> {friendSong.comment}
                                             </span>
                                           </div>
                                         )}
@@ -233,10 +233,10 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                         )}
 
                         {/* Action bar -- open full editor */}
-                        <div className="px-4 py-3 border-t border-subtle bg-highlight/30">
+                        <div className="px-4 py-3 border-t border-subtle bg-hover/30">
                           <button
                             onClick={() => setSelectedShow(show)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-accent-amber/20 to-accent-teal/20 hover:from-accent-amber/30 hover:to-accent-teal/30 text-accent-amber border border-accent-amber/20 rounded-xl text-sm font-medium transition-all"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand/20 to-amber/20 hover:from-brand/30 hover:to-amber/30 text-brand border border-brand/20 rounded-xl text-sm font-medium transition-all"
                           >
                             <Eye className="w-4 h-4" />
                             Open Full Show Details

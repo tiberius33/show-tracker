@@ -138,7 +138,7 @@ function FriendsView({
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2 font-display">Friends</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">Friends</h1>
       <p className="text-secondary mb-6">Connect with friends and tag them at shows</p>
 
       {/* Tabs */}
@@ -154,13 +154,13 @@ function FriendsView({
             onClick={() => setActiveTab(tab.id)}
             className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.id
-                ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                ? 'bg-brand-subtle text-brand border border-brand/30'
+                : 'bg-hover text-secondary hover:bg-hover border border-subtle'
             }`}
           >
             {tab.label}
             {tab.badge > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-danger text-primary text-[10px] font-bold rounded-full px-1">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-danger text-on-dark text-[10px] font-bold rounded-full px-1">
                 {tab.badge}
               </span>
             )}
@@ -179,9 +179,9 @@ function FriendsView({
             </div>
           ) : (
             friends.map(friend => (
-              <div key={friend.friendUid} className="bg-highlight rounded-2xl p-4 border border-subtle flex items-center justify-between">
+              <div key={friend.friendUid} className="bg-hover rounded-2xl p-4 border border-subtle flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-amber flex items-center justify-center">
                     <User className="w-5 h-5 text-primary" />
                   </div>
                   <div>
@@ -194,7 +194,7 @@ function FriendsView({
                     <Tip text="Shows together">
                       <button
                         onClick={() => setShowingTogetherWith({ uid: friend.friendUid, name: friend.friendName || 'Friend' })}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal border border-accent-teal/30 rounded-xl text-xs font-medium transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-subtle hover:bg-amber-subtle text-amber border border-amber/30 rounded-xl text-xs font-medium transition-colors"
                       >
                         <Music className="w-3.5 h-3.5" />
                         Shows Together
@@ -221,14 +221,14 @@ function FriendsView({
         <div className="space-y-6">
           {/* Bulk Accept Bar */}
           {totalPendingItems > 0 && (
-            <div className="bg-highlight rounded-2xl p-4 border border-subtle">
+            <div className="bg-hover rounded-2xl p-4 border border-subtle">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm text-secondary">
                   {totalPendingItems} pending show{totalPendingItems !== 1 ? 's' : ''} to review
                 </span>
                 <button
                   onClick={() => setBulkConfirm({ type: 'all' })}
-                  className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium hover:bg-accent-amber/30 transition-colors"
+                  className="px-3 py-1.5 bg-brand-subtle text-brand rounded-lg text-sm font-medium hover:bg-brand/30 transition-colors"
                 >
                   <Check className="w-4 h-4 inline mr-1" />
                   Accept All ({totalPendingItems})
@@ -243,7 +243,7 @@ function FriendsView({
                       <button
                         key={uid}
                         onClick={() => setBulkConfirm({ type: 'friend', friendUid: uid, friendName: g.name })}
-                        className="px-3 py-1.5 bg-highlight text-secondary rounded-lg text-xs font-medium hover:bg-highlight transition-colors border border-subtle"
+                        className="px-3 py-1.5 bg-hover text-secondary rounded-lg text-xs font-medium hover:bg-hover transition-colors border border-subtle"
                       >
                         {g.name} ({count})
                       </button>
@@ -260,9 +260,9 @@ function FriendsView({
               <h3 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-3">Friend Requests</h3>
               <div className="space-y-3">
                 {pendingFriendRequests.map(req => (
-                  <div key={req.id} className="bg-highlight rounded-2xl p-4 border border-subtle flex items-center justify-between">
+                  <div key={req.id} className="bg-hover rounded-2xl p-4 border border-subtle flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-teal to-accent-teal flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber to-amber flex items-center justify-center">
                         <UserPlus className="w-5 h-5 text-primary" />
                       </div>
                       <div>
@@ -273,14 +273,14 @@ function FriendsView({
                     <div className="flex gap-2">
                       <button
                         onClick={() => onAcceptFriendRequest(req.id)}
-                        className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium hover:bg-accent-amber/30 transition-colors"
+                        className="px-3 py-1.5 bg-brand-subtle text-brand rounded-lg text-sm font-medium hover:bg-brand/30 transition-colors"
                       >
                         <UserCheck className="w-4 h-4 inline mr-1" />
                         Accept
                       </button>
                       <button
                         onClick={() => onDeclineFriendRequest(req.id)}
-                        className="px-3 py-1.5 bg-highlight text-secondary rounded-lg text-sm font-medium hover:bg-highlight transition-colors"
+                        className="px-3 py-1.5 bg-hover text-secondary rounded-lg text-sm font-medium hover:bg-hover transition-colors"
                       >
                         Decline
                       </button>
@@ -297,14 +297,14 @@ function FriendsView({
               <h3 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-3">Show Tags</h3>
               <div className="space-y-3">
                 {pendingShowTags.map(tag => (
-                  <div key={tag.id} className="bg-highlight rounded-2xl p-4 border border-subtle">
+                  <div key={tag.id} className="bg-hover rounded-2xl p-4 border border-subtle">
                     <div className="flex items-center gap-2 mb-3">
-                      <Tag className="w-4 h-4 text-accent-amber" />
+                      <Tag className="w-4 h-4 text-brand" />
                       <span className="text-secondary text-sm">
                         <span className="font-medium text-primary">{tag.fromName}</span> tagged you at a show
                       </span>
                     </div>
-                    <div className="bg-highlight rounded-xl p-3 mb-3">
+                    <div className="bg-hover rounded-xl p-3 mb-3">
                       <div className="font-medium" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
                       <div className="flex items-center gap-2 text-sm text-secondary mt-1">
                         <Calendar className="w-3.5 h-3.5 text-muted" />
@@ -323,14 +323,14 @@ function FriendsView({
                     <div className="flex gap-2">
                       <button
                         onClick={() => onAcceptShowTag(tag.id)}
-                        className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium hover:bg-accent-amber/30 transition-colors"
+                        className="px-3 py-1.5 bg-brand-subtle text-brand rounded-lg text-sm font-medium hover:bg-brand/30 transition-colors"
                       >
                         <Check className="w-4 h-4 inline mr-1" />
                         Add to My Shows
                       </button>
                       <button
                         onClick={() => onDeclineShowTag(tag.id)}
-                        className="px-3 py-1.5 bg-highlight text-secondary rounded-lg text-sm font-medium hover:bg-highlight transition-colors"
+                        className="px-3 py-1.5 bg-hover text-secondary rounded-lg text-sm font-medium hover:bg-hover transition-colors"
                       >
                         Decline
                       </button>
@@ -350,14 +350,14 @@ function FriendsView({
                   const otherUid = s.participants?.find(p => p !== user?.uid);
                   const otherName = otherUid ? s.names?.[otherUid] : 'A friend';
                   return (
-                    <div key={s.id} className="bg-highlight rounded-2xl p-4 border border-subtle">
+                    <div key={s.id} className="bg-hover rounded-2xl p-4 border border-subtle">
                       <div className="flex items-center gap-2 mb-3">
-                        <Users className="w-4 h-4 text-accent-teal" />
+                        <Users className="w-4 h-4 text-amber" />
                         <span className="text-secondary text-sm">
                           <span className="font-medium text-primary">{otherName}</span> may have been at this show with you
                         </span>
                       </div>
-                      <div className="bg-highlight rounded-xl p-3 mb-3">
+                      <div className="bg-hover rounded-xl p-3 mb-3">
                         <div className="font-medium" style={{ color: '#f59e0b' }}>{s.showData?.artist}</div>
                         <div className="flex items-center gap-2 text-sm text-secondary mt-1">
                           <Calendar className="w-3.5 h-3.5 text-muted" />
@@ -374,14 +374,14 @@ function FriendsView({
                       <div className="flex gap-2">
                         <button
                           onClick={() => respondToSuggestion && respondToSuggestion(s, 'confirmed')}
-                          className="px-3 py-1.5 bg-accent-teal-glow text-accent-teal rounded-lg text-sm font-medium hover:bg-accent-amber/30 transition-colors"
+                          className="px-3 py-1.5 bg-amber-subtle text-amber rounded-lg text-sm font-medium hover:bg-brand/30 transition-colors"
                         >
                           <Check className="w-4 h-4 inline mr-1" />
                           Yes, I was there!
                         </button>
                         <button
                           onClick={() => respondToSuggestion && respondToSuggestion(s, 'declined')}
-                          className="px-3 py-1.5 bg-highlight text-secondary rounded-lg text-sm font-medium hover:bg-highlight transition-colors"
+                          className="px-3 py-1.5 bg-hover text-secondary rounded-lg text-sm font-medium hover:bg-hover transition-colors"
                         >
                           No
                         </button>
@@ -402,14 +402,14 @@ function FriendsView({
                   const otherUid = s.participants?.find(p => p !== user?.uid);
                   const otherName = otherUid ? s.names?.[otherUid] : 'Your friend';
                   return (
-                    <div key={s.id} className="bg-highlight rounded-2xl p-4 border border-accent-amber/10">
+                    <div key={s.id} className="bg-hover rounded-2xl p-4 border border-brand/10">
                       <div className="flex items-center gap-2 mb-3">
-                        <Clock className="w-4 h-4 text-accent-amber" />
+                        <Clock className="w-4 h-4 text-brand" />
                         <span className="text-secondary text-sm">
                           Waiting for <span className="font-medium text-primary">{otherName}</span> to confirm
                         </span>
                       </div>
-                      <div className="bg-highlight rounded-xl p-3">
+                      <div className="bg-hover rounded-xl p-3">
                         <div className="font-medium" style={{ color: '#f59e0b' }}>{s.showData?.artist}</div>
                         <div className="flex items-center gap-2 text-sm text-secondary mt-1">
                           <Calendar className="w-3.5 h-3.5 text-muted" />
@@ -436,9 +436,9 @@ function FriendsView({
               <h3 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-3">Sent Requests</h3>
               <div className="space-y-3">
                 {sentFriendRequests.map(req => (
-                  <div key={req.id} className="bg-highlight rounded-2xl p-4 border border-subtle flex items-center justify-between">
+                  <div key={req.id} className="bg-hover rounded-2xl p-4 border border-subtle flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-highlight flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-hover flex items-center justify-center">
                         <Send className="w-4 h-4 text-muted" />
                       </div>
                       <div>
@@ -446,7 +446,7 @@ function FriendsView({
                         <div className="text-sm text-muted">Pending</div>
                       </div>
                     </div>
-                    <span className="text-xs text-accent-amber/60 bg-accent-amber-glow px-2 py-1 rounded-full">Awaiting response</span>
+                    <span className="text-xs text-brand/60 bg-brand-subtle px-2 py-1 rounded-full">Awaiting response</span>
                   </div>
                 ))}
               </div>
@@ -465,7 +465,7 @@ function FriendsView({
       {/* Find Friends Tab */}
       {activeTab === 'find' && (
         <div>
-          <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-6">
+          <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-6">
             <h3 className="text-primary font-medium mb-4">Search by email</h3>
             <div className="flex gap-3">
               <div className="relative flex-1">
@@ -476,7 +476,7 @@ function FriendsView({
                   value={searchEmail}
                   onChange={(e) => setSearchEmail(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
-                  className="w-full pl-11 pr-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+                  className="w-full pl-11 pr-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                 />
               </div>
               <button
@@ -484,15 +484,15 @@ function FriendsView({
                 disabled={sending || !searchEmail.trim()}
                 className={`px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap ${
                   sending || !searchEmail.trim()
-                    ? 'bg-highlight text-muted cursor-not-allowed'
-                    : 'bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary shadow-lg shadow-accent-amber/20'
+                    ? 'bg-hover text-muted cursor-not-allowed'
+                    : 'bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary shadow-lg shadow-brand/20'
                 }`}
               >
                 {sending ? 'Sending...' : 'Send Request'}
               </button>
             </div>
             <p className="text-muted text-sm mt-3">
-              You can also add friends from the <span className="text-accent-amber">Community</span> leaderboard
+              You can also add friends from the <span className="text-brand">Community</span> leaderboard
             </p>
           </div>
         </div>
@@ -503,11 +503,11 @@ function FriendsView({
         <div className="space-y-4">
           {/* Summary stat */}
           {inviteStats && (
-            <div className="flex items-center gap-2 text-sm text-secondary bg-highlight rounded-xl px-4 py-3 border border-subtle">
+            <div className="flex items-center gap-2 text-sm text-secondary bg-hover rounded-xl px-4 py-3 border border-subtle">
               <Mail className="w-4 h-4 text-muted flex-shrink-0" />
               <span>
                 You've invited <span className="text-secondary font-medium">{inviteStats.total}</span> {inviteStats.total === 1 ? 'person' : 'people'} —{' '}
-                <span className="text-accent-amber font-medium">{inviteStats.accepted}</span> {inviteStats.accepted === 1 ? 'has' : 'have'} joined
+                <span className="text-brand font-medium">{inviteStats.accepted}</span> {inviteStats.accepted === 1 ? 'has' : 'have'} joined
               </span>
             </div>
           )}
@@ -516,7 +516,7 @@ function FriendsView({
             <div className="text-center py-12">
               <Send className="w-12 h-12 text-muted mx-auto mb-4" />
               <p className="text-muted mb-1">No pending invites</p>
-              <p className="text-muted text-sm">Invite your friends from the <span className="text-accent-amber">Invite</span> page!</p>
+              <p className="text-muted text-sm">Invite your friends from the <span className="text-brand">Invite</span> page!</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -532,7 +532,7 @@ function FriendsView({
                   return (
                     <div
                       key={invite.id}
-                      className={`bg-highlight rounded-2xl p-4 border transition-all ${
+                      className={`bg-hover rounded-2xl p-4 border transition-all ${
                         expired ? 'border-subtle opacity-60' : 'border-subtle'
                       }`}
                     >
@@ -549,8 +549,8 @@ function FriendsView({
                         </div>
                         <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
                           expired
-                            ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/20'
-                            : 'bg-accent-amber-glow text-accent-amber border border-accent-amber/20'
+                            ? 'bg-brand-subtle text-brand border border-brand/20'
+                            : 'bg-brand-subtle text-brand border border-brand/20'
                         }`}>
                           {expired ? 'Expired' : 'Pending'}
                         </span>
@@ -559,7 +559,7 @@ function FriendsView({
                         <button
                           onClick={() => handleResend(invite)}
                           disabled={isResending}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-amber-glow hover:bg-accent-amber/25 text-accent-amber border border-accent-amber/20 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-subtle hover:bg-brand/25 text-brand border border-brand/20 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                         >
                           {isResending
                             ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -569,7 +569,7 @@ function FriendsView({
                         </button>
                         <button
                           onClick={() => onCancelInvite && onCancelInvite(invite.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-highlight hover:bg-danger/10 text-muted hover:text-danger border border-subtle hover:border-danger/20 rounded-lg text-xs font-medium transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-hover hover:bg-danger/10 text-muted hover:text-danger border border-subtle hover:border-danger/20 rounded-lg text-xs font-medium transition-colors"
                         >
                           <X className="w-3.5 h-3.5" />
                           Cancel
@@ -584,7 +584,7 @@ function FriendsView({
       )}
       {/* Bulk Accept Confirmation Modal */}
       {bulkConfirm && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !bulkProcessing && setBulkConfirm(null)}>
+        <div className="fixed inset-0 bg-sidebar/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !bulkProcessing && setBulkConfirm(null)}>
           <div className="bg-surface border border-subtle rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-primary mb-2">Accept Shows</h3>
             <p className="text-secondary text-sm mb-6">
@@ -597,14 +597,14 @@ function FriendsView({
               <button
                 onClick={() => setBulkConfirm(null)}
                 disabled={bulkProcessing}
-                className="px-4 py-2 bg-highlight text-secondary rounded-xl text-sm font-medium hover:bg-highlight transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-hover text-secondary rounded-xl text-sm font-medium hover:bg-hover transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBulkConfirm}
                 disabled={bulkProcessing}
-                className="px-4 py-2 bg-accent-amber-glow text-accent-amber rounded-xl text-sm font-medium hover:bg-accent-amber/30 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-brand-subtle text-brand rounded-xl text-sm font-medium hover:bg-brand/30 transition-colors disabled:opacity-50"
               >
                 {bulkProcessing ? 'Accepting...' : 'Accept All'}
               </button>

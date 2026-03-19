@@ -346,7 +346,7 @@ function PlaylistCreatorModal({ show, onClose }) {
   // --- Render ---
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-sidebar/50 backdrop-blur-sm" onClick={onClose}>
       <div
         className="bg-elevated border border-subtle rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
@@ -354,7 +354,7 @@ function PlaylistCreatorModal({ show, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
           <h2 className="text-lg font-bold text-primary">Create Playlist</h2>
-          <button onClick={onClose} className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-highlight transition-colors">
+          <button onClick={onClose} className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-hover transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -364,7 +364,7 @@ function PlaylistCreatorModal({ show, onClose }) {
           {step === 'select' && (
             <>
               {/* Show info */}
-              <div className="bg-highlight rounded-xl p-4 mb-5">
+              <div className="bg-hover rounded-xl p-4 mb-5">
                 <div className="text-sm font-semibold text-primary">{show.artist}</div>
                 <div className="text-xs text-secondary mt-1">
                   {show.venue}{show.city ? `, ${show.city}` : ''} &middot; {songs.length} songs
@@ -376,7 +376,7 @@ function PlaylistCreatorModal({ show, onClose }) {
                 <button
                   onClick={startSpotifyAuth}
                   disabled={!process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-subtle bg-highlight hover:bg-[#1DB954]/10 hover:border-[#1DB954]/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-subtle bg-hover hover:bg-[#1DB954]/10 hover:border-[#1DB954]/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${SPOTIFY_GREEN}20` }}>
                     <svg viewBox="0 0 24 24" className="w-5 h-5" fill={SPOTIFY_GREEN}>
@@ -391,7 +391,7 @@ function PlaylistCreatorModal({ show, onClose }) {
 
                 <button
                   onClick={startAppleMusicAuth}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-subtle bg-highlight hover:bg-danger/10 hover:border-danger/30 transition-colors group"
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-subtle bg-hover hover:bg-danger/10 hover:border-danger/30 transition-colors group"
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-danger/20 to-danger/20 flex items-center justify-center">
                     <Music className="w-5 h-5 text-danger" />
@@ -428,7 +428,7 @@ function PlaylistCreatorModal({ show, onClose }) {
               </div>
 
               {/* Progress bar */}
-              <div className="h-2 bg-highlight rounded-full overflow-hidden mb-4">
+              <div className="h-2 bg-hover rounded-full overflow-hidden mb-4">
                 <div
                   className="h-full rounded-full transition-all duration-300"
                   style={{
@@ -443,9 +443,9 @@ function PlaylistCreatorModal({ show, onClose }) {
                 {progress.matches.map((m, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
                     {m.matched ? (
-                      <Check className="w-3.5 h-3.5 text-accent-amber flex-shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-brand flex-shrink-0" />
                     ) : (
-                      <AlertTriangle className="w-3.5 h-3.5 text-accent-amber flex-shrink-0" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-brand flex-shrink-0" />
                     )}
                     <span className={m.matched ? 'text-secondary' : 'text-muted'}>
                       {m.songName}
@@ -473,8 +473,8 @@ function PlaylistCreatorModal({ show, onClose }) {
           {step === 'results' && result && (
             <div>
               {/* Success banner */}
-              <div className="bg-accent-amber-glow border border-accent-amber/20 rounded-xl p-4 mb-4 text-center">
-                <Check className="w-8 h-8 text-accent-amber mx-auto mb-2" />
+              <div className="bg-brand-subtle border border-brand/20 rounded-xl p-4 mb-4 text-center">
+                <Check className="w-8 h-8 text-brand mx-auto mb-2" />
                 <h3 className="text-sm font-bold text-primary mb-1">
                   Added {result.matched} of {result.total} songs
                 </h3>
@@ -505,10 +505,10 @@ function PlaylistCreatorModal({ show, onClose }) {
 
               {/* Unmatched songs */}
               {result.unmatched.length > 0 && (
-                <div className="bg-highlight rounded-xl border border-subtle">
+                <div className="bg-hover rounded-xl border border-subtle">
                   <button
                     onClick={() => setUnmatchedOpen(!unmatchedOpen)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-xs font-medium text-accent-amber"
+                    className="w-full flex items-center justify-between px-4 py-3 text-xs font-medium text-brand"
                   >
                     <span>{result.unmatched.length} song{result.unmatched.length !== 1 ? 's' : ''} not found</span>
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform ${unmatchedOpen ? 'rotate-180' : ''}`} />
@@ -517,7 +517,7 @@ function PlaylistCreatorModal({ show, onClose }) {
                     <div className="px-4 pb-3 space-y-1">
                       {result.unmatched.map((name, i) => (
                         <div key={i} className="text-xs text-muted flex items-center gap-2">
-                          <AlertTriangle className="w-3 h-3 text-accent-amber/50 flex-shrink-0" />
+                          <AlertTriangle className="w-3 h-3 text-brand/50 flex-shrink-0" />
                           {name}
                         </div>
                       ))}
@@ -529,7 +529,7 @@ function PlaylistCreatorModal({ show, onClose }) {
               {/* Done button */}
               <button
                 onClick={onClose}
-                className="w-full mt-4 py-3 rounded-xl bg-highlight hover:bg-highlight text-primary text-sm font-medium transition-colors"
+                className="w-full mt-4 py-3 rounded-xl bg-hover hover:bg-hover text-primary text-sm font-medium transition-colors"
               >
                 Done
               </button>
@@ -539,19 +539,19 @@ function PlaylistCreatorModal({ show, onClose }) {
           {/* Error */}
           {step === 'error' && (
             <div className="text-center py-6">
-              <AlertTriangle className="w-10 h-10 text-accent-amber mx-auto mb-3" />
+              <AlertTriangle className="w-10 h-10 text-brand mx-auto mb-3" />
               <h3 className="text-sm font-semibold text-primary mb-2">Something went wrong</h3>
               <p className="text-xs text-secondary mb-5">{error}</p>
               <div className="flex gap-3">
                 <button
                   onClick={handleRetry}
-                  className="flex-1 py-2.5 rounded-xl bg-highlight hover:bg-highlight text-primary text-sm font-medium transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-hover hover:bg-hover text-primary text-sm font-medium transition-colors"
                 >
                   Try Again
                 </button>
                 <button
                   onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl bg-highlight hover:bg-highlight text-secondary text-sm font-medium transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-hover hover:bg-hover text-secondary text-sm font-medium transition-colors"
                 >
                   Close
                 </button>

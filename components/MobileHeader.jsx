@@ -9,7 +9,7 @@ function MobileHeader({ onMenuClick }) {
       <div className="flex items-center justify-between px-4 py-3">
         <button
           onClick={onMenuClick}
-          className="p-2 rounded-xl hover:bg-highlight transition-colors"
+          className="p-2 rounded-xl hover:bg-hover transition-colors"
         >
           <Menu className="w-6 h-6 text-primary" />
         </button>

@@ -8,9 +8,9 @@ import Tip from '@/components/ui/Tip';
 
 function RoadmapCard({ item, hasVoted, isTopThree, onVote, voting, isLoggedIn }) {
   return (
-    <div className={`bg-highlight backdrop-blur-xl rounded-2xl border ${isTopThree ? 'border-accent-amber/40' : 'border-subtle'} p-4 relative transition-all hover:bg-highlight`}>
+    <div className={`bg-hover backdrop-blur-xl rounded-2xl border ${isTopThree ? 'border-brand/40' : 'border-subtle'} p-4 relative transition-all hover:bg-hover`}>
       {isTopThree && (
-        <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 bg-accent-amber-glow text-accent-amber rounded-full border border-accent-amber/30 whitespace-nowrap">
+        <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 bg-brand-subtle text-brand rounded-full border border-brand/30 whitespace-nowrap">
           Most Requested
         </span>
       )}
@@ -21,7 +21,7 @@ function RoadmapCard({ item, hasVoted, isTopThree, onVote, voting, isLoggedIn })
         )}
         <div className="flex items-center gap-2 flex-wrap">
           {item.category && ROADMAP_CATEGORIES[item.category] && (
-            <span className="text-[10px] px-2 py-0.5 bg-highlight text-muted rounded-full">
+            <span className="text-[10px] px-2 py-0.5 bg-hover text-muted rounded-full">
               {ROADMAP_CATEGORIES[item.category]}
             </span>
           )}
@@ -39,14 +39,14 @@ function RoadmapCard({ item, hasVoted, isTopThree, onVote, voting, isLoggedIn })
             disabled={voting}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
               hasVoted
-                ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/40'
-                : 'bg-highlight text-secondary hover:bg-highlight border border-subtle hover:border-active'
+                ? 'bg-brand-subtle text-brand border border-brand/40'
+                : 'bg-hover text-secondary hover:bg-hover border border-subtle hover:border-active'
             }`}
           >
             {voting ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <ChevronUp className={`w-4 h-4 ${hasVoted ? 'text-accent-amber' : ''}`} />
+              <ChevronUp className={`w-4 h-4 ${hasVoted ? 'text-brand' : ''}`} />
             )}
             <span>{item.voteCount || 0}</span>
           </button>

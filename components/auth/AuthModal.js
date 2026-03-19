@@ -55,7 +55,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        className="absolute inset-0 bg-sidebar/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -63,7 +63,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
       <div className="relative bg-surface backdrop-blur-xl border border-subtle rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-3 text-secondary hover:text-primary active:bg-highlight rounded-xl transition-colors"
+          className="absolute top-4 right-4 p-3 text-secondary hover:text-primary active:bg-hover rounded-xl transition-colors"
         >
           <X className="w-6 h-6" />
         </button>

@@ -82,11 +82,11 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
   if (submitted) {
     return (
       <div className="max-w-xl mx-auto">
-        <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-8 text-center">
-          <div className="w-12 h-12 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-6 h-6 text-accent-amber" />
+        <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-8 text-center">
+          <div className="w-12 h-12 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-6 h-6 text-brand" />
           </div>
-          <h2 className="text-xl font-bold text-primary mb-2 font-display">Thanks for your feedback!</h2>
+          <h2 className="text-xl font-bold text-primary mb-2">Thanks for your feedback!</h2>
           <p className="text-secondary mb-6">
             {feedbackType === 'feature'
               ? "Your idea has been added to the feedback queue. Check the roadmap to see what's coming!"
@@ -95,7 +95,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
           {feedbackType === 'feature' && (
             <button
               onClick={() => onNavigate && onNavigate('roadmap')}
-              className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-accent-teal to-accent-teal hover:from-accent-teal hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-teal/20"
+              className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-amber/20"
             >
               <TrendingUp className="w-4 h-4" />
               View Roadmap
@@ -116,8 +116,8 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
     <div className="max-w-xl mx-auto">
       {/* Roadmap notification banner */}
       {roadmapNotifications.length > 0 && (
-        <div className="mb-6 px-4 py-3 bg-accent-amber-glow border border-accent-amber/30 rounded-2xl">
-          <p className="text-accent-amber text-sm font-medium mb-1">
+        <div className="mb-6 px-4 py-3 bg-brand-subtle border border-brand/30 rounded-2xl">
+          <p className="text-brand text-sm font-medium mb-1">
             Your feature idea is on the roadmap!
           </p>
           <p className="text-secondary text-xs mb-2">
@@ -125,7 +125,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
           </p>
           <button
             onClick={() => onNavigate && onNavigate('roadmap')}
-            className="text-xs text-accent-amber hover:text-accent-amber font-medium transition-colors"
+            className="text-xs text-brand hover:text-brand font-medium transition-colors"
           >
             View Roadmap &rarr;
           </button>
@@ -133,7 +133,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
       )}
 
       <div className="flex items-start justify-between mb-2">
-        <h1 className="text-xl md:text-2xl font-bold text-primary font-display">Send Feedback</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-primary">Send Feedback</h1>
         <button
           onClick={() => onNavigate && onNavigate('roadmap')}
           className="flex items-center gap-1 text-xs text-muted hover:text-primary transition-colors mt-1"
@@ -144,7 +144,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
       </div>
       <p className="text-secondary mb-8">We'd love to hear your thoughts, suggestions, or bug reports.</p>
 
-      <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 space-y-5">
+      <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 space-y-5">
 
         {/* Feedback type selector */}
         <div>
@@ -156,8 +156,8 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
                 onClick={() => setFeedbackType(t.id)}
                 className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
                   feedbackType === t.id
-                    ? 'bg-accent-amber-glow text-accent-amber border-accent-amber/30'
-                    : 'bg-highlight text-secondary border-subtle hover:bg-highlight'
+                    ? 'bg-brand-subtle text-brand border-brand/30'
+                    : 'bg-hover text-secondary border-subtle hover:bg-hover'
                 }`}
               >
                 {t.label}
@@ -177,8 +177,8 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
                   onClick={() => setCategory(c.id)}
                   className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
                     category === c.id
-                      ? 'bg-accent-teal-glow text-accent-teal border-accent-teal/30'
-                      : 'bg-highlight text-secondary border-subtle hover:bg-highlight'
+                      ? 'bg-amber-subtle text-amber border-amber/30'
+                      : 'bg-hover text-secondary border-subtle hover:bg-hover'
                   }`}
                 >
                   {c.label}
@@ -202,7 +202,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
               "Tell us what you think..."
             }
             rows={6}
-            className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted resize-none"
+            className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted resize-none"
           />
         </div>
 
@@ -213,7 +213,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
         <button
           onClick={handleSubmit}
           disabled={!message.trim() || submitting}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-amber/20"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20"
         >
           {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {submitting ? 'Sending...' : 'Send Feedback'}

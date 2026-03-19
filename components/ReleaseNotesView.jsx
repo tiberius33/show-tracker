@@ -6,6 +6,24 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.1.0',
+      date: 'March 19, 2026',
+      title: 'Brand Refresh — Light Theme with Logo Colors',
+      changes: [
+        'New: Light, airy theme built from the MySetlists logo color palette — green primary (#4bc86a) and amber accent (#f5a623)',
+        'New: Soft blue-gray page background (#f4f6f9) with white card surfaces for a clean, modern feel',
+        'New: Dark navy sidebar (#1e2538) matching the logo background — high contrast against the light content area',
+        'New: Plus Jakarta Sans typography throughout for a friendly, contemporary UI',
+        'New: Search-as-input in the sidebar — always visible, styled as a search field',
+        'Redesigned: Primary buttons in brand green, secondary in amber, ghost buttons with green hover borders',
+        'Redesigned: Star ratings in amber, tab indicators in amber, stat highlights in green/amber',
+        'Redesigned: Modals with soft blur backdrop and white elevated surfaces',
+        'Redesigned: Landing page keeps dark navy background with gradient amber-to-green CTA button',
+        'Technical: CSS variable system updated for light backgrounds, new shadow scale, and semantic color tokens',
+        'Technical: Tailwind config extended with brand/amber color scales and themed box-shadow utilities',
+      ]
+    },
+    {
       version: '3.0.0',
       date: 'March 19, 2026',
       title: 'Concert Venue Theme — Complete Visual Redesign',
@@ -555,35 +573,35 @@ function ReleaseNotesView() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2 font-display">Release Notes</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">Release Notes</h1>
       <p className="text-secondary mb-8">What's new in Setlist Tracker</p>
 
       <div className="space-y-6">
         {releases.map((release, index) => (
           <div
             key={release.version}
-            className={`bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 ${
-              index === 0 ? 'ring-2 ring-accent-amber/30' : ''
+            className={`bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 ${
+              index === 0 ? 'ring-2 ring-brand/30' : ''
             }`}
           >
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-lg font-bold text-primary font-display">v{release.version}</span>
+                  <span className="text-lg font-bold text-primary">v{release.version}</span>
                   {index === 0 && (
-                    <span className="px-2 py-0.5 bg-accent-amber-glow text-accent-amber rounded-full text-xs font-semibold">
+                    <span className="px-2 py-0.5 bg-brand-subtle text-brand rounded-full text-xs font-semibold">
                       Latest
                     </span>
                   )}
                 </div>
-                <h3 className="text-accent-amber font-medium">{release.title}</h3>
+                <h3 className="text-brand font-medium">{release.title}</h3>
               </div>
               <span className="text-muted text-sm">{release.date}</span>
             </div>
             <ul className="space-y-2">
               {release.changes.map((change, i) => (
                 <li key={i} className="flex items-start gap-3 text-secondary">
-                  <Check className="w-4 h-4 text-accent-amber mt-0.5 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                   <span>{change}</span>
                 </li>
               ))}

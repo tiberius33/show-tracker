@@ -23,7 +23,7 @@ export default function PasswordInput({
   };
 
   const strength = getStrength(value);
-  const strengthColors = ['bg-danger', 'bg-accent-amber', 'bg-accent-amber', 'bg-success', 'bg-accent-amber'];
+  const strengthColors = ['bg-danger', 'bg-brand', 'bg-brand', 'bg-success', 'bg-brand'];
   const strengthLabels = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'];
 
   return (
@@ -34,7 +34,7 @@ export default function PasswordInput({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-3 pr-12 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+          className="w-full px-4 py-3 pr-12 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required={required}
           disabled={disabled}
         />
@@ -54,7 +54,7 @@ export default function PasswordInput({
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className={`flex-1 rounded-full transition-colors ${i < strength ? strengthColors[strength - 1] : 'bg-highlight'}`}
+                className={`flex-1 rounded-full transition-colors ${i < strength ? strengthColors[strength - 1] : 'bg-hover'}`}
               />
             ))}
           </div>

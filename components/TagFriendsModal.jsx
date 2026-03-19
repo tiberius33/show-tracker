@@ -63,11 +63,11 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
         <div className="p-6 border-b border-subtle">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-primary">Tag Friends</h2>
-            <button onClick={onClose} className="p-3 text-muted hover:text-primary hover:bg-highlight active:bg-highlight rounded-xl transition-colors">
+            <button onClick={onClose} className="p-3 text-muted hover:text-primary hover:bg-hover active:bg-hover rounded-xl transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
-          <div className="bg-highlight rounded-xl p-3">
+          <div className="bg-hover rounded-xl p-3">
             <div className="font-medium" style={{ color: '#f59e0b' }}>{show.artist}</div>
             <div className="flex items-center gap-2 text-sm text-secondary mt-1">
               <Calendar className="w-3.5 h-3.5" />
@@ -90,7 +90,7 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search friends by name or email..."
-                className="w-full pl-9 pr-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary text-sm placeholder-muted"
+                className="w-full pl-9 pr-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary text-sm placeholder-muted"
               />
             </div>
           )}
@@ -112,17 +112,17 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="friend@example.com"
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary text-sm placeholder-muted mb-3"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary text-sm placeholder-muted mb-3"
               />
               <textarea
                 value={inviteMessage}
                 onChange={(e) => setInviteMessage(e.target.value)}
                 placeholder="Add a personal note... (optional)"
                 rows={3}
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary text-sm placeholder-muted resize-none mb-3"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary text-sm placeholder-muted resize-none mb-3"
               />
               {inviteStatus === 'success' && (
-                <div className="flex items-center gap-2 text-accent-amber text-sm font-medium mb-3">
+                <div className="flex items-center gap-2 text-brand text-sm font-medium mb-3">
                   <Check className="w-4 h-4" /> Invite sent! They'll get an email with the show details.
                 </div>
               )}
@@ -132,7 +132,7 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
               <button
                 onClick={handleSendInvite}
                 disabled={!inviteEmail.trim() || inviteSending}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {inviteSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {inviteSending ? 'Sending...' : 'Send Invite'}
@@ -146,9 +146,9 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
               {[...selectedFriends].map(uid => {
                 const f = friends.find(fr => fr.friendUid === uid);
                 return f ? (
-                  <span key={uid} className="flex items-center gap-1.5 px-3 py-1 bg-accent-amber-glow border border-accent-amber/30 rounded-full text-accent-amber text-xs font-medium">
+                  <span key={uid} className="flex items-center gap-1.5 px-3 py-1 bg-brand-subtle border border-brand/30 rounded-full text-brand text-xs font-medium">
                     {f.friendName || 'Friend'}
-                    <button onClick={() => toggleFriend(uid)} className="text-accent-amber/60 hover:text-accent-amber">
+                    <button onClick={() => toggleFriend(uid)} className="text-brand/60 hover:text-brand">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -172,7 +172,7 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
                   </p>
                   <button
                     onClick={() => { setInviteMode(true); setInviteStatus(null); }}
-                    className="flex items-center gap-2 mx-auto px-4 py-2.5 bg-accent-amber-glow hover:bg-accent-amber/30 text-accent-amber border border-accent-amber/30 rounded-xl font-medium text-sm transition-colors"
+                    className="flex items-center gap-2 mx-auto px-4 py-2.5 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl font-medium text-sm transition-colors"
                   >
                     <Send className="w-4 h-4" /> Invite {query.trim()}
                   </button>
@@ -185,8 +185,8 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
                       key={friend.friendUid}
                       className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
                         selectedFriends.has(friend.friendUid)
-                          ? 'bg-accent-amber-glow border border-accent-amber/30'
-                          : 'bg-highlight border border-subtle hover:bg-highlight'
+                          ? 'bg-brand-subtle border border-brand/30'
+                          : 'bg-hover border border-subtle hover:bg-hover'
                       }`}
                     >
                       <input
@@ -197,7 +197,7 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
                       />
                       <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
                         selectedFriends.has(friend.friendUid)
-                          ? 'bg-accent-amber border-accent-amber'
+                          ? 'bg-brand border-brand'
                           : 'border-active'
                       }`}>
                         {selectedFriends.has(friend.friendUid) && <Check className="w-3.5 h-3.5 text-primary" />}
@@ -219,14 +219,14 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
           <div className="p-6 border-t border-subtle flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
+              className="flex-1 px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleTag}
               disabled={sending}
-              className="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary shadow-lg shadow-accent-amber/20 disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary shadow-lg shadow-brand/20 disabled:opacity-50"
             >
               {sending ? 'Tagging...' : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} at This Show \u2192`}
             </button>

@@ -423,10 +423,10 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
               const isCurrent = i === Math.min(stepIndex, maxStepIndex);
               return (
                 <React.Fragment key={label}>
-                  {i > 0 && <div className={`flex-1 h-0.5 ${isActive ? 'bg-accent-amber' : 'bg-highlight'}`} />}
-                  <div className={`flex items-center gap-2 ${isCurrent ? 'text-accent-amber' : isActive ? 'text-secondary' : 'text-muted'}`}>
+                  {i > 0 && <div className={`flex-1 h-0.5 ${isActive ? 'bg-brand' : 'bg-hover'}`} />}
+                  <div className={`flex items-center gap-2 ${isCurrent ? 'text-brand' : isActive ? 'text-secondary' : 'text-muted'}`}>
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                      isActive ? 'bg-accent-amber-glow border border-accent-amber/50' : 'bg-highlight border border-subtle'
+                      isActive ? 'bg-brand-subtle border border-brand/50' : 'bg-hover border border-subtle'
                     }`}>
                       {i < stepIndex ? <Check className="w-3.5 h-3.5" /> : i + 1}
                     </div>
@@ -441,29 +441,29 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
       {/* Upload Step */}
       {step === 'upload' && (
-        <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
+        <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8">
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
-              screenshotAnalyzing ? 'border-accent-teal bg-accent-teal-glow' :
-              dragOver ? 'border-accent-amber bg-accent-amber-glow' : 'border-active hover:border-white/40 cursor-pointer'
+              screenshotAnalyzing ? 'border-amber bg-amber-subtle' :
+              dragOver ? 'border-brand bg-brand-subtle' : 'border-active hover:border-white/40 cursor-pointer'
             }`}
             onClick={() => !screenshotAnalyzing && document.getElementById('import-file-input').click()}
           >
             {screenshotAnalyzing ? (
               <>
-                <Camera className="w-12 h-12 mx-auto mb-4 text-accent-teal animate-pulse" />
+                <Camera className="w-12 h-12 mx-auto mb-4 text-amber animate-pulse" />
                 <p className="text-lg font-medium text-primary mb-2">Analyzing Screenshot...</p>
                 <p className="text-secondary mb-4">AI is identifying shows from your image</p>
-                <div className="w-48 h-1.5 bg-highlight rounded-full mx-auto overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-accent-teal to-accent-teal rounded-full animate-pulse" style={{ width: '60%' }} />
+                <div className="w-48 h-1.5 bg-hover rounded-full mx-auto overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-amber to-amber rounded-full animate-pulse" style={{ width: '60%' }} />
                 </div>
               </>
             ) : (
               <>
-                <Upload className={`w-12 h-12 mx-auto mb-4 ${dragOver ? 'text-accent-amber' : 'text-muted'}`} />
+                <Upload className={`w-12 h-12 mx-auto mb-4 ${dragOver ? 'text-brand' : 'text-muted'}`} />
                 <p className="text-lg font-medium text-primary mb-2">
                   {dragOver ? 'Drop your file here' : 'Drag & drop your file here'}
                 </p>
@@ -494,19 +494,19 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
             </div>
           )}
 
-          <div className="mt-8 p-4 bg-highlight rounded-xl">
+          <div className="mt-8 p-4 bg-hover rounded-xl">
             <h3 className="text-primary font-medium mb-3">Import options</h3>
             <ul className="space-y-2 text-secondary text-sm">
               <li className="flex items-start gap-2">
-                <Upload className="w-4 h-4 text-accent-amber mt-0.5 flex-shrink-0" />
+                <Upload className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                 <span>CSV or Excel file with columns for Artist, Venue, Date (+ optional City, Rating, etc.)</span>
               </li>
               <li className="flex items-start gap-2">
-                <Camera className="w-4 h-4 text-accent-teal mt-0.5 flex-shrink-0" />
+                <Camera className="w-4 h-4 text-amber mt-0.5 flex-shrink-0" />
                 <span>Screenshot from Ticketmaster, AXS, or any ticket platform showing your past events</span>
               </li>
               <li className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-accent-amber mt-0.5 flex-shrink-0" />
+                <Check className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                 <span>Google Sheets: File &rarr; Download &rarr; CSV or Excel</span>
               </li>
             </ul>
@@ -516,10 +516,10 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
       {/* Mapping Step */}
       {step === 'mapping' && (
-        <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
+        <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-primary font-display">Map Your Columns</h2>
+              <h2 className="text-lg font-semibold text-primary">Map Your Columns</h2>
               <p className="text-secondary text-sm mt-1">
                 We detected {headers.length} columns from <span className="text-secondary">{fileName}</span>
               </p>
@@ -539,7 +539,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                     ...prev,
                     [field.key]: e.target.value === '' ? undefined : Number(e.target.value)
                   }))}
-                  className="flex-1 px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-accent-amber/50 [&>option]:bg-elevated"
+                  className="flex-1 px-4 py-2.5 bg-hover border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-brand/50 [&>option]:bg-elevated"
                 >
                   <option value="">&mdash; Skip &mdash;</option>
                   {headers.map((h, i) => (
@@ -578,7 +578,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
           <div className="flex gap-3">
             <button
               onClick={resetImport}
-              className="px-5 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
+              className="px-5 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
             >
               Back
             </button>
@@ -594,7 +594,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                 setParseError(null);
                 setStep('preview');
               }}
-              className="px-5 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
+              className="px-5 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
             >
               Preview Import
             </button>
@@ -611,16 +611,16 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
       {/* Preview Step */}
       {step === 'preview' && (
-        <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
+        <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-primary font-display">Review Import</h2>
+              <h2 className="text-lg font-semibold text-primary">Review Import</h2>
               <p className="text-secondary text-sm mt-1">{previewRows.length} rows found in {fileName}</p>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3 mb-6">
-            <span className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium">
+            <span className="px-3 py-1.5 bg-brand-subtle text-brand rounded-lg text-sm font-medium">
               {validRows.length} ready to import
             </span>
             {errorRows.length > 0 && (
@@ -629,7 +629,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
               </span>
             )}
             {duplicateRows.length > 0 && (
-              <span className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium">
+              <span className="px-3 py-1.5 bg-brand-subtle text-brand rounded-lg text-sm font-medium">
                 {duplicateRows.length} possible duplicates
               </span>
             )}
@@ -655,7 +655,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                       row.errors.length > 0
                         ? 'bg-danger/5'
                         : row.isDuplicate
-                        ? 'bg-accent-amber/5'
+                        ? 'bg-brand/5'
                         : ''
                     }`}
                   >
@@ -675,9 +675,9 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                           </span>
                         </Tip>
                       ) : row.isDuplicate ? (
-                        <span className="text-accent-amber text-xs">Duplicate?</span>
+                        <span className="text-brand text-xs">Duplicate?</span>
                       ) : (
-                        <span className="text-accent-amber text-xs">
+                        <span className="text-brand text-xs">
                           <Check className="w-4 h-4 inline" />
                         </span>
                       )}
@@ -705,7 +705,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
           <div className="flex gap-3">
             <button
               onClick={() => headers.length === 0 ? resetImport() : setStep('mapping')}
-              className="px-5 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
+              className="px-5 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
             >
               Back
             </button>
@@ -714,8 +714,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
               disabled={validRows.length === 0}
               className={`px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg ${
                 validRows.length > 0
-                  ? 'bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary shadow-accent-amber/20'
-                  : 'bg-highlight text-muted cursor-not-allowed shadow-none'
+                  ? 'bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary shadow-brand/20'
+                  : 'bg-hover text-muted cursor-not-allowed shadow-none'
               }`}
             >
               Import {validRows.length} Show{validRows.length !== 1 ? 's' : ''}
@@ -726,32 +726,32 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
       {/* Importing Step */}
       {step === 'importing' && (
-        <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
+        <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
           {!setlistFetchStep ? (
             <>
-              <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-6">
-                <Download className="w-8 h-8 text-accent-amber animate-pulse" />
+              <div className="w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-6">
+                <Download className="w-8 h-8 text-brand animate-pulse" />
               </div>
-              <h2 className="text-lg font-semibold text-primary mb-2 font-display">Importing Shows...</h2>
+              <h2 className="text-lg font-semibold text-primary mb-2">Importing Shows...</h2>
               <p className="text-secondary mb-6">{importProgress} of {importTotal}</p>
-              <div className="w-full bg-highlight rounded-full h-3 overflow-hidden max-w-md mx-auto">
+              <div className="w-full bg-hover rounded-full h-3 overflow-hidden max-w-md mx-auto">
                 <div
-                  className="h-full bg-gradient-to-r from-accent-amber to-accent-teal rounded-full transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-brand to-amber rounded-full transition-all duration-300"
                   style={{ width: `${importTotal > 0 ? (importProgress / importTotal) * 100 : 0}%` }}
                 />
               </div>
             </>
           ) : (
             <>
-              <div className="w-16 h-16 bg-accent-teal-glow rounded-full flex items-center justify-center mx-auto mb-6">
-                <Music className="w-8 h-8 text-accent-teal animate-pulse" />
+              <div className="w-16 h-16 bg-amber-subtle rounded-full flex items-center justify-center mx-auto mb-6">
+                <Music className="w-8 h-8 text-amber animate-pulse" />
               </div>
-              <h2 className="text-lg font-semibold text-primary mb-2 font-display">Fetching Setlists...</h2>
+              <h2 className="text-lg font-semibold text-primary mb-2">Fetching Setlists...</h2>
               <p className="text-secondary mb-2">Searching setlist.fm for your shows</p>
               <p className="text-secondary mb-6">{setlistFetchProgress} of {setlistFetchTotal} &mdash; {setlistsFound} found</p>
-              <div className="w-full bg-highlight rounded-full h-3 overflow-hidden max-w-md mx-auto">
+              <div className="w-full bg-hover rounded-full h-3 overflow-hidden max-w-md mx-auto">
                 <div
-                  className="h-full bg-gradient-to-r from-accent-teal to-accent-teal rounded-full transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-amber to-amber rounded-full transition-all duration-300"
                   style={{ width: `${setlistFetchTotal > 0 ? (setlistFetchProgress / setlistFetchTotal) * 100 : 0}%` }}
                 />
               </div>
@@ -762,15 +762,15 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
       {/* Complete Step */}
       {step === 'complete' && (
-        <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-accent-amber" />
+        <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-8 h-8 text-brand" />
           </div>
-          <h2 className="text-lg font-semibold text-primary mb-2 font-display">Import Complete!</h2>
+          <h2 className="text-lg font-semibold text-primary mb-2">Import Complete!</h2>
 
           <div className="flex flex-wrap justify-center gap-4 my-6">
-            <div className="px-4 py-3 bg-accent-amber-glow rounded-xl">
-              <p className="text-2xl font-bold text-accent-amber">{importResults.imported}</p>
+            <div className="px-4 py-3 bg-brand-subtle rounded-xl">
+              <p className="text-2xl font-bold text-brand">{importResults.imported}</p>
               <p className="text-secondary text-sm">Imported</p>
             </div>
             {importResults.failed > 0 && (
@@ -780,14 +780,14 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
               </div>
             )}
             {importResults.skipped > 0 && (
-              <div className="px-4 py-3 bg-highlight rounded-xl">
+              <div className="px-4 py-3 bg-hover rounded-xl">
                 <p className="text-2xl font-bold text-secondary">{importResults.skipped}</p>
                 <p className="text-secondary text-sm">Skipped</p>
               </div>
             )}
             {setlistsFound > 0 && (
-              <div className="px-4 py-3 bg-accent-teal-glow rounded-xl">
-                <p className="text-2xl font-bold text-accent-teal">{setlistsFound}</p>
+              <div className="px-4 py-3 bg-amber-subtle rounded-xl">
+                <p className="text-2xl font-bold text-amber">{setlistsFound}</p>
                 <p className="text-secondary text-sm">Setlists Found</p>
               </div>
             )}
@@ -796,13 +796,13 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
           <div className="flex justify-center gap-3">
             <button
               onClick={() => onNavigate('shows')}
-              className="px-5 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
+              className="px-5 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
             >
               View My Shows
             </button>
             <button
               onClick={resetImport}
-              className="px-5 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
+              className="px-5 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
             >
               Import More
             </button>

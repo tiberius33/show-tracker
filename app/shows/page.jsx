@@ -61,20 +61,20 @@ export default function ShowsPage() {
       {pendingTagsForReview && pendingTagsForReview.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-accent-amber-glow rounded-xl flex items-center justify-center">
-              <Tag className="w-5 h-5 text-accent-amber" />
+            <div className="w-10 h-10 bg-brand-subtle rounded-xl flex items-center justify-center">
+              <Tag className="w-5 h-5 text-brand" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-primary font-display">Your friends tagged you in some shows!</h1>
+              <h1 className="text-xl font-bold text-primary">Your friends tagged you in some shows!</h1>
               <p className="text-secondary text-sm">Review them and add any to your history.</p>
             </div>
           </div>
           <div className="space-y-4">
             {pendingTagsForReview.map(tag => (
-              <div key={tag.id} className="bg-highlight border border-subtle rounded-2xl p-5">
+              <div key={tag.id} className="bg-hover border border-subtle rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
-                    <div className="text-lg font-bold font-display" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
+                    <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
                     <div className="flex items-center gap-3 text-sm text-secondary mt-1 flex-wrap">
                       {tag.showData?.date && (
                         <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDate(tag.showData.date)}</span>
@@ -93,13 +93,13 @@ export default function ShowsPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => acceptPendingEmailTag(tag)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-amber-glow hover:bg-accent-amber/30 text-accent-amber border border-accent-amber/30 rounded-xl font-medium transition-colors text-sm"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl font-medium transition-colors text-sm"
                   >
                     <Check className="w-4 h-4" /> Add to My History
                   </button>
                   <button
                     onClick={() => declinePendingEmailTag(tag)}
-                    className="flex-1 px-4 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
+                    className="flex-1 px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
                   >
                     Not Me — Skip
                   </button>
@@ -119,10 +119,10 @@ export default function ShowsPage() {
                 setFriendsInitialTab('requests');
                 navigateTo('friends');
               }}
-              className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-accent-teal/20 to-accent-amber-glow border border-accent-teal/30 rounded-xl hover:from-accent-teal/30 hover:to-accent-amber-glow transition-all group"
+              className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber/20 to-brand-glow border border-amber/30 rounded-xl hover:from-amber/30 hover:to-brand-glow transition-all group"
             >
               <div className="relative">
-                <Bell className="w-5 h-5 text-accent-teal" />
+                <Bell className="w-5 h-5 text-amber" />
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-danger rounded-full animate-pulse" />
               </div>
               <span className="text-primary text-sm font-medium">
@@ -133,7 +133,7 @@ export default function ShowsPage() {
                     : `You were tagged in ${pendingShowTags.length} show${pendingShowTags.length !== 1 ? 's' : ''} by friends`
                 }
               </span>
-              <ChevronRight className="w-4 h-4 text-accent-teal/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="w-4 h-4 text-amber/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
             </button>
           )}
 
@@ -141,24 +141,24 @@ export default function ShowsPage() {
           {shows.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
               {[
-                { label: 'Shows', value: shows.length, color: 'from-accent-amber to-accent-teal', action: () => {} },
-                { label: 'Songs', value: summaryStats.totalSongs, color: 'from-accent-teal to-accent-teal', action: () => { setStatsTab('songs'); navigateTo('stats'); } },
-                { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-accent-amber to-accent-amber', action: () => { setStatsTab('artists'); navigateTo('stats'); } },
-                { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-accent-teal to-accent-teal', action: () => { setStatsTab('venues'); navigateTo('stats'); } },
+                { label: 'Shows', value: shows.length, color: 'from-brand to-amber', action: () => {} },
+                { label: 'Songs', value: summaryStats.totalSongs, color: 'from-amber to-amber', action: () => { setStatsTab('songs'); navigateTo('stats'); } },
+                { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-brand to-brand', action: () => { setStatsTab('artists'); navigateTo('stats'); } },
+                { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-amber to-amber', action: () => { setStatsTab('venues'); navigateTo('stats'); } },
                 { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-danger to-danger', action: () => { setStatsTab('top'); navigateTo('stats'); } },
               ].map(stat => (
-                <button key={stat.label} onClick={stat.action} className="bg-highlight backdrop-blur-xl border border-subtle rounded-xl p-2.5 text-center hover:bg-highlight transition-all cursor-pointer">
+                <button key={stat.label} onClick={stat.action} className="bg-hover backdrop-blur-xl border border-subtle rounded-xl p-2.5 text-center hover:bg-hover transition-all cursor-pointer">
                   <div className={`text-xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
                   <div className="text-[10px] font-medium text-secondary uppercase tracking-wide mt-0.5">{stat.label}</div>
                 </button>
               ))}
               {userRank && (
-                <button onClick={() => navigateTo('community')} className="bg-gradient-to-br from-accent-amber/20 to-accent-amber/20 backdrop-blur-xl border border-accent-amber/30 rounded-xl p-2.5 text-center hover:from-accent-amber/30 hover:to-accent-amber/30 transition-all cursor-pointer">
+                <button onClick={() => navigateTo('community')} className="bg-gradient-to-br from-brand/20 to-brand/20 backdrop-blur-xl border border-brand/30 rounded-xl p-2.5 text-center hover:from-brand/30 hover:to-brand/30 transition-all cursor-pointer">
                   <div className="flex items-center justify-center gap-1">
-                    <Crown className="w-4 h-4 text-accent-amber" />
-                    <div className="text-xl font-bold text-accent-amber">#{userRank.rank}</div>
+                    <Crown className="w-4 h-4 text-brand" />
+                    <div className="text-xl font-bold text-brand">#{userRank.rank}</div>
                   </div>
-                  <div className="text-[10px] font-medium text-accent-amber/70 uppercase tracking-wide mt-0.5">of {userRank.total}</div>
+                  <div className="text-[10px] font-medium text-brand/70 uppercase tracking-wide mt-0.5">of {userRank.total}</div>
                 </button>
               )}
             </div>
@@ -167,23 +167,23 @@ export default function ShowsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-primary mb-1 font-display">My Shows</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-primary mb-1">My Shows</h1>
               <p className="text-secondary">All the concerts you&apos;ve attended</p>
             </div>
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => navigateTo('search')}
-                className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-accent-amber/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
+                className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
               >
                 {shows.length === 0 && (
-                  <span className="absolute inset-0 rounded-xl bg-accent-amber animate-ping opacity-20" />
+                  <span className="absolute inset-0 rounded-xl bg-brand animate-ping opacity-20" />
                 )}
                 <Search className="w-4 h-4" />
                 Search for a Show
               </button>
               <button
                 onClick={() => setShowForm(true)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-highlight hover:bg-highlight text-primary rounded-xl font-medium transition-all whitespace-nowrap border border-subtle"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-hover hover:bg-hover text-primary rounded-xl font-medium transition-all whitespace-nowrap border border-subtle"
               >
                 <Plus className="w-4 h-4" />
                 Add Manually
@@ -191,7 +191,7 @@ export default function ShowsPage() {
               <div className="relative">
                 <button
                   onClick={() => navigateTo('scan-import')}
-                  className={`flex items-center justify-center gap-2 px-4 py-3 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-medium transition-all whitespace-nowrap border border-accent-teal/30 ${tooltipStep === 1 ? 'ring-2 ring-accent-teal/60 ring-offset-2 ring-offset-void' : ''}`}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-medium transition-all whitespace-nowrap border border-amber/30 ${tooltipStep === 1 ? 'ring-2 ring-amber/60 ring-offset-2 ring-offset-base' : ''}`}
                 >
                   <Camera className="w-4 h-4" />
                   Scan / Import
@@ -199,17 +199,17 @@ export default function ShowsPage() {
                 {tooltipStep === 1 && (
                   <>
                     <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
-                      <div className="bg-accent-teal border border-accent-teal/30 rounded-xl p-3 shadow-xl shadow-accent-teal/20 relative">
+                      <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
                         <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
                         <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                        <button onClick={dismissTooltip} className="text-accent-teal hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                        <button onClick={dismissTooltip} className="text-amber hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
                       </div>
                     </div>
                     <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
-                      <div className="bg-accent-teal border border-accent-teal/30 rounded-xl p-3 shadow-xl shadow-accent-teal/20 relative">
+                      <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
                         <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-violet-600" />
                         <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                        <button onClick={dismissTooltip} className="text-accent-teal hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                        <button onClick={dismissTooltip} className="text-amber hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
                       </div>
                     </div>
                   </>
@@ -219,7 +219,7 @@ export default function ShowsPage() {
                 <button
                   onClick={scanForMissingSetlists}
                   disabled={setlistScanning}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-medium transition-all whitespace-nowrap border border-accent-teal/30 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-medium transition-all whitespace-nowrap border border-amber/30 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
                   {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}
@@ -230,26 +230,26 @@ export default function ShowsPage() {
 
           {/* Setlist scanning progress */}
           {setlistScanning && (
-            <div className="bg-accent-teal-glow border border-accent-teal/30 rounded-2xl p-4 mb-6">
+            <div className="bg-amber-subtle border border-amber/30 rounded-2xl p-4 mb-6">
               <div className="flex items-center gap-3 mb-2">
-                <RefreshCw className="w-5 h-5 text-accent-teal animate-spin" />
+                <RefreshCw className="w-5 h-5 text-amber animate-spin" />
                 <span className="text-primary font-medium">Scanning for setlists...</span>
                 <span className="text-secondary text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
               </div>
-              <div className="w-full bg-highlight rounded-full h-2">
+              <div className="w-full bg-hover rounded-full h-2">
                 <div
-                  className="bg-accent-teal h-2 rounded-full transition-all duration-300"
+                  className="bg-amber h-2 rounded-full transition-all duration-300"
                   style={{ width: `${setlistScanProgress.total > 0 ? (setlistScanProgress.current / setlistScanProgress.total) * 100 : 0}%` }}
                 />
               </div>
               {setlistScanProgress.found > 0 && (
-                <p className="text-accent-teal text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
+                <p className="text-amber text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
               )}
             </div>
           )}
 
           {/* Search & Sort */}
-          <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-4 mb-6">
+          <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-4 mb-6">
             <div className="flex gap-3 flex-wrap items-center">
               <div className="flex-1 min-w-[200px] relative">
                 <Search className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
@@ -258,7 +258,7 @@ export default function ShowsPage() {
                   placeholder="Filter shows..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+                  className="w-full pl-11 pr-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                 />
               </div>
               {shows.length > 1 && (
@@ -270,8 +270,8 @@ export default function ShowsPage() {
                       onClick={() => setSortBy(opt)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                         sortBy === opt
-                          ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                          : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                          ? 'bg-brand-subtle text-brand border border-brand/30'
+                          : 'bg-hover text-secondary hover:bg-hover border border-subtle'
                       }`}
                     >
                       {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -285,36 +285,36 @@ export default function ShowsPage() {
           {/* Empty state */}
           {sortedFilteredShows.length === 0 && !showForm && (
             <div className="text-center py-12 md:py-16">
-              <div className="w-24 h-24 bg-gradient-to-br from-accent-amber/20 to-accent-teal/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-accent-amber/30">
-                <Sparkles className="w-12 h-12 text-accent-amber" />
+              <div className="w-24 h-24 bg-gradient-to-br from-brand/20 to-amber/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-brand/30">
+                <Sparkles className="w-12 h-12 text-brand" />
               </div>
-              <h2 className="text-2xl font-bold text-primary mb-2 font-display">Your Concert Journey Starts Here</h2>
+              <h2 className="text-2xl font-bold text-primary mb-2">Your Concert Journey Starts Here</h2>
               <p className="text-secondary mb-6 max-w-md mx-auto">
                 Build your personal concert history with setlists, ratings, and stats.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
                 <button
                   onClick={() => navigateTo('search')}
-                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-semibold transition-all shadow-lg shadow-accent-amber/20 hover:shadow-accent-amber/50 hover:scale-105"
+                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-semibold transition-all shadow-lg shadow-brand/20 hover:shadow-brand/50 hover:scale-105"
                 >
-                  <span className="absolute inset-0 rounded-xl bg-accent-amber animate-ping opacity-20" />
+                  <span className="absolute inset-0 rounded-xl bg-brand animate-ping opacity-20" />
                   <Search className="w-5 h-5" />
                   Search for a Show
                 </button>
                 <button
                   onClick={() => navigateTo('scan-import')}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-semibold transition-all border border-accent-teal/30 hover:scale-105"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-semibold transition-all border border-amber/30 hover:scale-105"
                 >
                   <Upload className="w-5 h-5" />
                   Bulk Import
                 </button>
               </div>
-              <div className="max-w-lg mx-auto bg-highlight border border-subtle rounded-2xl p-6 text-left">
+              <div className="max-w-lg mx-auto bg-hover border border-subtle rounded-2xl p-6 text-left">
                 <h3 className="text-primary font-semibold mb-4 text-center">Quick ways to add your shows</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-accent-teal-glow rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Camera className="w-4 h-4 text-accent-teal" />
+                    <div className="w-8 h-8 bg-amber-subtle rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Camera className="w-4 h-4 text-amber" />
                     </div>
                     <div>
                       <p className="text-primary font-medium text-sm">Screenshot Import</p>
@@ -322,8 +322,8 @@ export default function ShowsPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-accent-amber-glow rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Upload className="w-4 h-4 text-accent-amber" />
+                    <div className="w-8 h-8 bg-brand-subtle rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Upload className="w-4 h-4 text-brand" />
                     </div>
                     <div>
                       <p className="text-primary font-medium text-sm">CSV / Excel Import</p>
@@ -331,8 +331,8 @@ export default function ShowsPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-accent-amber-glow rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Search className="w-4 h-4 text-accent-amber" />
+                    <div className="w-8 h-8 bg-brand-subtle rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Search className="w-4 h-4 text-brand" />
                     </div>
                     <div>
                       <p className="text-primary font-medium text-sm">Search setlist.fm</p>
@@ -356,10 +356,10 @@ export default function ShowsPage() {
 
           {/* Artist groups table */}
           {sortedFilteredShows.length > 0 && (
-            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-highlight border-b border-subtle">
+                  <tr className="bg-hover border-b border-subtle">
                     <th className="text-left px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Artist</th>
                     <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows</th>
                     <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Avg Rating</th>

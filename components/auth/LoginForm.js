@@ -89,7 +89,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required
           disabled={loading}
         />
@@ -107,7 +107,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="w-4 h-4 rounded border-active bg-highlight text-accent-amber focus:ring-accent-amber/50 focus:ring-offset-0 cursor-pointer"
+              className="w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
               disabled={loading}
             />
             <span className="text-sm text-secondary">Remember me</span>
@@ -128,7 +128,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
+          className="w-full px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
         >
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
@@ -138,7 +138,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
         Don't have an account?{' '}
         <button
           onClick={onSwitchToSignup}
-          className="text-accent-amber hover:text-accent-amber font-medium"
+          className="text-brand hover:text-brand font-medium"
         >
           Sign up
         </button>

@@ -83,14 +83,14 @@ function RoadmapView({ user }) {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-xl md:text-2xl font-bold text-primary mb-2 font-display">What's Coming to MySetlists</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">What's Coming to MySetlists</h1>
         <p className="text-secondary">Vote on features you want most -- the more votes, the higher it goes.</p>
       </div>
 
       {/* Sign-in prompt banner (for guests who click vote) */}
       {signInPrompt && (
-        <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 bg-accent-amber-glow border border-accent-amber/30 rounded-2xl">
-          <p className="text-accent-amber text-sm">Sign in to vote on features you want!</p>
+        <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 bg-brand-subtle border border-brand/30 rounded-2xl">
+          <p className="text-brand text-sm">Sign in to vote on features you want!</p>
           <button onClick={() => setSignInPrompt(false)} className="text-muted hover:text-primary transition-colors flex-shrink-0">
             <X className="w-4 h-4" />
           </button>

@@ -19,11 +19,11 @@ export default function SharedCollectionView({ data }) {
   const sortedArtists = Object.entries(artistGroups).sort((a, b) => b[1].length - a[1].length);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-void via-surface to-void text-primary">
+    <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base text-primary">
       <div className="max-w-3xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand to-amber flex items-center justify-center mb-4">
             <Music className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-primary mb-1">
@@ -34,21 +34,21 @@ export default function SharedCollectionView({ data }) {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-highlight rounded-2xl p-5 border border-subtle">
-            <div className="text-3xl font-bold text-accent-amber">{stats.totalShows || shows.length}</div>
+          <div className="bg-hover rounded-2xl p-5 border border-subtle">
+            <div className="text-3xl font-bold text-brand">{stats.totalShows || shows.length}</div>
             <div className="text-sm text-secondary mt-1">Shows</div>
           </div>
-          <div className="bg-highlight rounded-2xl p-5 border border-subtle">
-            <div className="text-3xl font-bold text-accent-teal">{stats.totalSongs || 0}</div>
+          <div className="bg-hover rounded-2xl p-5 border border-subtle">
+            <div className="text-3xl font-bold text-amber">{stats.totalSongs || 0}</div>
             <div className="text-sm text-secondary mt-1">Songs</div>
           </div>
-          <div className="bg-highlight rounded-2xl p-5 border border-subtle">
-            <div className="text-3xl font-bold text-accent-teal">{sortedArtists.length}</div>
+          <div className="bg-hover rounded-2xl p-5 border border-subtle">
+            <div className="text-3xl font-bold text-amber">{sortedArtists.length}</div>
             <div className="text-sm text-secondary mt-1">Artists</div>
           </div>
           {stats.avgRating && (
-            <div className="bg-highlight rounded-2xl p-5 border border-subtle">
-              <div className="text-3xl font-bold text-accent-amber">{stats.avgRating}</div>
+            <div className="bg-hover rounded-2xl p-5 border border-subtle">
+              <div className="text-3xl font-bold text-brand">{stats.avgRating}</div>
               <div className="text-sm text-secondary mt-1">Avg Rating</div>
             </div>
           )}
@@ -57,14 +57,14 @@ export default function SharedCollectionView({ data }) {
         {/* Shows by Artist */}
         <div className="space-y-4 mb-8">
           <h2 className="text-base font-semibold text-primary flex items-center gap-2">
-            <Music className="w-4 h-4 text-accent-amber" />
+            <Music className="w-4 h-4 text-brand" />
             Shows by Artist
           </h2>
           {sortedArtists.map(([artist, artistShows]) => (
-            <div key={artist} className="bg-highlight rounded-2xl border border-subtle p-5">
+            <div key={artist} className="bg-hover rounded-2xl border border-subtle p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-primary font-semibold">{artist}</h3>
-                <span className="text-accent-amber text-xs font-semibold bg-accent-amber-glow px-2 py-0.5 rounded-full">
+                <span className="text-brand text-xs font-semibold bg-brand-subtle px-2 py-0.5 rounded-full">
                   {artistShows.length} show{artistShows.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -84,7 +84,7 @@ export default function SharedCollectionView({ data }) {
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                       {show.rating && (
-                        <span className="flex items-center gap-1 text-accent-amber text-xs font-semibold">
+                        <span className="flex items-center gap-1 text-brand text-xs font-semibold">
                           <Star className="w-3 h-3" />
                           {show.rating}/10
                         </span>
@@ -105,7 +105,7 @@ export default function SharedCollectionView({ data }) {
           <p className="text-secondary mb-4 text-sm">Track your own concert history for free</p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-semibold shadow-lg shadow-accent-amber/20 transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-semibold shadow-lg shadow-brand/20 transition-all"
           >
             <Music className="w-4 h-4" />
             Start Tracking on MySetlists
