@@ -12,6 +12,7 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [sortBy, setSortBy] = useState('count'); // 'count' | 'alpha'
   const [artistDots, setArtistDots] = useState({}); // { [artistName]: true } when cached events exist
+  const [cacheChecked, setCacheChecked] = useState(false);
 
   // Derive unique artists + seen-count from shows prop
   const artistData = useMemo(() => {
@@ -31,6 +32,12 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
     }
     return copy;
   }, [artistData, sortBy]);
+
+  // Only show artists that have cached upcoming events
+  const visibleArtists = useMemo(() => {
+    if (!cacheChecked) return sortedArtists; // show all while loading
+    return sortedArtists.filter(({ name }) => artistDots[name]);
+  }, [sortedArtists, artistDots, cacheChecked]);
 
   // On mount, cache-only check — reads Firestore ticketCache docs, no API calls
   useEffect(() => {
@@ -65,6 +72,7 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
 
       if (!cancelled) {
         setArtistDots(dots);
+        setCacheChecked(true);
         if (onCountLoaded) onCountLoaded(totalEvents);
       }
     }
@@ -119,15 +127,19 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
       </div>
 
       {/* Empty state */}
-      {artistData.length === 0 && (
+      {(artistData.length === 0 || (cacheChecked && visibleArtists.length === 0)) && (
         <div className="text-center py-16">
           <Music className="w-12 h-12 text-muted mx-auto mb-4" />
-          <p className="text-secondary mb-4">Add some shows first to see upcoming tours</p>
+          <p className="text-secondary mb-4">
+            {artistData.length === 0
+              ? 'Add some shows first to see upcoming tours'
+              : 'No upcoming events found for your artists right now'}
+          </p>
         </div>
       )}
 
       {/* Sort toggle + list */}
-      {artistData.length > 0 && (
+      {visibleArtists.length > 0 && (
         <>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-muted text-sm">Sort by:</span>
@@ -149,8 +161,8 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
             ))}
           </div>
 
-          <div className="bg-hover border border-subtle rounded-2xl overflow-hidden">
-            {sortedArtists.map(({ name, count }, idx) => (
+          <div className="bg-surface border border-subtle rounded-2xl overflow-hidden shadow-theme-sm">
+            {visibleArtists.map(({ name, count }, idx) => (
               <button
                 key={name}
                 onClick={() => setSelectedArtist(name)}

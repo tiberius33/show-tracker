@@ -1,22 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200">
   <defs>
     <linearGradient id="pickMain" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" style="stop-color:#10d98a"/>
-      <stop offset="40%" style="stop-color:#10b981"/>
-      <stop offset="100%" style="stop-color:#059669"/>
+      <stop offset="0%" style="stop-color:#6de08a"/>
+      <stop offset="40%" style="stop-color:#4bc86a"/>
+      <stop offset="100%" style="stop-color:#3ab85a"/>
     </linearGradient>
-    <!-- Left depth panel: darker emerald -->
     <linearGradient id="pickLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#047857"/>
-      <stop offset="100%" style="stop-color:#059669"/>
+      <stop offset="0%" style="stop-color:#2da44e"/>
+      <stop offset="100%" style="stop-color:#3ab85a"/>
     </linearGradient>
-    <!-- Top highlight: bright shimmer -->
     <linearGradient id="pickHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6ee7b7;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>
+      <stop offset="0%" style="stop-color:#a5edb8;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#4bc86a;stop-opacity:0"/>
     </linearGradient>
     <filter id="pickShadow">
-      <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="rgba(5,150,105,0.4)"/>
+      <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="rgba(75,200,106,0.4)"/>
     </filter>
     <clipPath id="pickClip">
       <path d="M 95 15 C 130 15, 158 36, 158 65 C 158 94, 138 122, 95 175 C 52 122, 32 94, 32 65 C 32 36, 60 15, 95 15 Z"/>
@@ -43,15 +41,15 @@
     <circle cx="38" cy="112" r="3.5" fill="rgba(255,255,255,0.65)"/>
   </g>
 
-  <!-- TYPOGRAPHY — "my" + ".net" in slate; "setlists" in amber matching artist names -->
+  <!-- TYPOGRAPHY — "my" + ".net" in slate; "setlists" in amber -->
   <text y="112"
         font-family="'Helvetica Neue', Arial, sans-serif"
         font-size="66"
         xml:space="preserve">
-    <tspan x="182" font-weight="300" fill="#94a3b8">my</tspan><tspan font-weight="800" fill="#f59e0b">setlists</tspan><tspan font-weight="300" fill="#94a3b8">.net</tspan>
+    <tspan x="182" font-weight="300" fill="#94a3b8">my</tspan><tspan font-weight="800" fill="#f5a623">setlists</tspan><tspan font-weight="300" fill="#94a3b8">.net</tspan>
   </text>
 
-  <!-- Tagline in muted slate, matching the site's secondary text -->
+  <!-- Tagline -->
   <text x="182" y="148"
         font-family="'Helvetica Neue', Arial, sans-serif"
         font-size="21"

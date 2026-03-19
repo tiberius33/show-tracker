@@ -6889,15 +6889,15 @@ export default function ShowTracker() {
   // Show login screen if not authenticated and not in guest mode
   if (!user && !guestMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-surface via-elevated to-base text-primary">
+      <div className="min-h-screen bg-base text-primary">
         {/* Header */}
-        <div className="bg-black/20 backdrop-blur-xl border-b border-subtle">
+        <div className="bg-surface border-b border-subtle">
           <div className="max-w-6xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <img src="/logo.svg" alt="MySetlists" className="h-11 w-auto" />
               <button
                 onClick={() => openAuthModal('login')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-hover hover:bg-hover backdrop-blur-sm border border-active text-primary rounded-full font-medium transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-surface hover:bg-hover border border-active text-primary rounded-full font-medium transition-all"
               >
                 Sign In
               </button>
@@ -6919,14 +6919,14 @@ export default function ShowTracker() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => openAuthModal('signup')}
-                className="inline-flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-full transition-all text-base md:text-lg font-semibold shadow-xl shadow-brand/20 hover:shadow-brand/50 hover:scale-105"
+                className="inline-flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-amber to-brand text-on-dark rounded-full transition-all text-base md:text-lg font-semibold shadow-xl shadow-brand/20 hover:shadow-brand/40 hover:scale-105"
               >
                 <Music className="w-5 h-5" />
                 Get Started Free
               </button>
               <button
                 onClick={enterGuestMode}
-                className="inline-flex items-center gap-2 px-6 py-3 md:py-4 bg-hover hover:bg-hover border border-active text-primary rounded-full transition-all text-base font-medium"
+                className="inline-flex items-center gap-2 px-6 py-3 md:py-4 bg-surface hover:bg-hover border border-active text-secondary hover:text-primary rounded-full transition-all text-base font-medium"
               >
                 Try it First
               </button>
@@ -6960,7 +6960,7 @@ export default function ShowTracker() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Top Shows Attended */}
-                <div className="bg-hover backdrop-blur-xl rounded-3xl p-6 border border-subtle hover:bg-hover transition-all">
+                <div className="bg-surface rounded-2xl p-6 border border-subtle shadow-theme-sm hover:shadow-theme-md transition-all">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-brand to-brand rounded-xl flex items-center justify-center">
                       <Trophy className="w-5 h-5 text-primary" />
@@ -6984,7 +6984,7 @@ export default function ShowTracker() {
                 </div>
 
                 {/* Top Songs Rated */}
-                <div className="bg-hover backdrop-blur-xl rounded-3xl p-6 border border-subtle hover:bg-hover transition-all">
+                <div className="bg-surface rounded-2xl p-6 border border-subtle shadow-theme-sm hover:shadow-theme-md transition-all">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-danger to-danger rounded-xl flex items-center justify-center">
                       <Star className="w-5 h-5 text-primary" />
@@ -7008,7 +7008,7 @@ export default function ShowTracker() {
                 </div>
 
                 {/* Most Popular Songs */}
-                <div className="bg-hover backdrop-blur-xl rounded-3xl p-6 border border-subtle hover:bg-hover transition-all">
+                <div className="bg-surface rounded-2xl p-6 border border-subtle shadow-theme-sm hover:shadow-theme-md transition-all">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-amber to-amber rounded-xl flex items-center justify-center">
                       <TrendingUp className="w-5 h-5 text-primary" />
@@ -7032,7 +7032,7 @@ export default function ShowTracker() {
                 </div>
 
                 {/* Top Venues Visited */}
-                <div className="bg-hover backdrop-blur-xl rounded-3xl p-6 border border-subtle hover:bg-hover transition-all">
+                <div className="bg-surface rounded-2xl p-6 border border-subtle shadow-theme-sm hover:shadow-theme-md transition-all">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-amber to-amber rounded-xl flex items-center justify-center">
                       <Building2 className="w-5 h-5 text-primary" />

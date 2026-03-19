@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="25 8 145 175">
   <defs>
     <linearGradient id="pickMain" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" style="stop-color:#10d98a"/>
-      <stop offset="40%" style="stop-color:#10b981"/>
-      <stop offset="100%" style="stop-color:#059669"/>
+      <stop offset="0%" style="stop-color:#6de08a"/>
+      <stop offset="40%" style="stop-color:#4bc86a"/>
+      <stop offset="100%" style="stop-color:#3ab85a"/>
     </linearGradient>
     <linearGradient id="pickLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#047857"/>
-      <stop offset="100%" style="stop-color:#059669"/>
+      <stop offset="0%" style="stop-color:#2da44e"/>
+      <stop offset="100%" style="stop-color:#3ab85a"/>
     </linearGradient>
     <linearGradient id="pickHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6ee7b7;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>
+      <stop offset="0%" style="stop-color:#a5edb8;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#4bc86a;stop-opacity:0"/>
     </linearGradient>
     <filter id="pickShadow">
-      <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="rgba(5,150,105,0.4)"/>
+      <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="rgba(75,200,106,0.4)"/>
     </filter>
     <clipPath id="pickClip">
       <path d="M 95 15 C 130 15, 158 36, 158 65 C 158 94, 138 122, 95 175 C 52 122, 32 94, 32 65 C 32 36, 60 15, 95 15 Z"/>
