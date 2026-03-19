@@ -4883,6 +4883,8 @@ export default function ShowTracker() {
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterDate, setFilterDate] = useState('');
   const [shareSuccess, setShareSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('date');
@@ -6829,18 +6831,35 @@ export default function ShowTracker() {
 
   const importedIds = useMemo(() => new Set(shows.map(s => s.setlistfmId).filter(Boolean)), [shows]);
 
+  const availableYears = useMemo(() => {
+    const years = [...new Set(shows.map(s => {
+      const d = parseDate(s.date);
+      return d.getFullYear();
+    }).filter(y => y > 1900))];
+    return years.sort((a, b) => b - a);
+  }, [shows]);
+
   const sortedFilteredShows = useMemo(() => {
-    const filtered = shows.filter(show =>
+    let filtered = shows.filter(show =>
       show.artist.toLowerCase().includes(searchTerm.toLowerCase()) ||
       show.venue.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    if (filterYear) {
+      filtered = filtered.filter(show => {
+        const d = parseDate(show.date);
+        return d.getFullYear() === parseInt(filterYear);
+      });
+    }
+    if (filterDate) {
+      filtered = filtered.filter(show => show.date === filterDate);
+    }
     return filtered.sort((a, b) => {
       if (sortBy === 'date') return parseDate(b.date) - parseDate(a.date);
       if (sortBy === 'artist') return a.artist.localeCompare(b.artist);
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       return 0;
     });
-  }, [shows, searchTerm, sortBy]);
+  }, [shows, searchTerm, sortBy, filterYear, filterDate]);
 
   const artistGroups = useMemo(() => {
     const groups = {};
@@ -7447,38 +7466,74 @@ export default function ShowTracker() {
               </div>
             )}
 
-            {/* Search & Sort */}
-            <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-4 mb-6">
+            {/* Search, Filter & Sort */}
+            <div className="bg-surface rounded-2xl border border-subtle p-4 mb-6 shadow-theme-sm">
               <div className="flex gap-3 flex-wrap items-center">
+                {/* Text search */}
                 <div className="flex-1 min-w-[200px] relative">
                   <Search className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Filter shows..."
+                    placeholder="Filter by artist or venue..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-11 pr-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
+                    className="w-full pl-11 pr-4 py-2.5 bg-surface border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                   />
                 </div>
-                {shows.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-secondary">Sort:</span>
-                    {['date', 'artist', 'rating'].map(opt => (
-                      <button
-                        key={opt}
-                        onClick={() => setSortBy(opt)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                          sortBy === opt
-                            ? 'bg-brand-subtle text-brand border border-brand/30'
-                            : 'bg-hover text-secondary hover:bg-hover border border-subtle'
-                        }`}
-                      >
-                        {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                      </button>
+
+                {/* Year dropdown */}
+                {availableYears.length > 1 && (
+                  <select
+                    value={filterYear}
+                    onChange={(e) => { setFilterYear(e.target.value); setFilterDate(''); }}
+                    className="px-3 py-2.5 bg-surface border border-subtle rounded-xl text-sm font-medium text-secondary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer"
+                  >
+                    <option value="">All Years</option>
+                    {availableYears.map(y => (
+                      <option key={y} value={y}>{y}</option>
                     ))}
-                  </div>
+                  </select>
+                )}
+
+                {/* Date picker */}
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => { setFilterDate(e.target.value); setFilterYear(''); }}
+                  className="px-3 py-2.5 bg-surface border border-subtle rounded-xl text-sm font-medium text-secondary focus:outline-none focus:ring-2 focus:ring-brand/50"
+                />
+
+                {/* Clear filters */}
+                {(filterYear || filterDate || searchTerm) && (
+                  <button
+                    onClick={() => { setFilterYear(''); setFilterDate(''); setSearchTerm(''); }}
+                    className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-danger hover:bg-danger/10 rounded-xl transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Clear
+                  </button>
                 )}
               </div>
+
+              {/* Sort buttons */}
+              {shows.length > 1 && (
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-subtle">
+                  <span className="text-sm font-medium text-secondary">Sort:</span>
+                  {['date', 'artist', 'rating'].map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setSortBy(opt)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        sortBy === opt
+                          ? 'bg-brand-subtle text-brand border border-brand/30'
+                          : 'bg-hover text-secondary hover:bg-hover border border-subtle'
+                      }`}
+                    >
+                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {sortedFilteredShows.length === 0 && !showForm && (
