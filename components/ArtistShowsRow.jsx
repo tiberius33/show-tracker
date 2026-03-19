@@ -16,7 +16,7 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
   return (
     <>
       <tr
-        className="cursor-pointer hover:bg-highlight transition-colors"
+        className="cursor-pointer hover:bg-hover transition-colors"
         onClick={onToggle}
       >
         <td className="px-4 py-4">
@@ -27,13 +27,13 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
           </div>
         </td>
         <td className="px-4 py-4 text-center">
-          <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
+          <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
             {shows.length}
           </span>
         </td>
         <td className="px-4 py-4 text-center">
           {avgRating ? (
-            <span className="text-sm font-semibold text-accent-amber">{avgRating}/10</span>
+            <span className="text-sm font-semibold text-brand">{avgRating}/10</span>
           ) : (
             <span className="text-muted">--</span>
           )}
@@ -41,8 +41,8 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={3} className="px-4 py-0 bg-highlight/30">
-            <div className="py-4 pl-6 border-l-2 border-accent-amber/50 ml-2 mb-2">
+          <td colSpan={3} className="px-4 py-0 bg-hover/30">
+            <div className="py-4 pl-6 border-l-2 border-brand/50 ml-2 mb-2">
               <div className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">Shows</div>
               <div className="space-y-3">
                 {shows.map(show => {
@@ -51,8 +51,8 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                   return (
                     <div
                       key={show.id}
-                      className={`group flex items-start justify-between bg-highlight rounded-2xl p-4 border cursor-pointer transition-all ${
-                        isSelected ? 'border-accent-amber ring-2 ring-accent-amber/30 bg-accent-amber-glow' : 'border-subtle hover:bg-highlight hover:border-active'
+                      className={`group flex items-start justify-between bg-hover rounded-2xl p-4 border cursor-pointer transition-all ${
+                        isSelected ? 'border-brand ring-2 ring-brand/30 bg-brand-subtle' : 'border-subtle hover:bg-hover hover:border-active'
                       }`}
                       onClick={() => onSelectShow(show)}
                     >
@@ -68,7 +68,7 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                           <span className="text-secondary">{show.setlist.length} songs</span>
                         </div>
                         {show.tour && (
-                          <div className="text-xs text-accent-amber font-medium mt-1.5">Tour: {show.tour}</div>
+                          <div className="text-xs text-brand font-medium mt-1.5">Tour: {show.tour}</div>
                         )}
                         {show.comment && (
                           <div className="flex items-start gap-1.5 mt-1.5 text-xs text-secondary italic">

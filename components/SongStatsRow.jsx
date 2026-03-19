@@ -11,7 +11,7 @@ function SongStatsRow({ song, index, onRateSong }) {
   return (
     <>
       <tr
-        className="border-b border-subtle cursor-pointer hover:bg-highlight transition-colors"
+        className="border-b border-subtle cursor-pointer hover:bg-hover transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <td className="px-4 py-4">
@@ -21,13 +21,13 @@ function SongStatsRow({ song, index, onRateSong }) {
           </div>
         </td>
         <td className="px-4 py-4 text-center">
-          <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
+          <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
             {song.count}x
           </span>
         </td>
         <td className="px-4 py-4 text-center">
           {song.avgRating ? (
-            <span className="text-sm font-semibold text-accent-amber">
+            <span className="text-sm font-semibold text-brand">
               {song.avgRating}/10
             </span>
           ) : (
@@ -37,12 +37,12 @@ function SongStatsRow({ song, index, onRateSong }) {
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={3} className="px-4 py-0 bg-highlight/30">
-            <div className="py-4 pl-6 border-l-2 border-accent-amber/50 ml-2 mb-2">
+          <td colSpan={3} className="px-4 py-0 bg-hover/30">
+            <div className="py-4 pl-6 border-l-2 border-brand/50 ml-2 mb-2">
               <div className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">Performances</div>
               <div className="space-y-3">
                 {song.shows.map((performance, i) => (
-                  <div key={i} className="flex items-start justify-between bg-highlight rounded-2xl p-4 border border-subtle">
+                  <div key={i} className="flex items-start justify-between bg-hover rounded-2xl p-4 border border-subtle">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 text-sm flex-wrap">
                         <Calendar className="w-3.5 h-3.5 text-muted" />

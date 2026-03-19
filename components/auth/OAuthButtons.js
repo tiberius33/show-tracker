@@ -38,7 +38,7 @@ export default function OAuthButtons({ onProviderClick, disabled = false, action
           key={provider.id}
           onClick={() => onProviderClick(provider.id)}
           disabled={disabled}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-highlight hover:bg-highlight disabled:opacity-50 border border-subtle rounded-xl font-medium text-primary transition-all"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-hover hover:bg-hover disabled:opacity-50 border border-subtle rounded-xl font-medium text-primary transition-all"
         >
           {provider.icon}
           {actionText} with {provider.name}

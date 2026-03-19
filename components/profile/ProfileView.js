@@ -88,7 +88,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Profile Header */}
-      <div className="bg-highlight border border-subtle rounded-2xl p-6">
+      <div className="bg-hover border border-subtle rounded-2xl p-6">
         <div className="flex items-start gap-6">
           {/* Profile Photo */}
           <div className="relative">
@@ -104,7 +104,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
               />
             ) : null}
             <div
-              className={`w-24 h-24 rounded-2xl bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center ${photoURL || user?.photoURL ? 'hidden' : ''}`}
+              className={`w-24 h-24 rounded-2xl bg-gradient-to-br from-brand to-amber flex items-center justify-center ${photoURL || user?.photoURL ? 'hidden' : ''}`}
             >
               <User className="w-12 h-12 text-primary" />
             </div>
@@ -124,21 +124,21 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Display name"
-                  className="w-full px-4 py-2 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+                  className="w-full px-4 py-2 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                 />
                 <input
                   type="url"
                   value={photoURL}
                   onChange={(e) => setPhotoURL(e.target.value)}
                   placeholder="Photo URL (optional)"
-                  className="w-full px-4 py-2 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted text-sm"
+                  className="w-full px-4 py-2 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted text-sm"
                 />
                 {error && <p className="text-danger text-sm">{error}</p>}
                 <div className="flex gap-2">
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-accent-amber hover:bg-accent-amber disabled:opacity-50 text-primary rounded-xl font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand disabled:opacity-50 text-primary rounded-xl font-medium transition-colors"
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'Saving...' : 'Save'}
@@ -146,7 +146,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
                   <button
                     onClick={handleCancel}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
                   >
                     <X className="w-4 h-4" />
                     Cancel
@@ -156,12 +156,12 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
             ) : (
               <>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-primary font-display">
+                  <h2 className="text-2xl font-bold text-primary">
                     {user?.displayName || 'Anonymous'}
                   </h2>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-highlight hover:bg-highlight text-secondary rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-hover hover:bg-hover text-secondary rounded-lg text-sm font-medium transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit
@@ -224,14 +224,14 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
 
       {/* Average Rating */}
       {stats.avgShowRating && (
-        <div className="bg-highlight border border-subtle rounded-2xl p-6">
+        <div className="bg-hover border border-subtle rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-primary font-display">Average Show Rating</h3>
+              <h3 className="text-lg font-semibold text-primary">Average Show Rating</h3>
               <p className="text-secondary text-sm">Based on {shows.filter(s => s.rating).length} rated shows</p>
             </div>
             <div className="flex items-center gap-2">
-              <Star className="w-6 h-6 text-accent-amber fill-accent-amber" />
+              <Star className="w-6 h-6 text-brand fill-amber" />
               <span className="text-3xl font-bold text-primary">{stats.avgShowRating}</span>
               <span className="text-secondary">/10</span>
             </div>
@@ -247,15 +247,15 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
 
 function StatCard({ icon, label, value, subtext, color }) {
   const colorClasses = {
-    emerald: 'from-accent-amber to-accent-amber',
-    teal: 'from-accent-teal to-accent-teal',
-    amber: 'from-accent-amber to-accent-amber',
-    cyan: 'from-accent-teal to-accent-teal',
-    purple: 'from-accent-teal to-accent-amber',
+    emerald: 'from-brand to-brand',
+    teal: 'from-amber to-amber',
+    amber: 'from-brand to-brand',
+    cyan: 'from-amber to-amber',
+    purple: 'from-amber to-brand',
   };
 
   return (
-    <div className="bg-highlight border border-subtle rounded-2xl p-4">
+    <div className="bg-hover border border-subtle rounded-2xl p-4">
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center mb-3`}>
         <span className="text-primary">{icon}</span>
       </div>

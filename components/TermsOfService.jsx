@@ -7,20 +7,20 @@ import Footer from '@/components/Footer';
 
 export default function TermsOfService() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-void via-surface to-void text-primary">
+    <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base text-primary">
       {/* Header */}
       <div className="bg-black/20 backdrop-blur-xl border-b border-subtle">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="w-11 h-11 bg-gradient-to-br from-accent-amber to-accent-teal rounded-2xl flex items-center justify-center shadow-lg shadow-accent-amber/20">
+              <div className="w-11 h-11 bg-gradient-to-br from-brand to-amber rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
                 <Music className="w-6 h-6 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight">MySetlists</h1>
             </Link>
             <Link
               to="/"
-              className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
@@ -31,7 +31,7 @@ export default function TermsOfService() {
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-3xl p-8 sm:p-12">
+        <div className="bg-hover backdrop-blur-xl border border-subtle rounded-3xl p-8 sm:p-12">
           <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
           <p className="text-secondary mb-8">Last Updated: February 7, 2026</p>
 
@@ -153,13 +153,13 @@ export default function TermsOfService() {
 
             <section>
               <h2 className="text-xl font-semibold text-primary mb-4">15. Entire Agreement</h2>
-              <p>These Terms, together with our <Link to="/privacy" className="text-accent-amber hover:text-accent-amber underline">Privacy Policy</Link>, constitute the entire agreement between you and MySetlists regarding the Service and supersede all prior agreements and understandings.</p>
+              <p>These Terms, together with our <Link to="/privacy" className="text-brand hover:text-brand underline">Privacy Policy</Link>, constitute the entire agreement between you and MySetlists regarding the Service and supersede all prior agreements and understandings.</p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold text-primary mb-4">16. Contact Us</h2>
               <p>If you have questions about these Terms, please contact us at:</p>
-              <p className="mt-2"><strong className="text-primary">Email:</strong> <a href="mailto:support@mysetlists.net" className="text-accent-amber hover:text-accent-amber underline">support@mysetlists.net</a></p>
+              <p className="mt-2"><strong className="text-primary">Email:</strong> <a href="mailto:support@mysetlists.net" className="text-brand hover:text-brand underline">support@mysetlists.net</a></p>
             </section>
           </div>
         </div>

@@ -42,9 +42,9 @@ export default function InstallPrompt() {
   if (!showPrompt || !deferredPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-gradient-to-r from-accent-amber to-accent-teal rounded-2xl p-4 shadow-xl z-50 animate-slide-up">
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-gradient-to-r from-brand to-amber rounded-2xl p-4 shadow-xl z-50 animate-slide-up">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-highlight rounded-xl flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 bg-hover rounded-xl flex items-center justify-center flex-shrink-0">
           <Download className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1">
@@ -53,7 +53,7 @@ export default function InstallPrompt() {
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleInstall}
-              className="px-4 py-2 bg-accent-amber text-void rounded-lg font-medium text-sm hover:brightness-110 transition-colors"
+              className="px-4 py-2 bg-brand text-on-dark rounded-lg font-medium text-sm hover:brightness-105 transition-colors"
             >
               Install
             </button>

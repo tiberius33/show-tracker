@@ -112,14 +112,14 @@ function UpcomingShows({ artistName }) {
 
   if (loading) {
     return (
-      <div className="mt-4 bg-highlight border border-subtle rounded-2xl p-4">
+      <div className="mt-4 bg-hover border border-subtle rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Calendar className="w-4 h-4 text-muted" />
           <span className="text-xs font-semibold text-muted uppercase tracking-wide">Upcoming Shows</span>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-10 bg-highlight rounded-xl animate-pulse" />
+            <div key={i} className="h-10 bg-hover rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -129,7 +129,7 @@ function UpcomingShows({ artistName }) {
   if (hasNoShows) {
     const bandsintownUrl = `https://www.bandsintown.com/a/${encodeURIComponent(artistName)}?came_from=461&app_id=mysetlists`;
     return (
-      <div className="mt-4 bg-highlight border border-subtle rounded-2xl p-4">
+      <div className="mt-4 bg-hover border border-subtle rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-2">
           <Calendar className="w-4 h-4 text-muted" />
           <span className="text-xs font-semibold text-muted uppercase tracking-wide">Upcoming Shows</span>
@@ -139,7 +139,7 @@ function UpcomingShows({ artistName }) {
           href={bandsintownUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-highlight text-secondary hover:bg-highlight hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-hover text-secondary hover:bg-hover hover:text-primary transition-colors"
         >
           <ExternalLink className="w-3 h-3" />
           Follow on Bandsintown for updates
@@ -153,9 +153,9 @@ function UpcomingShows({ artistName }) {
   const sgSearchUrl = `https://seatgeek.com/${encodeURIComponent(artistName.toLowerCase().replace(/\s+/g, '-'))}-tickets`;
 
   return (
-    <div className="mt-4 bg-highlight border border-subtle rounded-2xl p-4">
+    <div className="mt-4 bg-hover border border-subtle rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Calendar className="w-4 h-4 text-accent-amber" />
+        <Calendar className="w-4 h-4 text-brand" />
         <span className="text-xs font-semibold text-secondary uppercase tracking-wide">Upcoming Shows</span>
       </div>
 
@@ -193,7 +193,7 @@ function UpcomingShows({ artistName }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => handleTicketClick('ticketmaster')}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-accent-teal/20 text-accent-teal hover:bg-accent-teal/30 border border-accent-teal/30 transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-amber/20 text-amber hover:bg-amber/30 border border-amber/30 transition-colors whitespace-nowrap"
                     >
                       <ExternalLink className="w-3 h-3" />
                       {hasBothPlatforms ? 'Official' : 'Official Tickets'}
@@ -205,7 +205,7 @@ function UpcomingShows({ artistName }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => handleTicketClick('seatgeek')}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-accent-amber-glow text-accent-amber hover:bg-accent-amber/30 border border-accent-amber/30 transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-brand-subtle text-brand hover:bg-brand/30 border border-brand/30 transition-colors whitespace-nowrap"
                     >
                       <ExternalLink className="w-3 h-3" />
                       {hasBothPlatforms ? 'Resale' : 'Resale Tickets'}
@@ -224,7 +224,7 @@ function UpcomingShows({ artistName }) {
           href={tmSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-accent-teal/60 hover:text-accent-teal transition-colors"
+          className="text-xs text-amber/60 hover:text-amber transition-colors"
         >
           Ticketmaster ↗
         </a>
@@ -233,7 +233,7 @@ function UpcomingShows({ artistName }) {
           href={sgSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-accent-amber/60 hover:text-accent-amber transition-colors"
+          className="text-xs text-brand/60 hover:text-brand transition-colors"
         >
           SeatGeek ↗
         </a>

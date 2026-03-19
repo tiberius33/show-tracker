@@ -9,29 +9,38 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        void: 'var(--bg-void)',
+        base: 'var(--bg-base)',
         surface: 'var(--bg-surface)',
         elevated: 'var(--bg-elevated)',
-        highlight: 'var(--bg-highlight)',
+        hover: 'var(--bg-hover)',
+        sidebar: 'var(--bg-sidebar)',
         subtle: 'var(--border-subtle)',
         active: 'var(--border-active)',
-        'accent-amber': {
-          DEFAULT: 'var(--accent-amber)',
-          glow: 'var(--accent-amber-glow)',
+        brand: {
+          DEFAULT: 'var(--green-primary)',
+          light: 'var(--green-light)',
+          subtle: 'var(--green-subtle)',
         },
-        'accent-teal': {
-          DEFAULT: 'var(--accent-teal)',
-          glow: 'var(--accent-teal-glow)',
+        amber: {
+          DEFAULT: 'var(--amber)',
+          light: 'var(--amber-light)',
+          subtle: 'var(--amber-subtle)',
         },
         primary: 'var(--text-primary)',
         secondary: 'var(--text-secondary)',
         muted: 'var(--text-muted)',
+        'on-dark': 'var(--text-on-dark)',
+        'on-dark-muted': 'var(--text-on-dark-muted)',
         success: 'var(--success)',
         danger: 'var(--danger)',
       },
       fontFamily: {
-        display: ['"DM Serif Display"', 'serif'],
-        body: ['"DM Sans"', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+      },
+      boxShadow: {
+        'theme-sm': 'var(--shadow-sm)',
+        'theme-md': 'var(--shadow-md)',
+        'theme-lg': 'var(--shadow-lg)',
       },
     },
   },

@@ -15,17 +15,12 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
     return segment || 'shows';
   })();
 
-  const pinnedTopItems = [
-    { id: 'search', label: 'Search', icon: Search },
-  ];
-
   const scrollItems = [
     { id: 'shows', label: 'Shows', icon: List },
     { id: 'scan-import', label: 'Scan / Import', icon: Camera },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
     ...(isGuest ? [] : [
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
-      { id: 'community', label: 'Community', icon: Users },
     ]),
     { id: 'upcoming', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
     { id: 'roadmap', label: 'Roadmap', icon: TrendingUp },
@@ -37,14 +32,18 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   ];
 
-  const handleNavClick = (id) => {
-    router.push(`/${id === 'shows' ? '' : id}`);
-    if (onClose) onClose();
-  };
-
   const handleLogoutClick = () => {
     onLogout();
     if (onClose) onClose();
+  };
+
+  const navItemClass = (id) => {
+    const isActive = activeView === id || (id === 'shows' && activeView === '');
+    return `w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-[14px] font-medium transition-all ${
+      isActive
+        ? 'border-l-[3px] border-[var(--green-primary)] bg-[rgba(75,200,106,0.12)] text-[var(--green-primary)]'
+        : 'text-[var(--text-on-dark-muted)] hover:bg-[rgba(255,255,255,0.06)] hover:text-[var(--text-on-dark)]'
+    }`;
   };
 
   return (
@@ -52,79 +51,68 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40"
+          className="md:hidden fixed inset-0 bg-sidebar/60 backdrop-blur-sm z-40"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — dark navy */}
       <div className={`
-        w-64 h-screen bg-surface md:bg-surface backdrop-blur-xl border-r border-subtle flex flex-col fixed left-0 top-0 z-50
+        w-64 h-screen bg-sidebar flex flex-col fixed left-0 top-0 z-50
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
       `}>
-        {/* Logo */}
-        <div className="px-5 py-4 border-b border-subtle">
+        {/* Logo + tagline */}
+        <div className="px-5 py-4 border-b border-[rgba(255,255,255,0.08)]">
           <div className="flex items-center justify-between">
-            <img src="/logo.svg" alt="MySetlists" className="h-10 w-auto" />
+            <div>
+              <img src="/logo.svg" alt="MySetlists" className="h-9 w-auto" />
+              <p className="text-[11px] text-on-dark-muted mt-1 tracking-wide">Your Show History</p>
+            </div>
             {/* Mobile close button */}
             <button
               onClick={onClose}
-              className="md:hidden p-2 rounded-xl hover:bg-highlight transition-colors"
+              className="md:hidden p-2 rounded-lg hover:bg-[rgba(255,255,255,0.06)] transition-colors"
             >
-              <X className="w-5 h-5 text-secondary" />
+              <X className="w-5 h-5 text-on-dark-muted" />
             </button>
           </div>
         </div>
 
-        {/* User info - hidden for now */}
-
-        {/* Pinned top: Search */}
-        <div className="p-3 space-y-1 border-b border-subtle">
-          {pinnedTopItems.map(({ id, label, icon: Icon, badge }) => (
-            <Link
-              key={id}
-              href={`/${id}`}
-              onClick={() => { if (onClose) onClose(); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
-                activeView === id
-                  ? 'border-l-[3px] border-accent-amber bg-accent-amber-glow text-accent-amber'
-                  : 'text-secondary hover:bg-highlight hover:text-primary'
-              }`}
-            >
-              <Icon className={`w-5 h-5 ${activeView === id ? 'text-accent-amber' : ''}`} />
-              <span className="font-medium flex-1">{label}</span>
-              {badge > 0 && (
-                <span className="bg-danger text-primary text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-                  {badge}
-                </span>
-              )}
-            </Link>
-          ))}
+        {/* Pinned search input */}
+        <div className="px-3 py-3 border-b border-[rgba(255,255,255,0.08)]">
+          <Link
+            href="/search"
+            onClick={() => { if (onClose) onClose(); }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] transition-all ${
+              activeView === 'search'
+                ? 'bg-[rgba(75,200,106,0.12)] border border-[var(--green-primary)] text-[var(--green-primary)]'
+                : 'bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.12)] text-on-dark-muted hover:border-[var(--green-primary)] hover:text-on-dark'
+            }`}
+          >
+            <Search className="w-4 h-4 flex-shrink-0" />
+            <span className="font-medium">Search for a Show</span>
+          </Link>
         </div>
 
-        {/* Scrollable middle */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {/* Scrollable middle nav */}
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
           {scrollItems.map(({ id, label, icon: Icon, badge, beta }) => (
             <Link
               key={id}
               href={`/${id === 'shows' ? '' : id}`}
               onClick={() => { if (onClose) onClose(); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
-                activeView === id || (id === 'shows' && activeView === '')
-                  ? 'border-l-[3px] border-accent-amber bg-accent-amber-glow text-accent-amber'
-                  : 'text-secondary hover:bg-highlight hover:text-primary'
-              }`}
+              className={navItemClass(id)}
             >
-              <Icon className={`w-5 h-5 ${(activeView === id || (id === 'shows' && activeView === '')) ? 'text-accent-amber' : ''}`} />
-              <span className="font-medium flex-1">{label}</span>
+              <Icon className="w-[18px] h-[18px]" />
+              <span className="flex-1">{label}</span>
               {beta && (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent-amber-glow text-accent-amber border border-accent-amber/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-subtle text-amber border border-amber/20">
                   Beta
                 </span>
               )}
               {badge > 0 && (
-                <span className="bg-danger text-primary text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                <span className="bg-danger text-on-dark text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                   {badge}
                 </span>
               )}
@@ -133,22 +121,22 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
         </nav>
 
         {/* Pinned bottom: Invite + Feedback */}
-        <div className="p-3 space-y-1 border-t border-subtle">
+        <div className="px-3 py-2 space-y-0.5 border-t border-[rgba(255,255,255,0.08)]">
           {pinnedBottomItems.map(({ id, label, icon: Icon, badge }) => (
             <Link
               key={id}
               href={`/${id}`}
               onClick={() => { if (onClose) onClose(); }}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-[13px] transition-all ${
                 activeView === id
-                  ? 'border-l-[3px] border-accent-amber bg-accent-amber-glow text-accent-amber'
-                  : 'text-muted hover:bg-highlight hover:text-primary'
+                  ? 'text-[var(--green-primary)]'
+                  : 'text-on-dark-muted hover:bg-[rgba(255,255,255,0.06)] hover:text-on-dark'
               }`}
             >
-              <Icon className={`w-4 h-4 ${activeView === id ? 'text-accent-amber' : ''}`} />
+              <Icon className="w-4 h-4" />
               <span className="font-medium flex-1">{label}</span>
               {badge > 0 && (
-                <span className="bg-danger text-primary text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                <span className="bg-danger text-on-dark text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                   {badge}
                 </span>
               )}
@@ -157,20 +145,20 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
         </div>
 
         {/* Bottom section */}
-        <div className="p-3 border-t border-subtle space-y-1">
+        <div className="px-3 py-2 border-t border-[rgba(255,255,255,0.08)] space-y-0.5">
           {isGuest && (
             <>
-              <div className="px-4 py-2 mb-2 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
-                <p className="text-xs text-accent-amber">
+              <div className="px-4 py-2 mb-2 bg-[rgba(75,200,106,0.1)] border border-[rgba(75,200,106,0.2)] rounded-lg">
+                <p className="text-[11px] text-[var(--green-primary)]">
                   Your shows are saved locally. Create an account to sync across devices.
                 </p>
               </div>
               <button
                 onClick={() => { onCreateAccount(); onClose && onClose(); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left bg-accent-amber text-void font-semibold hover:opacity-90 transition-all"
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left bg-brand text-on-dark font-semibold hover:bg-brand-light transition-all"
               >
                 <User className="w-5 h-5" />
-                <span className="font-medium">Create Account</span>
+                <span>Create Account</span>
               </button>
             </>
           )}
@@ -178,13 +166,13 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
             <Link
               href="/admin"
               onClick={() => { if (onClose) onClose(); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-[13px] transition-all ${
                 activeView === 'admin'
-                  ? 'bg-danger/20 text-danger'
-                  : 'text-secondary hover:bg-highlight hover:text-primary'
+                  ? 'text-danger'
+                  : 'text-on-dark-muted hover:bg-[rgba(255,255,255,0.06)] hover:text-on-dark'
               }`}
             >
-              <Shield className={`w-5 h-5 ${activeView === 'admin' ? 'text-danger' : ''}`} />
+              <Shield className="w-4 h-4" />
               <span className="font-medium">Admin</span>
             </Link>
           )}
@@ -192,16 +180,16 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
             href="https://buymeacoffee.com/phillipd"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center gap-3 px-4 py-3 text-left text-accent-amber hover:bg-accent-amber-glow transition-all"
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-[13px] text-on-dark-muted hover:bg-[rgba(255,255,255,0.06)] hover:text-on-dark transition-all"
           >
-            <Coffee className="w-5 h-5" />
+            <Coffee className="w-4 h-4" />
             <span className="font-medium">Support</span>
           </a>
           <button
             onClick={handleLogoutClick}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left text-secondary hover:bg-highlight hover:text-primary transition-all"
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-[13px] text-on-dark-muted hover:bg-[rgba(255,255,255,0.06)] hover:text-on-dark transition-all"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             <span className="font-medium">{isGuest ? 'Exit Guest Mode' : 'Logout'}</span>
           </button>
         </div>

@@ -747,16 +747,16 @@ function AdminView() {
           <div className="flex items-center gap-4">
             <button
               onClick={handleBackToUsers}
-              className="p-2 bg-highlight hover:bg-highlight rounded-xl transition-colors"
+              className="p-2 bg-hover hover:bg-hover rounded-xl transition-colors"
             >
               <ChevronLeft className="w-5 h-5 text-primary" />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-amber flex items-center justify-center">
                 <User className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-primary font-display">
+                <h2 className="text-xl font-bold text-primary">
                   {selectedUser.displayName || selectedUser.firstName || 'Anonymous'}'s Shows
                 </h2>
                 <p className="text-sm text-secondary">{selectedUser.email}</p>
@@ -765,7 +765,7 @@ function AdminView() {
             {selectedUser.email && (
               <button
                 onClick={() => { setShowEmailForm(!showEmailForm); setEmailStatus(null); }}
-                className="ml-auto flex items-center gap-2 px-3 py-2 bg-highlight hover:bg-highlight rounded-xl text-sm font-medium text-secondary transition-colors"
+                className="ml-auto flex items-center gap-2 px-3 py-2 bg-hover hover:bg-hover rounded-xl text-sm font-medium text-secondary transition-colors"
               >
                 <Mail className="w-4 h-4" />
                 Email
@@ -775,7 +775,7 @@ function AdminView() {
 
           {/* Inline email compose */}
           {showEmailForm && (
-            <div className="bg-highlight border border-subtle rounded-2xl p-4 space-y-3">
+            <div className="bg-hover border border-subtle rounded-2xl p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm text-secondary">
                 <Mail className="w-4 h-4" />
                 <span>To: {selectedUser.email}</span>
@@ -785,30 +785,30 @@ function AdminView() {
                 placeholder="Subject"
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-brand/50"
               />
               <textarea
                 placeholder="Message body..."
                 value={emailBody}
                 onChange={(e) => setEmailBody(e.target.value)}
                 rows={5}
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50 resize-none"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-brand/50 resize-none"
               />
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleSendEmail}
                   disabled={emailSending || !emailSubject.trim() || !emailBody.trim()}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal disabled:opacity-50 disabled:cursor-not-allowed text-primary rounded-xl font-medium transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber disabled:opacity-50 disabled:cursor-not-allowed text-primary rounded-xl font-medium transition-all text-sm"
                 >
                   {emailSending ? 'Sending...' : 'Send'}
                 </button>
                 <button
                   onClick={() => { setShowEmailForm(false); setEmailSubject(''); setEmailBody(''); setEmailStatus(null); }}
-                  className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
+                  className="px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
                 >
                   Cancel
                 </button>
-                {emailStatus === 'success' && <span className="text-sm text-accent-amber">Sent!</span>}
+                {emailStatus === 'success' && <span className="text-sm text-brand">Sent!</span>}
                 {emailStatus === 'error' && <span className="text-sm text-danger">Failed to send. Check RESEND_API_KEY.</span>}
               </div>
             </div>
@@ -824,10 +824,10 @@ function AdminView() {
             const sessionId = selectedUser.guestSessionId || guestSession?.id;
 
             return (
-              <div className="bg-accent-amber-glow border border-accent-amber/20 rounded-2xl p-5">
+              <div className="bg-brand-subtle border border-brand/20 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-accent-amber" />
-                  <h3 className="text-sm font-semibold text-accent-amber uppercase tracking-wide">Converted from Guest</h3>
+                  <Sparkles className="w-5 h-5 text-brand" />
+                  <h3 className="text-sm font-semibold text-brand uppercase tracking-wide">Converted from Guest</h3>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
@@ -844,15 +844,15 @@ function AdminView() {
                   </div>
                   <div>
                     <div className="text-xs text-muted mb-1">Shows as Guest</div>
-                    <div className="text-sm text-accent-amber font-bold">{guestShowsCount}</div>
+                    <div className="text-sm text-brand font-bold">{guestShowsCount}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted mb-1">Shows After Conversion</div>
-                    <div className="text-sm text-accent-amber font-bold">{(selectedUser.showCount || 0)}</div>
+                    <div className="text-sm text-brand font-bold">{(selectedUser.showCount || 0)}</div>
                   </div>
                 </div>
                 {sessionId && (
-                  <div className="mt-3 pt-3 border-t border-accent-amber/10">
+                  <div className="mt-3 pt-3 border-t border-brand/10">
                     <div className="text-xs text-muted">Guest Session ID: <span className="font-mono text-secondary">{sessionId}</span></div>
                   </div>
                 )}
@@ -874,18 +874,18 @@ function AdminView() {
             if (!isInvited && sentInvites.length === 0) return null;
 
             return (
-              <div className="bg-accent-teal/10 border border-accent-teal/20 rounded-2xl p-5">
+              <div className="bg-amber/10 border border-amber/20 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Send className="w-5 h-5 text-accent-teal" />
-                  <h3 className="text-sm font-semibold text-accent-teal uppercase tracking-wide">Invitation & Referral Info</h3>
+                  <Send className="w-5 h-5 text-amber" />
+                  <h3 className="text-sm font-semibold text-amber uppercase tracking-wide">Invitation & Referral Info</h3>
                 </div>
 
                 {/* Who invited this user */}
                 {isInvited && (
                   <div className="mb-4">
                     <div className="text-xs text-muted mb-2">Invited By</div>
-                    <div className="flex items-center gap-3 bg-highlight rounded-xl p-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-amber to-accent-teal flex items-center justify-center">
+                    <div className="flex items-center gap-3 bg-hover rounded-xl p-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-amber flex items-center justify-center">
                         <User className="w-4 h-4 text-primary" />
                       </div>
                       <div>
@@ -911,15 +911,15 @@ function AdminView() {
                       {sentInvites.map(inv => {
                         const invitee = users.find(u => (u.email || '').toLowerCase() === (inv.inviteeEmail || '').toLowerCase());
                         return (
-                          <div key={inv.id} className="flex items-center gap-3 bg-highlight rounded-xl p-3">
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${inv.status === 'accepted' ? 'bg-accent-amber' : 'bg-highlight'}`} />
+                          <div key={inv.id} className="flex items-center gap-3 bg-hover rounded-xl p-3">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${inv.status === 'accepted' ? 'bg-brand' : 'bg-hover'}`} />
                             <div className="flex-1 min-w-0">
                               <div className="text-sm text-secondary truncate">
                                 {invitee ? (invitee.firstName || invitee.displayName || inv.inviteeEmail) : inv.inviteeEmail}
                               </div>
                             </div>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                              inv.status === 'accepted' ? 'bg-accent-amber-glow text-accent-amber' : 'bg-highlight text-muted'
+                              inv.status === 'accepted' ? 'bg-brand-subtle text-brand' : 'bg-hover text-muted'
                             }`}>
                               {inv.status === 'accepted' ? 'Joined' : 'Pending'}
                             </span>
@@ -931,22 +931,22 @@ function AdminView() {
                       })}
                     </div>
                     {stats && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 pt-3 border-t border-accent-teal/10">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 pt-3 border-t border-amber/10">
                         <div>
                           <div className="text-xs text-muted">Conversion Rate</div>
-                          <div className="text-sm text-accent-teal font-bold">{stats.conversionRate}%</div>
+                          <div className="text-sm text-amber font-bold">{stats.conversionRate}%</div>
                         </div>
                         <div>
                           <div className="text-xs text-muted">Invitee Shows</div>
-                          <div className="text-sm text-accent-amber font-bold">{stats.totalInviteeShows}</div>
+                          <div className="text-sm text-brand font-bold">{stats.totalInviteeShows}</div>
                         </div>
                         <div>
                           <div className="text-xs text-muted">Invitee Songs</div>
-                          <div className="text-sm text-accent-teal font-bold">{stats.totalInviteeSongs}</div>
+                          <div className="text-sm text-amber font-bold">{stats.totalInviteeSongs}</div>
                         </div>
                         <div>
                           <div className="text-xs text-muted">Rank</div>
-                          <div className="text-sm text-accent-amber font-bold">
+                          <div className="text-sm text-brand font-bold">
                             #{inviteData.leaderboard.findIndex(l => l.uid === selectedUser.id) + 1 || '—'}
                           </div>
                         </div>
@@ -966,8 +966,8 @@ function AdminView() {
               { label: 'Venues', value: selectedUser.venueCount || 0 },
               { label: 'Joined', value: selectedUser.createdAt?.toLocaleDateString?.() || 'Unknown', isDate: true },
             ].map(stat => (
-              <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-4 border border-subtle">
-                <div className="text-2xl font-bold text-accent-amber">
+              <div key={stat.label} className="bg-hover backdrop-blur-xl rounded-2xl p-4 border border-subtle">
+                <div className="text-2xl font-bold text-brand">
                   {stat.isDate ? stat.value : stat.value.toLocaleString()}
                 </div>
                 <div className="text-xs font-medium text-secondary mt-1">{stat.label}</div>
@@ -984,7 +984,7 @@ function AdminView() {
                 placeholder="Filter shows by artist, venue, or city..."
                 value={showSearchTerm}
                 onChange={(e) => setShowSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+                className="w-full pl-11 pr-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -995,8 +995,8 @@ function AdminView() {
                   onClick={() => setShowSortBy(opt)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     showSortBy === opt
-                      ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                      : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                      ? 'bg-brand-subtle text-brand border border-brand/30'
+                      : 'bg-hover text-secondary hover:bg-hover border border-subtle'
                   }`}
                 >
                   {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -1020,7 +1020,7 @@ function AdminView() {
                 return (
                   <div
                     key={show.id}
-                    className="bg-highlight rounded-2xl p-4 border border-subtle hover:bg-highlight hover:border-active cursor-pointer transition-all"
+                    className="bg-hover rounded-2xl p-4 border border-subtle hover:bg-hover hover:border-active cursor-pointer transition-all"
                     onClick={() => setSelectedAdminShow(show)}
                   >
                     <div className="flex items-center justify-between">
@@ -1030,7 +1030,7 @@ function AdminView() {
                             {show.artist}
                           </span>
                           {show.isManual && (
-                            <span className="text-xs bg-highlight text-muted px-2 py-0.5 rounded-full">Manual</span>
+                            <span className="text-xs bg-hover text-muted px-2 py-0.5 rounded-full">Manual</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
@@ -1044,7 +1044,7 @@ function AdminView() {
                           <span className="text-secondary">{(show.setlist || []).length} songs</span>
                         </div>
                         {show.tour && (
-                          <div className="text-xs text-accent-amber font-medium mt-1.5">Tour: {show.tour}</div>
+                          <div className="text-xs text-brand font-medium mt-1.5">Tour: {show.tour}</div>
                         )}
                         {show.comment && (
                           <div className="flex items-start gap-1.5 mt-1.5 text-xs text-secondary italic">
@@ -1054,7 +1054,7 @@ function AdminView() {
                         )}
                         <div className="flex items-center gap-3 mt-2">
                           {show.rating && (
-                            <span className="text-sm font-semibold text-accent-amber">Show: {show.rating}/10</span>
+                            <span className="text-sm font-semibold text-brand">Show: {show.rating}/10</span>
                           )}
                           {songAvg && (
                             <span className="text-xs font-medium text-muted">Songs avg: {songAvg}/10</span>
@@ -1094,10 +1094,10 @@ function AdminView() {
         <>
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold text-primary font-display">Admin Portal</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-primary">Admin Portal</h2>
             <button
               onClick={() => { loadUsers(); loadGuestSessions(); loadAllInvites(); loadRoadmapData(); }}
-              className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm"
+              className="px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
             >
               Refresh
             </button>
@@ -1109,8 +1109,8 @@ function AdminView() {
               onClick={() => setAdminTab('users')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'users'
-                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -1120,8 +1120,8 @@ function AdminView() {
               onClick={() => setAdminTab('guestTrials')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'guestTrials'
-                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
               }`}
             >
               <Eye className="w-4 h-4" />
@@ -1131,36 +1131,36 @@ function AdminView() {
               onClick={() => setAdminTab('conversions')}
               className={`relative shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'conversions'
-                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
               }`}
             >
               <Sparkles className="w-4 h-4" />
               Conversions
               {convertedUsers.length > 0 && (
-                <span className="ml-1 bg-accent-amber/30 text-accent-amber text-[10px] font-bold px-1.5 py-0.5 rounded-full">{convertedUsers.length}</span>
+                <span className="ml-1 bg-brand/30 text-brand text-[10px] font-bold px-1.5 py-0.5 rounded-full">{convertedUsers.length}</span>
               )}
             </button>
             <button
               onClick={() => setAdminTab('referrals')}
               className={`relative shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'referrals'
-                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
               }`}
             >
               <Send className="w-4 h-4" />
               Referrals
               {inviteData.invitedUsers.length > 0 && (
-                <span className="ml-1 bg-accent-amber/30 text-accent-amber text-[10px] font-bold px-1.5 py-0.5 rounded-full">{inviteData.invitedUsers.length}</span>
+                <span className="ml-1 bg-brand/30 text-brand text-[10px] font-bold px-1.5 py-0.5 rounded-full">{inviteData.invitedUsers.length}</span>
               )}
             </button>
             <button
               onClick={() => setAdminTab('roadmap')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'roadmap'
-                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
               }`}
             >
               <TrendingUp className="w-4 h-4" />
@@ -1170,8 +1170,8 @@ function AdminView() {
               onClick={() => setAdminTab('bulkImport')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'bulkImport'
-                  ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                  : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
               }`}
             >
               <Upload className="w-4 h-4" />
@@ -1185,12 +1185,12 @@ function AdminView() {
               {/* Stats Overview */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Users', value: totalStats.totalUsers, color: 'from-accent-teal to-accent-teal' },
-                  { label: 'Total Shows', value: totalStats.totalShows, color: 'from-accent-amber to-accent-teal' },
-                  { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-accent-amber to-accent-amber' },
-                  { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-accent-teal to-danger' },
+                  { label: 'Total Users', value: totalStats.totalUsers, color: 'from-amber to-amber' },
+                  { label: 'Total Shows', value: totalStats.totalShows, color: 'from-brand to-amber' },
+                  { label: 'Total Songs', value: totalStats.totalSongs, color: 'from-brand to-brand' },
+                  { label: 'Songs Rated', value: totalStats.totalRated, color: 'from-amber to-danger' },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
+                  <div key={stat.label} className="bg-hover backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                     <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                       {stat.value.toLocaleString()}
                     </div>
@@ -1208,44 +1208,44 @@ function AdminView() {
                     placeholder="Search users by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-highlight border border-subtle rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+                    className="w-full pl-12 pr-4 py-3 bg-hover border border-subtle rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                   />
                 </div>
                 <button
                   onClick={() => { setShowOnlyConverted(!showOnlyConverted); setShowOnlyInvited(false); }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
                     showOnlyConverted
-                      ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                      : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                      ? 'bg-brand-subtle text-brand border border-brand/30'
+                      : 'bg-hover text-secondary hover:bg-hover border border-subtle'
                   }`}
                 >
                   <Sparkles className="w-4 h-4" />
                   Converted Only
                   {showOnlyConverted && convertedUserIds.size > 0 && (
-                    <span className="text-[10px] font-bold bg-accent-amber/30 px-1.5 py-0.5 rounded-full">{convertedUserIds.size}</span>
+                    <span className="text-[10px] font-bold bg-brand/30 px-1.5 py-0.5 rounded-full">{convertedUserIds.size}</span>
                   )}
                 </button>
                 <button
                   onClick={() => { setShowOnlyInvited(!showOnlyInvited); setShowOnlyConverted(false); }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
                     showOnlyInvited
-                      ? 'bg-accent-teal/20 text-accent-teal border border-accent-teal/30'
-                      : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                      ? 'bg-amber/20 text-amber border border-amber/30'
+                      : 'bg-hover text-secondary hover:bg-hover border border-subtle'
                   }`}
                 >
                   <Mail className="w-4 h-4" />
                   Invited Only
                   {showOnlyInvited && inviteData.invitedUserIds.size > 0 && (
-                    <span className="text-[10px] font-bold bg-accent-teal/30 px-1.5 py-0.5 rounded-full">{inviteData.invitedUserIds.size}</span>
+                    <span className="text-[10px] font-bold bg-amber/30 px-1.5 py-0.5 rounded-full">{inviteData.invitedUserIds.size}</span>
                   )}
                 </button>
               </div>
 
               {/* Users Table */}
-              <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
+              <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-highlight border-b border-subtle">
+                    <tr className="bg-hover border-b border-subtle">
                       <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">User</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">Email</th>
                       <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows</th>
@@ -1260,15 +1260,15 @@ function AdminView() {
                     {filteredUsers.map((user) => (
                       <tr
                         key={user.id}
-                        className="hover:bg-highlight transition-colors cursor-pointer"
+                        className="hover:bg-hover transition-colors cursor-pointer"
                         onClick={() => handleSelectUser(user)}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              convertedUserIds.has(user.id) ? 'bg-gradient-to-br from-accent-amber to-accent-amber' :
-                              inviteData.invitedUserIds.has(user.id) ? 'bg-gradient-to-br from-accent-teal to-accent-teal' :
-                              'bg-gradient-to-br from-accent-amber to-accent-teal'
+                              convertedUserIds.has(user.id) ? 'bg-gradient-to-br from-brand to-brand' :
+                              inviteData.invitedUserIds.has(user.id) ? 'bg-gradient-to-br from-amber to-amber' :
+                              'bg-gradient-to-br from-brand to-amber'
                             }`}>
                               {convertedUserIds.has(user.id) ? <Sparkles className="w-5 h-5 text-primary" /> :
                                inviteData.invitedUserIds.has(user.id) ? <Mail className="w-5 h-5 text-primary" /> :
@@ -1278,12 +1278,12 @@ function AdminView() {
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-primary">{user.firstName || 'Anonymous'}</span>
                                 {convertedUserIds.has(user.id) && (
-                                  <span className="text-[10px] bg-accent-amber-glow text-accent-amber px-1.5 py-0.5 rounded-full font-semibold">
+                                  <span className="text-[10px] bg-brand-subtle text-brand px-1.5 py-0.5 rounded-full font-semibold">
                                     Converted
                                   </span>
                                 )}
                                 {inviteData.invitedUserIds.has(user.id) && (
-                                  <span className="text-[10px] bg-accent-teal/20 text-accent-teal px-1.5 py-0.5 rounded-full font-semibold">
+                                  <span className="text-[10px] bg-amber/20 text-amber px-1.5 py-0.5 rounded-full font-semibold">
                                     Invited
                                   </span>
                                 )}
@@ -1294,7 +1294,7 @@ function AdminView() {
                         </td>
                         <td className="px-6 py-4 text-secondary hidden md:table-cell">{user.email}</td>
                         <td className="px-6 py-4 text-center">
-                          <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
                             {user.showCount || 0}
                           </span>
                         </td>
@@ -1339,12 +1339,12 @@ function AdminView() {
               {/* Guest Trial Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Trials', value: guestTrialStats.total, color: 'from-accent-teal to-accent-teal' },
-                  { label: 'Converted', value: guestTrialStats.converted, color: 'from-accent-amber to-accent-teal' },
-                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-accent-amber to-accent-amber' },
-                  { label: 'Shows Added', value: guestTrialStats.totalShowsAdded, color: 'from-accent-teal to-danger' },
+                  { label: 'Total Trials', value: guestTrialStats.total, color: 'from-amber to-amber' },
+                  { label: 'Converted', value: guestTrialStats.converted, color: 'from-brand to-amber' },
+                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-brand to-brand' },
+                  { label: 'Shows Added', value: guestTrialStats.totalShowsAdded, color: 'from-amber to-danger' },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
+                  <div key={stat.label} className="bg-hover backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                     <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                       {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                     </div>
@@ -1354,9 +1354,9 @@ function AdminView() {
               </div>
 
               {/* Engaged Guests (added shows) */}
-              <div className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
+              <div className="bg-hover backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                 <div className="text-sm font-medium text-secondary mb-1">Engaged Guests</div>
-                <div className="text-2xl font-bold text-accent-amber">{guestTrialStats.withShows}</div>
+                <div className="text-2xl font-bold text-brand">{guestTrialStats.withShows}</div>
                 <div className="text-xs text-muted mt-1">Guests who added at least one show</div>
               </div>
 
@@ -1366,10 +1366,10 @@ function AdminView() {
                   <div className="text-secondary font-medium">Loading guest sessions...</div>
                 </div>
               ) : (
-                <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
+                <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-highlight border-b border-subtle">
+                      <tr className="bg-hover border-b border-subtle">
                         <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Started</th>
                         <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows Added</th>
                         <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Status</th>
@@ -1378,7 +1378,7 @@ function AdminView() {
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {guestSessions.map((session) => (
-                        <tr key={session.id} className="hover:bg-highlight transition-colors">
+                        <tr key={session.id} className="hover:bg-hover transition-colors">
                           <td className="px-6 py-4 text-secondary text-sm">
                             {session.startedAt?.toLocaleDateString?.() || 'Unknown'}
                             <span className="text-muted ml-2 hidden sm:inline">
@@ -1388,20 +1388,20 @@ function AdminView() {
                           <td className="px-6 py-4 text-center">
                             <span className={`px-2.5 py-1 rounded-full text-sm font-semibold ${
                               (session.showsAdded || 0) > 0
-                                ? 'bg-accent-amber-glow text-accent-amber'
-                                : 'bg-highlight text-muted'
+                                ? 'bg-brand-subtle text-brand'
+                                : 'bg-hover text-muted'
                             }`}>
                               {session.showsAdded || 0}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             {session.converted ? (
-                              <span className="inline-flex items-center gap-1 bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-xs font-semibold">
+                              <span className="inline-flex items-center gap-1 bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-xs font-semibold">
                                 <Check className="w-3 h-3" />
                                 Converted
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 bg-highlight text-muted px-2.5 py-1 rounded-full text-xs font-semibold">
+                              <span className="inline-flex items-center gap-1 bg-hover text-muted px-2.5 py-1 rounded-full text-xs font-semibold">
                                 <Eye className="w-3 h-3" />
                                 Browsing
                               </span>
@@ -1431,12 +1431,12 @@ function AdminView() {
               {/* Conversion Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Converted', value: convertedUsers.length, color: 'from-accent-amber to-accent-teal' },
-                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-accent-amber to-accent-amber' },
-                  { label: 'Guest Shows Added', value: convertedUsers.reduce((acc, u) => acc + (u.guestShowsAdded || 0), 0), color: 'from-accent-teal to-accent-teal' },
-                  { label: 'Post-Conv Shows', value: convertedUsers.reduce((acc, u) => acc + (u.showCount || 0), 0), color: 'from-accent-teal to-danger' },
+                  { label: 'Total Converted', value: convertedUsers.length, color: 'from-brand to-amber' },
+                  { label: 'Conversion Rate', value: `${guestTrialStats.conversionRate}%`, color: 'from-brand to-brand' },
+                  { label: 'Guest Shows Added', value: convertedUsers.reduce((acc, u) => acc + (u.guestShowsAdded || 0), 0), color: 'from-amber to-amber' },
+                  { label: 'Post-Conv Shows', value: convertedUsers.reduce((acc, u) => acc + (u.showCount || 0), 0), color: 'from-amber to-danger' },
                 ].map(stat => (
-                  <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
+                  <div key={stat.label} className="bg-hover backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                     <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                       {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                     </div>
@@ -1459,8 +1459,8 @@ function AdminView() {
                       onClick={() => setConversionSortBy(opt.id)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                         conversionSortBy === opt.id
-                          ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                          : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                          ? 'bg-brand-subtle text-brand border border-brand/30'
+                          : 'bg-hover text-secondary hover:bg-hover border border-subtle'
                       }`}
                     >
                       {opt.label}
@@ -1481,7 +1481,7 @@ function AdminView() {
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl text-sm font-medium transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   Export CSV
@@ -1489,10 +1489,10 @@ function AdminView() {
               </div>
 
               {/* Converted Users Table */}
-              <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
+              <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-highlight border-b border-subtle">
+                    <tr className="bg-hover border-b border-subtle">
                       <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">User</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">Email</th>
                       <th className="text-center px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Guest Shows</th>
@@ -1505,12 +1505,12 @@ function AdminView() {
                     {sortedConvertedUsers.map(user => (
                       <tr
                         key={user.id}
-                        className="hover:bg-highlight transition-colors cursor-pointer"
+                        className="hover:bg-hover transition-colors cursor-pointer"
                         onClick={() => handleSelectUser(user)}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-amber to-accent-amber flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand flex items-center justify-center">
                               <Sparkles className="w-5 h-5 text-primary" />
                             </div>
                             <div>
@@ -1523,14 +1523,14 @@ function AdminView() {
                         <td className="px-6 py-4 text-center">
                           <span className={`px-2.5 py-1 rounded-full text-sm font-semibold ${
                             (user.guestShowsAdded || 0) > 0
-                              ? 'bg-accent-teal-glow text-accent-teal'
-                              : 'bg-highlight text-muted'
+                              ? 'bg-amber-subtle text-amber'
+                              : 'bg-hover text-muted'
                           }`}>
                             {user.guestShowsAdded || 0}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
                             {user.showCount || 0}
                           </span>
                         </td>
@@ -1562,12 +1562,12 @@ function AdminView() {
           {/* Referral Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Invites Sent', value: allInvites.length, color: 'from-accent-teal to-accent-teal' },
-              { label: 'Accepted', value: allInvites.filter(i => i.status === 'accepted').length, color: 'from-accent-amber to-accent-teal' },
-              { label: 'Acceptance Rate', value: allInvites.length > 0 ? `${((allInvites.filter(i => i.status === 'accepted').length / allInvites.length) * 100).toFixed(1)}%` : '0%', color: 'from-accent-amber to-accent-amber' },
-              { label: 'Active Inviters', value: inviteData.leaderboard.length, color: 'from-accent-teal to-danger' },
+              { label: 'Total Invites Sent', value: allInvites.length, color: 'from-amber to-amber' },
+              { label: 'Accepted', value: allInvites.filter(i => i.status === 'accepted').length, color: 'from-brand to-amber' },
+              { label: 'Acceptance Rate', value: allInvites.length > 0 ? `${((allInvites.filter(i => i.status === 'accepted').length / allInvites.length) * 100).toFixed(1)}%` : '0%', color: 'from-brand to-brand' },
+              { label: 'Active Inviters', value: inviteData.leaderboard.length, color: 'from-amber to-danger' },
             ].map(stat => (
-              <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-5 border border-subtle">
+              <div key={stat.label} className="bg-hover backdrop-blur-xl rounded-2xl p-5 border border-subtle">
                 <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                   {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                 </div>
@@ -1579,7 +1579,7 @@ function AdminView() {
           {/* Invited Users Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary font-display">Invited Users ({sortedInvitedUsers.length})</h3>
+              <h3 className="text-lg font-semibold text-primary">Invited Users ({sortedInvitedUsers.length})</h3>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-secondary">Sort:</span>
                 {[
@@ -1592,8 +1592,8 @@ function AdminView() {
                     onClick={() => setReferralSortBy(opt.key)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                       referralSortBy === opt.key
-                        ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                        : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                        ? 'bg-brand-subtle text-brand border border-brand/30'
+                        : 'bg-hover text-secondary hover:bg-hover border border-subtle'
                     }`}
                   >
                     {opt.label}
@@ -1602,10 +1602,10 @@ function AdminView() {
               </div>
             </div>
 
-            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
+            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-highlight border-b border-subtle">
+                  <tr className="bg-hover border-b border-subtle">
                     <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Invited User</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide hidden md:table-cell">Email</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Invited By</th>
@@ -1618,12 +1618,12 @@ function AdminView() {
                   {sortedInvitedUsers.map(user => (
                     <tr
                       key={user.id}
-                      className="hover:bg-highlight transition-colors cursor-pointer"
+                      className="hover:bg-hover transition-colors cursor-pointer"
                       onClick={() => handleSelectUser(user)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-teal to-accent-teal flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber to-amber flex items-center justify-center">
                             <Mail className="w-5 h-5 text-primary" />
                           </div>
                           <span className="font-medium text-primary">{user.firstName || user.displayName || 'Anonymous'}</span>
@@ -1631,10 +1631,10 @@ function AdminView() {
                       </td>
                       <td className="px-6 py-4 text-secondary hidden md:table-cell">{user.email}</td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-accent-amber font-medium">{user.inviterName || 'Unknown'}</span>
+                        <span className="text-sm text-brand font-medium">{user.inviterName || 'Unknown'}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
+                        <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
                           {user.showCount || 0}
                         </span>
                       </td>
@@ -1658,8 +1658,8 @@ function AdminView() {
           {/* Inviter Leaderboard */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary font-display flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-accent-amber" />
+              <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-brand" />
                 Inviter Leaderboard
               </h3>
               <button
@@ -1680,7 +1680,7 @@ function AdminView() {
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="flex items-center gap-2 px-3 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-hover hover:bg-hover text-secondary rounded-xl text-sm font-medium transition-colors"
               >
                 <Download className="w-4 h-4" />
                 Export CSV
@@ -1691,7 +1691,7 @@ function AdminView() {
               {inviteData.leaderboard.map((inviter, idx) => (
                 <div
                   key={inviter.uid}
-                  className="bg-highlight border border-subtle rounded-2xl p-5 hover:bg-highlight transition-colors cursor-pointer"
+                  className="bg-hover border border-subtle rounded-2xl p-5 hover:bg-hover transition-colors cursor-pointer"
                   onClick={() => {
                     const user = users.find(u => u.id === inviter.uid);
                     if (user) handleSelectUser(user);
@@ -1699,10 +1699,10 @@ function AdminView() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                      idx === 0 ? 'bg-gradient-to-br from-accent-amber to-accent-amber text-primary' :
+                      idx === 0 ? 'bg-gradient-to-br from-brand to-brand text-on-dark' :
                       idx === 1 ? 'bg-gradient-to-br from-secondary to-muted text-primary' :
-                      idx === 2 ? 'bg-gradient-to-br from-accent-amber to-accent-amber text-primary' :
-                      'bg-highlight text-secondary'
+                      idx === 2 ? 'bg-gradient-to-br from-brand to-brand text-on-dark' :
+                      'bg-hover text-secondary'
                     }`}>
                       {idx + 1}
                     </div>
@@ -1712,19 +1712,19 @@ function AdminView() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                       <div>
-                        <div className="text-lg font-bold text-accent-teal">{inviter.totalSent}</div>
+                        <div className="text-lg font-bold text-amber">{inviter.totalSent}</div>
                         <div className="text-[10px] text-muted uppercase">Sent</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-accent-amber">{inviter.totalAccepted}</div>
+                        <div className="text-lg font-bold text-brand">{inviter.totalAccepted}</div>
                         <div className="text-[10px] text-muted uppercase">Accepted</div>
                       </div>
                       <div className="hidden md:block">
-                        <div className="text-lg font-bold text-accent-amber">{inviter.conversionRate}%</div>
+                        <div className="text-lg font-bold text-brand">{inviter.conversionRate}%</div>
                         <div className="text-[10px] text-muted uppercase">Rate</div>
                       </div>
                       <div className="hidden md:block">
-                        <div className="text-lg font-bold text-accent-teal">{inviter.totalInviteeShows}</div>
+                        <div className="text-lg font-bold text-amber">{inviter.totalInviteeShows}</div>
                         <div className="text-[10px] text-muted uppercase">Invitee Shows</div>
                       </div>
                     </div>
@@ -1754,10 +1754,10 @@ function AdminView() {
         <div className="space-y-6">
           {/* Header with New Item button */}
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-primary font-display">Roadmap Items</h3>
+            <h3 className="text-lg font-semibold text-primary">Roadmap Items</h3>
             <button
               onClick={() => setCreatingItem(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-amber-glow hover:bg-accent-amber/30 text-accent-amber border border-accent-amber/30 rounded-xl text-sm font-medium transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl text-sm font-medium transition-all"
             >
               <Plus className="w-4 h-4" />
               New Item
@@ -1766,25 +1766,25 @@ function AdminView() {
 
           {/* Create Item Form */}
           {creatingItem && (
-            <div className="bg-highlight border border-subtle rounded-2xl p-5 space-y-3">
+            <div className="bg-hover border border-subtle rounded-2xl p-5 space-y-3">
               <h4 className="text-sm font-semibold text-primary">New Roadmap Item</h4>
               <input
                 value={newItemTitle}
                 onChange={e => setNewItemTitle(e.target.value)}
                 placeholder="Title"
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-brand/50"
               />
               <textarea
                 value={newItemDesc}
                 onChange={e => setNewItemDesc(e.target.value)}
                 placeholder="Description (optional)"
                 rows={3}
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50 resize-none"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-brand/50 resize-none"
               />
               <select
                 value={newItemCategory}
                 onChange={e => setNewItemCategory(e.target.value)}
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-brand/50"
               >
                 {Object.entries(ROADMAP_CATEGORIES).map(([k, v]) => (
                   <option key={k} value={k} className="bg-surface">{v}</option>
@@ -1794,13 +1794,13 @@ function AdminView() {
                 <button
                   onClick={createRoadmapItem}
                   disabled={!newItemTitle.trim() || savingItem}
-                  className="px-4 py-2 bg-accent-amber hover:bg-accent-amber text-primary rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-brand hover:bg-brand text-on-dark rounded-xl text-sm font-medium transition-all disabled:opacity-50"
                 >
                   {savingItem ? 'Creating...' : 'Create Draft'}
                 </button>
                 <button
                   onClick={() => { setCreatingItem(false); setNewItemTitle(''); setNewItemDesc(''); setNewItemCategory('other'); }}
-                  className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
+                  className="px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -1881,8 +1881,8 @@ function AdminView() {
         <div className="space-y-6">
           {/* Step 1: Select User */}
           {bulkImportStep === 'select-user' && (
-            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
-              <h3 className="text-lg font-semibold text-primary mb-1 font-display">Bulk Import Shows</h3>
+            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8">
+              <h3 className="text-lg font-semibold text-primary mb-1">Bulk Import Shows</h3>
               <p className="text-secondary text-sm mb-6">Select a user to import shows into their profile.</p>
               <div className="relative mb-4">
                 <Search className="w-5 h-5 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
@@ -1891,7 +1891,7 @@ function AdminView() {
                   placeholder="Search users by name or email..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-highlight border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent-amber/50"
+                  className="w-full pl-12 pr-4 py-3 bg-hover border border-subtle rounded-xl text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-brand/50"
                 />
               </div>
               <div className="max-h-96 overflow-y-auto space-y-2">
@@ -1906,9 +1906,9 @@ function AdminView() {
                     <button
                       key={u.id}
                       onClick={() => handleBulkImportSelectUser(u)}
-                      className="w-full flex items-center gap-3 p-3 bg-highlight hover:bg-highlight border border-subtle rounded-xl text-left transition-all"
+                      className="w-full flex items-center gap-3 p-3 bg-hover hover:bg-hover border border-subtle rounded-xl text-left transition-all"
                     >
-                      <div className="w-8 h-8 bg-accent-amber-glow rounded-full flex items-center justify-center text-accent-amber text-sm font-bold flex-shrink-0">
+                      <div className="w-8 h-8 bg-brand-subtle rounded-full flex items-center justify-center text-brand text-sm font-bold flex-shrink-0">
                         {(u.firstName || u.displayName || '?')[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1924,12 +1924,12 @@ function AdminView() {
 
           {/* Step 2: Upload File */}
           {bulkImportStep === 'upload' && (
-            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6 p-3 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
-                <User className="w-5 h-5 text-accent-amber" />
+            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8">
+              <div className="flex items-center gap-3 mb-6 p-3 bg-brand-subtle border border-brand/20 rounded-xl">
+                <User className="w-5 h-5 text-brand" />
                 <div>
                   <span className="text-primary font-medium text-sm">Importing for: </span>
-                  <span className="text-accent-amber font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                  <span className="text-brand font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
                   <span className="text-muted text-xs ml-2">({bulkImportTargetUser?.email})</span>
                 </div>
                 <button onClick={resetBulkImport} className="ml-auto text-muted hover:text-primary text-xs">Change user</button>
@@ -1967,15 +1967,15 @@ function AdminView() {
 
           {/* Step 3: Column Mapping */}
           {bulkImportStep === 'mapping' && (
-            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6 p-3 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
-                <User className="w-5 h-5 text-accent-amber" />
+            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8">
+              <div className="flex items-center gap-3 mb-6 p-3 bg-brand-subtle border border-brand/20 rounded-xl">
+                <User className="w-5 h-5 text-brand" />
                 <div>
                   <span className="text-primary font-medium text-sm">Importing for: </span>
-                  <span className="text-accent-amber font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                  <span className="text-brand font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 font-display">Map Your Columns</h3>
+              <h3 className="text-lg font-semibold text-primary mb-2">Map Your Columns</h3>
               <p className="text-secondary text-sm mb-6">{bulkImportHeaders.length} columns detected from {bulkImportFileName} &middot; {bulkImportRawData.length} data row{bulkImportRawData.length !== 1 ? 's' : ''}</p>
               <div className="space-y-4 mb-8">
                 {IMPORT_FIELDS.map(field => (
@@ -1986,7 +1986,7 @@ function AdminView() {
                     <select
                       value={bulkImportMapping[field.key] !== undefined ? bulkImportMapping[field.key] : ''}
                       onChange={e => setBulkImportMapping(prev => ({ ...prev, [field.key]: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                      className="flex-1 px-4 py-2.5 bg-highlight border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-accent-amber/50 [&>option]:bg-elevated"
+                      className="flex-1 px-4 py-2.5 bg-hover border border-subtle rounded-xl text-primary focus:outline-none focus:ring-2 focus:ring-brand/50 [&>option]:bg-elevated"
                     >
                       <option value="">-- Skip --</option>
                       {bulkImportHeaders.map((h, i) => (<option key={i} value={i}>{h || `Column ${i + 1}`}</option>))}
@@ -1995,7 +1995,7 @@ function AdminView() {
                 ))}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setBulkImportStep('upload')} className="px-5 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors">Back</button>
+                <button onClick={() => setBulkImportStep('upload')} className="px-5 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors">Back</button>
                 <button
                   onClick={() => {
                     const missing = IMPORT_FIELDS.filter(f => f.required && bulkImportMapping[f.key] === undefined).map(f => f.label);
@@ -2004,7 +2004,7 @@ function AdminView() {
                     setBulkImportPreviewRows(buildBulkImportPreview());
                     setBulkImportStep('preview');
                   }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
+                  className="px-5 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
                 >Preview Import</button>
               </div>
               {bulkImportError && (
@@ -2023,21 +2023,21 @@ function AdminView() {
             const duplicateRows = validRows.filter(r => r.isDuplicate);
             const importableRows = validRows.filter(r => !r.isDuplicate);
             return (
-              <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8">
-                <div className="flex items-center gap-3 mb-6 p-3 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
-                  <User className="w-5 h-5 text-accent-amber" />
+              <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8">
+                <div className="flex items-center gap-3 mb-6 p-3 bg-brand-subtle border border-brand/20 rounded-xl">
+                  <User className="w-5 h-5 text-brand" />
                   <div>
                     <span className="text-primary font-medium text-sm">Importing for: </span>
-                    <span className="text-accent-amber font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
+                    <span className="text-brand font-medium text-sm">{bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}</span>
                     <span className="text-muted text-xs ml-2">({bulkImportTargetUser?.email})</span>
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-primary mb-2 font-display">Review Import</h3>
+                <h3 className="text-lg font-semibold text-primary mb-2">Review Import</h3>
                 <p className="text-secondary text-sm mb-4">{bulkImportPreviewRows.length} rows from {bulkImportFileName}</p>
                 <div className="flex flex-wrap gap-3 mb-6">
-                  <span className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium">{importableRows.length} ready to import</span>
+                  <span className="px-3 py-1.5 bg-brand-subtle text-brand rounded-lg text-sm font-medium">{importableRows.length} ready to import</span>
                   {errorRows.length > 0 && <span className="px-3 py-1.5 bg-danger/15 text-danger rounded-lg text-sm font-medium">{errorRows.length} with errors</span>}
-                  {duplicateRows.length > 0 && <span className="px-3 py-1.5 bg-accent-amber-glow text-accent-amber rounded-lg text-sm font-medium">{duplicateRows.length} duplicate{duplicateRows.length !== 1 ? 's' : ''} (will skip)</span>}
+                  {duplicateRows.length > 0 && <span className="px-3 py-1.5 bg-brand-subtle text-brand rounded-lg text-sm font-medium">{duplicateRows.length} duplicate{duplicateRows.length !== 1 ? 's' : ''} (will skip)</span>}
                 </div>
                 <div className="overflow-x-auto mb-6 max-h-96 overflow-y-auto">
                   <table className="w-full text-sm">
@@ -2053,7 +2053,7 @@ function AdminView() {
                     </thead>
                     <tbody>
                       {bulkImportPreviewRows.map((row, i) => (
-                        <tr key={i} className={`border-b border-subtle ${row.errors.length > 0 ? 'bg-danger/5' : row.isDuplicate ? 'bg-accent-amber/5' : ''}`}>
+                        <tr key={i} className={`border-b border-subtle ${row.errors.length > 0 ? 'bg-danger/5' : row.isDuplicate ? 'bg-brand/5' : ''}`}>
                           <td className="px-3 py-2 text-muted">{i + 1}</td>
                           <td className="px-3 py-2 text-secondary">{row.raw.artist || '—'}</td>
                           <td className="px-3 py-2 text-secondary">{row.raw.venue || '—'}</td>
@@ -2063,9 +2063,9 @@ function AdminView() {
                             {row.errors.length > 0 ? (
                               <Tip text={row.errors.join(', ')}><span className="text-danger text-xs flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />Error</span></Tip>
                             ) : row.isDuplicate ? (
-                              <span className="text-accent-amber text-xs">Duplicate</span>
+                              <span className="text-brand text-xs">Duplicate</span>
                             ) : (
-                              <span className="text-accent-amber text-xs"><Check className="w-4 h-4 inline" /></span>
+                              <span className="text-brand text-xs"><Check className="w-4 h-4 inline" /></span>
                             )}
                           </td>
                         </tr>
@@ -2080,11 +2080,11 @@ function AdminView() {
                   </div>
                 )}
                 <div className="flex gap-3">
-                  <button onClick={() => setBulkImportStep('mapping')} className="px-5 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors">Back</button>
+                  <button onClick={() => setBulkImportStep('mapping')} className="px-5 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors">Back</button>
                   <button
                     onClick={handleBulkImportExecute}
                     disabled={importableRows.length === 0}
-                    className={`px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg ${importableRows.length > 0 ? 'bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary shadow-accent-amber/20' : 'bg-highlight text-muted cursor-not-allowed shadow-none'}`}
+                    className={`px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg ${importableRows.length > 0 ? 'bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary shadow-brand/20' : 'bg-hover text-muted cursor-not-allowed shadow-none'}`}
                   >
                     Import {importableRows.length} Show{importableRows.length !== 1 ? 's' : ''} for {(bulkImportTargetUser?.firstName || bulkImportTargetUser?.displayName || 'User').split(' ')[0]}
                   </button>
@@ -2095,36 +2095,36 @@ function AdminView() {
 
           {/* Step 5: Importing */}
           {bulkImportStep === 'importing' && (
-            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-6">
-                <RefreshCw className="w-8 h-8 text-accent-amber animate-spin" />
+            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-6">
+                <RefreshCw className="w-8 h-8 text-brand animate-spin" />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 font-display">Importing Shows...</h3>
+              <h3 className="text-lg font-semibold text-primary mb-2">Importing Shows...</h3>
               <p className="text-secondary">Writing shows to {(bulkImportTargetUser?.firstName || bulkImportTargetUser?.displayName || 'user').split(' ')[0]}'s profile</p>
             </div>
           )}
 
           {/* Step 6: Complete */}
           {bulkImportStep === 'complete' && bulkImportProgress && (
-            <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-6">
-                <Check className="w-8 h-8 text-accent-amber" />
+            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-6">
+                <Check className="w-8 h-8 text-brand" />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 font-display">Import Complete</h3>
+              <h3 className="text-lg font-semibold text-primary mb-2">Import Complete</h3>
               <div className="flex justify-center gap-6 mb-6">
                 <div>
-                  <div className="text-2xl font-bold text-accent-amber">{bulkImportProgress.imported}</div>
+                  <div className="text-2xl font-bold text-brand">{bulkImportProgress.imported}</div>
                   <div className="text-xs text-secondary">Imported</div>
                 </div>
                 {bulkImportProgress.duplicatesSkipped > 0 && (
                   <div>
-                    <div className="text-2xl font-bold text-accent-amber">{bulkImportProgress.duplicatesSkipped}</div>
+                    <div className="text-2xl font-bold text-brand">{bulkImportProgress.duplicatesSkipped}</div>
                     <div className="text-xs text-secondary">Duplicates Skipped</div>
                   </div>
                 )}
               </div>
               <p className="text-muted text-sm mb-6">Shows imported to {bulkImportTargetUser?.displayName || bulkImportTargetUser?.firstName}'s profile</p>
-              <button onClick={resetBulkImport} className="px-5 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20">
+              <button onClick={resetBulkImport} className="px-5 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20">
                 Import More
               </button>
             </div>
@@ -2135,14 +2135,14 @@ function AdminView() {
       {/* Cache Management */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-primary font-display flex items-center gap-2">
-            <Database className="w-5 h-5 text-accent-teal" />
+          <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+            <Database className="w-5 h-5 text-amber" />
             Setlist.fm Cache
           </h3>
           <button
             onClick={loadCacheStats}
             disabled={cacheLoading}
-            className="px-4 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+            className="px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
           >
             {cacheLoading ? 'Loading...' : 'Refresh'}
           </button>
@@ -2150,11 +2150,11 @@ function AdminView() {
 
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Cached Searches', value: cacheEntries.length, color: 'from-accent-teal to-accent-teal' },
-            { label: 'Active Entries', value: cacheEntries.filter(e => e.isActive).length, color: 'from-accent-amber to-accent-teal' },
-            { label: 'Total Cache Hits', value: cacheEntries.reduce((a, e) => a + e.hitCount, 0), color: 'from-accent-amber to-accent-amber' },
+            { label: 'Cached Searches', value: cacheEntries.length, color: 'from-amber to-amber' },
+            { label: 'Active Entries', value: cacheEntries.filter(e => e.isActive).length, color: 'from-brand to-amber' },
+            { label: 'Total Cache Hits', value: cacheEntries.reduce((a, e) => a + e.hitCount, 0), color: 'from-brand to-brand' },
           ].map(stat => (
-            <div key={stat.label} className="bg-highlight backdrop-blur-xl rounded-2xl p-4 border border-subtle">
+            <div key={stat.label} className="bg-hover backdrop-blur-xl rounded-2xl p-4 border border-subtle">
               <div className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                 {stat.value.toLocaleString()}
               </div>
@@ -2170,12 +2170,12 @@ function AdminView() {
             value={cacheClearArtist}
             onChange={e => setCacheClearArtist(e.target.value)}
             onKeyPress={e => e.key === 'Enter' && cacheClearArtist.trim() && clearCache('artist', cacheClearArtist)}
-            className="flex-1 px-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-teal/50 text-primary placeholder-muted text-sm"
+            className="flex-1 px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-amber/50 text-primary placeholder-muted text-sm"
           />
           <button
             onClick={() => clearCache('artist', cacheClearArtist)}
             disabled={!cacheClearArtist.trim()}
-            className="px-4 py-2.5 bg-accent-teal-glow hover:bg-accent-teal-glow text-accent-teal rounded-xl font-medium transition-colors text-sm disabled:opacity-40"
+            className="px-4 py-2.5 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-medium transition-colors text-sm disabled:opacity-40"
           >
             Clear Artist
           </button>
@@ -2188,16 +2188,16 @@ function AdminView() {
         </div>
 
         {cacheStatus && (
-          <div className={`px-4 py-2.5 rounded-xl text-sm font-medium ${cacheStatus.startsWith('Error') ? 'bg-danger/20 text-danger' : 'bg-accent-amber-glow text-accent-amber'}`}>
+          <div className={`px-4 py-2.5 rounded-xl text-sm font-medium ${cacheStatus.startsWith('Error') ? 'bg-danger/20 text-danger' : 'bg-brand-subtle text-brand'}`}>
             {cacheStatus}
           </div>
         )}
 
         {cacheEntries.length > 0 && (
-          <div className="bg-highlight backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
+          <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-highlight border-b border-subtle">
+                <tr className="bg-hover border-b border-subtle">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Artist</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide hidden sm:table-cell">Page</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Hits</th>
@@ -2209,18 +2209,18 @@ function AdminView() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {cacheEntries.map(entry => (
-                  <tr key={entry.key} className="hover:bg-highlight transition-colors">
+                  <tr key={entry.key} className="hover:bg-hover transition-colors">
                     <td className="px-4 py-3 text-primary font-medium capitalize">{entry.artistName || '—'}</td>
                     <td className="px-4 py-3 text-secondary text-center hidden sm:table-cell">{entry.page}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="bg-accent-teal-glow text-accent-teal px-2 py-0.5 rounded-full text-xs font-semibold">{entry.hitCount}</span>
+                      <span className="bg-amber-subtle text-amber px-2 py-0.5 rounded-full text-xs font-semibold">{entry.hitCount}</span>
                     </td>
                     <td className="px-4 py-3 text-secondary text-center hidden md:table-cell">{entry.ttlHours}h</td>
                     <td className="px-4 py-3 text-muted text-center text-xs hidden lg:table-cell">{entry.expiresAt}</td>
                     <td className="px-4 py-3 text-center">
                       {entry.isActive
-                        ? <span className="bg-accent-amber-glow text-accent-amber px-2 py-0.5 rounded-full text-xs">Active</span>
-                        : <span className="bg-highlight text-muted px-2 py-0.5 rounded-full text-xs">Expired</span>
+                        ? <span className="bg-brand-subtle text-brand px-2 py-0.5 rounded-full text-xs">Active</span>
+                        : <span className="bg-hover text-muted px-2 py-0.5 rounded-full text-xs">Expired</span>
                       }
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -2255,7 +2255,7 @@ function AdminView() {
               <div className="w-10 h-10 bg-danger/20 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Trash2 className="w-5 h-5 text-danger" />
               </div>
-              <h2 className="text-lg font-semibold text-primary font-display">Delete User</h2>
+              <h2 className="text-lg font-semibold text-primary">Delete User</h2>
             </div>
             <p className="text-secondary mb-2 leading-relaxed">
               Are you sure you want to permanently delete{' '}
@@ -2275,7 +2275,7 @@ function AdminView() {
               <button
                 onClick={() => { setDeleteConfirmUser(null); setDeleteError(null); }}
                 disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

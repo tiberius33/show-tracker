@@ -47,7 +47,7 @@ function AppShell({ children }) {
   // Show loading state while auth initializes
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-void via-surface to-void flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base flex items-center justify-center">
         <div className="text-muted text-lg">Loading...</div>
       </div>
     );
@@ -76,10 +76,10 @@ function AppShell({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-void via-surface to-void text-primary">
+    <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base text-primary">
       {/* Migration Prompt Modal */}
       {showMigrationPrompt && (
-        <div className="fixed inset-0 md:left-64 bg-black/75 backdrop-blur-xl flex items-center justify-center p-3 md:p-4 z-[60]">
+        <div className="fixed inset-0 md:left-64 bg-sidebar/50 backdrop-blur-xl flex items-center justify-center p-3 md:p-4 z-[60]">
           <div className="bg-elevated border border-subtle rounded-2xl md:rounded-3xl max-w-[95vw] sm:max-w-md w-full p-4 md:p-6 shadow-2xl">
             <h2 className="text-lg md:text-xl font-bold mb-4 text-primary">Import Existing Shows?</h2>
             <p className="text-secondary mb-4">
@@ -89,13 +89,13 @@ function AppShell({ children }) {
             <div className="flex gap-3">
               <button
                 onClick={handleMigrateData}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
               >
                 Import Shows
               </button>
               <button
                 onClick={handleSkipMigration}
-                className="px-4 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
+                className="px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
               >
                 Skip
               </button>
@@ -118,10 +118,10 @@ function AppShell({ children }) {
 
       {/* Guest Mode Account Prompt */}
       {showGuestPrompt && (
-        <div className="fixed inset-0 md:left-64 bg-black/75 backdrop-blur-xl flex items-center justify-center p-4 z-[60]">
+        <div className="fixed inset-0 md:left-64 bg-sidebar/50 backdrop-blur-xl flex items-center justify-center p-4 z-[60]">
           <div className="bg-elevated border border-subtle rounded-3xl max-w-md w-full p-6 shadow-2xl">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-accent-amber to-accent-amber rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-brand to-brand rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-xl font-bold text-primary mb-2">Great Start!</h2>
@@ -131,28 +131,28 @@ function AppShell({ children }) {
             </div>
             <ul className="space-y-3 mb-6">
               <li className="flex items-center gap-3 text-secondary">
-                <Check className="w-5 h-5 text-accent-amber flex-shrink-0" />
+                <Check className="w-5 h-5 text-brand flex-shrink-0" />
                 <span>Save your shows permanently in the cloud</span>
               </li>
               <li className="flex items-center gap-3 text-secondary">
-                <Check className="w-5 h-5 text-accent-amber flex-shrink-0" />
+                <Check className="w-5 h-5 text-brand flex-shrink-0" />
                 <span>Access your collection from any device</span>
               </li>
               <li className="flex items-center gap-3 text-secondary">
-                <Check className="w-5 h-5 text-accent-amber flex-shrink-0" />
+                <Check className="w-5 h-5 text-brand flex-shrink-0" />
                 <span>Join the community leaderboards</span>
               </li>
             </ul>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => { setShowGuestPrompt(false); openAuthModal('signup'); }}
-                className="w-full px-4 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
+                className="w-full px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
               >
                 Create Free Account
               </button>
               <button
                 onClick={() => setShowGuestPrompt(false)}
-                className="w-full px-4 py-3 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors"
+                className="w-full px-4 py-3 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
               >
                 Maybe Later
               </button>
@@ -170,18 +170,18 @@ function AppShell({ children }) {
       {/* Welcome modal — shown once when a new user joins via an invite */}
       {welcomeState && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
-          <div className="bg-elevated border border-accent-amber/30 rounded-2xl w-full max-w-md p-8 shadow-2xl shadow-accent-amber/10 text-center">
-            <div className="w-16 h-16 bg-accent-amber-glow rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <Music className="w-8 h-8 text-accent-amber" />
+          <div className="bg-elevated border border-brand/30 rounded-2xl w-full max-w-md p-8 shadow-2xl shadow-brand/10 text-center">
+            <div className="w-16 h-16 bg-brand-subtle rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <Music className="w-8 h-8 text-brand" />
             </div>
             <h2 className="text-2xl font-bold text-primary mb-3">Welcome to mysetlists.net! 🎉</h2>
             <p className="text-secondary leading-relaxed mb-6">
-              You joined via <span className="text-accent-amber font-semibold">{welcomeState.inviterName}</span>&apos;s invite —
+              You joined via <span className="text-brand font-semibold">{welcomeState.inviterName}</span>&apos;s invite —
               you&apos;re already friends on the app. Start adding shows and compare your concert history!
             </p>
             <button
               onClick={() => setWelcomeState(null)}
-              className="w-full px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-semibold transition-all shadow-lg shadow-accent-amber/20"
+              className="w-full px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-semibold transition-all shadow-lg shadow-brand/20"
             >
               Let&apos;s go →
             </button>
@@ -238,7 +238,7 @@ function AppShell({ children }) {
 
       {/* Global toast notification */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 bg-accent-amber text-primary rounded-2xl shadow-lg shadow-accent-amber/40 font-medium text-sm animate-fade-in">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 bg-brand text-on-dark rounded-2xl shadow-lg shadow-brand/40 font-medium text-sm animate-fade-in">
           {toast}
         </div>
       )}

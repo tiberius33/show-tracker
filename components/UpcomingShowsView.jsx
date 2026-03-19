@@ -86,7 +86,7 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
         </button>
 
         <h2
-          className="text-2xl font-bold mb-6 font-display"
+          className="text-2xl font-bold mb-6"
           style={{ color: artistColor(selectedArtist) }}
         >
           {selectedArtist}
@@ -102,18 +102,18 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
     <div>
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-gradient-to-br from-accent-amber/20 to-accent-teal/20 rounded-xl flex items-center justify-center border border-accent-amber/20">
-          <Ticket className="w-5 h-5 text-accent-amber" />
+        <div className="w-10 h-10 bg-gradient-to-br from-brand/20 to-amber/20 rounded-xl flex items-center justify-center border border-brand/20">
+          <Ticket className="w-5 h-5 text-brand" />
         </div>
-        <h1 className="text-2xl font-bold text-primary font-display">Upcoming Shows</h1>
-        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent-amber-glow text-accent-amber border border-accent-amber/20">
+        <h1 className="text-2xl font-bold text-primary">Upcoming Shows</h1>
+        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-subtle text-brand border border-brand/20">
           Beta
         </span>
       </div>
 
-      <div className="flex items-start gap-3 px-4 py-3 mb-6 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
-        <AlertTriangle className="w-4 h-4 text-accent-amber flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-accent-amber/80">
+      <div className="flex items-start gap-3 px-4 py-3 mb-6 bg-brand-subtle border border-brand/20 rounded-xl">
+        <AlertTriangle className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-brand/80">
           Upcoming Shows is in beta. Show dates and availability are pulled from third-party sources and may not always be accurate. We're actively improving this feature!
         </p>
       </div>
@@ -140,8 +140,8 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
                 onClick={() => setSortBy(key)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                   sortBy === key
-                    ? 'bg-accent-amber-glow text-accent-amber border-accent-amber/30'
-                    : 'bg-highlight text-secondary border-subtle hover:text-primary hover:bg-highlight'
+                    ? 'bg-brand-subtle text-brand border-brand/30'
+                    : 'bg-hover text-secondary border-subtle hover:text-primary hover:bg-hover'
                 }`}
               >
                 {label}
@@ -149,18 +149,18 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
             ))}
           </div>
 
-          <div className="bg-highlight border border-subtle rounded-2xl overflow-hidden">
+          <div className="bg-hover border border-subtle rounded-2xl overflow-hidden">
             {sortedArtists.map(({ name, count }, idx) => (
               <button
                 key={name}
                 onClick={() => setSelectedArtist(name)}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-highlight transition-colors text-left group ${
+                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-hover transition-colors text-left group ${
                   idx !== 0 ? 'border-t border-subtle' : ''
                 }`}
               >
                 {/* Indicator dot */}
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  artistDots[name] ? 'bg-accent-amber' : 'bg-transparent'
+                  artistDots[name] ? 'bg-brand' : 'bg-transparent'
                 }`} />
 
                 <span className="flex-1 text-primary font-medium group-hover:text-primary transition-colors">

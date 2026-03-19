@@ -24,8 +24,8 @@ function ScanImportView({ onImport, onUpdateShow, existingShows, importedIds, on
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
               activeTab === tab.id
-                ? 'bg-accent-amber-glow text-accent-amber border border-accent-amber/30'
-                : 'bg-highlight text-secondary hover:bg-highlight border border-subtle'
+                ? 'bg-brand-subtle text-brand border border-brand/30'
+                : 'bg-hover text-secondary hover:bg-hover border border-subtle'
             }`}
           >
             <tab.icon className="w-4 h-4" />

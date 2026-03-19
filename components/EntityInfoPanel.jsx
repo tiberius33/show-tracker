@@ -6,16 +6,16 @@ import { apiUrl } from '@/lib/api';
 
 const styles = {
   artist: {
-    button: 'bg-accent-amber-glow border border-accent-amber/30 text-accent-amber hover:bg-accent-amber/25',
-    panel: 'bg-accent-amber/5 border border-accent-amber/15',
-    accent: 'text-accent-amber',
-    link: 'text-accent-amber hover:text-accent-amber',
+    button: 'bg-brand-subtle border border-brand/30 text-brand hover:bg-brand/25',
+    panel: 'bg-brand/5 border border-brand/15',
+    accent: 'text-brand',
+    link: 'text-brand hover:text-brand',
   },
   venue: {
-    button: 'bg-accent-teal/15 border border-accent-teal/30 text-accent-teal hover:bg-accent-teal/25',
-    panel: 'bg-accent-teal/5 border border-accent-teal/15',
-    accent: 'text-accent-teal',
-    link: 'text-accent-teal hover:text-accent-teal',
+    button: 'bg-amber/15 border border-amber/30 text-amber hover:bg-amber/25',
+    panel: 'bg-amber/5 border border-amber/15',
+    accent: 'text-amber',
+    link: 'text-amber hover:text-amber',
   },
 };
 
@@ -84,9 +84,9 @@ function EntityInfoPanel({ name, type, city }) {
           {/* Loading state */}
           {loading && (
             <div className="space-y-2">
-              <div className="h-4 bg-highlight rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-highlight rounded animate-pulse w-full" />
-              <div className="h-4 bg-highlight rounded animate-pulse w-2/3" />
+              <div className="h-4 bg-hover rounded animate-pulse w-3/4" />
+              <div className="h-4 bg-hover rounded animate-pulse w-full" />
+              <div className="h-4 bg-hover rounded animate-pulse w-2/3" />
             </div>
           )}
 

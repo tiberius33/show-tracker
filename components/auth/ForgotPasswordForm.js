@@ -28,8 +28,8 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
   if (success) {
     return (
       <div className="text-center">
-        <div className="w-16 h-16 bg-accent-amber-glow rounded-full flex items-center justify-center mx-auto mb-4">
-          <Mail className="w-8 h-8 text-accent-amber" />
+        <div className="w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-4">
+          <Mail className="w-8 h-8 text-brand" />
         </div>
         <h2 className="text-2xl font-bold text-primary mb-2">Check Your Email</h2>
         <p className="text-secondary mb-6">
@@ -37,7 +37,7 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
         </p>
         <button
           onClick={onBackToLogin}
-          className="text-accent-amber hover:text-accent-amber font-medium flex items-center gap-2 mx-auto"
+          className="text-brand hover:text-brand font-medium flex items-center gap-2 mx-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to sign in
@@ -67,7 +67,7 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
+          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required
           disabled={loading}
           autoFocus
@@ -80,7 +80,7 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
+          className="w-full px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
         >
           {loading ? 'Sending...' : 'Send Reset Link'}
         </button>

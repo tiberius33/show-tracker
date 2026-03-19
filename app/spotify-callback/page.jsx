@@ -70,17 +70,17 @@ function SpotifyCallbackContent() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-void via-surface to-void flex items-center justify-center p-4">
-      <div className="bg-highlight border border-subtle rounded-2xl p-8 max-w-sm w-full text-center">
-        <div className="w-12 h-12 rounded-full bg-accent-amber-glow flex items-center justify-center mx-auto mb-4">
-          <Music className="w-6 h-6 text-accent-amber" />
+    <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base flex items-center justify-center p-4">
+      <div className="bg-hover border border-subtle rounded-2xl p-8 max-w-sm w-full text-center">
+        <div className="w-12 h-12 rounded-full bg-brand-subtle flex items-center justify-center mx-auto mb-4">
+          <Music className="w-6 h-6 text-brand" />
         </div>
 
         {status === 'processing' && (
           <>
             <h1 className="text-lg font-bold text-primary mb-2">Connecting to Spotify...</h1>
-            <div className="h-1 bg-highlight rounded-full overflow-hidden">
-              <div className="h-full bg-accent-amber rounded-full animate-pulse w-2/3" />
+            <div className="h-1 bg-hover rounded-full overflow-hidden">
+              <div className="h-full bg-brand rounded-full animate-pulse w-2/3" />
             </div>
           </>
         )}
@@ -98,7 +98,7 @@ function SpotifyCallbackContent() {
             <p className="text-sm text-secondary mb-4">{error}</p>
             <button
               onClick={() => window.close()}
-              className="px-4 py-2 bg-highlight hover:bg-highlight text-primary rounded-xl text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-hover hover:bg-hover text-primary rounded-xl text-sm font-medium transition-colors"
             >
               Close
             </button>
@@ -112,10 +112,10 @@ function SpotifyCallbackContent() {
 export default function SpotifyCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-void via-surface to-void flex items-center justify-center p-4">
-        <div className="bg-highlight border border-subtle rounded-2xl p-8 max-w-sm w-full text-center">
-          <div className="w-12 h-12 rounded-full bg-accent-amber-glow flex items-center justify-center mx-auto mb-4">
-            <Music className="w-6 h-6 text-accent-amber" />
+      <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base flex items-center justify-center p-4">
+        <div className="bg-hover border border-subtle rounded-2xl p-8 max-w-sm w-full text-center">
+          <div className="w-12 h-12 rounded-full bg-brand-subtle flex items-center justify-center mx-auto mb-4">
+            <Music className="w-6 h-6 text-brand" />
           </div>
           <h1 className="text-lg font-bold text-primary mb-2">Connecting to Spotify...</h1>
         </div>

@@ -82,7 +82,7 @@ function VenueRatingModal({ show, currentUser, onClose, onSaved }) {
           key={n}
           type="button"
           onClick={() => onChange(value === n ? 0 : n)}
-          className={`${size} transition-colors ${n <= value ? 'text-accent-amber' : 'text-muted hover:text-accent-amber/50'}`}
+          className={`${size} transition-colors ${n <= value ? 'text-brand' : 'text-muted hover:text-brand/50'}`}
         >
           <Star className="w-full h-full" fill={n <= value ? 'currentColor' : 'none'} />
         </button>
@@ -98,7 +98,7 @@ function VenueRatingModal({ show, currentUser, onClose, onSaved }) {
             <h2 className="text-lg font-semibold text-primary">{existingId ? 'Edit Your Rating' : 'Rate This Venue'}</h2>
             <p className="text-secondary text-sm mt-0.5">{show.venue}{show.city ? `, ${show.city}` : ''}</p>
           </div>
-          <button onClick={onClose} className="p-3 text-muted hover:text-primary hover:bg-highlight rounded-xl transition-colors">
+          <button onClick={onClose} className="p-3 text-muted hover:text-primary hover:bg-hover rounded-xl transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -131,20 +131,20 @@ function VenueRatingModal({ show, currentUser, onClose, onSaved }) {
                 onChange={e => setReview(e.target.value.slice(0, 500))}
                 placeholder="What did you think of the venue?"
                 rows={3}
-                className="w-full px-4 py-2.5 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary text-sm placeholder-muted resize-none"
+                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary text-sm placeholder-muted resize-none"
               />
               <p className="text-xs text-muted mt-1 text-right">{review.length}/500</p>
             </div>
           </div>
         )}
         <div className="p-6 border-t border-subtle flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors">
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!overallRating || saving}
-            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-accent-amber to-accent-amber hover:from-accent-amber hover:to-accent-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-brand to-brand hover:from-brand hover:to-brand text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : existingId ? 'Update Rating' : 'Save Rating'}
           </button>
