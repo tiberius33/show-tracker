@@ -1,10 +1,10 @@
-#!/bin/sh
-set -e
+#!/bin/bash
+set -eo pipefail
 
 echo "🔧 Setting up Node.js environment..."
 
-# Xcode Cloud may not have Node.js — install via Homebrew
-if ! command -v node &> /dev/null; then
+# Xcode Cloud includes Homebrew — install Node.js if missing
+if ! command -v node > /dev/null 2>&1; then
   echo "Node.js not found, installing via Homebrew..."
   brew install node
 fi
@@ -12,11 +12,19 @@ fi
 echo "Node version: $(node --version)"
 echo "npm version: $(npm --version)"
 
-# Navigate to repo root (ci_scripts is at ios/App/ci_scripts/)
-cd "$CI_PRIMARY_REPOSITORY_PATH"
+# Navigate to repo root
+# CI_PRIMARY_REPOSITORY_PATH is set by Xcode Cloud; fall back to relative path
+if [ -n "$CI_PRIMARY_REPOSITORY_PATH" ]; then
+  cd "$CI_PRIMARY_REPOSITORY_PATH"
+else
+  cd "$(dirname "$0")/../../.."
+fi
+
+echo "Working directory: $(pwd)"
+echo "Contents: $(ls)"
 
 echo "📦 Installing Node.js dependencies..."
-npm ci --prefer-offline
+npm install
 
 echo "🔨 Building web assets..."
 npm run build
