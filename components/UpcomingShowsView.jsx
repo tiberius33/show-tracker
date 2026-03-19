@@ -79,14 +79,14 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
       <div>
         <button
           onClick={() => setSelectedArtist(null)}
-          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-6 group"
+          className="flex items-center gap-2 text-secondary hover:text-primary transition-colors mb-6 group"
         >
           <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
           <span className="text-sm font-medium">All Artists</span>
         </button>
 
         <h2
-          className="text-2xl font-bold mb-6"
+          className="text-2xl font-bold mb-6 font-display"
           style={{ color: artistColor(selectedArtist) }}
         >
           {selectedArtist}
@@ -102,18 +102,18 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
     <div>
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-gradient-to-br from-emerald-400/20 to-teal-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20">
-          <Ticket className="w-5 h-5 text-emerald-400" />
+        <div className="w-10 h-10 bg-gradient-to-br from-accent-amber/20 to-accent-teal/20 rounded-xl flex items-center justify-center border border-accent-amber/20">
+          <Ticket className="w-5 h-5 text-accent-amber" />
         </div>
-        <h1 className="text-2xl font-bold text-white">Upcoming Shows</h1>
-        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+        <h1 className="text-2xl font-bold text-primary font-display">Upcoming Shows</h1>
+        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent-amber-glow text-accent-amber border border-accent-amber/20">
           Beta
         </span>
       </div>
 
-      <div className="flex items-start gap-3 px-4 py-3 mb-6 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-amber-200/80">
+      <div className="flex items-start gap-3 px-4 py-3 mb-6 bg-accent-amber-glow border border-accent-amber/20 rounded-xl">
+        <AlertTriangle className="w-4 h-4 text-accent-amber flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-accent-amber/80">
           Upcoming Shows is in beta. Show dates and availability are pulled from third-party sources and may not always be accurate. We're actively improving this feature!
         </p>
       </div>
@@ -121,8 +121,8 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
       {/* Empty state */}
       {artistData.length === 0 && (
         <div className="text-center py-16">
-          <Music className="w-12 h-12 text-white/20 mx-auto mb-4" />
-          <p className="text-white/50 mb-4">Add some shows first to see upcoming tours</p>
+          <Music className="w-12 h-12 text-muted mx-auto mb-4" />
+          <p className="text-secondary mb-4">Add some shows first to see upcoming tours</p>
         </div>
       )}
 
@@ -130,7 +130,7 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
       {artistData.length > 0 && (
         <>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-white/40 text-sm">Sort by:</span>
+            <span className="text-muted text-sm">Sort by:</span>
             {[
               { key: 'count', label: 'Most Seen' },
               { key: 'alpha', label: 'A\u2013Z' },
@@ -140,8 +140,8 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
                 onClick={() => setSortBy(key)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                   sortBy === key
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                    : 'bg-white/5 text-white/50 border-white/10 hover:text-white/80 hover:bg-white/10'
+                    ? 'bg-accent-amber-glow text-accent-amber border-accent-amber/30'
+                    : 'bg-highlight text-secondary border-subtle hover:text-primary hover:bg-highlight'
                 }`}
               >
                 {label}
@@ -149,29 +149,29 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
             ))}
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="bg-highlight border border-subtle rounded-2xl overflow-hidden">
             {sortedArtists.map(({ name, count }, idx) => (
               <button
                 key={name}
                 onClick={() => setSelectedArtist(name)}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/5 transition-colors text-left group ${
-                  idx !== 0 ? 'border-t border-white/5' : ''
+                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-highlight transition-colors text-left group ${
+                  idx !== 0 ? 'border-t border-subtle' : ''
                 }`}
               >
                 {/* Indicator dot */}
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  artistDots[name] ? 'bg-emerald-400' : 'bg-transparent'
+                  artistDots[name] ? 'bg-accent-amber' : 'bg-transparent'
                 }`} />
 
-                <span className="flex-1 text-white/90 font-medium group-hover:text-white transition-colors">
+                <span className="flex-1 text-primary font-medium group-hover:text-primary transition-colors">
                   {name}
                 </span>
 
-                <span className="text-white/30 text-sm">
+                <span className="text-muted text-sm">
                   {count === 1 ? '1 show' : `${count} shows`}
                 </span>
 
-                <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
               </button>
             ))}
           </div>

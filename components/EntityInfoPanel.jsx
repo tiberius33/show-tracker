@@ -6,16 +6,16 @@ import { apiUrl } from '@/lib/api';
 
 const styles = {
   artist: {
-    button: 'bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25',
-    panel: 'bg-amber-500/5 border border-amber-500/15',
-    accent: 'text-amber-400',
-    link: 'text-amber-400 hover:text-amber-300',
+    button: 'bg-accent-amber-glow border border-accent-amber/30 text-accent-amber hover:bg-accent-amber/25',
+    panel: 'bg-accent-amber/5 border border-accent-amber/15',
+    accent: 'text-accent-amber',
+    link: 'text-accent-amber hover:text-accent-amber',
   },
   venue: {
-    button: 'bg-blue-500/15 border border-blue-500/30 text-blue-300 hover:bg-blue-500/25',
-    panel: 'bg-blue-500/5 border border-blue-500/15',
-    accent: 'text-blue-400',
-    link: 'text-blue-400 hover:text-blue-300',
+    button: 'bg-accent-teal/15 border border-accent-teal/30 text-accent-teal hover:bg-accent-teal/25',
+    panel: 'bg-accent-teal/5 border border-accent-teal/15',
+    accent: 'text-accent-teal',
+    link: 'text-accent-teal hover:text-accent-teal',
   },
 };
 
@@ -84,22 +84,22 @@ function EntityInfoPanel({ name, type, city }) {
           {/* Loading state */}
           {loading && (
             <div className="space-y-2">
-              <div className="h-4 bg-white/5 rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-white/5 rounded animate-pulse w-full" />
-              <div className="h-4 bg-white/5 rounded animate-pulse w-2/3" />
+              <div className="h-4 bg-highlight rounded animate-pulse w-3/4" />
+              <div className="h-4 bg-highlight rounded animate-pulse w-full" />
+              <div className="h-4 bg-highlight rounded animate-pulse w-2/3" />
             </div>
           )}
 
           {/* Error state */}
           {error && (
-            <p className="text-sm text-white/40">
+            <p className="text-sm text-muted">
               Could not load information. Please try again later.
             </p>
           )}
 
           {/* Not found state */}
           {data && !data.found && !loading && (
-            <p className="text-sm text-white/40">
+            <p className="text-sm text-muted">
               No Wikipedia article found for {label}.
             </p>
           )}
@@ -112,7 +112,7 @@ function EntityInfoPanel({ name, type, city }) {
                   <img
                     src={data.image}
                     alt={data.name}
-                    className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover border border-white/10"
+                    className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover border border-subtle"
                   />
                 </div>
               )}
@@ -122,7 +122,7 @@ function EntityInfoPanel({ name, type, city }) {
                     {data.description}
                   </p>
                 )}
-                <p className="text-sm text-white/70 leading-relaxed" style={{
+                <p className="text-sm text-secondary leading-relaxed" style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 4,
                   WebkitBoxOrient: 'vertical',

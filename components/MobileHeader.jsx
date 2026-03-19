@@ -5,13 +5,13 @@ import { Menu } from 'lucide-react';
 
 function MobileHeader({ onMenuClick }) {
   return (
-    <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-b border-white/5" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-surface backdrop-blur-xl border-b border-subtle" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="flex items-center justify-between px-4 py-3">
         <button
           onClick={onMenuClick}
-          className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+          className="p-2 rounded-xl hover:bg-highlight transition-colors"
         >
-          <Menu className="w-6 h-6 text-white" />
+          <Menu className="w-6 h-6 text-primary" />
         </button>
         <img src="/logo.svg" alt="MySetlists" className="h-8 w-auto" />
         <div className="w-10" /> {/* Spacer for centering */}

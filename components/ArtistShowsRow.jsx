@@ -16,34 +16,34 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
   return (
     <>
       <tr
-        className="cursor-pointer hover:bg-white/5 transition-colors"
+        className="cursor-pointer hover:bg-highlight transition-colors"
         onClick={onToggle}
       >
         <td className="px-4 py-4">
           <div className="flex items-center gap-3">
-            <ChevronDown className={`w-4 h-4 text-white/40 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-muted flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist) }} />
             <span className="font-medium" style={{ color: artistColor(artist) }}>{artist}</span>
           </div>
         </td>
         <td className="px-4 py-4 text-center">
-          <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+          <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
             {shows.length}
           </span>
         </td>
         <td className="px-4 py-4 text-center">
           {avgRating ? (
-            <span className="text-sm font-semibold text-emerald-400">{avgRating}/10</span>
+            <span className="text-sm font-semibold text-accent-amber">{avgRating}/10</span>
           ) : (
-            <span className="text-white/30">--</span>
+            <span className="text-muted">--</span>
           )}
         </td>
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={3} className="px-4 py-0 bg-white/[0.02]">
-            <div className="py-4 pl-6 border-l-2 border-emerald-500/50 ml-2 mb-2">
-              <div className="text-xs font-semibold text-white/40 mb-3 uppercase tracking-wide">Shows</div>
+          <td colSpan={3} className="px-4 py-0 bg-highlight/30">
+            <div className="py-4 pl-6 border-l-2 border-accent-amber/50 ml-2 mb-2">
+              <div className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">Shows</div>
               <div className="space-y-3">
                 {shows.map(show => {
                   const songAvg = avgSongRating(show.setlist);
@@ -51,27 +51,27 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                   return (
                     <div
                       key={show.id}
-                      className={`group flex items-start justify-between bg-white/5 rounded-2xl p-4 border cursor-pointer transition-all ${
-                        isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/10' : 'border-white/10 hover:bg-white/10 hover:border-white/20'
+                      className={`group flex items-start justify-between bg-highlight rounded-2xl p-4 border cursor-pointer transition-all ${
+                        isSelected ? 'border-accent-amber ring-2 ring-accent-amber/30 bg-accent-amber-glow' : 'border-subtle hover:bg-highlight hover:border-active'
                       }`}
                       onClick={() => onSelectShow(show)}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 text-sm flex-wrap">
-                          <Calendar className="w-3.5 h-3.5 text-white/40" />
-                          <span className="text-white/80">{formatDate(show.date)}</span>
-                          <span className="text-white/20">&middot;</span>
-                          <MapPin className="w-3.5 h-3.5 text-white/40" />
-                          <span className="text-white/60">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
-                          <span className="text-white/20">&middot;</span>
-                          <Music className="w-3.5 h-3.5 text-white/40" />
-                          <span className="text-white/60">{show.setlist.length} songs</span>
+                          <Calendar className="w-3.5 h-3.5 text-muted" />
+                          <span className="text-secondary">{formatDate(show.date)}</span>
+                          <span className="text-muted">&middot;</span>
+                          <MapPin className="w-3.5 h-3.5 text-muted" />
+                          <span className="text-secondary">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
+                          <span className="text-muted">&middot;</span>
+                          <Music className="w-3.5 h-3.5 text-muted" />
+                          <span className="text-secondary">{show.setlist.length} songs</span>
                         </div>
                         {show.tour && (
-                          <div className="text-xs text-emerald-400 font-medium mt-1.5">Tour: {show.tour}</div>
+                          <div className="text-xs text-accent-amber font-medium mt-1.5">Tour: {show.tour}</div>
                         )}
                         {show.comment && (
-                          <div className="flex items-start gap-1.5 mt-1.5 text-xs text-white/50 italic">
+                          <div className="flex items-start gap-1.5 mt-1.5 text-xs text-secondary italic">
                             <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
                             {show.comment}
                           </div>
@@ -79,7 +79,7 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                         <div className="flex items-center gap-3 mt-3" onClick={(e) => e.stopPropagation()}>
                           <RatingSelect value={show.rating} onChange={(r) => onRateShow(show.id, r)} label="Show:" />
                           {songAvg && (
-                            <span className="text-xs font-medium text-white/40">Songs avg: {songAvg}/10</span>
+                            <span className="text-xs font-medium text-muted">Songs avg: {songAvg}/10</span>
                           )}
                         </div>
                       </div>
@@ -88,7 +88,7 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                           e.stopPropagation();
                           onDeleteShow(show.id);
                         }}
-                        className="text-white/20 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 ml-2"
+                        className="text-muted hover:text-danger transition-all opacity-0 group-hover:opacity-100 ml-2"
                       >
                         <X className="w-4 h-4" />
                       </button>

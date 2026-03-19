@@ -157,7 +157,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
       .sort((a, b) => b.count - a.count);
   }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters]);
 
-  const selectClass = "px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer";
+  const selectClass = "px-3 py-2.5 bg-highlight border border-subtle rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-accent-amber/50 cursor-pointer";
 
   return (
     <div className="space-y-4">
@@ -174,8 +174,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
             onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-medium transition-all text-sm ${
               tab === id
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
-                : 'bg-white/10 border border-white/10 hover:bg-white/20 text-white/70'
+                ? 'bg-gradient-to-r from-accent-amber to-accent-teal text-primary shadow-lg shadow-accent-amber/20'
+                : 'bg-highlight border border-subtle hover:bg-highlight text-secondary'
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -186,27 +186,27 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'songs' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-white">Song Statistics</h2>
+          <h2 className="text-xl font-bold mb-4 text-primary font-display">Song Statistics</h2>
 
-          <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-4">
+          <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-4 mb-4">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-medium text-white/50">Filter:</span>
+              <span className="text-sm font-medium text-secondary">Filter:</span>
               <select value={filterArtist} onChange={(e) => setFilterArtist(e.target.value)} className={selectClass}>
-                <option value="" className="bg-slate-800">All Artists</option>
-                {uniqueArtists.map(a => <option key={a} value={a} className="bg-slate-800">{a}</option>)}
+                <option value="" className="bg-elevated">All Artists</option>
+                {uniqueArtists.map(a => <option key={a} value={a} className="bg-elevated">{a}</option>)}
               </select>
               <select value={filterVenue} onChange={(e) => setFilterVenue(e.target.value)} className={selectClass}>
-                <option value="" className="bg-slate-800">All Venues</option>
-                {uniqueVenues.map(v => <option key={v} value={v} className="bg-slate-800">{v}</option>)}
+                <option value="" className="bg-elevated">All Venues</option>
+                {uniqueVenues.map(v => <option key={v} value={v} className="bg-elevated">{v}</option>)}
               </select>
               <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className={selectClass}>
-                <option value="" className="bg-slate-800">All Years</option>
-                {uniqueYears.map(y => <option key={y} value={y} className="bg-slate-800">{y}</option>)}
+                <option value="" className="bg-elevated">All Years</option>
+                {uniqueYears.map(y => <option key={y} value={y} className="bg-elevated">{y}</option>)}
               </select>
               {hasFilters && (
                 <button
                   onClick={() => { setFilterArtist(''); setFilterVenue(''); setFilterYear(''); }}
-                  className="text-xs font-medium text-white/50 hover:text-white/70 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
+                  className="text-xs font-medium text-secondary hover:text-primary px-2 py-1 rounded-lg hover:bg-highlight transition-colors"
                 >
                   Clear filters
                 </button>
@@ -215,17 +215,17 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           </div>
 
           {filteredSongStats.length === 0 ? (
-            <p className="text-center text-white/40 py-8 font-medium">
+            <p className="text-center text-muted py-8 font-medium">
               {hasFilters ? 'No songs match the current filters' : 'No songs tracked yet'}
             </p>
           ) : (
-            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-highlight border border-subtle rounded-2xl shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Song</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Times Played</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Avg Rating</th>
+                  <tr className="bg-highlight border-b border-subtle">
+                    <th className="text-left px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Song</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Times Played</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Avg Rating</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -241,9 +241,9 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'artists' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-white">Artist Statistics</h2>
+          <h2 className="text-xl font-bold mb-4 text-primary font-display">Artist Statistics</h2>
           {artistStats.length === 0 ? (
-            <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
+            <p className="text-center text-muted py-8 font-medium">No shows tracked yet</p>
           ) : (
             <div className="space-y-2">
               {artistStats.map((artist) => {
@@ -255,21 +255,21 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                   <div key={artist.name}>
                     <button
                       onClick={() => setExpandedShow(isExpanded ? null : `artist-${artist.name}`)}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/10 transition-all text-left group"
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-highlight transition-all text-left group"
                     >
                       <div className="flex items-center gap-3">
-                        <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                        <ChevronDown className={`w-4 h-4 text-muted transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
-                        <span className="font-medium group-hover:text-emerald-400 transition-colors" style={{ color: artistColor(artist.name) }}>{artist.name}</span>
+                        <span className="font-medium group-hover:text-accent-amber transition-colors" style={{ color: artistColor(artist.name) }}>{artist.name}</span>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                        <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
                           {artist.count} show{artist.count !== 1 ? 's' : ''}
                         </span>
-                        <span className="text-white/40 text-sm">{artist.totalSongs} songs</span>
+                        <span className="text-muted text-sm">{artist.totalSongs} songs</span>
                         {artist.avgRating ? (
-                          <div className="flex items-center gap-1 text-white/60 text-sm">
-                            <Star className="w-3.5 h-3.5 text-amber-400" />
+                          <div className="flex items-center gap-1 text-secondary text-sm">
+                            <Star className="w-3.5 h-3.5 text-accent-amber" />
                             <span>{artist.avgRating}</span>
                           </div>
                         ) : null}
@@ -281,30 +281,30 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                           <div
                             key={show.id}
                             onDoubleClick={() => setSelectedShow(show)}
-                            className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors cursor-pointer"
+                            className="bg-highlight border border-subtle rounded-2xl p-4 hover:bg-highlight transition-colors cursor-pointer"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 text-white/60 text-sm">
+                                <div className="flex items-center gap-2 text-secondary text-sm">
                                   <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
                                   <span>{formatDate(show.date)}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-white/60 text-sm mt-1">
+                                <div className="flex items-center gap-2 text-secondary text-sm mt-1">
                                   <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                                   <span className="truncate">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
                                 </div>
                                 {show.tour && (
-                                  <div className="text-emerald-400/70 text-sm mt-1">{show.tour}</div>
+                                  <div className="text-accent-amber/70 text-sm mt-1">{show.tour}</div>
                                 )}
                               </div>
                               <div className="flex flex-col items-end gap-1">
                                 {show.rating && (
                                   <div className="flex items-center gap-1">
-                                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                    <span className="text-white font-medium">{show.rating}</span>
+                                    <Star className="w-4 h-4 text-accent-amber fill-accent-amber" />
+                                    <span className="text-primary font-medium">{show.rating}</span>
                                   </div>
                                 )}
-                                <span className="text-white/40 text-sm">{show.setlist?.length || 0} songs</span>
+                                <span className="text-muted text-sm">{show.setlist?.length || 0} songs</span>
                               </div>
                             </div>
                           </div>
@@ -321,7 +321,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'venues' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-white">Venue Statistics</h2>
+          <h2 className="text-xl font-bold mb-4 text-primary font-display">Venue Statistics</h2>
           {/* Top Rated Venues section */}
           {(() => {
             const topRated = venueDetails
@@ -331,13 +331,13 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
             if (!topRated.length) return null;
             return (
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wide mb-3">Top Rated</h3>
+                <h3 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-3">Top Rated</h3>
                 <div className="space-y-2">
                   {topRated.map((v, i) => (
-                    <div key={v.name} className="flex items-center gap-3 px-4 py-2.5 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-                      <span className="text-amber-400/50 font-bold text-sm w-4">#{i+1}</span>
-                      <span className="text-white text-sm flex-1">{v.name}</span>
-                      <span className="flex items-center gap-1 text-amber-400 font-semibold text-sm">
+                    <div key={v.name} className="flex items-center gap-3 px-4 py-2.5 bg-accent-amber/5 border border-accent-amber/20 rounded-xl">
+                      <span className="text-accent-amber/50 font-bold text-sm w-4">#{i+1}</span>
+                      <span className="text-primary text-sm flex-1">{v.name}</span>
+                      <span className="flex items-center gap-1 text-accent-amber font-semibold text-sm">
                         <Star className="w-3.5 h-3.5" fill="currentColor" />
                         {venueRatingsMap[v.venueKey]?.overallAvg?.toFixed(1)}
                       </span>
@@ -348,53 +348,53 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
             );
           })()}
           {venueDetails.length === 0 ? (
-            <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
+            <p className="text-center text-muted py-8 font-medium">No shows tracked yet</p>
           ) : (
             <div className="space-y-3">
               {venueDetails.map((venue) => (
-                <div key={venue.name} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                <div key={venue.name} className="bg-highlight border border-subtle rounded-2xl overflow-hidden">
                   {/* Venue Header */}
                   <button
                     onClick={() => setExpandedVenue(expandedVenue === venue.name ? null : venue.name)}
-                    className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-4 hover:bg-highlight transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <ChevronDown className={`w-5 h-5 text-white/40 transition-transform ${expandedVenue === venue.name ? 'rotate-180' : ''}`} />
-                      <span className="font-medium text-white">{venue.name}</span>
+                      <ChevronDown className={`w-5 h-5 text-muted transition-transform ${expandedVenue === venue.name ? 'rotate-180' : ''}`} />
+                      <span className="font-medium text-primary">{venue.name}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       {venueRatingsMap[venue.venueKey] && (
-                        <span className="flex items-center gap-1 text-amber-400 text-sm font-semibold">
+                        <span className="flex items-center gap-1 text-accent-amber text-sm font-semibold">
                           <Star className="w-3.5 h-3.5" fill="currentColor" />
                           {venueRatingsMap[venue.venueKey].overallAvg?.toFixed(1)}
-                          <span className="text-amber-400/50 font-normal">({venueRatingsMap[venue.venueKey].count})</span>
+                          <span className="text-accent-amber/50 font-normal">({venueRatingsMap[venue.venueKey].count})</span>
                         </span>
                       )}
-                      <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                      <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
                         {venue.showCount} shows
                       </span>
-                      <span className="text-white/50 text-sm">{venue.artistCount} artists</span>
+                      <span className="text-secondary text-sm">{venue.artistCount} artists</span>
                     </div>
                   </button>
 
                   {/* Expanded Years */}
                   {expandedVenue === venue.name && (
-                    <div className="border-t border-white/10 bg-white/5">
+                    <div className="border-t border-subtle bg-highlight">
                       {onRateVenue && (
-                        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div className="px-4 py-3 border-b border-subtle flex items-center justify-between">
                           {venueRatingsMap[venue.venueKey] ? (
                             <div className="flex items-center gap-3 text-sm">
-                              <span className="text-white/50">Community avg:</span>
-                              <span className="text-amber-400 font-semibold flex items-center gap-1">
+                              <span className="text-secondary">Community avg:</span>
+                              <span className="text-accent-amber font-semibold flex items-center gap-1">
                                 <Star className="w-3.5 h-3.5" fill="currentColor" />
                                 {venueRatingsMap[venue.venueKey].overallAvg?.toFixed(1)} / 5
-                                <span className="text-amber-400/50 font-normal">from {venueRatingsMap[venue.venueKey].count} rating{venueRatingsMap[venue.venueKey].count !== 1 ? 's' : ''}</span>
+                                <span className="text-accent-amber/50 font-normal">from {venueRatingsMap[venue.venueKey].count} rating{venueRatingsMap[venue.venueKey].count !== 1 ? 's' : ''}</span>
                               </span>
                             </div>
-                          ) : <span className="text-white/30 text-sm">No ratings yet</span>}
+                          ) : <span className="text-muted text-sm">No ratings yet</span>}
                           <button
                             onClick={() => onRateVenue(venue.sampleShow)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-medium transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-amber-glow hover:bg-accent-amber/30 text-accent-amber border border-accent-amber/30 rounded-xl text-xs font-medium transition-colors"
                           >
                             <Star className="w-3.5 h-3.5" />
                             Rate Venue
@@ -406,55 +406,55 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                           {/* Year Header */}
                           <button
                             onClick={() => setExpandedYear(expandedYear === `${venue.name}-${year}` ? null : `${venue.name}-${year}`)}
-                            className="w-full flex items-center justify-between px-6 py-3 hover:bg-white/5 transition-colors"
+                            className="w-full flex items-center justify-between px-6 py-3 hover:bg-highlight transition-colors"
                           >
                             <div className="flex items-center gap-2">
-                              <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedYear === `${venue.name}-${year}` ? 'rotate-180' : ''}`} />
-                              <span className="font-medium text-amber-400">{year}</span>
+                              <ChevronDown className={`w-4 h-4 text-muted transition-transform ${expandedYear === `${venue.name}-${year}` ? 'rotate-180' : ''}`} />
+                              <span className="font-medium text-accent-amber">{year}</span>
                             </div>
-                            <span className="text-white/50 text-sm">{yearShows.length} shows</span>
+                            <span className="text-secondary text-sm">{yearShows.length} shows</span>
                           </button>
 
                           {/* Expanded Shows */}
                           {expandedYear === `${venue.name}-${year}` && (
-                            <div className="bg-white/5">
+                            <div className="bg-highlight">
                               {yearShows.map((show) => (
                                 <div key={show.id}>
                                   {/* Show Header */}
                                   <button
                                     onClick={() => setExpandedShow(expandedShow === show.id ? null : show.id)}
-                                    className="w-full flex items-center justify-between px-8 py-2 hover:bg-white/5 transition-colors"
+                                    className="w-full flex items-center justify-between px-8 py-2 hover:bg-highlight transition-colors"
                                   >
                                     <div className="flex items-center gap-2">
-                                      <ChevronDown className={`w-3 h-3 text-white/40 transition-transform ${expandedShow === show.id ? 'rotate-180' : ''}`} />
-                                      <span className="text-white/80">{formatDate(show.date)}</span>
-                                      <span className="text-white/40">-</span>
+                                      <ChevronDown className={`w-3 h-3 text-muted transition-transform ${expandedShow === show.id ? 'rotate-180' : ''}`} />
+                                      <span className="text-secondary">{formatDate(show.date)}</span>
+                                      <span className="text-muted">-</span>
                                       <span style={{ color: artistColor(show.artist) }}>{show.artist}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {show.rating && (
-                                        <span className="text-emerald-400 text-sm font-medium">{show.rating}/10</span>
+                                        <span className="text-accent-amber text-sm font-medium">{show.rating}/10</span>
                                       )}
-                                      <span className="text-white/40 text-sm">{show.setlist.length} songs</span>
+                                      <span className="text-muted text-sm">{show.setlist.length} songs</span>
                                     </div>
                                   </button>
 
                                   {/* Expanded Setlist */}
                                   {expandedShow === show.id && (
-                                    <div className="bg-white/5 px-10 py-3 border-t border-white/5">
+                                    <div className="bg-highlight px-10 py-3 border-t border-subtle">
                                       {show.tour && (
-                                        <div className="text-emerald-400 text-sm font-medium mb-2">{show.tour}</div>
+                                        <div className="text-accent-amber text-sm font-medium mb-2">{show.tour}</div>
                                       )}
                                       <div className="space-y-1">
                                         {show.setlist.map((song, idx) => (
                                           <div key={song.id || idx} className="flex items-center gap-2 text-sm">
                                             {song.setBreak && (
-                                              <div className="text-emerald-400 font-semibold text-xs mt-2 mb-1 w-full">{song.setBreak}</div>
+                                              <div className="text-accent-amber font-semibold text-xs mt-2 mb-1 w-full">{song.setBreak}</div>
                                             )}
-                                            <span className="text-white/40 w-6">{idx + 1}.</span>
-                                            <span className="text-white/80">{song.name}</span>
+                                            <span className="text-muted w-6">{idx + 1}.</span>
+                                            <span className="text-secondary">{song.name}</span>
                                             {song.rating && (
-                                              <span className="text-amber-400 text-xs">({song.rating}/10)</span>
+                                              <span className="text-accent-amber text-xs">({song.rating}/10)</span>
                                             )}
                                           </div>
                                         ))}
@@ -478,17 +478,17 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'years' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-white">Shows by Year</h2>
+          <h2 className="text-xl font-bold mb-4 text-primary font-display">Shows by Year</h2>
           {uniqueYears.length === 0 ? (
-            <p className="text-center text-white/40 py-8 font-medium">No shows tracked yet</p>
+            <p className="text-center text-muted py-8 font-medium">No shows tracked yet</p>
           ) : (
-            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-highlight border border-subtle rounded-2xl shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Year</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Shows</th>
-                    <th className="text-center px-4 py-4 text-xs font-semibold text-white/50 uppercase tracking-wide">Avg Rating</th>
+                  <tr className="bg-highlight border-b border-subtle">
+                    <th className="text-left px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Year</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Shows</th>
+                    <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Avg Rating</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -503,40 +503,40 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                     return (
                       <React.Fragment key={year}>
                         <tr
-                          className="cursor-pointer hover:bg-white/5 transition-colors"
+                          className="cursor-pointer hover:bg-highlight transition-colors"
                           onClick={() => setExpandedYear(isExpanded ? null : year)}
                         >
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
-                              <ChevronDown className={`w-4 h-4 text-white/40 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                              <span className="font-bold text-xl text-emerald-400">{year}</span>
+                              <ChevronDown className={`w-4 h-4 text-muted flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                              <span className="font-bold text-xl text-accent-amber">{year}</span>
                             </div>
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-sm font-semibold">
+                            <span className="bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full text-sm font-semibold">
                               {yearShows.length}
                             </span>
                           </td>
                           <td className="px-4 py-4 text-center">
                             {avgRating ? (
-                              <span className="text-sm font-semibold text-emerald-400">{avgRating}/10</span>
+                              <span className="text-sm font-semibold text-accent-amber">{avgRating}/10</span>
                             ) : (
-                              <span className="text-white/30">--</span>
+                              <span className="text-muted">--</span>
                             )}
                           </td>
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={3} className="px-4 py-0 bg-white/[0.02]">
-                              <div className="py-4 pl-6 border-l-2 border-emerald-500/50 ml-2 mb-2">
-                                <div className="text-xs font-semibold text-white/40 mb-3 uppercase tracking-wide">Shows in {year}</div>
+                            <td colSpan={3} className="px-4 py-0 bg-highlight/30">
+                              <div className="py-4 pl-6 border-l-2 border-accent-amber/50 ml-2 mb-2">
+                                <div className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">Shows in {year}</div>
                                 <div className="space-y-3">
                                   {yearShows.map((show) => {
                                     const songAvg = avgSongRating(show.setlist);
                                     return (
                                       <div
                                         key={show.id}
-                                        className="flex items-start justify-between bg-white/5 rounded-2xl p-4 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                                        className="flex items-start justify-between bg-highlight rounded-2xl p-4 border border-subtle cursor-pointer hover:bg-highlight transition-colors"
                                         onClick={(e) => { e.stopPropagation(); setSelectedShow(show); }}
                                       >
                                         <div className="flex-1">
@@ -545,25 +545,25 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                                               {show.artist}
                                             </span>
                                             {show.tour && (
-                                              <span className="text-xs text-emerald-400 font-medium">
+                                              <span className="text-xs text-accent-amber font-medium">
                                                 {show.tour}
                                               </span>
                                             )}
                                           </div>
-                                          <div className="flex items-center gap-2 text-sm mt-1 text-white/50">
+                                          <div className="flex items-center gap-2 text-sm mt-1 text-secondary">
                                             <Calendar className="w-3.5 h-3.5" />
                                             {formatDate(show.date)}
                                           </div>
-                                          <div className="flex items-center gap-2 text-sm mt-1 text-white/50">
+                                          <div className="flex items-center gap-2 text-sm mt-1 text-secondary">
                                             <MapPin className="w-3.5 h-3.5" />
                                             {show.venue}{show.city ? `, ${show.city}` : ''}
                                           </div>
-                                          <div className="flex items-center gap-4 mt-2 text-xs text-white/40">
+                                          <div className="flex items-center gap-4 mt-2 text-xs text-muted">
                                             <span>{show.setlist.length} songs</span>
                                             {songAvg && <span>Avg song rating: {songAvg}/10</span>}
                                           </div>
                                           {show.comment && (
-                                            <div className="flex items-start gap-1.5 mt-2 text-sm text-white/50 italic">
+                                            <div className="flex items-start gap-1.5 mt-2 text-sm text-secondary italic">
                                               <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                                               {show.comment}
                                             </div>
@@ -571,11 +571,11 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
                                           {show.rating ? (
-                                            <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold text-sm">
+                                            <span className="inline-flex items-center gap-1 bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full font-bold text-sm">
                                               {show.rating}/10
                                             </span>
                                           ) : (
-                                            <span className="text-white/30 text-sm">Not rated</span>
+                                            <span className="text-muted text-sm">Not rated</span>
                                           )}
                                         </div>
                                       </div>
@@ -598,41 +598,41 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'top' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-white">Top Rated Shows</h2>
+          <h2 className="text-xl font-bold mb-4 text-primary font-display">Top Rated Shows</h2>
           {topRatedShows.length === 0 ? (
-            <p className="text-center text-white/40 py-8 font-medium">No rated shows yet</p>
+            <p className="text-center text-muted py-8 font-medium">No rated shows yet</p>
           ) : (
-            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-highlight border border-subtle rounded-2xl shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide w-12">#</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Artist</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Venue</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Date</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wide">Rating</th>
+                  <tr className="bg-highlight border-b border-subtle">
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide w-12">#</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Artist</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Venue</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Date</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Rating</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {topRatedShows.map((show, i) => (
                     <tr
                       key={show.id}
-                      className="hover:bg-white/5 transition-colors cursor-pointer"
+                      className="hover:bg-highlight transition-colors cursor-pointer"
                       onClick={() => setSelectedShow(show)}
                     >
-                      <td className="px-4 py-3 text-center text-lg font-bold text-white/30">
+                      <td className="px-4 py-3 text-center text-lg font-bold text-muted">
                         {i + 1}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium" style={{ color: artistColor(show.artist) }}>{show.artist}</div>
-                        {show.tour && <div className="text-xs text-emerald-400 font-medium">{show.tour}</div>}
+                        {show.tour && <div className="text-xs text-accent-amber font-medium">{show.tour}</div>}
                       </td>
-                      <td className="px-4 py-3 text-white/60">
+                      <td className="px-4 py-3 text-secondary">
                         {show.venue}{show.city ? `, ${show.city}` : ''}
                       </td>
-                      <td className="px-4 py-3 text-white/60">{formatDate(show.date)}</td>
+                      <td className="px-4 py-3 text-secondary">{formatDate(show.date)}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold text-sm">
+                        <span className="inline-flex items-center gap-1 bg-accent-amber-glow text-accent-amber px-2.5 py-1 rounded-full font-bold text-sm">
                           {show.rating || '--'}/10
                         </span>
                       </td>

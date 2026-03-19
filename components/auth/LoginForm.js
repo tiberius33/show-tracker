@@ -72,7 +72,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+      <h2 className="text-2xl font-bold text-primary mb-6 text-center">
         Welcome Back
       </h2>
 
@@ -89,7 +89,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-white/40"
+          className="w-full px-4 py-3 bg-highlight border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-amber/50 text-primary placeholder-muted"
           required
           disabled={loading}
         />
@@ -107,38 +107,38 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="w-4 h-4 rounded border-white/20 bg-white/10 text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+              className="w-4 h-4 rounded border-active bg-highlight text-accent-amber focus:ring-accent-amber/50 focus:ring-offset-0 cursor-pointer"
               disabled={loading}
             />
-            <span className="text-sm text-white/60">Remember me</span>
+            <span className="text-sm text-secondary">Remember me</span>
           </label>
           <button
             type="button"
             onClick={onForgotPassword}
-            className="text-sm text-white/50 hover:text-white/80 transition-colors"
+            className="text-sm text-secondary hover:text-primary transition-colors"
           >
             Forgot password?
           </button>
         </div>
 
         {error && (
-          <p className="text-red-400 text-sm">{error}</p>
+          <p className="text-danger text-sm">{error}</p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25"
+          className="w-full px-4 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-accent-amber/20"
         >
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
 
-      <p className="text-center text-white/50 mt-6">
+      <p className="text-center text-secondary mt-6">
         Don't have an account?{' '}
         <button
           onClick={onSwitchToSignup}
-          className="text-emerald-400 hover:text-emerald-300 font-medium"
+          className="text-accent-amber hover:text-accent-amber font-medium"
         >
           Sign up
         </button>

@@ -262,22 +262,22 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
     <div>
       {/* Upload Area */}
       {extractedShows.length === 0 && (
-        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-6">
+        <div className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
           <div className="flex flex-col items-center justify-center py-8">
-            <Camera className="w-12 h-12 text-white/20 mb-4" />
-            <p className="text-white/60 mb-4 text-center">
+            <Camera className="w-12 h-12 text-muted mb-4" />
+            <p className="text-secondary mb-4 text-center">
               Upload photos of your concert ticket stubs, wristbands, or digital tickets
             </p>
             {isNativePlatform() ? (
               <button
                 onClick={handleNativeCamera}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-violet-500/25"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-teal to-accent-teal hover:from-accent-teal hover:to-accent-teal text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-accent-teal/20"
               >
                 <Camera className="w-4 h-4" />
                 {files.length > 0 ? 'Add More Photos' : 'Take Photo or Choose'}
               </button>
             ) : (
-              <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-violet-500/25">
+              <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-teal to-accent-teal hover:from-accent-teal hover:to-accent-teal text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-accent-teal/20">
                 <Camera className="w-4 h-4" />
                 {files.length > 0 ? 'Add More Images' : 'Select Images'}
                 <input
@@ -300,15 +300,15 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                     <img
                       src={preview.url}
                       alt={preview.name}
-                      className="w-full h-32 object-cover rounded-xl border border-white/10"
+                      className="w-full h-32 object-cover rounded-xl border border-subtle"
                     />
                     <button
                       onClick={() => removeImage(i)}
-                      className="absolute top-1 right-1 p-1 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-black/75 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X className="w-4 h-4 text-white" />
+                      <X className="w-4 h-4 text-primary" />
                     </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white/80 text-xs px-2 py-1 rounded-b-xl truncate">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-secondary text-xs px-2 py-1 rounded-b-xl truncate">
                       {preview.name}
                     </div>
                   </div>
@@ -318,7 +318,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                 <button
                   onClick={analyzeTickets}
                   disabled={analyzing}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/25"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-amber to-accent-teal hover:from-accent-amber hover:to-accent-teal text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-accent-amber/20"
                 >
                   {analyzing ? (
                     <>
@@ -335,7 +335,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                 <button
                   onClick={reset}
                   disabled={analyzing}
-                  className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl font-medium transition-colors disabled:opacity-50"
+                  className="px-4 py-3 bg-highlight hover:bg-highlight text-secondary rounded-xl font-medium transition-colors disabled:opacity-50"
                 >
                   Clear
                 </button>
@@ -347,8 +347,8 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="bg-danger/10 border border-danger/20 rounded-xl p-4 mb-6">
+          <p className="text-danger text-sm">{error}</p>
         </div>
       )}
 
@@ -356,12 +356,12 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
       {extractedShows.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-primary">
               Found {extractedShows.length} show{extractedShows.length !== 1 ? 's' : ''} from tickets
             </h2>
             <button
               onClick={reset}
-              className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded-xl text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-highlight hover:bg-highlight text-secondary rounded-xl text-sm font-medium transition-colors"
             >
               <Camera className="w-4 h-4" />
               Scan More
@@ -369,24 +369,24 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
           </div>
 
           {extractedShows.map((show, showIdx) => (
-            <div key={showIdx} className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+            <div key={showIdx} className="bg-highlight backdrop-blur-xl rounded-2xl border border-subtle overflow-hidden">
               {/* Extracted show header */}
-              <div className="p-4 border-b border-white/10 bg-white/5">
+              <div className="p-4 border-b border-subtle bg-highlight">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-semibold text-white">{show.artist || 'Unknown Artist'}</div>
-                    <div className="text-sm text-white/60 mt-1">
+                    <div className="font-semibold text-primary">{show.artist || 'Unknown Artist'}</div>
+                    <div className="text-sm text-secondary mt-1">
                       {show.venue || 'Unknown Venue'}
                       {show.city && <span> &middot; {show.city}</span>}
                     </div>
                     {show.date && (
-                      <div className="text-sm text-white/40 mt-1">
+                      <div className="text-sm text-muted mt-1">
                         {(() => { try { return new Date(show.date).toLocaleDateString(); } catch { return show.date; } })()}
                       </div>
                     )}
                   </div>
                   {show.imported && (
-                    <span className="flex items-center gap-1 text-sm text-emerald-400">
+                    <span className="flex items-center gap-1 text-sm text-accent-amber">
                       <Check className="w-4 h-4" />
                       Imported
                     </span>
@@ -397,7 +397,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
               {/* Setlist search results */}
               <div className="p-4">
                 {show.searching && (
-                  <div className="flex items-center gap-3 text-white/50 text-sm py-4">
+                  <div className="flex items-center gap-3 text-secondary text-sm py-4">
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     Searching setlist.fm for matching shows...
                   </div>
@@ -405,10 +405,10 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
 
                 {!show.searching && show.noResults && !show.imported && (
                   <div className="text-center py-4">
-                    <p className="text-white/40 text-sm mb-3">No setlists found on setlist.fm</p>
+                    <p className="text-muted text-sm mb-3">No setlists found on setlist.fm</p>
                     <button
                       onClick={() => importManually(showIdx)}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-all mx-auto"
+                      className="flex items-center gap-2 px-4 py-2 bg-highlight hover:bg-highlight text-primary rounded-xl text-sm font-medium transition-all mx-auto"
                     >
                       <Plus className="w-4 h-4" />
                       Add Without Setlist
@@ -418,29 +418,29 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
 
                 {!show.searching && show.setlistResults.length > 0 && !show.imported && (
                   <div className="space-y-2">
-                    <p className="text-xs text-white/40 uppercase tracking-wide mb-2">Select matching setlist:</p>
+                    <p className="text-xs text-muted uppercase tracking-wide mb-2">Select matching setlist:</p>
                     {show.setlistResults.map((setlist) => {
                       const songCount = setlist.sets?.set?.reduce((acc, s) => acc + (s.song?.length || 0), 0) || 0;
                       const isExpanded = expandedSetlist === `${showIdx}-${setlist.id}`;
                       const alreadyAdded = isAlreadyImported(setlist.id);
 
                       return (
-                        <div key={setlist.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                          <div className="p-3 hover:bg-white/5">
+                        <div key={setlist.id} className="bg-highlight border border-subtle rounded-xl overflow-hidden">
+                          <div className="p-3 hover:bg-highlight">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-white">{setlist.artist.name}</div>
-                                <div className="text-xs text-white/60 mt-0.5">
+                                <div className="text-sm font-medium text-primary">{setlist.artist.name}</div>
+                                <div className="text-xs text-secondary mt-0.5">
                                   {setlist.venue.name} &middot; {setlist.venue.city.name}
                                 </div>
-                                <div className="text-xs text-white/40 mt-0.5">
+                                <div className="text-xs text-muted mt-0.5">
                                   {formatSetlistDate(setlist.eventDate)}
-                                  {setlist.tour && <span className="text-emerald-400 ml-2">{setlist.tour.name}</span>}
+                                  {setlist.tour && <span className="text-accent-amber ml-2">{setlist.tour.name}</span>}
                                 </div>
                                 {songCount > 0 && (
                                   <button
                                     onClick={() => setExpandedSetlist(isExpanded ? null : `${showIdx}-${setlist.id}`)}
-                                    className="flex items-center gap-1 text-xs text-white/50 hover:text-white/70 mt-1 transition-colors"
+                                    className="flex items-center gap-1 text-xs text-secondary hover:text-primary mt-1 transition-colors"
                                   >
                                     <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                     {songCount} songs
@@ -452,8 +452,8 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                                 disabled={alreadyAdded}
                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                   alreadyAdded
-                                    ? 'bg-emerald-500/20 text-emerald-400 cursor-default'
-                                    : 'bg-white/10 hover:bg-white/20 text-white'
+                                    ? 'bg-accent-amber-glow text-accent-amber cursor-default'
+                                    : 'bg-highlight hover:bg-highlight text-primary'
                                 }`}
                               >
                                 {alreadyAdded ? <><Check className="w-3 h-3" /> Added</> : <><Download className="w-3 h-3" /> Add</>}
@@ -462,21 +462,21 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                           </div>
 
                           {isExpanded && setlist.sets?.set && (
-                            <div className="border-t border-white/10 bg-white/5 p-3">
+                            <div className="border-t border-subtle bg-highlight p-3">
                               <div className="space-y-1 max-h-48 overflow-y-auto">
                                 {setlist.sets.set.map((set, setIdx) => (
                                   <div key={setIdx}>
                                     {set.name && (
-                                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wide mt-1 mb-1">{set.name}</div>
+                                      <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-1 mb-1">{set.name}</div>
                                     )}
                                     {set.encore && !set.name && (
-                                      <div className="text-xs font-semibold text-amber-400 uppercase tracking-wide mt-1 mb-1">Encore</div>
+                                      <div className="text-xs font-semibold text-accent-amber uppercase tracking-wide mt-1 mb-1">Encore</div>
                                     )}
                                     {set.song?.map((song, songIdx) => (
-                                      <div key={songIdx} className="flex items-center gap-2 py-0.5 text-xs text-white/70">
-                                        <span className="text-white/30 w-5 text-right">{songIdx + 1}.</span>
+                                      <div key={songIdx} className="flex items-center gap-2 py-0.5 text-xs text-secondary">
+                                        <span className="text-muted w-5 text-right">{songIdx + 1}.</span>
                                         <span>{song.name}</span>
-                                        {song.cover && <span className="text-white/40">({song.cover.name} cover)</span>}
+                                        {song.cover && <span className="text-muted">({song.cover.name} cover)</span>}
                                       </div>
                                     ))}
                                   </div>
