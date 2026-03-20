@@ -24,7 +24,8 @@ function ReleaseNotesView() {
       date: 'March 20, 2026',
       title: 'UI Polish & Copy Fixes',
       changes: [
-        'Fix: Tooltip "Got it" button is now clearly visible with white text and underline on amber background',
+        'Fix: Onboarding tooltip redesigned with dark navy background and green "Got it" button for clear visibility on the light theme',
+        'Fix: Tooltip z-index raised to appear above all page content',
         'Fix: Upcoming Shows now displays the number of upcoming events on sale instead of historical attendance count',
         'Removed wristband scanning references from landing page, ticket scanner, and feature announcements',
       ]
