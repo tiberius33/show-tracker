@@ -36,7 +36,7 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
   // Only show artists that have cached upcoming events
   const visibleArtists = useMemo(() => {
     if (!cacheChecked) return sortedArtists; // show all while loading
-    return sortedArtists.filter(({ name }) => artistDots[name]);
+    return sortedArtists.filter(({ name }) => artistDots[name] > 0);
   }, [sortedArtists, artistDots, cacheChecked]);
 
   // On mount, cache-only check — reads Firestore ticketCache docs, no API calls
@@ -59,7 +59,7 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
               if (Date.now() - cachedAt < TICKET_CACHE_TTL) {
                 const events = cached.data || cached.events || [];
                 if (events.length > 0) {
-                  dots[name] = true;
+                  dots[name] = events.length;
                   totalEvents += events.length;
                 }
               }
@@ -172,16 +172,18 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
               >
                 {/* Indicator dot */}
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  artistDots[name] ? 'bg-brand' : 'bg-transparent'
+                  artistDots[name] > 0 ? 'bg-brand' : 'bg-transparent'
                 }`} />
 
                 <span className="flex-1 text-primary font-medium group-hover:text-primary transition-colors">
                   {name}
                 </span>
 
-                <span className="text-muted text-sm">
-                  {count === 1 ? '1 show' : `${count} shows`}
-                </span>
+                {artistDots[name] > 0 && (
+                  <span className="text-brand text-sm font-medium">
+                    {artistDots[name] === 1 ? '1 upcoming' : `${artistDots[name]} upcoming`}
+                  </span>
+                )}
 
                 <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
               </button>

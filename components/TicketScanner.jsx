@@ -266,7 +266,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
           <div className="flex flex-col items-center justify-center py-8">
             <Camera className="w-12 h-12 text-muted mb-4" />
             <p className="text-secondary mb-4 text-center">
-              Upload photos of your concert ticket stubs, wristbands, or digital tickets
+              Upload photos of your concert ticket stubs or digital tickets
             </p>
             {isNativePlatform() ? (
               <button

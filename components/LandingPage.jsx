@@ -19,7 +19,7 @@ const FEATURES = [
     icon: Camera,
     gradient: 'from-amber to-amber',
     title: 'Scan Ticket Stubs',
-    description: 'Snap a photo of any ticket stub, wristband, or digital ticket. AI reads the details and adds the show instantly.',
+    description: 'Snap a photo of any ticket stub or digital ticket. AI reads the details and adds the show instantly.',
   },
   {
     icon: Upload,
