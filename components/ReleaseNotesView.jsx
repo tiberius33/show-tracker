@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.5.0',
+      date: 'March 20, 2026',
+      title: 'Auto-Open Preference',
+      changes: [
+        'New: Choose whether the show detail view opens automatically after adding a show',
+        'New: One-time preference prompt appears after your 3rd show — pick your preferred workflow',
+        'New: Toggle in Profile > Preferences to change this setting anytime',
+        'When auto-open is off, a confirmation toast appears instead: "Show added!"',
+        'Bulk CSV imports always skip auto-open regardless of preference',
+      ]
+    },
+    {
       version: '3.4.0',
       date: 'March 20, 2026',
       title: 'UI Polish & Copy Fixes',
