@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, ChevronUp, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, EyeOff, Database, ExternalLink, Ticket, Trash2, Clock } from 'lucide-react';
+import { Music, Plus, X, Star, Calendar, MapPin, List, BarChart3, Check, Search, Download, ChevronLeft, ChevronRight, ChevronUp, Users, Building2, ChevronDown, MessageSquare, LogOut, User, Shield, Trophy, TrendingUp, Crown, Mail, Send, Menu, Coffee, Heart, Sparkles, Share2, Copy, ScrollText, Upload, AlertTriangle, UserPlus, UserCheck, UserX, Tag, Camera, RefreshCw, Bell, Eye, Database, ExternalLink, Ticket, Trash2, Clock } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, onSnapshot, query, where, addDoc, writeBatch, runTransaction, increment } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
@@ -2420,18 +2420,6 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '3.5.0',
-      date: 'March 20, 2026',
-      title: 'Auto-Open Preference',
-      changes: [
-        'New: Choose whether the show detail view opens automatically after adding a show',
-        'New: One-time preference prompt appears after your 3rd show — pick your preferred workflow',
-        'New: Toggle in Profile > Preferences to change this setting anytime',
-        'When auto-open is off, a confirmation toast appears instead: "Show added!"',
-        'Bulk CSV imports always skip auto-open regardless of preference',
-      ]
-    },
-    {
       version: '3.4.0',
       date: 'March 20, 2026',
       title: 'UI Polish & Copy Fixes',
@@ -2439,17 +2427,6 @@ function ReleaseNotesView() {
         'Fix: Tooltip "Got it" button is now clearly visible with white text and underline on amber background',
         'Fix: Upcoming Shows now displays the number of upcoming events on sale instead of historical attendance count',
         'Removed wristband scanning references from landing page, ticket scanner, and feature announcements',
-      ]
-    },
-    {
-      version: '3.3.1',
-      date: 'March 20, 2026',
-      title: 'Post-Add Show Detail Flow',
-      changes: [
-        'New: Show detail modal automatically opens after adding a new show — rate, add notes, tag friends, and build your setlist immediately',
-        'Works for all add paths: manual entry, setlist.fm search import, and ticket scan',
-        'Bulk CSV imports skip auto-open to keep the import flow smooth',
-        'Fix: Replaced setTimeout-based approach with React useEffect pattern for reliable modal opening across all browsers and React rendering modes',
       ]
     },
     {
@@ -4926,12 +4903,6 @@ export default function ShowTracker() {
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
-  const [pendingDetailShow, setPendingDetailShow] = useState(null);
-  const [autoOpenDetail, setAutoOpenDetail] = useState(() => {
-    const saved = localStorage.getItem('mysetlists_auto_open_detail');
-    return saved === null ? true : saved === 'true';
-  });
-  const [showAutoOpenPrompt, setShowAutoOpenPrompt] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -4978,33 +4949,6 @@ export default function ShowTracker() {
     localStorage.setItem('hasSeenOnboardingTooltips', '1');
     localStorage.setItem('mysetlists_lastVisit', String(Date.now()));
   };
-
-  const toggleAutoOpenDetail = (value) => {
-    const next = typeof value === 'boolean' ? value : !autoOpenDetail;
-    setAutoOpenDetail(next);
-    localStorage.setItem('mysetlists_auto_open_detail', String(next));
-  };
-
-  const dismissAutoOpenPrompt = () => {
-    setShowAutoOpenPrompt(false);
-    localStorage.setItem('mysetlists_auto_open_prompt_seen', '1');
-  };
-
-  // Auto-open detail modal after adding a show
-  useEffect(() => {
-    if (pendingDetailShow && !showForm) {
-      if (autoOpenDetail) {
-        const timer = setTimeout(() => {
-          setSelectedShow(pendingDetailShow);
-          setPendingDetailShow(null);
-        }, 200);
-        return () => clearTimeout(timer);
-      } else {
-        setToast('Show added! Tap any show to add setlist details.');
-        setPendingDetailShow(null);
-      }
-    }
-  }, [pendingDetailShow, showForm, autoOpenDetail]);
 
   // URL-based navigation (back/forward button support)
   const navigate = useNavigate();
@@ -5621,7 +5565,7 @@ export default function ShowTracker() {
     }
   };
 
-  const addShow = async (showData, { autoOpenDetail = true } = {}) => {
+  const addShow = async (showData) => {
     const showId = Date.now().toString();
     const newShow = {
       ...showData,
@@ -5639,16 +5583,6 @@ export default function ShowTracker() {
       setShows(updatedShows);
       saveGuestShows(updatedShows);
       setShowForm(false);
-
-      // Queue the detail modal — the useEffect checks the autoOpenDetail pref
-      if (autoOpenDetail) {
-        setPendingDetailShow(newShow);
-      }
-
-      // One-time prompt: after 3rd show, ask about auto-open preference
-      if (updatedShows.length === 3 && !localStorage.getItem('mysetlists_auto_open_prompt_seen')) {
-        setTimeout(() => setShowAutoOpenPrompt(true), 1500);
-      }
 
       // Update guest session showsAdded count
       try {
@@ -5680,16 +5614,6 @@ export default function ShowTracker() {
       const updatedShows = [...shows, newShow];
       setShows(updatedShows);
       setShowForm(false);
-
-      // Queue the detail modal — the useEffect checks the autoOpenDetail pref
-      if (autoOpenDetail) {
-        setPendingDetailShow(newShow);
-      }
-
-      // One-time prompt: after 3rd show, ask about auto-open preference
-      if (updatedShows.length === 3 && !localStorage.getItem('mysetlists_auto_open_prompt_seen')) {
-        setTimeout(() => setShowAutoOpenPrompt(true), 1500);
-      }
 
       // Celebrate first show!
       if (isFirstShow) {
@@ -7904,8 +7828,6 @@ export default function ShowTracker() {
             onProfileUpdate={() => {
               // Refresh user data if needed
             }}
-            autoOpenDetail={autoOpenDetail}
-            onToggleAutoOpen={toggleAutoOpenDetail}
           />
         )}
 
@@ -7938,52 +7860,6 @@ export default function ShowTracker() {
             setVenueRatingShow(null);
           }}
         />
-      )}
-
-      {/* One-time auto-open preference prompt */}
-      {showAutoOpenPrompt && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface border border-subtle rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-brand-subtle rounded-xl flex items-center justify-center">
-                <Eye className="w-5 h-5 text-brand" />
-              </div>
-              <h3 className="text-lg font-bold text-primary">Quick Preference</h3>
-            </div>
-            <p className="text-secondary text-sm mb-5">
-              When you add a show, should we automatically open the detail view so you can add setlists and ratings right away?
-            </p>
-            <div className="space-y-2">
-              <button
-                onClick={() => {
-                  toggleAutoOpenDetail(true);
-                  dismissAutoOpenPrompt();
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-brand-subtle hover:bg-brand/20 border border-brand/30 rounded-xl transition-colors text-left"
-              >
-                <Eye className="w-4 h-4 text-brand flex-shrink-0" />
-                <div>
-                  <span className="text-sm font-medium text-primary">Yes, open details automatically</span>
-                  <span className="block text-xs text-secondary">Jump right into setlists & ratings</span>
-                </div>
-              </button>
-              <button
-                onClick={() => {
-                  toggleAutoOpenDetail(false);
-                  dismissAutoOpenPrompt();
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-hover hover:bg-hover border border-subtle rounded-xl transition-colors text-left"
-              >
-                <EyeOff className="w-4 h-4 text-secondary flex-shrink-0" />
-                <div>
-                  <span className="text-sm font-medium text-primary">No, just add the show</span>
-                  <span className="block text-xs text-secondary">I'll open details when I want to</span>
-                </div>
-              </button>
-            </div>
-            <p className="text-muted text-xs mt-4 text-center">You can change this anytime in your Profile settings.</p>
-          </div>
-        </div>
       )}
 
       {/* Global toast notification */}

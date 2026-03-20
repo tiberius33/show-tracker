@@ -6,18 +6,6 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '3.5.0',
-      date: 'March 20, 2026',
-      title: 'Auto-Open Preference',
-      changes: [
-        'New: Choose whether the show detail view opens automatically after adding a show',
-        'New: One-time preference prompt appears after your 3rd show — pick your preferred workflow',
-        'New: Toggle in Profile > Preferences to change this setting anytime',
-        'When auto-open is off, a confirmation toast appears instead: "Show added!"',
-        'Bulk CSV imports always skip auto-open regardless of preference',
-      ]
-    },
-    {
       version: '3.4.0',
       date: 'March 20, 2026',
       title: 'UI Polish & Copy Fixes',
@@ -25,17 +13,6 @@ function ReleaseNotesView() {
         'Fix: Tooltip "Got it" button is now clearly visible with white text and underline on amber background',
         'Fix: Upcoming Shows now displays the number of upcoming events on sale instead of historical attendance count',
         'Removed wristband scanning references from landing page, ticket scanner, and feature announcements',
-      ]
-    },
-    {
-      version: '3.3.1',
-      date: 'March 20, 2026',
-      title: 'Post-Add Show Detail Flow',
-      changes: [
-        'New: Show detail modal automatically opens after adding a new show — rate, add notes, tag friends, and build your setlist immediately',
-        'Works for all add paths: manual entry, setlist.fm search import, and ticket scan',
-        'Bulk CSV imports skip auto-open to keep the import flow smooth',
-        'Fix: Replaced setTimeout-based approach with React useEffect pattern for reliable modal opening across all browsers and React rendering modes',
       ]
     },
     {
