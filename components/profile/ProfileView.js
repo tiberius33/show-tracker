@@ -1,12 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Eye } from 'lucide-react';
+import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera } from 'lucide-react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
 
-export default function ProfileView({ user, shows, userRank, onProfileUpdate, autoOpenDetail, onToggleAutoOpen }) {
+export default function ProfileView({ user, shows, userRank, onProfileUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [photoURL, setPhotoURL] = useState('');
@@ -238,26 +238,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, au
           </div>
         </div>
       )}
-
-      {/* Preferences */}
-      <div className="bg-hover border border-subtle rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-primary mb-4">Preferences</h3>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Eye className="w-5 h-5 text-brand" />
-            <div>
-              <p className="text-sm font-medium text-primary">Auto-open show details</p>
-              <p className="text-xs text-secondary">Automatically open setlist editor after adding a show</p>
-            </div>
-          </div>
-          <button
-            onClick={() => onToggleAutoOpen?.()}
-            className={`relative w-11 h-6 rounded-full transition-colors ${autoOpenDetail ? 'bg-brand' : 'bg-hover border border-subtle'}`}
-          >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${autoOpenDetail ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
-        </div>
-      </div>
 
       {/* Notification Settings */}
       <NotificationSettings userId={user?.uid} />

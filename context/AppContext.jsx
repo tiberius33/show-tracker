@@ -152,12 +152,6 @@ export function AppProvider({ children }) {
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
-  const [pendingDetailShow, setPendingDetailShow] = useState(null);
-  const [autoOpenDetail, setAutoOpenDetail] = useState(() => {
-    const saved = storage.get(STORAGE_KEYS.AUTO_OPEN_DETAIL);
-    return saved === null ? true : saved === 'true';
-  });
-  const [showAutoOpenPrompt, setShowAutoOpenPrompt] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -202,36 +196,6 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.SEEN_TOOLTIPS, '1');
     storage.set(STORAGE_KEYS.LAST_VISIT, String(Date.now()));
   };
-
-  const toggleAutoOpenDetail = (value) => {
-    const next = typeof value === 'boolean' ? value : !autoOpenDetail;
-    setAutoOpenDetail(next);
-    storage.set(STORAGE_KEYS.AUTO_OPEN_DETAIL, String(next));
-  };
-
-  const dismissAutoOpenPrompt = () => {
-    setShowAutoOpenPrompt(false);
-    storage.set(STORAGE_KEYS.AUTO_OPEN_PROMPT_SEEN, '1');
-  };
-
-  // ── Auto-open detail modal after adding a show ─────────────────────
-  // Uses a useEffect instead of setTimeout inside addShow to guarantee
-  // the detail modal opens AFTER React commits the render where the
-  // add-show form is closed and the new show is in state.
-  useEffect(() => {
-    if (pendingDetailShow && !showForm) {
-      if (autoOpenDetail) {
-        const timer = setTimeout(() => {
-          setSelectedShow(pendingDetailShow);
-          setPendingDetailShow(null);
-        }, 200);
-        return () => clearTimeout(timer);
-      } else {
-        setToast('Show added! Tap any show to add setlist details.');
-        setPendingDetailShow(null);
-      }
-    }
-  }, [pendingDetailShow, showForm, autoOpenDetail]);
 
   // ── Navigation ──────────────────────────────────────────────────────
   // In Next.js the active view is determined by the pathname.
@@ -821,7 +785,7 @@ export function AppProvider({ children }) {
     }
   };
 
-  const addShow = async (showData, { autoOpenDetail = true } = {}) => {
+  const addShow = async (showData) => {
     const showId = Date.now().toString();
     const newShow = {
       ...showData,
@@ -838,16 +802,6 @@ export function AppProvider({ children }) {
       setShows(updatedShows);
       saveGuestShows(updatedShows);
       setShowForm(false);
-
-      // Queue the detail modal — the useEffect checks the autoOpenDetail pref
-      if (autoOpenDetail) {
-        setPendingDetailShow(newShow);
-      }
-
-      // One-time prompt: after 3rd show, ask about auto-open preference
-      if (updatedShows.length === 3 && !storage.get(STORAGE_KEYS.AUTO_OPEN_PROMPT_SEEN)) {
-        setTimeout(() => setShowAutoOpenPrompt(true), 1500);
-      }
 
       try {
         const sessionId = storage.get(STORAGE_KEYS.GUEST_SESSION);
@@ -877,16 +831,6 @@ export function AppProvider({ children }) {
       const updatedShows = [...shows, newShow];
       setShows(updatedShows);
       setShowForm(false);
-
-      // Queue the detail modal — the useEffect checks the autoOpenDetail pref
-      if (autoOpenDetail) {
-        setPendingDetailShow(newShow);
-      }
-
-      // One-time prompt: after 3rd show, ask about auto-open preference
-      if (updatedShows.length === 3 && !storage.get(STORAGE_KEYS.AUTO_OPEN_PROMPT_SEEN)) {
-        setTimeout(() => setShowAutoOpenPrompt(true), 1500);
-      }
 
       if (isFirstShow) {
         setShowCelebration(true);
@@ -2354,11 +2298,6 @@ export function AppProvider({ children }) {
     toast,
     setToast,
 
-    // Auto-open preference
-    autoOpenDetail,
-    toggleAutoOpenDetail,
-    showAutoOpenPrompt,
-    dismissAutoOpenPrompt,
 
     // Venue rating
     venueRatingShow,

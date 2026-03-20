@@ -12,7 +12,7 @@ import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import {
   Search, Plus, Camera, RefreshCw, Upload, Sparkles, X,
-  Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Eye, EyeOff,
+  Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag,
 } from 'lucide-react';
 
 export default function ShowsPage() {
@@ -39,7 +39,6 @@ export default function ShowsPage() {
     memoriesShow, sharedComments, commentsLoading,
     openMemories, addSharedComment, editSharedComment, deleteSharedComment,
     pendingTagsForReview, acceptPendingEmailTag, declinePendingEmailTag,
-    showAutoOpenPrompt, dismissAutoOpenPrompt, toggleAutoOpenDetail,
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
@@ -483,51 +482,6 @@ export default function ShowsPage() {
             />
           )}
 
-          {/* One-time auto-open preference prompt */}
-          {showAutoOpenPrompt && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-              <div className="bg-surface border border-subtle rounded-2xl p-6 max-w-sm w-full shadow-xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-brand-subtle rounded-xl flex items-center justify-center">
-                    <Eye className="w-5 h-5 text-brand" />
-                  </div>
-                  <h3 className="text-lg font-bold text-primary">Quick Preference</h3>
-                </div>
-                <p className="text-secondary text-sm mb-5">
-                  When you add a show, should we automatically open the detail view so you can add setlists and ratings right away?
-                </p>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      toggleAutoOpenDetail(true);
-                      dismissAutoOpenPrompt();
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-brand-subtle hover:bg-brand/20 border border-brand/30 rounded-xl transition-colors text-left"
-                  >
-                    <Eye className="w-4 h-4 text-brand flex-shrink-0" />
-                    <div>
-                      <span className="text-sm font-medium text-primary">Yes, open details automatically</span>
-                      <span className="block text-xs text-secondary">Jump right into setlists & ratings</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      toggleAutoOpenDetail(false);
-                      dismissAutoOpenPrompt();
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-hover hover:bg-hover border border-subtle rounded-xl transition-colors text-left"
-                  >
-                    <EyeOff className="w-4 h-4 text-secondary flex-shrink-0" />
-                    <div>
-                      <span className="text-sm font-medium text-primary">No, just add the show</span>
-                      <span className="block text-xs text-secondary">I&apos;ll open details when I want to</span>
-                    </div>
-                  </button>
-                </div>
-                <p className="text-muted text-xs mt-4 text-center">You can change this anytime in your Profile settings.</p>
-              </div>
-            </div>
-          )}
         </>
       )}
     </>

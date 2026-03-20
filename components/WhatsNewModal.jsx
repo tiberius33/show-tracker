@@ -10,14 +10,6 @@ const CURRENT_WHATS_NEW_VERSION = '3.3';
 
 const FEATURES = [
   {
-    icon: Sparkles,
-    color: 'text-brand',
-    bg: 'bg-brand-subtle',
-    title: 'Instant Show Detail After Adding',
-    description: 'When you add a show, the detail view opens right away so you can rate it, add notes, tag friends, and build your setlist immediately.',
-    cta: null,
-  },
-  {
     icon: Palette,
     color: 'text-brand',
     bg: 'bg-brand-subtle',
