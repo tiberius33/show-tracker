@@ -186,6 +186,13 @@ test.describe('Authenticated Flow', () => {
     if (await tooltipDismiss.isVisible({ timeout: 1500 }).catch(() => false)) {
       await tooltipDismiss.click();
     }
+
+    // Dismiss cookie consent banner if it overlays the sidebar
+    const cookieBanner = page.locator('[class*="fixed bottom-0"]').filter({ hasText: /cookie|accept/i });
+    if (await cookieBanner.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await cookieBanner.getByRole('button').first().click();
+      await cookieBanner.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    }
   });
 
   test('shows page loads with user content', async ({ page }) => {
@@ -206,7 +213,7 @@ test.describe('Authenticated Flow', () => {
   });
 
   test('logout returns to landing page', async ({ page }) => {
-    await page.getByText('Logout').click();
+    await page.getByText('Logout').click({ force: true });
     await expect(page.getByRole('button', { name: /get started/i }).first()).toBeVisible({ timeout: 15000 });
   });
 });
