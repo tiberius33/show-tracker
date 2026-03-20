@@ -152,6 +152,7 @@ export function AppProvider({ children }) {
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
+  const [pendingDetailShow, setPendingDetailShow] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -196,6 +197,20 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.SEEN_TOOLTIPS, '1');
     storage.set(STORAGE_KEYS.LAST_VISIT, String(Date.now()));
   };
+
+  // ── Auto-open detail modal after adding a show ─────────────────────
+  // Uses a useEffect instead of setTimeout inside addShow to guarantee
+  // the detail modal opens AFTER React commits the render where the
+  // add-show form is closed and the new show is in state.
+  useEffect(() => {
+    if (pendingDetailShow && !showForm) {
+      const timer = setTimeout(() => {
+        setSelectedShow(pendingDetailShow);
+        setPendingDetailShow(null);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingDetailShow, showForm]);
 
   // ── Navigation ──────────────────────────────────────────────────────
   // In Next.js the active view is determined by the pathname.
@@ -803,9 +818,9 @@ export function AppProvider({ children }) {
       saveGuestShows(updatedShows);
       setShowForm(false);
 
-      // Auto-open show detail modal for the newly added show
+      // Queue the detail modal to open via useEffect (after form unmounts)
       if (autoOpenDetail) {
-        setTimeout(() => setSelectedShow(newShow), 200);
+        setPendingDetailShow(newShow);
       }
 
       try {
@@ -837,9 +852,9 @@ export function AppProvider({ children }) {
       setShows(updatedShows);
       setShowForm(false);
 
-      // Auto-open show detail modal for the newly added show
+      // Queue the detail modal to open via useEffect (after form unmounts)
       if (autoOpenDetail) {
-        setTimeout(() => setSelectedShow(newShow), 200);
+        setPendingDetailShow(newShow);
       }
 
       if (isFirstShow) {

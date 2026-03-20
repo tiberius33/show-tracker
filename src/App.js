@@ -2420,14 +2420,14 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '3.3.0',
+      version: '3.3.1',
       date: 'March 20, 2026',
       title: 'Post-Add Show Detail Flow',
       changes: [
         'New: Show detail modal automatically opens after adding a new show — rate, add notes, tag friends, and build your setlist immediately',
         'Works for all add paths: manual entry, setlist.fm search import, and ticket scan',
         'Bulk CSV imports skip auto-open to keep the import flow smooth',
-        'Smooth 200ms transition between closing the add form and opening the detail modal',
+        'Fix: Replaced setTimeout-based approach with React useEffect pattern for reliable modal opening across all browsers and React rendering modes',
       ]
     },
     {
@@ -4904,6 +4904,7 @@ export default function ShowTracker() {
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
+  const [pendingDetailShow, setPendingDetailShow] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -4950,6 +4951,17 @@ export default function ShowTracker() {
     localStorage.setItem('hasSeenOnboardingTooltips', '1');
     localStorage.setItem('mysetlists_lastVisit', String(Date.now()));
   };
+
+  // Auto-open detail modal after adding a show
+  useEffect(() => {
+    if (pendingDetailShow && !showForm) {
+      const timer = setTimeout(() => {
+        setSelectedShow(pendingDetailShow);
+        setPendingDetailShow(null);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingDetailShow, showForm]);
 
   // URL-based navigation (back/forward button support)
   const navigate = useNavigate();
@@ -5585,9 +5597,9 @@ export default function ShowTracker() {
       saveGuestShows(updatedShows);
       setShowForm(false);
 
-      // Auto-open show detail modal for the newly added show
+      // Queue the detail modal to open via useEffect (after form unmounts)
       if (autoOpenDetail) {
-        setTimeout(() => setSelectedShow(newShow), 200);
+        setPendingDetailShow(newShow);
       }
 
       // Update guest session showsAdded count
@@ -5621,9 +5633,9 @@ export default function ShowTracker() {
       setShows(updatedShows);
       setShowForm(false);
 
-      // Auto-open show detail modal for the newly added show
+      // Queue the detail modal to open via useEffect (after form unmounts)
       if (autoOpenDetail) {
-        setTimeout(() => setSelectedShow(newShow), 200);
+        setPendingDetailShow(newShow);
       }
 
       // Celebrate first show!
