@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.3.0',
+      date: 'March 20, 2026',
+      title: 'Post-Add Show Detail Flow',
+      changes: [
+        'New: Show detail modal automatically opens after adding a new show — rate, add notes, tag friends, and build your setlist immediately',
+        'Works for all add paths: manual entry, setlist.fm search import, and ticket scan',
+        'Bulk CSV imports skip auto-open to keep the import flow smooth',
+        'Smooth 200ms transition between closing the add form and opening the detail modal',
+      ]
+    },
+    {
       version: '3.2.0',
       date: 'March 19, 2026',
       title: 'Polish & Consistency',

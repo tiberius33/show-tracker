@@ -785,7 +785,7 @@ export function AppProvider({ children }) {
     }
   };
 
-  const addShow = async (showData) => {
+  const addShow = async (showData, { autoOpenDetail = true } = {}) => {
     const showId = Date.now().toString();
     const newShow = {
       ...showData,
@@ -802,6 +802,11 @@ export function AppProvider({ children }) {
       setShows(updatedShows);
       saveGuestShows(updatedShows);
       setShowForm(false);
+
+      // Auto-open show detail modal for the newly added show
+      if (autoOpenDetail) {
+        setTimeout(() => setSelectedShow(newShow), 200);
+      }
 
       try {
         const sessionId = storage.get(STORAGE_KEYS.GUEST_SESSION);
@@ -831,6 +836,11 @@ export function AppProvider({ children }) {
       const updatedShows = [...shows, newShow];
       setShows(updatedShows);
       setShowForm(false);
+
+      // Auto-open show detail modal for the newly added show
+      if (autoOpenDetail) {
+        setTimeout(() => setSelectedShow(newShow), 200);
+      }
 
       if (isFirstShow) {
         setShowCelebration(true);
