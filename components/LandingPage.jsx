@@ -277,7 +277,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
       <section className="max-w-3xl mx-auto px-4 py-12 md:py-20 text-center">
         <h2 className="text-2xl md:text-3xl font-bold mb-4 text-on-dark">Ready to track your concert journey?</h2>
         <p className="text-on-dark-muted mb-8 max-w-md mx-auto">
-          Free forever. No ads. Built by a fellow concert-goer.
+          Built by a fellow concert-goer.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
