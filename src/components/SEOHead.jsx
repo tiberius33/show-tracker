@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 
 const DEFAULTS = {
-  title: 'Show Tracker | Your Concert History',
+  title: 'MySetlists | Your Show History',
   description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
   ogImage: 'https://mysetlists.net/og-image.svg',
   siteUrl: 'https://mysetlists.net',
