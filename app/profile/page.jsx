@@ -4,7 +4,7 @@ import ProfileView from '@/components/profile/ProfileView';
 import { useApp } from '@/context/AppContext';
 
 export default function ProfilePage() {
-  const { user, guestMode, shows, userRank } = useApp();
+  const { user, guestMode, shows, userRank, autoOpenDetail, toggleAutoOpenDetail } = useApp();
 
   if (guestMode || !user) return null;
 
@@ -14,6 +14,8 @@ export default function ProfilePage() {
       shows={shows}
       userRank={userRank}
       onProfileUpdate={() => {}}
+      autoOpenDetail={autoOpenDetail}
+      onToggleAutoOpen={toggleAutoOpenDetail}
     />
   );
 }
