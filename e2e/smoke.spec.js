@@ -170,7 +170,7 @@ test.describe('Authenticated Flow', () => {
     await page.getByRole('button', { name: /sign in/i }).click();
     await page.getByPlaceholder('Email address').fill(TEST_EMAIL);
     await page.getByPlaceholder('Password').fill(TEST_PASSWORD);
-    await page.getByRole('button', { name: /^sign in$/i }).click();
+    await page.locator('form').getByRole('button', { name: /sign in/i }).click();
     // Wait for sidebar to show user name (meaning auth + redirect complete)
     await expect(page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first()).toBeVisible({ timeout: 20000 });
   });
