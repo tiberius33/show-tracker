@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.4.0',
+      date: 'March 20, 2026',
+      title: 'UI Polish & Copy Fixes',
+      changes: [
+        'Fix: Tooltip "Got it" button is now clearly visible with white text and underline on amber background',
+        'Fix: Upcoming Shows now displays the number of upcoming events on sale instead of historical attendance count',
+        'Removed wristband scanning references from landing page, ticket scanner, and feature announcements',
+      ]
+    },
+    {
       version: '3.3.1',
       date: 'March 20, 2026',
       title: 'Post-Add Show Detail Flow',

@@ -203,14 +203,14 @@ export default function ShowsPage() {
                       <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
                         <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-violet-600" />
                         <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                        <button onClick={dismissTooltip} className="text-amber hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                        <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
                       </div>
                     </div>
                     <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
                       <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
                         <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-violet-600" />
                         <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                        <button onClick={dismissTooltip} className="text-amber hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                        <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
                       </div>
                     </div>
                   </>

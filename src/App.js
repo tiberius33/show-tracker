@@ -2420,6 +2420,16 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.4.0',
+      date: 'March 20, 2026',
+      title: 'UI Polish & Copy Fixes',
+      changes: [
+        'Fix: Tooltip "Got it" button is now clearly visible with white text and underline on amber background',
+        'Fix: Upcoming Shows now displays the number of upcoming events on sale instead of historical attendance count',
+        'Removed wristband scanning references from landing page, ticket scanner, and feature announcements',
+      ]
+    },
+    {
       version: '3.3.1',
       date: 'March 20, 2026',
       title: 'Post-Add Show Detail Flow',
@@ -4635,7 +4645,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
           <div className="flex flex-col items-center justify-center py-8">
             <Camera className="w-12 h-12 text-muted mb-4" />
             <p className="text-secondary mb-4 text-center">
-              Upload photos of your concert ticket stubs, wristbands, or digital tickets
+              Upload photos of your concert ticket stubs or digital tickets
             </p>
             <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-amber/20">
               <Camera className="w-4 h-4" />
@@ -7463,7 +7473,7 @@ export default function ShowTracker() {
                         <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
                           <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-brand" />
                           <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                          <button onClick={dismissTooltip} className="text-amber hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                          <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
                         </div>
                       </div>
                       {/* Mobile: tooltip below */}
@@ -7471,7 +7481,7 @@ export default function ShowTracker() {
                         <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
                           <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-brand" />
                           <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                          <button onClick={dismissTooltip} className="text-amber hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                          <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
                         </div>
                       </div>
                     </>
@@ -8240,7 +8250,7 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
               if (Date.now() - cachedAt < TICKET_CACHE_TTL) {
                 const events = cached.events || [];
                 if (events.length > 0) {
-                  dots[name] = true;
+                  dots[name] = events.length;
                   totalEvents += events.length;
                 }
               }
@@ -8348,16 +8358,18 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
               >
                 {/* Indicator dot */}
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  artistDots[name] ? 'bg-brand' : 'bg-transparent'
+                  artistDots[name] > 0 ? 'bg-brand' : 'bg-transparent'
                 }`} />
 
                 <span className="flex-1 text-primary font-medium group-hover:text-primary transition-colors">
                   {name}
                 </span>
 
-                <span className="text-muted text-sm">
-                  {count === 1 ? '1 show' : `${count} shows`}
-                </span>
+                {artistDots[name] > 0 && (
+                  <span className="text-brand text-sm font-medium">
+                    {artistDots[name] === 1 ? '1 upcoming' : `${artistDots[name]} upcoming`}
+                  </span>
+                )}
 
                 <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
               </button>

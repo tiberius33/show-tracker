@@ -38,7 +38,7 @@ const FEATURES = [
     color: 'text-amber',
     bg: 'bg-amber-subtle',
     title: 'AI Ticket Stub Scanner',
-    description: 'Snap a photo of any ticket stub, wristband, or digital ticket to add shows instantly.',
+    description: 'Snap a photo of any ticket stub or digital ticket to add shows instantly.',
     cta: { label: 'Try Scan / Import', view: 'scan-import' },
   },
   {
