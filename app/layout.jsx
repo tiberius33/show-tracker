@@ -4,7 +4,7 @@ import AppProviderWrapper from './AppProviderWrapper';
 
 export const metadata = {
   title: {
-    default: 'Show Tracker | Your Concert History',
+    default: 'MySetlists | Your Show History',
     template: '%s — MySetlists',
   },
   description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
@@ -12,19 +12,19 @@ export const metadata = {
   openGraph: {
     type: 'website',
     url: 'https://mysetlists.net/',
-    title: 'Show Tracker | Your Concert History',
+    title: 'MySetlists | Your Show History',
     description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
     images: ['/og-image.svg'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Show Tracker | Your Concert History',
+    title: 'MySetlists | Your Show History',
     description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
     images: ['/og-image.svg'],
   },
   icons: {
     icon: '/favicon.svg',
-    apple: '/icon-192.png',
+    apple: '/favicon.svg',
   },
   manifest: '/manifest.json',
   appleWebApp: {

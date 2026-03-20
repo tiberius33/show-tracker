@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.2.0',
+      date: 'March 19, 2026',
+      title: 'Polish & Consistency',
+      changes: [
+        'Refreshed UI with new color scheme based on MySetlists brand colors (green + amber from the logo)',
+        'New sidebar design with dark navy background',
+        'Updated browser tab title to "MySetlists | Your Show History"',
+        'Fixed favicon to show correct green logo',
+        'Scan / Import and Find Missing Setlists buttons updated to match Search for a Show styling',
+        'Consistent button and input styling throughout the app',
+      ]
+    },
+    {
       version: '3.1.0',
       date: 'March 19, 2026',
       title: 'Brand Refresh — Light Theme with Logo Colors',

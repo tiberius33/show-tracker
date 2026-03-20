@@ -192,7 +192,7 @@ export default function ShowsPage() {
               <div className="relative">
                 <button
                   onClick={() => navigateTo('scan-import')}
-                  className={`flex items-center justify-center gap-2 px-4 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-medium transition-all whitespace-nowrap border border-amber/30 ${tooltipStep === 1 ? 'ring-2 ring-amber/60 ring-offset-2 ring-offset-base' : ''}`}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 ${tooltipStep === 1 ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-base' : ''}`}
                 >
                   <Camera className="w-4 h-4" />
                   Scan / Import
@@ -220,7 +220,7 @@ export default function ShowsPage() {
                 <button
                   onClick={scanForMissingSetlists}
                   disabled={setlistScanning}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-medium transition-all whitespace-nowrap border border-amber/30 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
                   {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}

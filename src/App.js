@@ -2420,6 +2420,17 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.2.0',
+      date: 'March 19, 2026',
+      title: 'Polish & Consistency',
+      changes: [
+        'Updated browser tab title to "MySetlists | Your Show History"',
+        'Fixed favicon to show correct green logo',
+        'Scan / Import and Find Missing Setlists buttons now match Search for a Show styling',
+        'Consistent button and input styling throughout the app',
+      ]
+    },
+    {
       version: '3.1.0',
       date: 'March 19, 2026',
       title: 'Brand Refresh — Light Theme with Logo Colors',
@@ -7407,7 +7418,7 @@ export default function ShowTracker() {
                 <div className="relative">
                   <button
                     onClick={() => navigateTo('scan-import')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-medium transition-all whitespace-nowrap border border-amber/30 ${tooltipStep === 1 ? 'ring-2 ring-amber/60 ring-offset-2 ring-offset-base' : ''}`}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 ${tooltipStep === 1 ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-base' : ''}`}
                   >
                     <Camera className="w-4 h-4" />
                     Scan / Import
@@ -7437,7 +7448,7 @@ export default function ShowTracker() {
                   <button
                     onClick={scanForMissingSetlists}
                     disabled={setlistScanning}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-medium transition-all whitespace-nowrap border border-amber/30 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
                     {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}
