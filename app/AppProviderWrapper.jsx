@@ -35,7 +35,7 @@ function AppShell({ children }) {
     showCelebration, welcomeState, setWelcomeState,
     pendingNotificationCount, upcomingShowsBadgeCount,
     friends, handleLogout,
-    enterGuestMode, communityStats,
+    enterGuestMode, exitGuestMode, communityStats,
     handleAuthSuccess,
   } = useApp();
 
@@ -201,7 +201,7 @@ function AppShell({ children }) {
       {/* Sidebar */}
       <Sidebar
         isAdmin={isAdmin}
-        onLogout={guestMode ? () => { /* handled in context */ } : handleLogout}
+        onLogout={guestMode ? exitGuestMode : handleLogout}
         userName={guestMode ? 'Guest' : extractFirstName(user?.displayName)}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
