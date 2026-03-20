@@ -166,7 +166,7 @@ export function AppProvider({ children }) {
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const [localShowsToMigrate, setLocalShowsToMigrate] = useState([]);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'signup' | 'forgot-password'
-  const [guestMode, setGuestMode] = useState(false);
+  const [guestMode, setGuestMode] = useState(() => !!storage.get(STORAGE_KEYS.GUEST_SESSION));
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
   // Onboarding tooltip state
@@ -717,6 +717,9 @@ export function AppProvider({ children }) {
   const handleSkipMigration = () => {
     setShowMigrationPrompt(false);
     setLocalShowsToMigrate([]);
+    // Clear guest shows so the modal doesn't reappear on next login
+    storage.remove(STORAGE_KEYS.GUEST_SHOWS);
+    storage.remove(STORAGE_KEYS.LEGACY_SHOWS);
   };
 
   // ── Auth handlers ───────────────────────────────────────────────────
@@ -766,6 +769,12 @@ export function AppProvider({ children }) {
     } catch (error) {
       console.log('Failed to track guest session:', error);
     }
+  };
+
+  const exitGuestMode = () => {
+    setGuestMode(false);
+    setShows([]);
+    storage.remove(STORAGE_KEYS.GUEST_SESSION);
   };
 
   // ── Show CRUD ───────────────────────────────────────────────────────
@@ -2191,6 +2200,7 @@ export function AppProvider({ children }) {
     switchAuthMode,
     handleAuthSuccess,
     enterGuestMode,
+    exitGuestMode,
     handleMigrateData,
     handleSkipMigration,
 
