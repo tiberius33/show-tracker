@@ -173,13 +173,14 @@ export function AppProvider({ children }) {
   const [tooltipStep, setTooltipStep] = useState(0); // 0=hidden, 1=import, 2=scan
 
   useEffect(() => {
-    if (!isLoading && user && activeView === 'shows') {
+    const onShowsPage = pathname === '/shows' || pathname === '/shows/';
+    if (!isLoading && (user || guestMode) && onShowsPage) {
       const now = Date.now();
       const lastVisit = storage.get(STORAGE_KEYS.LAST_VISIT);
       const hasSeenTooltips = storage.get(STORAGE_KEYS.SEEN_TOOLTIPS);
       const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 
-      const shouldShow = !hasSeenTooltips || (lastVisit && (now - parseInt(lastVisit, 10)) > sevenDaysMs);
+      const shouldShow = !hasSeenTooltips || !lastVisit || (now - parseInt(lastVisit, 10)) > sevenDaysMs;
 
       if (shouldShow) {
         const timer = setTimeout(() => setTooltipStep(1), 800);
@@ -189,7 +190,7 @@ export function AppProvider({ children }) {
 
       storage.set(STORAGE_KEYS.LAST_VISIT, String(now));
     }
-  }, [isLoading, user, activeView]);
+  }, [isLoading, user, guestMode, pathname]);
 
   const dismissTooltip = () => {
     setTooltipStep(0);

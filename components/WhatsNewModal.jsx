@@ -1,53 +1,53 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Camera, Upload, Users, MessageSquare, Music, Palette, ChevronRight } from 'lucide-react';
+import { X, Sparkles, Music, Map, Calendar, Filter, ChevronRight } from 'lucide-react';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 // Bump this version string whenever you add new features to announce.
 // Users who have seen this version won't see the modal again.
-const CURRENT_WHATS_NEW_VERSION = '3.3';
+const CURRENT_WHATS_NEW_VERSION = '3.5';
 
 const FEATURES = [
-  {
-    icon: Palette,
-    color: 'text-brand',
-    bg: 'bg-brand-subtle',
-    title: 'Brand Refresh — New Light Theme',
-    description: 'A fresh, clean look built from the MySetlists logo — green and amber accents on a light background with a dark navy sidebar.',
-    cta: null,
-  },
   {
     icon: Music,
     color: 'text-brand',
     bg: 'bg-brand-subtle',
-    title: 'Create Playlists from Setlists',
-    description: 'Turn any setlist into a Spotify or Apple Music playlist with one tap.',
+    title: 'Artist Deep Dive',
+    description: 'Tap any artist to see genres, band members, years active, and bio — powered by MusicBrainz and Discogs.',
     cta: null,
   },
   {
-    icon: Camera,
-    color: 'text-amber',
-    bg: 'bg-amber-subtle',
-    title: 'AI Ticket Stub Scanner',
-    description: 'Snap a photo of any ticket stub or digital ticket to add shows instantly.',
-    cta: { label: 'Try Scan / Import', view: 'scan-import' },
+    icon: Map,
+    color: 'text-brand',
+    bg: 'bg-brand-subtle',
+    title: 'Public Roadmap & Voting',
+    description: 'See what features are coming next and vote on what we build. Your voice shapes MySetlists.',
+    cta: { label: 'View Roadmap', view: 'roadmap' },
   },
   {
-    icon: Upload,
+    icon: Filter,
+    color: 'text-amber',
+    bg: 'bg-amber-subtle',
+    title: 'Year & Date Filters',
+    description: 'Filter your show list by year or date range to quickly find past concerts.',
+    cta: null,
+  },
+  {
+    icon: Sparkles,
     color: 'text-amber',
     bg: 'bg-amber/15',
-    title: 'Bulk Import from CSV',
-    description: 'Import hundreds of shows at once from a spreadsheet or CSV file.',
-    cta: { label: 'Try Scan / Import', view: 'scan-import' },
+    title: 'Release Notes',
+    description: 'Stay up to date with every new feature and fix in the dedicated Release Notes page.',
+    cta: { label: 'View Release Notes', view: 'release-notes' },
   },
   {
-    icon: Users,
+    icon: Calendar,
     color: 'text-amber',
     bg: 'bg-amber-subtle',
-    title: 'Bulk Accept Friend Tags',
-    description: 'Accept all pending show tags from friends in one tap — no more clicking one by one.',
-    cta: { label: 'View Friends', view: 'friends' },
+    title: 'Upcoming Shows',
+    description: 'Plan ahead with a dedicated section for your upcoming concerts.',
+    cta: { label: 'View Upcoming', view: 'upcoming' },
   },
 ];
 
