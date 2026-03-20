@@ -38,7 +38,7 @@ function ScanImportView({ onImport, onUpdateShow, existingShows, importedIds, on
         <TicketScanner onImport={onImport} importedIds={importedIds} existingShows={existingShows} />
       )}
       {activeTab === 'import' && (
-        <ImportView onImport={onImport} onUpdateShow={onUpdateShow} existingShows={existingShows} onNavigate={onNavigate} />
+        <ImportView onImport={(data) => onImport(data, { autoOpenDetail: false })} onUpdateShow={onUpdateShow} existingShows={existingShows} onNavigate={onNavigate} />
       )}
     </div>
   );

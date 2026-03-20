@@ -6,9 +6,17 @@ import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 // Bump this version string whenever you add new features to announce.
 // Users who have seen this version won't see the modal again.
-const CURRENT_WHATS_NEW_VERSION = '3.1';
+const CURRENT_WHATS_NEW_VERSION = '3.3';
 
 const FEATURES = [
+  {
+    icon: Sparkles,
+    color: 'text-brand',
+    bg: 'bg-brand-subtle',
+    title: 'Instant Show Detail After Adding',
+    description: 'When you add a show, the detail view opens right away so you can rate it, add notes, tag friends, and build your setlist immediately.',
+    cta: null,
+  },
   {
     icon: Palette,
     color: 'text-brand',

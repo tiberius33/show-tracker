@@ -2420,6 +2420,17 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.3.0',
+      date: 'March 20, 2026',
+      title: 'Post-Add Show Detail Flow',
+      changes: [
+        'New: Show detail modal automatically opens after adding a new show — rate, add notes, tag friends, and build your setlist immediately',
+        'Works for all add paths: manual entry, setlist.fm search import, and ticket scan',
+        'Bulk CSV imports skip auto-open to keep the import flow smooth',
+        'Smooth 200ms transition between closing the add form and opening the detail modal',
+      ]
+    },
+    {
       version: '3.2.0',
       date: 'March 19, 2026',
       title: 'Polish & Consistency',
@@ -5555,7 +5566,7 @@ export default function ShowTracker() {
     }
   };
 
-  const addShow = async (showData) => {
+  const addShow = async (showData, { autoOpenDetail = true } = {}) => {
     const showId = Date.now().toString();
     const newShow = {
       ...showData,
@@ -5573,6 +5584,11 @@ export default function ShowTracker() {
       setShows(updatedShows);
       saveGuestShows(updatedShows);
       setShowForm(false);
+
+      // Auto-open show detail modal for the newly added show
+      if (autoOpenDetail) {
+        setTimeout(() => setSelectedShow(newShow), 200);
+      }
 
       // Update guest session showsAdded count
       try {
@@ -5604,6 +5620,11 @@ export default function ShowTracker() {
       const updatedShows = [...shows, newShow];
       setShows(updatedShows);
       setShowForm(false);
+
+      // Auto-open show detail modal for the newly added show
+      if (autoOpenDetail) {
+        setTimeout(() => setSelectedShow(newShow), 200);
+      }
 
       // Celebrate first show!
       if (isFirstShow) {
