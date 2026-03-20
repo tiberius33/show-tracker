@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.5.0',
+      date: 'March 20, 2026',
+      title: 'Admin Roadmap Enhancements',
+      changes: [
+        'Admin: vote counts now displayed prominently on every roadmap item with sorting by most votes',
+        'Admin: submitter email address shown on each roadmap item and draft for easy identification',
+        'All feedback types (feature requests, bug reports, general) now automatically appear in Admin Roadmap Drafts',
+        'Drafts show feedback content, submitter email, and submission date with approve/reject actions',
+        'New: completion notification emails — when a feature is marked Shipped, all voters and the original submitter receive an email via Resend',
+        'Notification tracking prevents duplicate emails if an item is toggled back and forth',
+        'Professional branded email template with feature details and direct link to the app',
+      ]
+    },
+    {
       version: '3.4.0',
       date: 'March 20, 2026',
       title: 'UI Polish & Copy Fixes',

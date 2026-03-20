@@ -67,6 +67,8 @@ function AdminView() {
   const [newItemDesc, setNewItemDesc] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('other');
   const [savingItem, setSavingItem] = useState(false);
+  const [roadmapSortBy, setRoadmapSortBy] = useState('date'); // 'date' | 'votes'
+  const [notifyingItem, setNotifyingItem] = useState(null); // itemId being notified
 
   // Bulk import state
   const [bulkImportStep, setBulkImportStep] = useState('select-user'); // 'select-user' | 'upload' | 'mapping' | 'preview' | 'importing' | 'complete'
@@ -233,7 +235,7 @@ function AdminView() {
     try {
       const [itemsSnap, feedSnap] = await Promise.all([
         getDocs(collection(db, 'roadmapItems')),
-        getDocs(query(collection(db, 'feedback'), where('type', '==', 'feature'))),
+        getDocs(collection(db, 'feedback')),
       ]);
       setRoadmapItems(
         itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -292,14 +294,46 @@ function AdminView() {
 
   const changeItemStatus = async (item, newStatus) => {
     try {
-      await updateDoc(doc(db, 'roadmapItems', item.id), {
+      const updates = {
         status: newStatus,
         updatedAt: serverTimestamp(),
         ...(newStatus !== 'draft' && !item.publishedAt ? { publishedAt: serverTimestamp() } : {}),
-      });
-      setRoadmapItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+        ...(newStatus === 'shipped' ? { completedAt: serverTimestamp() } : {}),
+      };
+      await updateDoc(doc(db, 'roadmapItems', item.id), updates);
+      setRoadmapItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus, ...(newStatus === 'shipped' ? { completedAt: new Date() } : {}) } : i));
     } catch (err) {
       console.error('Failed to change item status:', err);
+    }
+  };
+
+  const sendCompletionNotifications = async (item) => {
+    setNotifyingItem(item.id);
+    try {
+      const res = await fetch(apiUrl('/.netlify/functions/notify-roadmap-completion'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roadmapItemId: item.id,
+          featureTitle: item.title,
+          featureDescription: item.description || '',
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Notification send failed');
+      await updateDoc(doc(db, 'roadmapItems', item.id), {
+        notificationsSent: true,
+        notificationsSentAt: serverTimestamp(),
+      });
+      setRoadmapItems(prev => prev.map(i =>
+        i.id === item.id ? { ...i, notificationsSent: true, notificationsSentAt: new Date() } : i
+      ));
+      alert(`Sent ${result.emailsSent || 0} notification email(s)!`);
+    } catch (err) {
+      console.error('Failed to send completion notifications:', err);
+      alert('Failed to send notifications: ' + err.message);
+    } finally {
+      setNotifyingItem(null);
     }
   };
 
@@ -325,9 +359,14 @@ function AdminView() {
         voteCount: 0,
         sourceFeedbackId: null,
         submitterUid: null,
+        submitterEmail: null,
+        contributors: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         publishedAt: null,
+        completedAt: null,
+        notificationsSent: false,
+        notificationsSentAt: null,
       });
       setRoadmapItems(prev => [{
         id: ref.id,
@@ -338,6 +377,8 @@ function AdminView() {
         voteCount: 0,
         sourceFeedbackId: null,
         submitterUid: null,
+        submitterEmail: null,
+        contributors: [],
       }, ...prev]);
       setCreatingItem(false);
       setNewItemTitle('');
@@ -1752,16 +1793,34 @@ function AdminView() {
       {/* Roadmap Tab */}
       {adminTab === 'roadmap' && (
         <div className="space-y-6">
-          {/* Header with New Item button */}
-          <div className="flex items-center justify-between">
+          {/* Header with New Item button + sort controls */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <h3 className="text-lg font-semibold text-primary">Roadmap Items</h3>
-            <button
-              onClick={() => setCreatingItem(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl text-sm font-medium transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              New Item
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-secondary">Sort:</span>
+                {[{ key: 'date', label: 'Newest' }, { key: 'votes', label: 'Most Votes' }].map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setRoadmapSortBy(opt.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      roadmapSortBy === opt.key
+                        ? 'bg-brand-subtle text-brand border border-brand/30'
+                        : 'bg-hover text-secondary border border-subtle hover:bg-hover'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCreatingItem(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl text-sm font-medium transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                New Item
+              </button>
+            </div>
           </div>
 
           {/* Create Item Form */}
@@ -1815,21 +1874,26 @@ function AdminView() {
               {/* Drafts section */}
               {(() => {
                 const drafts = roadmapItems.filter(i => i.status === 'draft');
+                const sortedDrafts = roadmapSortBy === 'votes'
+                  ? [...drafts].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+                  : drafts;
                 return (
                   <div>
                     <h4 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-3">
                       Drafts ({drafts.length})
                     </h4>
                     <div className="space-y-3">
-                      {drafts.map(item => (
+                      {sortedDrafts.map(item => (
                         <AdminRoadmapCard
                           key={item.id}
                           item={item}
                           onStatusChange={(status) => changeItemStatus(item, status)}
                           onPublish={(status) => publishRoadmapItem(item, status)}
                           onDismiss={() => dismissRoadmapItem(item)}
+                          onNotify={() => sendCompletionNotifications(item)}
                           feedbackItems={feedbackItems}
                           saving={savingItem}
+                          notifying={notifyingItem === item.id}
                         />
                       ))}
                       {drafts.length === 0 && (
@@ -1847,21 +1911,26 @@ function AdminView() {
                 { key: 'shipped',    label: 'Shipped'     },
               ].map(({ key, label }) => {
                 const statusItems = roadmapItems.filter(i => i.status === key);
+                const sortedItems = roadmapSortBy === 'votes'
+                  ? [...statusItems].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+                  : statusItems;
                 return (
                   <div key={key}>
                     <h4 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-3">
                       {label} ({statusItems.length})
                     </h4>
                     <div className="space-y-3">
-                      {statusItems.map(item => (
+                      {sortedItems.map(item => (
                         <AdminRoadmapCard
                           key={item.id}
                           item={item}
                           onStatusChange={(status) => changeItemStatus(item, status)}
                           onPublish={(status) => publishRoadmapItem(item, status)}
                           onDismiss={() => dismissRoadmapItem(item)}
+                          onNotify={() => sendCompletionNotifications(item)}
                           feedbackItems={feedbackItems}
                           saving={savingItem}
+                          notifying={notifyingItem === item.id}
                         />
                       ))}
                       {statusItems.length === 0 && (
