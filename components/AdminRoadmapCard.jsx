@@ -1,18 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Mail, Send, Check } from 'lucide-react';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ROADMAP_CATEGORIES } from '@/lib/constants';
+import { timeAgo } from '@/lib/utils';
 
-export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDismiss, feedbackItems, saving }) {
+export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDismiss, onNotify, feedbackItems, saving, notifying }) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(item.title || '');
   const [editDesc, setEditDesc] = useState(item.description || '');
   const [localSaving, setLocalSaving] = useState(false);
 
   const linkedFeedback = feedbackItems.find(f => f.id === item.sourceFeedbackId);
+  const submitterEmail = item.submitterEmail || linkedFeedback?.submitterEmail || null;
 
   const handleSaveEdit = async () => {
     if (!editTitle.trim()) return;
@@ -74,9 +76,23 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
       ) : (
         <div>
           <div className="flex items-start justify-between gap-3">
-            <p className="text-primary font-medium text-sm leading-snug">{item.title}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-primary font-medium text-sm leading-snug">{item.title}</p>
+              {/* Submitter email */}
+              {submitterEmail && (
+                <p className="text-brand/70 text-xs mt-0.5 flex items-center gap-1">
+                  <Mail className="w-3 h-3" />
+                  {submitterEmail}
+                </p>
+              )}
+            </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-muted bg-hover px-2 py-0.5 rounded-full whitespace-nowrap">
+              {/* Prominent vote count */}
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                (item.voteCount || 0) > 0
+                  ? 'bg-amber-subtle text-amber border border-amber/30'
+                  : 'text-muted bg-hover'
+              }`}>
                 {item.voteCount || 0} vote{item.voteCount !== 1 ? 's' : ''}
               </span>
               {item.category && ROADMAP_CATEGORIES[item.category] && (
@@ -98,6 +114,12 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
           {linkedFeedback && (
             <p className="text-muted text-xs mt-1.5 italic">
               From feedback by {linkedFeedback.submitterName || 'user'}: &quot;{(linkedFeedback.message || '').slice(0, 80)}{linkedFeedback.message?.length > 80 ? '...' : ''}&quot;
+            </p>
+          )}
+          {/* Submission date */}
+          {item.createdAt && (
+            <p className="text-muted/60 text-[10px] mt-1">
+              Submitted {timeAgo(item.createdAt)}
             </p>
           )}
         </div>
@@ -125,8 +147,26 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
             className="flex items-center gap-1 px-3 py-1.5 bg-amber-subtle hover:bg-amber-subtle text-amber border border-amber/30 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
           >
             <TrendingUp className="w-3 h-3" />
-            Publish → Up Next
+            Publish &rarr; Up Next
           </button>
+        )}
+
+        {/* Send Notification Emails button for shipped items */}
+        {item.status === 'shipped' && !item.notificationsSent && onNotify && (
+          <button
+            onClick={onNotify}
+            disabled={notifying}
+            className="flex items-center gap-1 px-3 py-1.5 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
+          >
+            <Send className="w-3 h-3" />
+            {notifying ? 'Sending...' : 'Notify Users'}
+          </button>
+        )}
+        {item.status === 'shipped' && item.notificationsSent && (
+          <span className="flex items-center gap-1 px-3 py-1.5 text-brand/60 text-xs">
+            <Check className="w-3 h-3" />
+            Notified
+          </span>
         )}
 
         <button

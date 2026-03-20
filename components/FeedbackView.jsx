@@ -34,28 +34,34 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
         submitterUid: user.uid,
         submitterEmail: user.email || '',
         submitterName: (user.displayName || '').split(' ')[0] || 'Anonymous',
-        status: feedbackType === 'feature' ? 'linked' : 'new',
+        status: 'linked',
         roadmapItemId: null,
         createdAt: serverTimestamp(),
       };
       const feedbackRef = await addDoc(collection(db, 'feedback'), feedbackData);
 
-      // If it's a feature request, auto-create a draft roadmap item
-      if (feedbackType === 'feature') {
-        const itemRef = await addDoc(collection(db, 'roadmapItems'), {
-          title: message.trim().slice(0, 100),
-          description: message.trim(),
-          status: 'draft',
-          category,
-          voteCount: 0,
-          sourceFeedbackId: feedbackRef.id,
-          submitterUid: user.uid,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          publishedAt: null,
-        });
-        await updateDoc(feedbackRef, { roadmapItemId: itemRef.id });
-      }
+      // Auto-create a draft roadmap item for ALL feedback types
+      const draftTitle = feedbackType === 'feature'
+        ? message.trim().slice(0, 100)
+        : `[${feedbackType === 'bug' ? 'Bug' : 'Feedback'}] ${message.trim().slice(0, 90)}`;
+      const itemRef = await addDoc(collection(db, 'roadmapItems'), {
+        title: draftTitle,
+        description: message.trim(),
+        status: 'draft',
+        category: feedbackType === 'feature' ? category : 'other',
+        voteCount: 0,
+        sourceFeedbackId: feedbackRef.id,
+        submitterUid: user.uid,
+        submitterEmail: user.email || '',
+        contributors: user.email ? [{ email: user.email, votedAt: new Date().toISOString(), notified: false }] : [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        publishedAt: null,
+        completedAt: null,
+        notificationsSent: false,
+        notificationsSentAt: null,
+      });
+      await updateDoc(feedbackRef, { roadmapItemId: itemRef.id, status: 'linked' });
       setSubmitted(true);
     } catch (err) {
       setSubmitError('Failed to submit. Please try again.');
@@ -88,19 +94,15 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
           </div>
           <h2 className="text-xl font-bold text-primary mb-2">Thanks for your feedback!</h2>
           <p className="text-secondary mb-6">
-            {feedbackType === 'feature'
-              ? "Your idea has been added to the feedback queue. Check the roadmap to see what's coming!"
-              : "We read everything and use it to make MySetlists better."}
+            Your feedback has been added to our review queue. Check the roadmap to see what's coming!
           </p>
-          {feedbackType === 'feature' && (
-            <button
-              onClick={() => onNavigate && onNavigate('roadmap')}
-              className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-amber/20"
-            >
-              <TrendingUp className="w-4 h-4" />
-              View Roadmap
-            </button>
-          )}
+          <button
+            onClick={() => onNavigate && onNavigate('roadmap')}
+            className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-amber/20"
+          >
+            <TrendingUp className="w-4 h-4" />
+            View Roadmap
+          </button>
           <button
             onClick={() => { setSubmitted(false); setMessage(''); setFeedbackType('general'); setCategory('other'); }}
             className="text-muted hover:text-primary text-sm transition-colors"
