@@ -38,6 +38,13 @@ ios/capacitor-cordova-ios-plugins/
 *.xcodeproj/project.xcworkspace/xcshareddata/
 DerivedData/
 
+# Test credentials
+.env.test
+
+# Playwright
+test-results/
+playwright-report/
+
 # Firebase (sensitive - download from Firebase Console)
 GoogleService-Info.plist
 GoogleService-Info*.plist
