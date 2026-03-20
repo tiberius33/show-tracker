@@ -173,6 +173,19 @@ test.describe('Authenticated Flow', () => {
     await page.locator('form').getByRole('button', { name: /sign in/i }).click();
     // Wait for sidebar to show user name (meaning auth + redirect complete)
     await expect(page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first()).toBeVisible({ timeout: 20000 });
+
+    // Dismiss What's New modal if it appears (overlays sidebar and blocks clicks)
+    const whatsNewClose = page.getByRole('button', { name: 'Got it' });
+    if (await whatsNewClose.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await whatsNewClose.click();
+      await whatsNewClose.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    }
+
+    // Dismiss onboarding tooltip if it appears
+    const tooltipDismiss = page.getByRole('button', { name: /got it/i });
+    if (await tooltipDismiss.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await tooltipDismiss.click();
+    }
   });
 
   test('shows page loads with user content', async ({ page }) => {
