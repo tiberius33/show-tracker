@@ -6,7 +6,7 @@ import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 // Bump this version string whenever you add new features to announce.
 // Users who have seen this version won't see the modal again.
-const CURRENT_WHATS_NEW_VERSION = '3.5';
+const CURRENT_WHATS_NEW_VERSION = '3.6';
 
 const FEATURES = [
   {

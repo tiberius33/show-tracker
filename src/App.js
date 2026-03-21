@@ -2420,6 +2420,18 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.6.0',
+      date: 'March 21, 2026',
+      title: 'Dashboard Layout Reorganization',
+      changes: [
+        'New horizontal action button row under stats: "Search for a Show" and "Scan / Import" displayed side-by-side with gradient styling',
+        '"Add Manually" button now appears contextually in search results when no shows match your query',
+        '"Find Missing Setlists" moved to Admin Tools tab for cleaner dashboard',
+        'Streamlined "My Shows" header — action buttons no longer stacked in the right column',
+        'Responsive button row stacks on mobile for a clean layout on all screen sizes',
+      ]
+    },
+    {
       version: '3.4.0',
       date: 'March 20, 2026',
       title: 'UI Polish & Copy Fixes',
@@ -3972,7 +3984,7 @@ function CommunityStatsView({ communityStats, onAddFriend, currentUserUid, curre
 }
 
 // Search View Component (Full Page)
-function SearchView({ onImport, importedIds }) {
+function SearchView({ onImport, importedIds, onAddManually }) {
   const [artistName, setArtistName] = useState('');
   const [year, setYear] = useState('');
   const [venueName, setVenueName] = useState('');
@@ -4278,6 +4290,15 @@ function SearchView({ onImport, importedIds }) {
       {error && (
         <div className="bg-danger/10 border border-danger/20 rounded-xl p-4 mb-6">
           <p className="text-danger text-sm">{error}</p>
+          {onAddManually && (
+            <button
+              onClick={onAddManually}
+              className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-hover hover:bg-hover text-primary rounded-xl font-medium transition-all border border-subtle text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Manually
+            </button>
+          )}
         </div>
       )}
 
@@ -7401,69 +7422,54 @@ export default function ShowTracker() {
               </div>
             )}
 
+            {/* Action buttons row */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => navigateTo('search')}
+                className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
+              >
+                {shows.length === 0 && (
+                  <span className="absolute inset-0 rounded-xl bg-brand animate-ping opacity-20" />
+                )}
+                <Search className="w-4 h-4" />
+                Search for a Show
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => navigateTo('scan-import')}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all shadow-lg shadow-brand/20 ${tooltipStep === 1 ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-base' : ''}`}
+                >
+                  <Camera className="w-4 h-4" />
+                  Scan / Import
+                </button>
+                {tooltipStep === 1 && (
+                  <>
+                    {/* Desktop: tooltip to the left */}
+                    <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
+                      <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
+                        <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-brand" />
+                        <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
+                        <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
+                      </div>
+                    </div>
+                    {/* Mobile: tooltip below */}
+                    <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
+                      <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-brand" />
+                        <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
+                        <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-xl md:text-2xl font-bold text-primary mb-1">My Shows</h1>
                 <p className="text-secondary">All the concerts you've attended</p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => navigateTo('search')}
-                  className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
-                >
-                  {shows.length === 0 && (
-                    <span className="absolute inset-0 rounded-xl bg-brand animate-ping opacity-20" />
-                  )}
-                  <Search className="w-4 h-4" />
-                  Search for a Show
-                </button>
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-hover hover:bg-hover text-primary rounded-xl font-medium transition-all whitespace-nowrap border border-subtle"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Manually
-                </button>
-                <div className="relative">
-                  <button
-                    onClick={() => navigateTo('scan-import')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 ${tooltipStep === 1 ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-base' : ''}`}
-                  >
-                    <Camera className="w-4 h-4" />
-                    Scan / Import
-                  </button>
-                  {tooltipStep === 1 && (
-                    <>
-                      {/* Desktop: tooltip to the left */}
-                      <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-20 animate-in">
-                        <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
-                          <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-brand" />
-                          <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                          <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
-                        </div>
-                      </div>
-                      {/* Mobile: tooltip below */}
-                      <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-20 animate-in-mobile">
-                        <div className="bg-amber border border-amber/30 rounded-xl p-3 shadow-xl shadow-amber/20 relative">
-                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-brand" />
-                          <p className="text-primary text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                          <button onClick={dismissTooltip} className="text-white font-semibold text-xs underline underline-offset-2 hover:text-white/80 transition-colors">Got it ✓</button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                {shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
-                  <button
-                    onClick={scanForMissingSetlists}
-                    disabled={setlistScanning}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all whitespace-nowrap shadow-lg shadow-brand/20 disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
-                    {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}
-                  </button>
-                )}
               </div>
             </div>
 
@@ -7727,6 +7733,7 @@ export default function ShowTracker() {
           <SearchView
             onImport={addShow}
             importedIds={importedIds}
+            onAddManually={() => setShowForm(true)}
           />
         )}
 

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
 import SetlistEditor from '@/components/SetlistEditor';
 import Tip from '@/components/ui/Tip';
 import AdminRoadmapCard from '@/components/AdminRoadmapCard';
@@ -13,7 +14,8 @@ import { apiUrl } from '@/lib/api';
 
 export default
 function AdminView() {
-  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap'
+  const { shows, scanForMissingSetlists, setlistScanning, setlistScanProgress } = useApp();
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap' | 'tools'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1218,6 +1220,17 @@ function AdminView() {
               <Upload className="w-4 h-4" />
               Bulk Import
             </button>
+            <button
+              onClick={() => setAdminTab('tools')}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'tools'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
+              }`}
+            >
+              <Wrench className="w-4 h-4" />
+              Tools
+            </button>
           </div>
 
           {/* Users Tab */}
@@ -2198,6 +2211,50 @@ function AdminView() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tools Tab */}
+      {adminTab === 'tools' && (
+        <div className="space-y-6">
+          <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-primary mb-1">Find Missing Setlists</h3>
+            <p className="text-secondary text-sm mb-4">Scan all shows that are missing setlists and attempt to fetch them from Setlist.fm.</p>
+            {shows.some(s => !s.setlist || s.setlist.length === 0) ? (
+              <>
+                <p className="text-muted text-sm mb-4">
+                  {shows.filter(s => !s.setlist || s.setlist.length === 0).length} show{shows.filter(s => !s.setlist || s.setlist.length === 0).length !== 1 ? 's' : ''} missing setlists
+                </p>
+                <button
+                  onClick={scanForMissingSetlists}
+                  disabled={setlistScanning}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all shadow-lg shadow-brand/20 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
+                  {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}
+                </button>
+                {setlistScanning && (
+                  <div className="mt-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-primary font-medium text-sm">Scanning...</span>
+                      <span className="text-secondary text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
+                    </div>
+                    <div className="w-full bg-hover rounded-full h-2">
+                      <div
+                        className="bg-amber h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${setlistScanProgress.total > 0 ? (setlistScanProgress.current / setlistScanProgress.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                    {setlistScanProgress.found > 0 && (
+                      <p className="text-amber text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-brand text-sm">All shows have setlists!</p>
+            )}
+          </div>
         </div>
       )}
 
