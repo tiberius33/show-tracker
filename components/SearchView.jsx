@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, X, ChevronDown, ChevronLeft, ChevronRight, Check, Download } from 'lucide-react';
+import { Search, X, ChevronDown, ChevronLeft, ChevronRight, Check, Download, Plus } from 'lucide-react';
 import Tip from '@/components/ui/Tip';
 import { apiUrl } from '@/lib/api';
 
-function SearchView({ onImport, importedIds }) {
+function SearchView({ onImport, importedIds, onAddManually }) {
   const [artistName, setArtistName] = useState('');
   const [year, setYear] = useState('');
   const [venueName, setVenueName] = useState('');
@@ -311,6 +311,15 @@ function SearchView({ onImport, importedIds }) {
       {error && (
         <div className="bg-danger/10 border border-danger/20 rounded-xl p-4 mb-6">
           <p className="text-danger text-sm">{error}</p>
+          {onAddManually && (
+            <button
+              onClick={onAddManually}
+              className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-hover hover:bg-hover text-primary rounded-xl font-medium transition-all border border-subtle text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Manually
+            </button>
+          )}
         </div>
       )}
 

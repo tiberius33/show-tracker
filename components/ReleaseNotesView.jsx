@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.6.0',
+      date: 'March 21, 2026',
+      title: 'Dashboard Layout Reorganization',
+      changes: [
+        'New horizontal action button row under stats: "Search for a Show" and "Scan / Import" displayed side-by-side with gradient styling',
+        '"Add Manually" button now appears contextually in search results when no shows match your query',
+        '"Find Missing Setlists" moved to Admin Tools tab for cleaner dashboard',
+        'Streamlined "My Shows" header — action buttons no longer stacked in the right column',
+        'Responsive button row stacks on mobile for a clean layout on all screen sizes',
+      ]
+    },
+    {
       version: '3.5.0',
       date: 'March 20, 2026',
       title: 'Admin Roadmap Enhancements',
