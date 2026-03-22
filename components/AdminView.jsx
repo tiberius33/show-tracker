@@ -764,6 +764,7 @@ function AdminView() {
     } catch (err) {
       console.error('Bulk delete error:', err);
       setBulkResetStatus(`Error: ${err.message}`);
+      setBulkResetConfirm(false);
     } finally {
       setBulkResetting(false);
       setTimeout(() => setBulkResetStatus(''), 5000);
@@ -1515,6 +1516,9 @@ function AdminView() {
                       These records will be removed from Firebase entirely.
                     </p>
                     <p className="text-danger text-xs font-medium">This action cannot be undone.</p>
+                    {bulkResetStatus && bulkResetStatus.startsWith('Error') && (
+                      <div className="bg-danger/10 border border-danger/20 rounded-lg p-3 text-danger text-sm">{bulkResetStatus}</div>
+                    )}
                     <div className="flex gap-3 justify-end">
                       <button onClick={() => setBulkResetConfirm(false)} disabled={bulkResetting}
                         className="px-4 py-2 rounded-lg text-sm font-medium text-secondary hover:text-primary transition-colors">
