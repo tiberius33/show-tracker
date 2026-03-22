@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -751,14 +751,16 @@ function AdminView() {
     setBulkResetting(true);
     setBulkResetStatus('');
     try {
-      const toDelete = filteredGuestSessions;
-      const batch = writeBatch(db);
-      for (const session of toDelete) {
-        batch.delete(doc(db, 'guestSessions', session.id));
-      }
-      await batch.commit();
-      const remaining = guestSessions.length - toDelete.length;
-      setBulkResetStatus(`Deleted ${toDelete.length} trial(s). ${remaining} remaining.`);
+      const sessionIds = filteredGuestSessions.map(s => s.id);
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(apiUrl('/.netlify/functions/admin-delete-guest-trials'), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      setBulkResetStatus(`Deleted ${data.deleted} trial(s). ${data.remaining} remaining.`);
       setBulkResetConfirm(false);
       await loadGuestSessions();
     } catch (err) {
