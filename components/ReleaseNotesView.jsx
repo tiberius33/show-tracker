@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.7.0',
+      date: 'March 22, 2026',
+      title: 'Artist Search, Admin Tools & Date Fix',
+      changes: [
+        'New: Artist-based search — search for a performer name to discover all their shows across different bands and projects from setlist.fm',
+        'Artist search results are grouped by band/project with expandable setlists and one-click import',
+        'Admin: Date range filtering for Guest Trials — filter sessions by start date range',
+        'Admin: Bulk reset capability for guest trials within a selected date range with confirmation dialog',
+        'Fix: Corrected date display issue where shows could appear one day off (e.g., 3/21 showing as 3/20) due to UTC timezone handling',
+      ]
+    },
+    {
       version: '3.6.0',
       date: 'March 21, 2026',
       title: 'Dashboard Layout Reorganization',

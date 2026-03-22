@@ -245,7 +245,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
   const formatSetlistDate = (dateStr) => {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
-      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toLocaleDateString();
+      return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).toLocaleDateString();
     }
     return dateStr;
   };

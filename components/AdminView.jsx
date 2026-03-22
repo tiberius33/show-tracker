@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -33,6 +33,11 @@ function AdminView() {
   // Guest trials state
   const [guestSessions, setGuestSessions] = useState([]);
   const [loadingGuests, setLoadingGuests] = useState(false);
+  const [guestDateFrom, setGuestDateFrom] = useState('');
+  const [guestDateTo, setGuestDateTo] = useState('');
+  const [bulkResetConfirm, setBulkResetConfirm] = useState(false);
+  const [bulkResetting, setBulkResetting] = useState(false);
+  const [bulkResetStatus, setBulkResetStatus] = useState('');
 
   // User filter state
   const [showOnlyConverted, setShowOnlyConverted] = useState(false);
@@ -722,6 +727,49 @@ function AdminView() {
       totalShowsAdded,
     };
   }, [guestSessions]);
+
+  // Guest sessions filtered by date range
+  const filteredGuestSessions = useMemo(() => {
+    if (!guestDateFrom && !guestDateTo) return guestSessions;
+    return guestSessions.filter(s => {
+      const started = s.startedAt;
+      if (!started) return false;
+      if (guestDateFrom) {
+        const from = new Date(guestDateFrom + 'T00:00:00');
+        if (started < from) return false;
+      }
+      if (guestDateTo) {
+        const to = new Date(guestDateTo + 'T23:59:59');
+        if (started > to) return false;
+      }
+      return true;
+    });
+  }, [guestSessions, guestDateFrom, guestDateTo]);
+
+  const bulkResetGuestTrials = async () => {
+    if (!guestDateFrom && !guestDateTo) return;
+    setBulkResetting(true);
+    setBulkResetStatus('');
+    try {
+      const batch = writeBatch(db);
+      let count = 0;
+      for (const session of filteredGuestSessions) {
+        const ref = doc(db, 'guestSessions', session.id);
+        batch.update(ref, { startedAt: serverTimestamp(), showsAdded: 0, converted: false, convertedAt: null, convertedUserId: null });
+        count++;
+      }
+      await batch.commit();
+      setBulkResetStatus(`Reset ${count} guest trial(s)`);
+      setBulkResetConfirm(false);
+      await loadGuestSessions();
+    } catch (err) {
+      console.error('Bulk reset error:', err);
+      setBulkResetStatus(`Error: ${err.message}`);
+    } finally {
+      setBulkResetting(false);
+      setTimeout(() => setBulkResetStatus(''), 4000);
+    }
+  };
 
   // Converted users — enriched with guest session data
   const convertedUsers = useMemo(() => {
@@ -1414,6 +1462,84 @@ function AdminView() {
                 <div className="text-xs text-muted mt-1">Guests who added at least one show</div>
               </div>
 
+              {/* Date Range Filter */}
+              <div className="bg-hover backdrop-blur-xl rounded-2xl p-5 border border-subtle space-y-4">
+                <div className="text-sm font-semibold text-secondary">Filter by Date Range</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-muted mb-1">From</label>
+                    <input type="date" value={guestDateFrom} onChange={e => setGuestDateFrom(e.target.value)}
+                      className="w-full bg-base border border-subtle rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted mb-1">To</label>
+                    <input type="date" value={guestDateTo} onChange={e => setGuestDateTo(e.target.value)}
+                      className="w-full bg-base border border-subtle rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand" />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {(guestDateFrom || guestDateTo) && (
+                    <>
+                      <span className="text-sm text-secondary">
+                        Showing <span className="font-semibold text-brand">{filteredGuestSessions.length}</span> of {guestSessions.length} sessions
+                      </span>
+                      <button onClick={() => { setGuestDateFrom(''); setGuestDateTo(''); }}
+                        className="text-xs text-muted hover:text-secondary underline">Clear filter</button>
+                      <button onClick={() => setBulkResetConfirm(true)}
+                        disabled={filteredGuestSessions.length === 0}
+                        className="ml-auto inline-flex items-center gap-1.5 bg-danger/10 text-danger hover:bg-danger/20 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        <RefreshCw className="w-3 h-3" />
+                        Bulk Reset ({filteredGuestSessions.length})
+                      </button>
+                    </>
+                  )}
+                </div>
+                {bulkResetStatus && (
+                  <div className={`text-sm font-medium ${bulkResetStatus.startsWith('Error') ? 'text-danger' : 'text-brand'}`}>
+                    {bulkResetStatus}
+                  </div>
+                )}
+              </div>
+
+              {/* Bulk Reset Confirmation Dialog */}
+              {bulkResetConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                  <div className="bg-base border border-subtle rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
+                    <div className="flex items-center gap-2 text-danger">
+                      <AlertTriangle className="w-5 h-5" />
+                      <span className="text-lg font-bold">Confirm Bulk Reset</span>
+                    </div>
+                    <p className="text-secondary text-sm">
+                      This will reset <span className="font-semibold text-primary">{filteredGuestSessions.length}</span> guest trial(s)
+                      {guestDateFrom && ` from ${guestDateFrom}`}
+                      {guestDateTo && ` to ${guestDateTo}`}.
+                      Each session&apos;s start date will be reset to now, shows cleared, and conversion status removed.
+                    </p>
+                    <p className="text-danger text-xs font-medium">This action cannot be undone.</p>
+                    <div className="flex gap-3 justify-end">
+                      <button onClick={() => setBulkResetConfirm(false)} disabled={bulkResetting}
+                        className="px-4 py-2 rounded-lg text-sm font-medium text-secondary hover:text-primary transition-colors">
+                        Cancel
+                      </button>
+                      <button onClick={bulkResetGuestTrials} disabled={bulkResetting}
+                        className="inline-flex items-center gap-2 bg-danger text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger/90 transition-colors disabled:opacity-60">
+                        {bulkResetting ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            Resetting...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4" />
+                            Reset {filteredGuestSessions.length} Sessions
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Guest Sessions Table */}
               {loadingGuests ? (
                 <div className="flex items-center justify-center py-16">
@@ -1431,7 +1557,7 @@ function AdminView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {guestSessions.map((session) => (
+                      {filteredGuestSessions.map((session) => (
                         <tr key={session.id} className="hover:bg-hover transition-colors">
                           <td className="px-6 py-4 text-secondary text-sm">
                             {session.startedAt?.toLocaleDateString?.() || 'Unknown'}
@@ -1469,9 +1595,9 @@ function AdminView() {
                     </tbody>
                   </table>
 
-                  {guestSessions.length === 0 && (
+                  {filteredGuestSessions.length === 0 && (
                     <div className="text-center py-12 text-muted">
-                      No guest trial sessions recorded yet
+                      {(guestDateFrom || guestDateTo) ? 'No guest sessions in selected date range' : 'No guest trial sessions recorded yet'}
                     </div>
                   )}
                 </div>
