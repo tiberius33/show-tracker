@@ -13,7 +13,7 @@ function ReleaseNotesView() {
         'New: Artist-based search — search for a performer name to discover all their shows across different bands and projects from setlist.fm',
         'Artist search results are grouped by band/project with expandable setlists and one-click import',
         'Admin: Date range filtering for Guest Trials — filter sessions by start date range',
-        'Admin: Bulk reset capability for guest trials within a selected date range with confirmation dialog',
+        'Admin: Bulk delete for guest trials within a selected date range — permanently removes records instead of re-dating them',
         'Fix: Corrected date display issue where shows could appear one day off (e.g., 3/21 showing as 3/20) due to UTC timezone handling',
       ]
     },

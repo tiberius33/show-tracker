@@ -751,23 +751,22 @@ function AdminView() {
     setBulkResetting(true);
     setBulkResetStatus('');
     try {
+      const toDelete = filteredGuestSessions;
       const batch = writeBatch(db);
-      let count = 0;
-      for (const session of filteredGuestSessions) {
-        const ref = doc(db, 'guestSessions', session.id);
-        batch.update(ref, { startedAt: serverTimestamp(), showsAdded: 0, converted: false, convertedAt: null, convertedUserId: null });
-        count++;
+      for (const session of toDelete) {
+        batch.delete(doc(db, 'guestSessions', session.id));
       }
       await batch.commit();
-      setBulkResetStatus(`Reset ${count} guest trial(s)`);
+      const remaining = guestSessions.length - toDelete.length;
+      setBulkResetStatus(`Deleted ${toDelete.length} trial(s). ${remaining} remaining.`);
       setBulkResetConfirm(false);
       await loadGuestSessions();
     } catch (err) {
-      console.error('Bulk reset error:', err);
+      console.error('Bulk delete error:', err);
       setBulkResetStatus(`Error: ${err.message}`);
     } finally {
       setBulkResetting(false);
-      setTimeout(() => setBulkResetStatus(''), 4000);
+      setTimeout(() => setBulkResetStatus(''), 5000);
     }
   };
 
@@ -1488,8 +1487,8 @@ function AdminView() {
                       <button onClick={() => setBulkResetConfirm(true)}
                         disabled={filteredGuestSessions.length === 0}
                         className="ml-auto inline-flex items-center gap-1.5 bg-danger/10 text-danger hover:bg-danger/20 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                        <RefreshCw className="w-3 h-3" />
-                        Bulk Reset ({filteredGuestSessions.length})
+                        <Trash2 className="w-3 h-3" />
+                        Bulk Delete ({filteredGuestSessions.length})
                       </button>
                     </>
                   )}
@@ -1507,13 +1506,13 @@ function AdminView() {
                   <div className="bg-base border border-subtle rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
                     <div className="flex items-center gap-2 text-danger">
                       <AlertTriangle className="w-5 h-5" />
-                      <span className="text-lg font-bold">Confirm Bulk Reset</span>
+                      <span className="text-lg font-bold">Confirm Bulk Delete</span>
                     </div>
                     <p className="text-secondary text-sm">
-                      This will reset <span className="font-semibold text-primary">{filteredGuestSessions.length}</span> guest trial(s)
+                      This will permanently delete <span className="font-semibold text-primary">{filteredGuestSessions.length}</span> guest trial(s)
                       {guestDateFrom && ` from ${guestDateFrom}`}
                       {guestDateTo && ` to ${guestDateTo}`}.
-                      Each session&apos;s start date will be reset to now, shows cleared, and conversion status removed.
+                      These records will be removed from Firebase entirely.
                     </p>
                     <p className="text-danger text-xs font-medium">This action cannot be undone.</p>
                     <div className="flex gap-3 justify-end">
@@ -1525,13 +1524,13 @@ function AdminView() {
                         className="inline-flex items-center gap-2 bg-danger text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger/90 transition-colors disabled:opacity-60">
                         {bulkResetting ? (
                           <>
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                            Resetting...
+                            <Trash2 className="w-4 h-4 animate-spin" />
+                            Deleting...
                           </>
                         ) : (
                           <>
-                            <RefreshCw className="w-4 h-4" />
-                            Reset {filteredGuestSessions.length} Sessions
+                            <Trash2 className="w-4 h-4" />
+                            Delete {filteredGuestSessions.length} Sessions
                           </>
                         )}
                       </button>
