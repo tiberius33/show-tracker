@@ -28,7 +28,11 @@ function formatDate(dateStr) {
   if (!dateStr) return '';
   const ddmmyyyy = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
   if (ddmmyyyy) {
-    return new Date(`${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`).toLocaleDateString();
+    return new Date(parseInt(ddmmyyyy[3]), parseInt(ddmmyyyy[2]) - 1, parseInt(ddmmyyyy[1])).toLocaleDateString();
+  }
+  const iso = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    return new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3])).toLocaleDateString();
   }
   const d = new Date(dateStr);
   return isNaN(d) ? dateStr : d.toLocaleDateString();
@@ -37,7 +41,9 @@ function formatDate(dateStr) {
 function parseDate(dateStr) {
   if (!dateStr) return new Date(0);
   const ddmmyyyy = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (ddmmyyyy) return new Date(`${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`);
+  if (ddmmyyyy) return new Date(parseInt(ddmmyyyy[3]), parseInt(ddmmyyyy[2]) - 1, parseInt(ddmmyyyy[1]));
+  const iso = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3]));
   const d = new Date(dateStr);
   return isNaN(d) ? new Date(0) : d;
 }
@@ -4159,7 +4165,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
   const formatSetlistDate = (dateStr) => {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
-      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toLocaleDateString();
+      return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).toLocaleDateString();
     }
     return dateStr;
   };
@@ -4634,7 +4640,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
   const formatSetlistDate = (dateStr) => {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
-      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toLocaleDateString();
+      return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).toLocaleDateString();
     }
     return dateStr;
   };
