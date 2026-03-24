@@ -6058,7 +6058,9 @@ export default function ShowTracker() {
               </div>
             `,
           }),
-        }).catch(err => console.log('Tag email failed (non-blocking):', err));
+        }).then(res => {
+          if (!res.ok) res.text().then(t => console.error('Tag email failed:', res.status, t));
+        }).catch(err => console.error('Tag email failed (non-blocking):', err));
       }
     } catch (error) {
       console.error('Failed to tag friends:', error);
@@ -6548,7 +6550,7 @@ export default function ShowTracker() {
           <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
         </div>
       `;
-      await fetch('/.netlify/functions/send-email', {
+      const emailRes = await fetch('/.netlify/functions/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -6557,6 +6559,10 @@ export default function ShowTracker() {
           html,
         }),
       });
+      if (!emailRes.ok) {
+        const errBody = await emailRes.text().catch(() => '');
+        console.error('Tag-by-email send failed:', emailRes.status, errBody);
+      }
     } catch (error) {
       console.error('Failed to tag friend by email:', error);
       throw error; // let TagFriendsModal surface the error
@@ -6626,7 +6632,7 @@ export default function ShowTracker() {
           <p style="color:#94a3b8;font-size:12px">mysetlists.net \u2014 track every show you've ever been to</p>
         </div>
       `;
-      await fetch('/.netlify/functions/send-email', {
+      const emailRes = await fetch('/.netlify/functions/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -6635,6 +6641,10 @@ export default function ShowTracker() {
           html,
         }),
       });
+      if (!emailRes.ok) {
+        const errBody = await emailRes.text().catch(() => '');
+        console.error('Invite email failed:', emailRes.status, errBody);
+      }
       loadInviteStats(user.uid);
       return { success: true };
     } catch (err) {
