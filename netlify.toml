@@ -16,3 +16,33 @@
   from = "/api/send-email/"
   to = "/.netlify/functions/send-email"
   status = 200
+
+[[redirects]]
+  from = "/api/delete-account"
+  to = "/.netlify/functions/delete-account"
+  status = 200
+
+[[redirects]]
+  from = "/api/delete-account/"
+  to = "/.netlify/functions/delete-account"
+  status = 200
+
+[[redirects]]
+  from = "/api/email-preferences"
+  to = "/.netlify/functions/update-email-preferences"
+  status = 200
+
+[[redirects]]
+  from = "/api/email-preferences/"
+  to = "/.netlify/functions/update-email-preferences"
+  status = 200
+
+[[redirects]]
+  from = "/api/unsubscribe"
+  to = "/.netlify/functions/unsubscribe"
+  status = 200
+
+[[redirects]]
+  from = "/api/unsubscribe/"
+  to = "/.netlify/functions/unsubscribe"
+  status = 200

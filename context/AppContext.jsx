@@ -21,6 +21,38 @@ import {
   sharedMemoryEmail,
 } from '@/lib/emailTemplates';
 
+// ── Helper: send email only if recipient hasn't opted out ────────────────
+async function sendEmailIfAllowed(recipientUidOrEmail, emailPayload) {
+  // If we have a UID, check the profile's emailOptOut flag
+  if (recipientUidOrEmail && !recipientUidOrEmail.includes('@')) {
+    try {
+      const profileSnap = await getDoc(doc(db, 'userProfiles', recipientUidOrEmail));
+      if (profileSnap.exists() && profileSnap.data().emailOptOut) {
+        return; // User has opted out of emails
+      }
+    } catch {
+      // If we can't check, proceed with sending
+    }
+  }
+  // If we have an email address (non-registered user), check if any profile with that email opted out
+  if (recipientUidOrEmail && recipientUidOrEmail.includes('@')) {
+    try {
+      const q = query(collection(db, 'userProfiles'), where('email', '==', recipientUidOrEmail.toLowerCase()));
+      const snap = await getDocs(q);
+      if (!snap.empty && snap.docs[0].data().emailOptOut) {
+        return; // User has opted out
+      }
+    } catch {
+      // If we can't check, proceed with sending
+    }
+  }
+  return fetch(apiUrl('/api/send-email'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(emailPayload),
+  });
+}
+
 // ── Helper: update the user's profile doc with current stats ────────────
 async function updateUserProfile(user, shows = []) {
   if (!user) return;
@@ -641,12 +673,9 @@ export function AppProvider({ children }) {
               if (inviterEmail) {
                 const email = friendJoinedEmail({
                   newUserName: currentUser.displayName || 'Your friend',
+                  uid: inviterUid,
                 });
-                fetch(apiUrl('/api/send-email'), {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ to: inviterEmail, ...email }),
-                }).catch(() => {});
+                sendEmailIfAllowed(inviterUid, { to: inviterEmail, ...email }).catch(() => {});
               }
             }
           }
@@ -1409,12 +1438,9 @@ export function AppProvider({ children }) {
             fromName: user.displayName || 'A friend',
             friendName: suggestion.names?.[friendUid] || 'your friend',
             artist, venue, date,
+            uid: friendUid,
           });
-          await fetch(apiUrl('/api/send-email'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: friendData.friendEmail, ...email }),
-          });
+          await sendEmailIfAllowed(friendUid, { to: friendData.friendEmail, ...email });
           await updateDoc(ref, { emailSentToUid: friendUid, emailSentAt: serverTimestamp() });
         }
       }
@@ -1479,12 +1505,9 @@ export function AppProvider({ children }) {
           const email = sharedMemoryEmail({
             commenterName: user.displayName || 'A friend',
             artist, date,
+            uid: otherUid,
           });
-          await fetch(apiUrl('/api/send-email'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: friendData.friendEmail, ...email }),
-          });
+          await sendEmailIfAllowed(otherUid, { to: friendData.friendEmail, ...email });
         }
       }
     } catch (e) {
@@ -1574,12 +1597,9 @@ export function AppProvider({ children }) {
           artist: tag.showData.artist,
           venue: tag.showData.venue || '',
           date: tag.showData.date ? formatDate(tag.showData.date) : '',
+          uid: tag.fromUid,
         });
-        fetch(apiUrl('/api/send-email'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: tag.fromEmail, ...email }),
-        }).catch(() => {});
+        sendEmailIfAllowed(tag.fromUid || tag.fromEmail, { to: tag.fromEmail, ...email }).catch(() => {});
       }
       setPendingTagsForReview(prev => prev.filter(t => t.id !== tag.id));
     } catch (error) {
@@ -1622,12 +1642,9 @@ export function AppProvider({ children }) {
         date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
         personalMessage: message || '',
         signupUrl: `https://mysetlists.net?ref=${user.uid}`,
+        uid: user.uid,
       });
-      await fetch(apiUrl('/api/send-email'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: toEmail, ...email }),
-      });
+      await sendEmailIfAllowed(toEmail, { to: toEmail, ...email });
     } catch (error) {
       console.error('Failed to tag friend by email:', error);
       throw error;
@@ -1681,12 +1698,8 @@ export function AppProvider({ children }) {
         status: 'pending',
         createdAt: serverTimestamp(),
       });
-      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl });
-      await fetch(apiUrl('/api/send-email'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: toEmail, ...email }),
-      });
+      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl, uid: user.uid });
+      await sendEmailIfAllowed(toEmail, { to: toEmail, ...email });
       loadInviteStats(user.uid);
       return { success: true };
     } catch (err) {
@@ -1705,13 +1718,9 @@ export function AppProvider({ children }) {
     try {
       const inviterDisplayName = user.displayName || 'A friend';
       const inviteUrl = `https://mysetlists.net?ref=${user.uid}`;
-      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl });
-      const res = await fetch(apiUrl('/api/send-email'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: invite.inviteeEmail, ...email }),
-      });
-      if (!res.ok) throw new Error('Email send failed');
+      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl, uid: user.uid });
+      const res = await sendEmailIfAllowed(invite.inviteeEmail, { to: invite.inviteeEmail, ...email });
+      if (res && !res.ok) throw new Error('Email send failed');
       await updateDoc(doc(db, 'invites', invite.id), { lastSentAt: serverTimestamp() });
       setToast(`Invite resent to ${invite.inviteeEmail}`);
       return true;
