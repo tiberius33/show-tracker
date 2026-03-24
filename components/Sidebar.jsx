@@ -20,6 +20,7 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
     { id: 'scan-import', label: 'Scan / Import', icon: Camera },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
     ...(isGuest ? [] : [
+      { id: 'profile', label: 'Profile', icon: User },
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
     ]),
     { id: 'upcoming', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
