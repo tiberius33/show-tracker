@@ -2426,7 +2426,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '3.6.1',
+      version: '3.7.1',
       date: 'March 23, 2026',
       title: 'Tag Notification Emails',
       changes: [
