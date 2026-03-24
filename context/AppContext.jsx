@@ -17,6 +17,7 @@ import {
   friendJoinedEmail,
   tagByEmailNotification,
   tagAcceptedEmail,
+  showTagNotification,
   suggestionNudgeEmail,
   sharedMemoryEmail,
 } from '@/lib/emailTemplates';
@@ -1208,6 +1209,29 @@ export function AppProvider({ children }) {
         });
       }
       await batch.commit();
+
+      // Send email notifications to tagged friends
+      const taggerName = user.displayName || 'A friend';
+      for (const friendUid of selectedFriendUids) {
+        try {
+          const friendDoc = await getDoc(doc(db, 'users', friendUid));
+          if (friendDoc.exists()) {
+            const friendData = friendDoc.data();
+            if (friendData.email) {
+              const email = showTagNotification({
+                taggerName,
+                artist: sanitizedShow.artist,
+                venue: sanitizedShow.venue || '',
+                date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
+                uid: friendUid,
+              });
+              sendEmailIfAllowed(friendUid, { to: friendData.email, ...email }).catch(() => {});
+            }
+          }
+        } catch (emailErr) {
+          console.warn('Failed to send tag notification email:', emailErr);
+        }
+      }
 
       const existingUids = show.taggedFriendUids || [];
       const mergedUids = [...new Set([...existingUids, ...selectedFriendUids])];
