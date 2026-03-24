@@ -20,6 +20,7 @@ function ReleaseNotesView() {
         'Improved: Better error handling for native sign-in cancellation on iOS',
         'Improved: Account deletion writes an audit trail for compliance before removing data',
         'Improved: Roadmap completion notifications respect email opt-out preferences',
+        'Fixed: Application error when invited users sign up and log in',
       ]
     },
     {
