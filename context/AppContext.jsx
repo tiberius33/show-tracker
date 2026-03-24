@@ -260,6 +260,39 @@ export function AppProvider({ children }) {
     }
   }, [searchParams]);
 
+  // Deep link: handle ?tab= parameter for navigating to specific tab after login
+  // e.g. /friends?tab=requests from email notification links
+  const [pendingDeepLink, setPendingDeepLink] = useState(null);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const tab = searchParams.get('tab');
+    if (tab) {
+      if (user) {
+        // Already logged in — navigate immediately
+        setFriendsInitialTab(tab);
+      } else {
+        // Store for after login
+        setPendingDeepLink({ tab, path: pathname });
+      }
+      // Clean ?tab from URL
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('tab');
+      window.history.replaceState({}, '', cleanUrl.toString());
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After login, apply pending deep link
+  useEffect(() => {
+    if (user && pendingDeepLink) {
+      setFriendsInitialTab(pendingDeepLink.tab);
+      if (pendingDeepLink.path) {
+        router.push(pendingDeepLink.path);
+      }
+      setPendingDeepLink(null);
+    }
+  }, [user, pendingDeepLink]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Community stats
   const [communityStats, setCommunityStats] = useState(null);
   const [userRank, setUserRank] = useState(null);
