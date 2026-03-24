@@ -6,6 +6,22 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.8.0',
+      date: 'March 24, 2026',
+      title: 'Branded Email Notifications',
+      changes: [
+        'All email notifications now feature a branded design with the MySetlists logo, dark theme, and green/amber accent colors',
+        'Invite emails include a feature overview with signup link and auto-friendship note',
+        'Show tag emails display artist, venue, and date in a styled card with personal messages',
+        'Tag confirmation emails notify the tagger when their friend confirms a shared show',
+        'Show suggestion nudge emails prompt friends to confirm attendance with a direct link',
+        'Shared memory comment emails notify friends of new comments on confirmed shows',
+        'Friend joined notifications let inviters know when their friend signs up',
+        'Email templates extracted to a shared module (lib/emailTemplates.js) for easier maintenance',
+        'All emails are mobile-responsive and render consistently across Gmail, Outlook, and Apple Mail',
+      ]
+    },
+    {
       version: '3.7.0',
       date: 'March 22, 2026',
       title: 'Artist Search, Admin Tools & Date Fix',
