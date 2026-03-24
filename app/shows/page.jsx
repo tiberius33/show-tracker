@@ -26,7 +26,7 @@ export default function ShowsPage() {
     sortBy, setSortBy,
     addShow, addSongToShow, updateSongRating, updateSongComment,
     deleteSong, updateShowRating, updateShowComment, batchRateUnrated, deleteShow,
-    tagFriendsAtShow, tagFriendByEmail,
+    tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow, setVenueRatingShow,
     friends, friendAnnotationsForShow,
     pendingNotificationCount, pendingFriendRequests, pendingShowTags,
@@ -507,9 +507,7 @@ export default function ShowsPage() {
               shows={bulkTagShows}
               friends={friends}
               onTag={async (selectedFriendUids) => {
-                for (const show of bulkTagShows) {
-                  await tagFriendsAtShow(show, selectedFriendUids);
-                }
+                await bulkTagFriendsAtShows(bulkTagShows, selectedFriendUids);
                 setBulkTagShows(null);
                 exitSelectionMode();
               }}

@@ -18,6 +18,7 @@ import {
   tagByEmailNotification,
   tagAcceptedEmail,
   showTagNotification,
+  bulkShowTagNotification,
   suggestionNudgeEmail,
   sharedMemoryEmail,
 } from '@/lib/emailTemplates';
@@ -1225,7 +1226,7 @@ export function AppProvider({ children }) {
     })),
   });
 
-  const tagFriendsAtShow = async (show, selectedFriendUids) => {
+  const tagFriendsAtShow = async (show, selectedFriendUids, { skipEmail = false } = {}) => {
     if (!user || selectedFriendUids.length === 0) return;
     const sanitizedShow = sanitizeShowForTag(show);
     try {
@@ -1243,32 +1244,34 @@ export function AppProvider({ children }) {
       }
       await batch.commit();
 
-      // Send email notifications to tagged friends
-      const taggerName = user.displayName || 'A friend';
-      console.log('[TagEmail] Starting email notifications for', selectedFriendUids.length, 'friend(s)');
-      for (const friendUid of selectedFriendUids) {
-        try {
-          const friend = friends.find(f => f.friendUid === friendUid);
-          const friendEmail = friend?.friendEmail;
-          console.log('[TagEmail] Friend:', friendUid, '| email:', friendEmail || 'NONE');
-          if (friendEmail) {
-            const email = showTagNotification({
-              taggerName,
-              artist: sanitizedShow.artist,
-              venue: sanitizedShow.venue || '',
-              date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
-              uid: friendUid,
-            });
-            const result = await sendEmailIfAllowed(friendUid, { to: friendEmail, ...email });
-            console.log('[TagEmail] sendEmailIfAllowed result:', result);
-          } else {
-            console.warn('[TagEmail] No email found for friend:', friendUid);
+      // Send email notifications to tagged friends (skip if bulk caller handles emails)
+      if (!skipEmail) {
+        const taggerName = user.displayName || 'A friend';
+        console.log('[TagEmail] Starting email notifications for', selectedFriendUids.length, 'friend(s)');
+        for (const friendUid of selectedFriendUids) {
+          try {
+            const friend = friends.find(f => f.friendUid === friendUid);
+            const friendEmail = friend?.friendEmail;
+            console.log('[TagEmail] Friend:', friendUid, '| email:', friendEmail || 'NONE');
+            if (friendEmail) {
+              const email = showTagNotification({
+                taggerName,
+                artist: sanitizedShow.artist,
+                venue: sanitizedShow.venue || '',
+                date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
+                uid: friendUid,
+              });
+              const result = await sendEmailIfAllowed(friendUid, { to: friendEmail, ...email });
+              console.log('[TagEmail] sendEmailIfAllowed result:', result);
+            } else {
+              console.warn('[TagEmail] No email found for friend:', friendUid);
+            }
+          } catch (emailErr) {
+            console.error('[TagEmail] Failed to send tag notification email:', emailErr);
           }
-        } catch (emailErr) {
-          console.error('[TagEmail] Failed to send tag notification email:', emailErr);
         }
+        console.log('[TagEmail] Done sending notifications');
       }
-      console.log('[TagEmail] Done sending notifications');
 
       const existingUids = show.taggedFriendUids || [];
       const mergedUids = [...new Set([...existingUids, ...selectedFriendUids])];
@@ -1281,6 +1284,58 @@ export function AppProvider({ children }) {
       setToast(`Tagged ${selectedFriendUids.length} friend${selectedFriendUids.length !== 1 ? 's' : ''} at ${show.artist}!`);
     } catch (error) {
       console.error('Failed to tag friends:', error);
+      alert('Failed to tag friends. Please try again.');
+    }
+  };
+
+  // Bulk tag: tag friends across multiple shows, send one consolidated email per friend
+  const bulkTagFriendsAtShows = async (showsList, selectedFriendUids) => {
+    if (!user || selectedFriendUids.length === 0 || showsList.length === 0) return;
+    try {
+      // Tag each show (skip per-show emails)
+      for (const show of showsList) {
+        await tagFriendsAtShow(show, selectedFriendUids, { skipEmail: true });
+      }
+
+      // Send one consolidated email per friend
+      const taggerName = user.displayName || 'A friend';
+      console.log('[TagEmail] Sending bulk notifications:', showsList.length, 'shows to', selectedFriendUids.length, 'friend(s)');
+      for (const friendUid of selectedFriendUids) {
+        try {
+          const friend = friends.find(f => f.friendUid === friendUid);
+          const friendEmail = friend?.friendEmail;
+          if (!friendEmail) continue;
+
+          const showsData = showsList.map(s => ({
+            artist: s.artist,
+            venue: s.venue || '',
+            date: s.date ? formatDate(s.date) : '',
+          }));
+
+          const email = showsList.length === 1
+            ? showTagNotification({
+                taggerName,
+                artist: showsData[0].artist,
+                venue: showsData[0].venue,
+                date: showsData[0].date,
+                uid: friendUid,
+              })
+            : bulkShowTagNotification({
+                taggerName,
+                showsList: showsData,
+                uid: friendUid,
+              });
+
+          await sendEmailIfAllowed(friendUid, { to: friendEmail, ...email });
+          console.log('[TagEmail] Bulk email sent to', friendEmail, 'for', showsList.length, 'shows');
+        } catch (emailErr) {
+          console.error('[TagEmail] Failed to send bulk tag notification:', emailErr);
+        }
+      }
+
+      setToast(`Tagged ${selectedFriendUids.length} friend${selectedFriendUids.length !== 1 ? 's' : ''} in ${showsList.length} show${showsList.length !== 1 ? 's' : ''}!`);
+    } catch (error) {
+      console.error('Failed to bulk tag friends:', error);
       alert('Failed to tag friends. Please try again.');
     }
   };
@@ -2256,6 +2311,7 @@ export function AppProvider({ children }) {
 
     // Show tagging
     tagFriendsAtShow,
+    bulkTagFriendsAtShows,
     acceptShowTag,
     declineShowTag,
     bulkAcceptAll,
