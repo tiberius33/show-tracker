@@ -6,6 +6,11 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://mysetlists.net/roadmap</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mysetlists.net/privacy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
@@ -19,5 +24,10 @@
     <loc>https://mysetlists.net/cookies</loc>
     <changefreq>monthly</changefreq>
     <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://mysetlists.net/shared</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
   </url>
 </urlset>

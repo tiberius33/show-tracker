@@ -1,12 +1,10 @@
 [build]
-  command = "CI=false npm run build"
-  publish = "build"
+  command = "npm run build"
+  publish = ".next"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── MySetlists Light Brand Theme ────────────────── */
+:root {
+  /* Core brand */
+  --green-primary: #4bc86a;
+  --green-light: #7dd99a;
+  --green-subtle: #edf8f1;
+  --amber: #f5a623;
+  --amber-light: #fbbf5a;
+  --amber-subtle: #fef8ee;
+  /* Backgrounds */
+  --bg-base: #f4f6f9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #edf0f5;
+  --bg-sidebar: #1e2538;
+  /* Text */
+  --text-primary: #1a1d2e;
+  --text-secondary: #5a6280;
+  --text-muted: #9ea8c4;
+  --text-on-dark: #ffffff;
+  --text-on-dark-muted: #8891ab;
+  /* Borders */
+  --border-subtle: #e8ecf3;
+  --border-active: #c8d0e0;
+  /* Semantic */
+  --success: #4bc86a;
+  --danger: #e05555;
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(30,37,56,0.08);
+  --shadow-md: 0 4px 12px rgba(30,37,56,0.10);
+  --shadow-lg: 0 8px 24px rgba(30,37,56,0.12);
+}
+
+/* Hide scrollbar for horizontal scroll containers */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Scrollbar Theme ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--green-primary); }
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-active) var(--bg-base);
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  /* iOS safe areas */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Desktop: slide in from right */
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(-50%) translateX(8px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+.animate-in {
+  animation: tooltip-in 0.3s ease-out forwards;
+}
+
+/* Mobile: slide down from top */
+@keyframes tooltip-in-mobile {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.animate-in-mobile {
+  animation: tooltip-in-mobile 0.3s ease-out forwards;
+}
+
+/* ── Hover Tooltip ──────────────────────────────── */
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-wrap .tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  z-index: 9999;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background: var(--bg-sidebar);
+  color: var(--text-on-dark);
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Arrow pointing down */
+.tooltip-wrap .tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: var(--bg-sidebar) transparent transparent transparent;
+}
+
+/* Show on hover (desktop) */
+@media (hover: hover) {
+  .tooltip-wrap:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+/* Mobile: keep tooltips within viewport */
+@media (max-width: 639px) {
+  .tooltip-wrap .tooltip-text {
+    max-width: calc(100vw - 32px);
+    white-space: normal;
+    text-align: center;
+    position: fixed;
+    bottom: auto;
+    left: 16px;
+    right: 16px;
+    top: auto;
+    transform: none;
+    width: auto;
+  }
+  .tooltip-wrap .tooltip-text::after {
+    display: none;
+  }
+}
