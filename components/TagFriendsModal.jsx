@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { Calendar, MapPin, Check, Search, ChevronLeft, Users, Send, RefreshCw, X } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
-function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
+function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEmail, onClose }) {
+  const isBulk = Array.isArray(bulkShows) && bulkShows.length > 0;
+  const displayShow = isBulk ? bulkShows[0] : show;
   const [selectedFriends, setSelectedFriends] = useState(new Set());
   const [sending, setSending] = useState(false);
   const [query, setQuery] = useState('');
@@ -45,7 +47,7 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
     setInviteSending(true);
     setInviteStatus(null);
     try {
-      await onInviteByEmail({ name: query.trim(), email: inviteEmail.trim(), message: inviteMessage.trim(), show });
+      await onInviteByEmail({ name: query.trim(), email: inviteEmail.trim(), message: inviteMessage.trim(), show: displayShow });
       setInviteStatus('success');
       setInviteEmail('');
       setInviteMessage('');
@@ -67,16 +69,27 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
               <X className="w-6 h-6" />
             </button>
           </div>
-          <div className="bg-hover rounded-xl p-3">
-            <div className="font-medium" style={{ color: '#f59e0b' }}>{show.artist}</div>
-            <div className="flex items-center gap-2 text-sm text-secondary mt-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>{formatDate(show.date)}</span>
-              <span className="text-muted">&middot;</span>
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{show.venue}</span>
+          {isBulk ? (
+            <div className="bg-hover rounded-xl p-3">
+              <div className="font-medium text-brand">{bulkShows.length} shows selected</div>
+              <div className="text-xs text-secondary mt-1 max-h-20 overflow-y-auto space-y-0.5">
+                {bulkShows.map(s => (
+                  <div key={s.id}>{s.artist} &middot; {formatDate(s.date)} &middot; {s.venue}</div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-hover rounded-xl p-3">
+              <div className="font-medium" style={{ color: '#f59e0b' }}>{show.artist}</div>
+              <div className="flex items-center gap-2 text-sm text-secondary mt-1">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{formatDate(show.date)}</span>
+                <span className="text-muted">&middot;</span>
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{show.venue}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Body */}
@@ -179,7 +192,7 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-secondary mb-3">Select friends who were at this show:</p>
+                  <p className="text-sm text-secondary mb-3">{isBulk ? `Select friends to tag in ${bulkShows.length} shows:` : 'Select friends who were at this show:'}</p>
                   {filteredFriends.map(friend => (
                     <label
                       key={friend.friendUid}
@@ -228,7 +241,10 @@ function TagFriendsModal({ show, friends, onTag, onInviteByEmail, onClose }) {
               disabled={sending}
               className="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary shadow-lg shadow-brand/20 disabled:opacity-50"
             >
-              {sending ? 'Tagging...' : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} at This Show \u2192`}
+              {sending ? 'Tagging...' : isBulk
+                ? `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} in ${bulkShows.length} Shows \u2192`
+                : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} at This Show \u2192`
+              }
             </button>
           </div>
         )}

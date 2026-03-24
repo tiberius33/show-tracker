@@ -12,7 +12,7 @@ import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import {
   Search, Camera, RefreshCw, X, Upload,
-  Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles,
+  Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
 
 export default function ShowsPage() {
@@ -43,6 +43,32 @@ export default function ShowsPage() {
 
   const [playlistShow, setPlaylistShow] = useState(null);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedShowIds, setSelectedShowIds] = useState(new Set());
+  const [bulkTagShows, setBulkTagShows] = useState(null); // array of shows for bulk tag modal
+
+  const toggleSelectShow = (showId) => {
+    setSelectedShowIds(prev => {
+      const next = new Set(prev);
+      if (next.has(showId)) next.delete(showId);
+      else next.add(showId);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedShowIds(new Set());
+  };
+
+  const selectAllShows = () => {
+    setSelectedShowIds(new Set(sortedFilteredShows.map(s => s.id)));
+  };
+
+  const openBulkTagModal = () => {
+    const selected = shows.filter(s => selectedShowIds.has(s.id));
+    if (selected.length > 0) setBulkTagShows(selected);
+  };
 
   // Show "What's New" modal for returning users who have shows (not first-time users)
   useEffect(() => {
@@ -212,6 +238,19 @@ export default function ShowsPage() {
               <h1 className="text-xl md:text-2xl font-bold text-primary mb-1">My Shows</h1>
               <p className="text-secondary">All the concerts you&apos;ve attended</p>
             </div>
+            {shows.length > 0 && !guestMode && friends.length > 0 && (
+              <button
+                onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  selectionMode
+                    ? 'bg-brand-subtle text-brand border border-brand/30'
+                    : 'bg-hover text-secondary hover:bg-hover border border-subtle'
+                }`}
+              >
+                {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                {selectionMode ? 'Done' : 'Select'}
+              </button>
+            )}
           </div>
 
           {/* Setlist scanning progress */}
@@ -401,6 +440,9 @@ export default function ShowsPage() {
                       onDeleteShow={deleteShow}
                       onRateShow={updateShowRating}
                       selectedShowId={selectedShow?.id}
+                      selectionMode={selectionMode}
+                      selectedShowIds={selectedShowIds}
+                      onToggleSelect={toggleSelectShow}
                     />
                   ))}
                 </tbody>
@@ -457,6 +499,55 @@ export default function ShowsPage() {
               show={playlistShow}
               onClose={() => setPlaylistShow(null)}
             />
+          )}
+
+          {/* Bulk tag friends modal */}
+          {bulkTagShows && (
+            <TagFriendsModal
+              shows={bulkTagShows}
+              friends={friends}
+              onTag={async (selectedFriendUids) => {
+                for (const show of bulkTagShows) {
+                  await tagFriendsAtShow(show, selectedFriendUids);
+                }
+                setBulkTagShows(null);
+                exitSelectionMode();
+              }}
+              onInviteByEmail={(params) => tagFriendByEmail({ ...params, show: bulkTagShows[0] })}
+              onClose={() => setBulkTagShows(null)}
+            />
+          )}
+
+          {/* Bulk action bar */}
+          {selectionMode && selectedShowIds.size > 0 && (
+            <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-surface border-t border-subtle p-4 z-50 shadow-xl">
+              <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-primary">
+                  {selectedShowIds.size} show{selectedShowIds.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={selectAllShows}
+                    className="px-3 py-2 text-sm font-medium text-secondary hover:text-primary bg-hover rounded-xl transition-colors"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => setSelectedShowIds(new Set())}
+                    className="px-3 py-2 text-sm font-medium text-secondary hover:text-primary bg-hover rounded-xl transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={openBulkTagModal}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand to-amber text-primary rounded-xl font-medium text-sm shadow-lg shadow-brand/20"
+                  >
+                    <Tag className="w-4 h-4" />
+                    Tag Friends
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* What's New modal */}
