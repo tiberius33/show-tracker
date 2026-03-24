@@ -1215,23 +1215,21 @@ export function AppProvider({ children }) {
       console.log('[TagEmail] Starting email notifications for', selectedFriendUids.length, 'friend(s)');
       for (const friendUid of selectedFriendUids) {
         try {
-          const friendDoc = await getDoc(doc(db, 'users', friendUid));
-          if (friendDoc.exists()) {
-            const friendData = friendDoc.data();
-            console.log('[TagEmail] Friend:', friendUid, '| email:', friendData.email || 'NONE', '| emailOptOut:', friendData.emailOptOut || false);
-            if (friendData.email) {
-              const email = showTagNotification({
-                taggerName,
-                artist: sanitizedShow.artist,
-                venue: sanitizedShow.venue || '',
-                date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
-                uid: friendUid,
-              });
-              const result = await sendEmailIfAllowed(friendUid, { to: friendData.email, ...email });
-              console.log('[TagEmail] sendEmailIfAllowed result:', result);
-            }
+          const friend = friends.find(f => f.friendUid === friendUid);
+          const friendEmail = friend?.friendEmail;
+          console.log('[TagEmail] Friend:', friendUid, '| email:', friendEmail || 'NONE');
+          if (friendEmail) {
+            const email = showTagNotification({
+              taggerName,
+              artist: sanitizedShow.artist,
+              venue: sanitizedShow.venue || '',
+              date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
+              uid: friendUid,
+            });
+            const result = await sendEmailIfAllowed(friendUid, { to: friendEmail, ...email });
+            console.log('[TagEmail] sendEmailIfAllowed result:', result);
           } else {
-            console.warn('[TagEmail] Friend doc not found:', friendUid);
+            console.warn('[TagEmail] No email found for friend:', friendUid);
           }
         } catch (emailErr) {
           console.error('[TagEmail] Failed to send tag notification email:', emailErr);
