@@ -12,6 +12,14 @@ import { formatDate, parseDate, extractFirstName } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
+import {
+  inviteEmail,
+  friendJoinedEmail,
+  tagByEmailNotification,
+  tagAcceptedEmail,
+  suggestionNudgeEmail,
+  sharedMemoryEmail,
+} from '@/lib/emailTemplates';
 
 // ── Helper: update the user's profile doc with current stats ────────────
 async function updateUserProfile(user, shows = []) {
@@ -631,27 +639,13 @@ export function AppProvider({ children }) {
 
               // Notify inviter via email
               if (inviterEmail) {
-                const newUserFirstName = (currentUser.displayName || 'Your friend').split(' ')[0];
+                const email = friendJoinedEmail({
+                  newUserName: currentUser.displayName || 'Your friend',
+                });
                 fetch(apiUrl('/api/send-email'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    to: inviterEmail,
-                    subject: `${newUserFirstName} joined mysetlists.net via your invite!`,
-                    html: `
-                      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
-                        <h2 style="color:#10b981">Your invite worked!</h2>
-                        <p><strong>${currentUser.displayName || 'Your friend'}</strong> just joined mysetlists.net via your invite link — you're now friends on the app!</p>
-                        <p style="margin:24px 0">
-                          <a href="https://mysetlists.net" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
-                            Go to mysetlists.net →
-                          </a>
-                        </p>
-                        <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-                        <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
-                      </div>
-                    `,
-                  }),
+                  body: JSON.stringify({ to: inviterEmail, ...email }),
                 }).catch(() => {});
               }
             }
@@ -1410,16 +1404,16 @@ export function AppProvider({ children }) {
       if (response === 'confirmed' && theirResponse === 'pending' && !suggestion.emailSentToUid) {
         const friendData = friends.find(f => f.friendUid === friendUid);
         if (friendData?.friendEmail) {
-          const friendName = suggestion.names?.[friendUid] || 'your friend';
           const { artist, venue, date } = suggestion.showData;
+          const email = suggestionNudgeEmail({
+            fromName: user.displayName || 'A friend',
+            friendName: suggestion.names?.[friendUid] || 'your friend',
+            artist, venue, date,
+          });
           await fetch(apiUrl('/api/send-email'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: friendData.friendEmail,
-              subject: `${user.displayName || 'A friend'} thinks you were both at ${artist}!`,
-              html: `<p>Hey ${friendName},</p><p><strong>${user.displayName || 'A friend'}</strong> confirmed they were at <strong>${artist}</strong> at ${venue} on ${date} — and thinks you might have been there too. Were you there together?</p><p><a href="https://mysetlists.net/friends">Open MySetlists to confirm or dismiss</a></p>`,
-            }),
+            body: JSON.stringify({ to: friendData.friendEmail, ...email }),
           });
           await updateDoc(ref, { emailSentToUid: friendUid, emailSentAt: serverTimestamp() });
         }
@@ -1482,14 +1476,14 @@ export function AppProvider({ children }) {
         const friendData = friends.find(f => f.friendUid === otherUid);
         if (friendData?.friendEmail) {
           const { artist, date } = suggestion.showData;
+          const email = sharedMemoryEmail({
+            commenterName: user.displayName || 'A friend',
+            artist, date,
+          });
           await fetch(apiUrl('/api/send-email'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: friendData.friendEmail,
-              subject: `${user.displayName || 'A friend'} added a memory from ${artist}`,
-              html: `<p><strong>${user.displayName || 'A friend'}</strong> added a comment to your shared memory of <strong>${artist}</strong> (${date}).</p><p><a href="https://mysetlists.net/friends">Open MySetlists to see and reply</a></p>`,
-            }),
+            body: JSON.stringify({ to: friendData.friendEmail, ...email }),
           });
         }
       }
@@ -1575,29 +1569,16 @@ export function AppProvider({ children }) {
       await addShow({ ...tag.showData, taggedBy: tag.fromName, taggedByUid: tag.fromUid });
       await setDoc(doc(db, 'pendingEmailTags', tag.id), { status: 'accepted' }, { merge: true });
       if (tag.fromEmail) {
-        const newUserFirstName = (user.displayName || 'Your friend').split(' ')[0];
+        const email = tagAcceptedEmail({
+          confirmerName: user.displayName || 'Your friend',
+          artist: tag.showData.artist,
+          venue: tag.showData.venue || '',
+          date: tag.showData.date ? formatDate(tag.showData.date) : '',
+        });
         fetch(apiUrl('/api/send-email'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: tag.fromEmail,
-            subject: `${newUserFirstName} confirmed they were at ${tag.showData.artist} with you!`,
-            html: `
-              <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
-                <h2 style="color:#10b981">They were there!</h2>
-                <p><strong>${user.displayName || 'Your friend'}</strong> just confirmed they were at
-                <strong>${tag.showData.artist}</strong>${tag.showData.venue ? ` at ${tag.showData.venue}` : ''}${tag.showData.date ? ` on ${formatDate(tag.showData.date)}` : ''} with you!</p>
-                <p>The show has been added to their setlist history on mysetlists.net.</p>
-                <p style="margin:24px 0">
-                  <a href="https://mysetlists.net" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
-                    View their profile →
-                  </a>
-                </p>
-                <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-                <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
-              </div>
-            `,
-          }),
+          body: JSON.stringify({ to: tag.fromEmail, ...email }),
         }).catch(() => {});
       }
       setPendingTagsForReview(prev => prev.filter(t => t.id !== tag.id));
@@ -1634,29 +1615,18 @@ export function AppProvider({ children }) {
       });
 
       const inviterName = user.displayName || 'A friend';
-      const html = `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
-          <h2 style="color:#10b981">${inviterName} tagged you in a show!</h2>
-          <p><strong>${inviterName}</strong> saw <strong>${sanitizedShow.artist}</strong>${sanitizedShow.venue ? ` at ${sanitizedShow.venue}` : ''}${sanitizedShow.date ? ` on ${formatDate(sanitizedShow.date)}` : ''} and thinks you were there too!</p>
-          ${message ? `<blockquote style="border-left:3px solid #10b981;padding-left:16px;color:#475569;font-style:italic;margin:16px 0">${message}</blockquote>` : ''}
-          <p>Join mysetlists.net to confirm the show and add it to your concert history:</p>
-          <p style="margin:24px 0">
-            <a href="https://mysetlists.net?ref=${user.uid}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
-              Join mysetlists.net →
-            </a>
-          </p>
-          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-          <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
-        </div>
-      `;
+      const email = tagByEmailNotification({
+        taggerName: inviterName,
+        artist: sanitizedShow.artist,
+        venue: sanitizedShow.venue || '',
+        date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
+        personalMessage: message || '',
+        signupUrl: `https://mysetlists.net?ref=${user.uid}`,
+      });
       await fetch(apiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: toEmail,
-          subject: `${inviterName} tagged you in a show on mysetlists.net!`,
-          html,
-        }),
+        body: JSON.stringify({ to: toEmail, ...email }),
       });
     } catch (error) {
       console.error('Failed to tag friend by email:', error);
@@ -1711,28 +1681,11 @@ export function AppProvider({ children }) {
         status: 'pending',
         createdAt: serverTimestamp(),
       });
-      const html = `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
-          <h2 style="color:#10b981">Hey! ${inviterDisplayName} wants you to join mysetlists.net</h2>
-          <p>${inviterDisplayName} has been tracking all their concerts on mysetlists.net \u2014 saving setlists, rating songs, and seeing their all-time stats. They think you'd love it too.</p>
-          <p style="margin:24px 0">
-            <a href="${inviteUrl}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
-              Join mysetlists.net \u2192
-            </a>
-          </p>
-          <p style="color:#64748b;font-size:14px">When you sign up, you and ${inviterDisplayName} will automatically be friends on the app.</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-          <p style="color:#94a3b8;font-size:12px">mysetlists.net \u2014 track every show you've ever been to</p>
-        </div>
-      `;
+      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl });
       await fetch(apiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: toEmail,
-          subject: `${inviterDisplayName} invited you to mysetlists.net!`,
-          html,
-        }),
+        body: JSON.stringify({ to: toEmail, ...email }),
       });
       loadInviteStats(user.uid);
       return { success: true };
@@ -1752,28 +1705,11 @@ export function AppProvider({ children }) {
     try {
       const inviterDisplayName = user.displayName || 'A friend';
       const inviteUrl = `https://mysetlists.net?ref=${user.uid}`;
-      const html = `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
-          <h2 style="color:#10b981">Hey! ${inviterDisplayName} wants you to join mysetlists.net</h2>
-          <p>${inviterDisplayName} has been tracking all their concerts on mysetlists.net \u2014 saving setlists, rating songs, and seeing their all-time stats. They think you'd love it too.</p>
-          <p style="margin:24px 0">
-            <a href="${inviteUrl}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
-              Join mysetlists.net \u2192
-            </a>
-          </p>
-          <p style="color:#64748b;font-size:14px">When you sign up, you and ${inviterDisplayName} will automatically be friends on the app.</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-          <p style="color:#94a3b8;font-size:12px">mysetlists.net \u2014 track every show you've ever been to</p>
-        </div>
-      `;
+      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl });
       const res = await fetch(apiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: invite.inviteeEmail,
-          subject: `${inviterDisplayName} invited you to mysetlists.net!`,
-          html,
-        }),
+        body: JSON.stringify({ to: invite.inviteeEmail, ...email }),
       });
       if (!res.ok) throw new Error('Email send failed');
       await updateDoc(doc(db, 'invites', invite.id), { lastSentAt: serverTimestamp() });
