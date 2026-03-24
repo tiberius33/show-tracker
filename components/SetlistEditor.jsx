@@ -115,7 +115,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {onRateVenue && show.venue && (
-              <Tip text="Rate this venue">
+              <Tip text="Rate this venue" position="bottom">
                 <button
                   onClick={() => onRateVenue(show)}
                   className="p-3 rounded-xl text-secondary hover:text-brand hover:bg-brand-subtle active:bg-brand-subtle transition-colors"
@@ -125,7 +125,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               </Tip>
             )}
             {onTagFriends && (
-              <Tip text="Tag friends at this show">
+              <Tip text="Tag friends at this show" position="bottom">
                 <button
                   onClick={() => onTagFriends(show)}
                   className="p-3 rounded-xl text-secondary hover:text-primary hover:bg-hover active:bg-hover transition-colors"
@@ -134,7 +134,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                 </button>
               </Tip>
             )}
-            <Tip text="Share setlist">
+            <Tip text="Share setlist" position="bottom">
               <button
                 onClick={handleShare}
                 className={`p-3 rounded-xl transition-colors ${shareSuccess ? 'bg-brand-subtle text-brand' : 'text-secondary hover:text-primary hover:bg-hover active:bg-hover'}`}
@@ -144,7 +144,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
             </Tip>
             {show.setlist?.length > 0 && onCreatePlaylist && (
               <div className="relative">
-                <Tip text={showPlaylistTip ? '' : 'Create playlist'}>
+                <Tip text={showPlaylistTip ? '' : 'Create playlist'} position="bottom">
                   <button
                     onClick={() => {
                       dismissPlaylistTip();

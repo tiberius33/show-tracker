@@ -130,6 +130,17 @@ code {
   box-shadow: var(--shadow-lg);
 }
 
+/* Bottom-positioned tooltip (below the element) */
+.tooltip-bottom .tooltip-text {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+.tooltip-bottom .tooltip-text::after {
+  top: auto;
+  bottom: 100%;
+  border-color: transparent transparent var(--bg-sidebar) transparent;
+}
+
 /* Arrow pointing down */
 .tooltip-wrap .tooltip-text::after {
   content: '';
