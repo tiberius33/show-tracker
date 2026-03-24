@@ -59,8 +59,8 @@ async function updateUserProfile(user, shows = []) {
 
   const profileRef = doc(db, 'userProfiles', user.uid);
   const uniqueVenues = new Set(shows.map(s => s.venue)).size;
-  const totalSongs = shows.reduce((acc, s) => acc + s.setlist.length, 0);
-  const ratedSongs = shows.reduce((acc, s) => acc + s.setlist.filter(song => song.rating).length, 0);
+  const totalSongs = shows.reduce((acc, s) => acc + (s.setlist || []).length, 0);
+  const ratedSongs = shows.reduce((acc, s) => acc + (s.setlist || []).filter(song => song.rating).length, 0);
 
   const profileData = {
     odubleserId: user.uid,
@@ -479,10 +479,10 @@ export function AppProvider({ children }) {
     try {
       const showsRef = collection(db, 'users', userId, 'shows');
       const snapshot = await getDocs(showsRef);
-      const loadedShows = snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data(),
-      }));
+      const loadedShows = snapshot.docs.map(d => {
+        const data = d.data();
+        return { id: d.id, ...data, setlist: data.setlist || [] };
+      });
       setShows(loadedShows);
 
       if (auth.currentUser) {
@@ -623,7 +623,7 @@ export function AppProvider({ children }) {
         try {
           const inviteQuery = query(
             collection(db, 'invites'),
-            where('inviteeEmail', '==', currentUser.email.toLowerCase()),
+            where('inviteeEmail', '==', (currentUser.email || '').toLowerCase()),
             where('status', '==', 'pending')
           );
           const inviteSnap = await getDocs(inviteQuery);
@@ -687,7 +687,7 @@ export function AppProvider({ children }) {
         try {
           const tagQuery = query(
             collection(db, 'pendingEmailTags'),
-            where('toEmail', '==', currentUser.email.toLowerCase()),
+            where('toEmail', '==', (currentUser.email || '').toLowerCase()),
             where('status', '==', 'pending')
           );
           const tagSnap = await getDocs(tagQuery);
@@ -1893,7 +1893,7 @@ export function AppProvider({ children }) {
         artistMap[show.artist] = { count: 0, ratings: [], uniqueSongs: new Set() };
       }
       artistMap[show.artist].count++;
-      show.setlist.forEach(song => artistMap[show.artist].uniqueSongs.add(song.name.toLowerCase().trim()));
+      (show.setlist || []).forEach(song => artistMap[show.artist].uniqueSongs.add((song.name || '').toLowerCase().trim()));
       if (show.rating) artistMap[show.artist].ratings.push(show.rating);
     });
     return Object.entries(artistMap)
@@ -2079,7 +2079,7 @@ export function AppProvider({ children }) {
 
   const summaryStats = useMemo(() => {
     const uniqueSongs = new Set();
-    shows.forEach(s => s.setlist.forEach(song => uniqueSongs.add(song.name.toLowerCase().trim())));
+    shows.forEach(s => (s.setlist || []).forEach(song => uniqueSongs.add((song.name || '').toLowerCase().trim())));
     const uniqueSongCount = uniqueSongs.size;
 
     const ratedShows = shows.filter(s => s.rating);
