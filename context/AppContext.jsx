@@ -1649,7 +1649,7 @@ export function AppProvider({ children }) {
   };
 
   // ── Show tag accept / decline ───────────────────────────────────────
-  const acceptShowTag = async (tagId) => {
+  const acceptShowTag = async (tagId, { silent = false } = {}) => {
     if (!user) return;
     try {
       const tagRef = doc(db, 'showTags', tagId);
@@ -1664,6 +1664,13 @@ export function AppProvider({ children }) {
       });
 
       await setDoc(tagRef, { status: 'accepted' }, { merge: true });
+
+      // Navigate to shows page with toast (unless called from bulk accept)
+      if (!silent) {
+        const artist = tagData.showData?.artist || 'Show';
+        setToast(`${artist} added to your shows!`);
+        navigateTo('shows');
+      }
     } catch (error) {
       console.error('Failed to accept show tag:', error);
       alert('Failed to import tagged show. Please try again.');
@@ -1682,11 +1689,12 @@ export function AppProvider({ children }) {
   // Bulk accept all pending show tags + suggestions
   const bulkAcceptAll = async (tags, suggestions) => {
     const results = await Promise.allSettled([
-      ...tags.map(tag => acceptShowTag(tag.id)),
+      ...tags.map(tag => acceptShowTag(tag.id, { silent: true })),
       ...suggestions.map(s => respondToSuggestion(s, 'confirmed')),
     ]);
     const accepted = results.filter(r => r.status === 'fulfilled').length;
-    setToast(`Accepted ${accepted} pending item${accepted !== 1 ? 's' : ''}`);
+    setToast(`${accepted} show${accepted !== 1 ? 's' : ''} added to your collection!`);
+    navigateTo('shows');
   };
 
   // Bulk accept pending items from a specific friend
@@ -1694,11 +1702,12 @@ export function AppProvider({ children }) {
     const friendTags = tags.filter(t => t.fromUid === friendUid);
     const friendSuggestions = suggestions.filter(s => s.participants?.includes(friendUid));
     const results = await Promise.allSettled([
-      ...friendTags.map(tag => acceptShowTag(tag.id)),
+      ...friendTags.map(tag => acceptShowTag(tag.id, { silent: true })),
       ...friendSuggestions.map(s => respondToSuggestion(s, 'confirmed')),
     ]);
     const accepted = results.filter(r => r.status === 'fulfilled').length;
-    setToast(`Accepted ${accepted} item${accepted !== 1 ? 's' : ''}`);
+    setToast(`${accepted} show${accepted !== 1 ? 's' : ''} added to your collection!`);
+    navigateTo('shows');
   };
 
   // Accept a pending email tag (new user confirming a show tagged before they joined)
@@ -1718,6 +1727,8 @@ export function AppProvider({ children }) {
         sendEmailIfAllowed(tag.fromUid || tag.fromEmail, { to: tag.fromEmail, ...email }).catch(() => {});
       }
       setPendingTagsForReview(prev => prev.filter(t => t.id !== tag.id));
+      const artist = tag.showData?.artist || 'Show';
+      setToast(`${artist} added to your shows!`);
     } catch (error) {
       console.error('Failed to accept pending email tag:', error);
     }
