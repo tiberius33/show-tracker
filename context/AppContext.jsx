@@ -1212,11 +1212,13 @@ export function AppProvider({ children }) {
 
       // Send email notifications to tagged friends
       const taggerName = user.displayName || 'A friend';
+      console.log('[TagEmail] Starting email notifications for', selectedFriendUids.length, 'friend(s)');
       for (const friendUid of selectedFriendUids) {
         try {
           const friendDoc = await getDoc(doc(db, 'users', friendUid));
           if (friendDoc.exists()) {
             const friendData = friendDoc.data();
+            console.log('[TagEmail] Friend:', friendUid, '| email:', friendData.email || 'NONE', '| emailOptOut:', friendData.emailOptOut || false);
             if (friendData.email) {
               const email = showTagNotification({
                 taggerName,
@@ -1225,13 +1227,17 @@ export function AppProvider({ children }) {
                 date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
                 uid: friendUid,
               });
-              sendEmailIfAllowed(friendUid, { to: friendData.email, ...email }).catch(() => {});
+              const result = await sendEmailIfAllowed(friendUid, { to: friendData.email, ...email });
+              console.log('[TagEmail] sendEmailIfAllowed result:', result);
             }
+          } else {
+            console.warn('[TagEmail] Friend doc not found:', friendUid);
           }
         } catch (emailErr) {
-          console.warn('Failed to send tag notification email:', emailErr);
+          console.error('[TagEmail] Failed to send tag notification email:', emailErr);
         }
       }
+      console.log('[TagEmail] Done sending notifications');
 
       const existingUids = show.taggedFriendUids || [];
       const mergedUids = [...new Set([...existingUids, ...selectedFriendUids])];
