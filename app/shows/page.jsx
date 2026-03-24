@@ -12,7 +12,7 @@ import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import {
   Search, Camera, RefreshCw, X,
-  Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag,
+  Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles,
 } from 'lucide-react';
 
 export default function ShowsPage() {
