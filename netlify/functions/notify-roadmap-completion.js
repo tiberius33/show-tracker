@@ -181,7 +181,25 @@ exports.handler = async function(event) {
     }
 
     // Filter out already-notified
-    const toSend = [...emailsToNotify].filter(e => e && !alreadyNotified.has(e));
+    let toSend = [...emailsToNotify].filter(e => e && !alreadyNotified.has(e));
+
+    // Filter out users who have opted out of emails
+    if (toSend.length > 0) {
+      const optedOutEmails = new Set();
+      // Check in batches of 30 (Firestore 'in' limit)
+      for (let i = 0; i < toSend.length; i += 30) {
+        const batch = toSend.slice(i, i + 30);
+        const snap = await db.collection('userProfiles')
+          .where('email', 'in', batch)
+          .get();
+        for (const profileDoc of snap.docs) {
+          if (profileDoc.data().emailOptOut) {
+            optedOutEmails.add(profileDoc.data().email);
+          }
+        }
+      }
+      toSend = toSend.filter(e => !optedOutEmails.has(e));
+    }
 
     if (toSend.length === 0) {
       return {

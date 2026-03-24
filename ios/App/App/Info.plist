@@ -63,6 +63,14 @@
 				<string>mysetlists</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.mysetlists.app.google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.580565525718-0vqj78ps5bob238gg0kp5r0kh1hu7k3g</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

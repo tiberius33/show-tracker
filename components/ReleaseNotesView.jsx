@@ -6,6 +6,23 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.9.0',
+      date: 'March 24, 2026',
+      title: 'Account Management, Email Control & iOS Sign-In Fix',
+      changes: [
+        'New: Delete your account from Settings — permanently removes all shows, friends, tags, and data',
+        'New: Unsubscribe from all emails via profile Settings or one-click unsubscribe link in every email',
+        'New: All email notifications now include an unsubscribe link in the footer',
+        'New: Email opt-out is respected across all notification types (invites, tags, suggestions, shared memories)',
+        'Fixed: Google and Apple sign-in now working correctly on iOS app',
+        'Fixed: iOS OAuth redirects properly configured with reversed client ID URL scheme',
+        'Improved: Capacitor Firebase Authentication plugin configured with native provider support',
+        'Improved: Better error handling for native sign-in cancellation on iOS',
+        'Improved: Account deletion writes an audit trail for compliance before removing data',
+        'Improved: Roadmap completion notifications respect email opt-out preferences',
+      ]
+    },
+    {
       version: '3.8.0',
       date: 'March 24, 2026',
       title: 'Branded Email Notifications',
