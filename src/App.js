@@ -2008,6 +2008,16 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '1.0.25',
+      date: 'March 23, 2026',
+      title: 'Tag Notification Emails',
+      changes: [
+        'Fixed: Tagging registered friends at a show now sends them an email notification with the show details',
+        'Improved: "Were you there together?" suggestion emails now use the branded template with show card layout',
+        'Email notifications for tags are non-blocking — tagging never fails even if the email can\'t send',
+      ]
+    },
+    {
       version: '1.0.24',
       date: 'March 4, 2026',
       title: 'Public Roadmap & Voting',
@@ -4858,6 +4868,41 @@ export default function ShowTracker() {
       await batch.commit();
       setTagFriendsShow(null);
       setToast(`Tagged ${selectedFriendUids.length} friend${selectedFriendUids.length !== 1 ? 's' : ''} at ${show.artist}!`);
+
+      // Send email notifications to tagged friends (non-blocking)
+      const taggerName = user.displayName || 'A friend';
+      const showDate = formatDate(sanitizedShow.date);
+      for (const friendUid of selectedFriendUids) {
+        const friendData = friends.find(f => f.friendUid === friendUid);
+        if (!friendData?.friendEmail) continue;
+        const friendName = friendData.friendName || 'Hey';
+        fetch('/.netlify/functions/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: friendData.friendEmail,
+            subject: `${taggerName} tagged you in a ${sanitizedShow.artist} show!`,
+            html: `
+              <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+                <h2 style="color:#10b981">${taggerName} tagged you in a show! 🎶</h2>
+                <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:16px 0;border-left:4px solid #10b981">
+                  <p style="margin:0 0 4px;font-weight:600;font-size:18px">${sanitizedShow.artist}</p>
+                  ${sanitizedShow.venue ? `<p style="margin:0 0 4px;color:#475569">${sanitizedShow.venue}</p>` : ''}
+                  ${showDate ? `<p style="margin:0;color:#475569">${showDate}</p>` : ''}
+                </div>
+                <p>${friendName}, <strong>${taggerName}</strong> thinks you were at this show! Open MySetlists to confirm and add it to your concert history.</p>
+                <p style="margin:24px 0">
+                  <a href="https://mysetlists.net/?view=friends" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+                    View Tag →
+                  </a>
+                </p>
+                <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+                <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
+              </div>
+            `,
+          }),
+        }).catch(err => console.log('Tag email failed (non-blocking):', err));
+      }
     } catch (error) {
       console.error('Failed to tag friends:', error);
       alert('Failed to tag friends. Please try again.');
@@ -5012,13 +5057,32 @@ export default function ShowTracker() {
         if (friendData?.friendEmail) {
           const friendName = suggestion.names?.[friendUid] || 'your friend';
           const { artist, venue, date } = suggestion.showData;
+          const taggerName = user.displayName || 'A friend';
+          const showDate = formatDate(date);
           await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               to: friendData.friendEmail,
-              subject: `${user.displayName || 'A friend'} thinks you were both at ${artist}!`,
-              html: `<p>Hey ${friendName},</p><p><strong>${user.displayName || 'A friend'}</strong> confirmed they were at <strong>${artist}</strong> at ${venue} on ${date} — and thinks you might have been there too. Were you there together?</p><p><a href="https://mysetlists.net/?view=friends">Open MySetlists to confirm or dismiss</a></p>`,
+              subject: `${taggerName} thinks you were both at ${artist}!`,
+              html: `
+                <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1e293b">
+                  <h2 style="color:#10b981">Were you there together? 🎤</h2>
+                  <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:16px 0;border-left:4px solid #10b981">
+                    <p style="margin:0 0 4px;font-weight:600;font-size:18px">${artist}</p>
+                    ${venue ? `<p style="margin:0 0 4px;color:#475569">${venue}</p>` : ''}
+                    ${showDate ? `<p style="margin:0;color:#475569">${showDate}</p>` : ''}
+                  </div>
+                  <p>${friendName}, <strong>${taggerName}</strong> confirmed they were at this show and thinks you might have been there too!</p>
+                  <p style="margin:24px 0">
+                    <a href="https://mysetlists.net/?view=friends" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+                      Confirm or Dismiss →
+                    </a>
+                  </p>
+                  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+                  <p style="color:#94a3b8;font-size:12px">mysetlists.net — track every show you've ever been to</p>
+                </div>
+              `,
             }),
           });
           await updateDoc(ref, { emailSentToUid: friendUid, emailSentAt: serverTimestamp() });
