@@ -11,7 +11,7 @@ import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import {
-  Search, Camera, RefreshCw, X,
+  Search, Camera, RefreshCw, X, Upload,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles,
 } from 'lucide-react';
 
