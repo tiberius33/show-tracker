@@ -481,7 +481,14 @@ export function AppProvider({ children }) {
       const snapshot = await getDocs(showsRef);
       const loadedShows = snapshot.docs.map(d => {
         const data = d.data();
-        return { id: d.id, ...data, setlist: data.setlist || [] };
+        return {
+          id: d.id,
+          ...data,
+          artist: data.artist || '',
+          venue: data.venue || '',
+          date: data.date || '',
+          setlist: data.setlist || [],
+        };
       });
       setShows(loadedShows);
 
@@ -2037,9 +2044,10 @@ export function AppProvider({ children }) {
   }, [shows]);
 
   const sortedFilteredShows = useMemo(() => {
+    const term = searchTerm.toLowerCase();
     let filtered = shows.filter(show =>
-      show.artist.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      show.venue.toLowerCase().includes(searchTerm.toLowerCase())
+      (show.artist || '').toLowerCase().includes(term) ||
+      (show.venue || '').toLowerCase().includes(term)
     );
     if (filterYear) {
       filtered = filtered.filter(show => {
@@ -2052,7 +2060,7 @@ export function AppProvider({ children }) {
     }
     return filtered.sort((a, b) => {
       if (sortBy === 'date') return parseDate(b.date) - parseDate(a.date);
-      if (sortBy === 'artist') return a.artist.localeCompare(b.artist);
+      if (sortBy === 'artist') return (a.artist || '').localeCompare(b.artist || '');
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       return 0;
     });
