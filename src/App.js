@@ -2426,7 +2426,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '3.8.0',
+      version: '3.12.0',
       date: 'March 25, 2026',
       title: 'Profile Comments & UI Polish',
       changes: [
