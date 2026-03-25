@@ -195,10 +195,10 @@ export default function ShowsPage() {
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button
               onClick={() => navigateTo('search')}
-              className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
+              className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2bb583] text-white rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
             >
               {shows.length === 0 && (
-                <span className="absolute inset-0 rounded-xl bg-brand animate-ping opacity-20" />
+                <span className="absolute inset-0 rounded-xl bg-[#34D399] animate-ping opacity-20" />
               )}
               <Search className="w-4 h-4" />
               Search for a Show
@@ -206,7 +206,7 @@ export default function ShowsPage() {
             <div className="relative">
               <button
                 onClick={() => navigateTo('scan-import')}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all shadow-lg shadow-brand/20 ${tooltipStep === 1 ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-base' : ''}`}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2bb583] text-white rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${tooltipStep === 1 ? 'ring-2 ring-[#34D399]/60 ring-offset-2 ring-offset-base' : ''}`}
               >
                 <Camera className="w-4 h-4" />
                 Scan / Import
@@ -217,14 +217,14 @@ export default function ShowsPage() {
                     <div className="bg-sidebar border border-sidebar rounded-xl p-3 shadow-xl shadow-sidebar/30 relative">
                       <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-sidebar" />
                       <p className="text-on-dark text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                      <button onClick={dismissTooltip} className="bg-brand text-on-dark px-3 py-1 rounded-lg text-xs font-semibold hover:bg-brand/80 transition-colors">Got it ✓</button>
+                      <button onClick={dismissTooltip} className="bg-[#34D399] hover:bg-[#2bb583] text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">Got it ✓</button>
                     </div>
                   </div>
                   <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-[60] animate-in-mobile">
                     <div className="bg-sidebar border border-sidebar rounded-xl p-3 shadow-xl shadow-sidebar/30 relative">
                       <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-sidebar" />
                       <p className="text-on-dark text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                      <button onClick={dismissTooltip} className="bg-brand text-on-dark px-3 py-1 rounded-lg text-xs font-semibold hover:bg-brand/80 transition-colors">Got it ✓</button>
+                      <button onClick={dismissTooltip} className="bg-[#34D399] hover:bg-[#2bb583] text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">Got it ✓</button>
                     </div>
                   </div>
                 </>
@@ -358,9 +358,9 @@ export default function ShowsPage() {
               <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
                 <button
                   onClick={() => navigateTo('search')}
-                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-semibold transition-all shadow-lg shadow-brand/20 hover:shadow-brand/50 hover:scale-105"
+                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#34D399] hover:bg-[#2bb583] text-white rounded-xl font-semibold transition-all shadow-lg shadow-[#34D399]/20 hover:shadow-[#34D399]/50 hover:scale-105"
                 >
-                  <span className="absolute inset-0 rounded-xl bg-brand animate-ping opacity-20" />
+                  <span className="absolute inset-0 rounded-xl bg-[#34D399] animate-ping opacity-20" />
                   <Search className="w-5 h-5" />
                   Search for a Show
                 </button>

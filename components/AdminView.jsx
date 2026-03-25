@@ -23,6 +23,8 @@ function AdminView() {
   const [cacheLoading, setCacheLoading] = useState(false);
   const [cacheClearArtist, setCacheClearArtist] = useState('');
   const [cacheStatus, setCacheStatus] = useState('');
+  const [dupeCleanupLoading, setDupeCleanupLoading] = useState(false);
+  const [dupeCleanupResult, setDupeCleanupResult] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userShows, setUserShows] = useState([]);
   const [loadingShows, setLoadingShows] = useState(false);
@@ -2384,6 +2386,90 @@ function AdminView() {
               </>
             ) : (
               <p className="text-brand text-sm">All shows have setlists!</p>
+            )}
+          </div>
+
+          {/* Duplicate Show Cleanup */}
+          <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-primary mb-1">Duplicate Show Cleanup</h3>
+            <p className="text-secondary text-sm mb-4">Scan all users for duplicate shows (same artist + venue + date) and merge them.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  setDupeCleanupLoading(true);
+                  setDupeCleanupResult(null);
+                  try {
+                    const token = await auth.currentUser.getIdToken();
+                    const res = await fetch(apiUrl('/.netlify/functions/admin-cleanup-duplicates'), {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ dryRun: true }),
+                    });
+                    const data = await res.json();
+                    setDupeCleanupResult(data);
+                  } catch (e) {
+                    setDupeCleanupResult({ error: e.message });
+                  }
+                  setDupeCleanupLoading(false);
+                }}
+                disabled={dupeCleanupLoading}
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-subtle hover:bg-amber/30 text-amber border border-amber/30 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+              >
+                <Search className="w-4 h-4" />
+                {dupeCleanupLoading ? 'Scanning...' : 'Dry Run (Preview)'}
+              </button>
+              <button
+                onClick={async () => {
+                  if (!confirm('This will permanently merge duplicate shows. Continue?')) return;
+                  setDupeCleanupLoading(true);
+                  setDupeCleanupResult(null);
+                  try {
+                    const token = await auth.currentUser.getIdToken();
+                    const res = await fetch(apiUrl('/.netlify/functions/admin-cleanup-duplicates'), {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ dryRun: false }),
+                    });
+                    const data = await res.json();
+                    setDupeCleanupResult(data);
+                  } catch (e) {
+                    setDupeCleanupResult({ error: e.message });
+                  }
+                  setDupeCleanupLoading(false);
+                }}
+                disabled={dupeCleanupLoading}
+                className="flex items-center gap-2 px-4 py-2.5 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                Run Cleanup
+              </button>
+            </div>
+            {dupeCleanupResult && (
+              <div className="mt-4 bg-surface border border-subtle rounded-xl p-4 text-sm">
+                {dupeCleanupResult.error ? (
+                  <p className="text-danger">Error: {dupeCleanupResult.error}</p>
+                ) : (
+                  <>
+                    <p className="text-primary font-medium mb-2">
+                      {dupeCleanupResult.dryRun ? '🔍 Dry Run Results' : '✅ Cleanup Complete'}
+                    </p>
+                    <div className="space-y-1 text-secondary">
+                      <p>Users scanned: {dupeCleanupResult.usersScanned}</p>
+                      <p>Duplicates found: {dupeCleanupResult.duplicatesFound}</p>
+                      <p>Duplicates {dupeCleanupResult.dryRun ? 'to merge' : 'merged'}: {dupeCleanupResult.duplicatesMerged}</p>
+                    </div>
+                    {dupeCleanupResult.details?.length > 0 && (
+                      <div className="mt-3 max-h-48 overflow-y-auto space-y-1">
+                        {dupeCleanupResult.details.map((d, i) => (
+                          <p key={i} className="text-xs text-muted">
+                            {d.artist} @ {d.venue} ({d.date}) — {d.removedShowIds.length} duplicate{d.removedShowIds.length !== 1 ? 's' : ''}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
