@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Solid background (App Store requires no transparency) -->
+  <rect width="1024" height="1024" rx="0" fill="#0f172a"/>
+
+  <defs>
+    <linearGradient id="pickMain" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" style="stop-color:#10d98a"/>
+      <stop offset="40%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="pickLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#047857"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="pickHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6ee7b7;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>
+    </linearGradient>
+    <filter id="pickShadow">
+      <feDropShadow dx="4" dy="8" stdDeviation="12" flood-color="rgba(5,150,105,0.5)"/>
+    </filter>
+    <clipPath id="pickClip">
+      <path d="M 512 80 C 730 80, 900 211, 900 392 C 900 573, 775 703, 512 1033 C 249 703, 124 573, 124 392 C 124 211, 294 80, 512 80 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Guitar pick shape - centered and scaled to fill 1024x1024 -->
+  <g>
+    <path d="M 512 80 C 730 80, 900 211, 900 392 C 900 573, 775 703, 512 1033 C 249 703, 124 573, 124 392 C 124 211, 294 80, 512 80 Z"
+          fill="url(#pickMain)" filter="url(#pickShadow)"/>
+    <path d="M 512 80 C 387 80, 262 161, 181 274 C 137 336, 124 367, 124 392 C 124 573, 249 703, 512 1033 C 406 865, 325 721, 281 597 C 231 454, 231 317, 281 205 C 331 98, 418 96, 512 80 Z"
+          fill="url(#pickLeft)" opacity="0.7"/>
+    <path d="M 512 80 C 699 80, 856 192, 893 348 C 843 248, 731 111, 512 80 Z"
+          fill="url(#pickHighlight)" opacity="0.6"/>
+
+    <g clip-path="url(#pickClip)">
+      <path d="M 231 276 Q 456 338, 731 238" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="231" cy="276" r="18" fill="rgba(255,255,255,0.85)"/>
+      <path d="M 187 400 Q 468 487, 793 350" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="187" cy="400" r="18" fill="rgba(255,255,255,0.8)"/>
+      <path d="M 156 537 Q 456 649, 837 487" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="156" cy="537" r="18" fill="rgba(255,255,255,0.75)"/>
+      <path d="M 143 674 Q 431 812, 837 649" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="143" cy="674" r="18" fill="rgba(255,255,255,0.65)"/>
+    </g>
+  </g>
+</svg>

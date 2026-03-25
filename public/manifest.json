@@ -1,6 +1,6 @@
 {
   "short_name": "MySetlists",
-  "name": "MySetlists - Concert Tracker",
+  "name": "MySetlists | Your Show History",
   "description": "Track your concert shows, setlists, and build your live music history",
   "icons": [
     {
@@ -24,8 +24,8 @@
   ],
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a",
+  "theme_color": "#f4f6f9",
+  "background_color": "#f4f6f9",
   "orientation": "portrait-primary",
   "categories": ["entertainment", "music", "lifestyle"]
 }

@@ -1,0 +1,63 @@
+import { Suspense } from 'react';
+import './globals.css';
+import AppProviderWrapper from './AppProviderWrapper';
+
+export const metadata = {
+  title: {
+    default: 'MySetlists | Your Show History',
+    template: '%s — MySetlists',
+  },
+  description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
+  metadataBase: new URL('https://mysetlists.net'),
+  openGraph: {
+    type: 'website',
+    url: 'https://mysetlists.net/',
+    title: 'MySetlists | Your Show History',
+    description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
+    images: ['/og-image.svg'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MySetlists | Your Show History',
+    description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
+    images: ['/og-image.svg'],
+  },
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'MySetlists',
+  },
+};
+
+export const viewport = {
+  themeColor: '#f4f6f9',
+  viewportFit: 'cover',
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+      </head>
+      <body>
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center bg-base">
+            <div className="text-muted font-medium">Loading...</div>
+          </div>
+        }>
+          <AppProviderWrapper>
+            {children}
+          </AppProviderWrapper>
+        </Suspense>
+      </body>
+    </html>
+  );
+}

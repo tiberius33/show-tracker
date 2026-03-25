@@ -1,12 +1,48 @@
 [build]
-  command = "CI=false npm run build"
-  publish = "build"
+  command = "npm run build"
+  publish = "out"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
 
+# Rewrite /api/* to Netlify functions for static export compatibility
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/send-email"
+  to = "/.netlify/functions/send-email"
+  status = 200
+
+[[redirects]]
+  from = "/api/send-email/"
+  to = "/.netlify/functions/send-email"
+  status = 200
+
+[[redirects]]
+  from = "/api/delete-account"
+  to = "/.netlify/functions/delete-account"
+  status = 200
+
+[[redirects]]
+  from = "/api/delete-account/"
+  to = "/.netlify/functions/delete-account"
+  status = 200
+
+[[redirects]]
+  from = "/api/email-preferences"
+  to = "/.netlify/functions/update-email-preferences"
+  status = 200
+
+[[redirects]]
+  from = "/api/email-preferences/"
+  to = "/.netlify/functions/update-email-preferences"
+  status = 200
+
+[[redirects]]
+  from = "/api/unsubscribe"
+  to = "/.netlify/functions/unsubscribe"
+  status = 200
+
+[[redirects]]
+  from = "/api/unsubscribe/"
+  to = "/.netlify/functions/unsubscribe"
   status = 200

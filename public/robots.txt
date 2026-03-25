@@ -1,6 +1,12 @@
 User-agent: *
 Allow: /
+Allow: /roadmap
 Allow: /artist/
+Allow: /privacy
+Allow: /terms
+Allow: /cookies
+Allow: /shared/
 Disallow: /admin
+Disallow: /.netlify/
 
 Sitemap: https://mysetlists.net/sitemap.xml
