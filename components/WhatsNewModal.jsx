@@ -1,53 +1,53 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Music, Map, Calendar, Filter, ChevronRight } from 'lucide-react';
+import { X, Sparkles, Music, Users, UserCheck, Mail, Camera, ChevronRight } from 'lucide-react';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 // Bump this version string whenever you add new features to announce.
 // Users who have seen this version won't see the modal again.
-const CURRENT_WHATS_NEW_VERSION = '3.7';
+const CURRENT_WHATS_NEW_VERSION = '3.11';
 
 const FEATURES = [
   {
-    icon: Music,
+    icon: Camera,
     color: 'text-brand',
     bg: 'bg-brand-subtle',
-    title: 'Artist Deep Dive',
-    description: 'Tap any artist to see genres, band members, years active, and bio — powered by MusicBrainz and Discogs.',
+    title: 'AI Ticket Stub Scanning',
+    description: 'Take a photo of ticket stubs and our AI will automatically extract show details and import them to your collection.',
+    cta: { label: 'Try It', view: 'scan-import' },
+  },
+  {
+    icon: Users,
+    color: 'text-brand',
+    bg: 'bg-brand-subtle',
+    title: 'Bulk Friend Tagging',
+    description: 'Select multiple shows at once and tag friends in all of them — no more one-by-one tagging.',
     cta: null,
   },
   {
-    icon: Map,
-    color: 'text-brand',
-    bg: 'bg-brand-subtle',
-    title: 'Public Roadmap & Voting',
-    description: 'See what features are coming next and vote on what we build. Your voice shapes MySetlists.',
-    cta: { label: 'View Roadmap', view: 'roadmap' },
-  },
-  {
-    icon: Filter,
+    icon: UserCheck,
     color: 'text-amber',
     bg: 'bg-amber-subtle',
-    title: 'Year & Date Filters',
-    description: 'Filter your show list by year or date range to quickly find past concerts.',
+    title: 'Guest Access',
+    description: 'Non-members can now view shows they\'ve been tagged in without needing an account.',
+    cta: null,
+  },
+  {
+    icon: Mail,
+    color: 'text-amber',
+    bg: 'bg-amber/15',
+    title: 'Consolidated Email Notifications',
+    description: 'Bulk tagging sends one email per friend listing all shows instead of flooding their inbox.',
     cta: null,
   },
   {
     icon: Sparkles,
     color: 'text-amber',
-    bg: 'bg-amber/15',
-    title: 'Release Notes',
-    description: 'Stay up to date with every new feature and fix in the dedicated Release Notes page.',
-    cta: { label: 'View Release Notes', view: 'release-notes' },
-  },
-  {
-    icon: Calendar,
-    color: 'text-amber',
     bg: 'bg-amber-subtle',
-    title: 'Upcoming Shows',
-    description: 'Plan ahead with a dedicated section for your upcoming concerts.',
-    cta: { label: 'View Upcoming', view: 'upcoming' },
+    title: 'Public Roadmap & Voting',
+    description: 'See what features are coming next and vote on what we build. Your voice shapes MySetlists.',
+    cta: { label: 'View Roadmap', view: 'roadmap' },
   },
 ];
 
@@ -132,7 +132,7 @@ function WhatsNewModal({ onClose, navigateTo }) {
         <div className="px-5 py-4 border-t border-subtle">
           <button
             onClick={handleClose}
-            className="w-full py-3 rounded-xl bg-amber hover:bg-amber text-primary text-sm font-semibold transition-colors"
+            className="w-full py-3 rounded-xl bg-[#34D399] hover:bg-[#2bb583] text-white text-sm font-semibold transition-colors"
           >
             Got it
           </button>

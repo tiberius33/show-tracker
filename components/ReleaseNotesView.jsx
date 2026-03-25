@@ -6,6 +6,21 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.11.0',
+      date: 'March 25, 2026',
+      title: 'Duplicate Prevention, What\'s New Refresh & UI Polish',
+      changes: [
+        'New: Duplicate show detection — accepting a friend tag for a show you already have merges tag data instead of creating a duplicate',
+        'New: Admin duplicate cleanup tool — scan all users for duplicate shows and merge them (dry run + live modes)',
+        'Updated: "What\'s New" modal now only shows when new features are added (proper version tracking)',
+        'Updated: "What\'s New" content refreshed with 5 latest features: AI Ticket Scanning, Bulk Tagging, Guest Access, Consolidated Emails, Roadmap Voting',
+        'Fixed: Tooltip "Got It" button now clearly visible with green background and white text',
+        'Fixed: "Search for a Show" and "Scan / Import" buttons updated to solid green (#34D399) for brand consistency',
+        'Improved: Duplicate detection matches on artist + venue + date (case-insensitive)',
+        'Improved: When a duplicate is detected, users see a helpful message instead of a confusing second entry',
+      ]
+    },
+    {
       version: '3.10.1',
       date: 'March 24, 2026',
       title: 'Bulk Tagging, Email Improvements & Post-Accept Navigation',

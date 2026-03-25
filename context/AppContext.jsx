@@ -868,7 +868,45 @@ export function AppProvider({ children }) {
     }
   };
 
+  // ── Duplicate detection helper ─────────────────────────────────────
+  const findDuplicateShow = (showData) => {
+    if (!showData.artist || !showData.date) return null;
+    return shows.find(s =>
+      s.artist?.toLowerCase().trim() === showData.artist?.toLowerCase().trim() &&
+      s.venue?.toLowerCase().trim() === (showData.venue || '').toLowerCase().trim() &&
+      s.date === showData.date
+    ) || null;
+  };
+
+  // Merge friend tag data into an existing show (comments, tags, etc.)
+  const mergeTagDataIntoShow = async (existingShow, tagData) => {
+    const updates = {};
+    if (tagData.taggedBy && !existingShow.taggedBy) {
+      updates.taggedBy = tagData.taggedBy;
+      updates.taggedByUid = tagData.taggedByUid;
+    }
+    if (Object.keys(updates).length > 0 && user) {
+      try {
+        const showRef = doc(db, 'users', user.uid, 'shows', existingShow.id);
+        await updateDoc(showRef, updates);
+        setShows(prev => prev.map(s => s.id === existingShow.id ? { ...s, ...updates } : s));
+      } catch (e) {
+        console.error('Failed to merge tag data into existing show:', e);
+      }
+    }
+    return existingShow.id;
+  };
+
   const addShow = async (showData) => {
+    // Check for duplicate before adding
+    const existing = findDuplicateShow(showData);
+    if (existing) {
+      // Merge tag metadata into existing show rather than creating a duplicate
+      await mergeTagDataIntoShow(existing, showData);
+      setShowForm(false);
+      return { id: existing.id, duplicate: true };
+    }
+
     const showId = Date.now().toString();
     const newShow = {
       ...showData,
@@ -1672,7 +1710,7 @@ export function AppProvider({ children }) {
       if (!tagSnap.exists()) return;
       const tagData = tagSnap.data();
 
-      await addShow({
+      const result = await addShow({
         ...tagData.showData,
         taggedBy: tagData.fromName,
         taggedByUid: tagData.fromUid,
@@ -1680,10 +1718,13 @@ export function AppProvider({ children }) {
 
       await setDoc(tagRef, { status: 'accepted' }, { merge: true });
 
-      // Navigate to shows page with toast (unless called from bulk accept)
       if (!silent) {
         const artist = tagData.showData?.artist || 'Show';
-        setToast(`${artist} added to your shows!`);
+        if (result && result.duplicate) {
+          setToast(`You already have ${artist}! Friend's tag was added to your existing show.`);
+        } else {
+          setToast(`${artist} added to your shows!`);
+        }
         navigateTo('shows');
       }
     } catch (error) {
@@ -1729,7 +1770,7 @@ export function AppProvider({ children }) {
   const acceptPendingEmailTag = async (tag) => {
     if (!user) return;
     try {
-      await addShow({ ...tag.showData, taggedBy: tag.fromName, taggedByUid: tag.fromUid });
+      const result = await addShow({ ...tag.showData, taggedBy: tag.fromName, taggedByUid: tag.fromUid });
       await setDoc(doc(db, 'pendingEmailTags', tag.id), { status: 'accepted' }, { merge: true });
       if (tag.fromEmail) {
         const email = tagAcceptedEmail({
@@ -1743,7 +1784,11 @@ export function AppProvider({ children }) {
       }
       setPendingTagsForReview(prev => prev.filter(t => t.id !== tag.id));
       const artist = tag.showData?.artist || 'Show';
-      setToast(`${artist} added to your shows!`);
+      if (result && result.duplicate) {
+        setToast(`You already have ${artist}! Friend's tag was added to your existing show.`);
+      } else {
+        setToast(`${artist} added to your shows!`);
+      }
     } catch (error) {
       console.error('Failed to accept pending email tag:', error);
     }
