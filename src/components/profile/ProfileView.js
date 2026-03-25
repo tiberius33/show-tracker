@@ -1,17 +1,25 @@
-import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera } from 'lucide-react';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from 'react';
+import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, MessageSquare, ChevronDown, ChevronUp, Eye, Users } from 'lucide-react';
+import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { db, auth } from '../../firebase';
 import NotificationSettings from '../notifications/NotificationSettings';
 
-export default function ProfileView({ user, shows, userRank, onProfileUpdate }) {
+export default function ProfileView({ user, shows, userRank, onProfileUpdate, onViewShow, confirmedSuggestions = [], friends = [] }) {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [memberSince, setMemberSince] = useState(null);
+  const [commentsTab, setCommentsTab] = useState('my'); // 'my' | 'friends'
+  const [friendComments, setFriendComments] = useState([]);
+  const [friendCommentsLoading, setFriendCommentsLoading] = useState(false);
+  const [friendCommentsLoaded, setFriendCommentsLoaded] = useState(false);
+  const [myCommentsPage, setMyCommentsPage] = useState(1);
+  const [friendCommentsPage, setFriendCommentsPage] = useState(1);
+  const [filterFriend, setFilterFriend] = useState('');
+  const COMMENTS_PER_PAGE = 20;
 
   useEffect(() => {
     if (user) {
@@ -41,6 +49,97 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
       ? (shows.filter(s => s.rating).reduce((a, s) => a + s.rating, 0) / shows.filter(s => s.rating).length).toFixed(1)
       : null
   };
+
+  // Extract all user's comments (show notes + song notes)
+  const myComments = useMemo(() => {
+    const comments = [];
+    shows.forEach(show => {
+      if (show.comment && show.comment.trim()) {
+        comments.push({
+          type: 'show',
+          text: show.comment,
+          show,
+          date: show.date,
+          songName: null,
+        });
+      }
+      (show.setlist || []).forEach(song => {
+        if (song.comment && song.comment.trim()) {
+          comments.push({
+            type: 'song',
+            text: song.comment,
+            show,
+            date: show.date,
+            songName: song.name,
+          });
+        }
+      });
+    });
+    // Sort by show date descending
+    comments.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date) : new Date(0);
+      const dateB = b.date ? new Date(b.date) : new Date(0);
+      return dateB - dateA;
+    });
+    return comments;
+  }, [shows]);
+
+  // Load friend comments from confirmed suggestions
+  useEffect(() => {
+    if (commentsTab !== 'friends' || friendCommentsLoaded || !user?.uid) return;
+    if (confirmedSuggestions.length === 0) {
+      setFriendCommentsLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    const loadFriendComments = async () => {
+      setFriendCommentsLoading(true);
+      const allComments = [];
+
+      for (const suggestion of confirmedSuggestions) {
+        try {
+          const snap = await getDocs(collection(db, 'showSuggestions', suggestion.id, 'comments'));
+          snap.docs.forEach(d => {
+            const data = d.data();
+            // Only include comments from other users (friends' comments)
+            if (data.authorUid !== user.uid) {
+              allComments.push({
+                id: d.id,
+                ...data,
+                suggestionId: suggestion.id,
+                showData: suggestion.showData || suggestion.sharedShow || {},
+                showKey: suggestion.showKey,
+              });
+            }
+          });
+        } catch (e) {
+          console.error('Failed to load comments for suggestion:', suggestion.id, e);
+        }
+      }
+
+      if (!cancelled) {
+        allComments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setFriendComments(allComments);
+        setFriendCommentsLoaded(true);
+        setFriendCommentsLoading(false);
+      }
+    };
+
+    loadFriendComments();
+    return () => { cancelled = true; };
+  }, [commentsTab, confirmedSuggestions, user?.uid, friendCommentsLoaded]);
+
+  // Get unique friend names from friend comments for filtering
+  const uniqueCommenters = useMemo(() => {
+    const names = new Set(friendComments.map(c => c.authorName).filter(Boolean));
+    return [...names].sort();
+  }, [friendComments]);
+
+  const filteredFriendComments = useMemo(() => {
+    if (!filterFriend) return friendComments;
+    return friendComments.filter(c => c.authorName === filterFriend);
+  }, [friendComments, filterFriend]);
 
   const handleSave = async () => {
     if (!user?.uid) return;
@@ -83,6 +182,22 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
     if (!date) return 'Unknown';
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
+
+  const formatShowDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return dateStr; }
+  };
+
+  const formatTimestamp = (ts) => {
+    if (!ts?.seconds) return '';
+    return new Date(ts.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Paginated slices
+  const paginatedMyComments = myComments.slice(0, myCommentsPage * COMMENTS_PER_PAGE);
+  const paginatedFriendComments = filteredFriendComments.slice(0, friendCommentsPage * COMMENTS_PER_PAGE);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -238,6 +353,175 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
         </div>
       )}
 
+      {/* Comments Section */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        {/* Comments Header */}
+        <div className="px-6 pt-5 pb-3">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Comments</h3>
+          </div>
+
+          {/* Tab Switcher */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCommentsTab('my')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                commentsTab === 'my'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              My Comments
+              {myComments.length > 0 && (
+                <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs">{myComments.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => setCommentsTab('friends')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                commentsTab === 'friends'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Friends' Comments
+              {friendComments.length > 0 && (
+                <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs">{friendComments.length}</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Comments Content */}
+        <div className="px-6 pb-5">
+          {commentsTab === 'my' && (
+            <div className="space-y-3 mt-3">
+              {myComments.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className="w-10 h-10 text-white/20 mx-auto mb-3" />
+                  <p className="text-white/40 text-sm">No comments yet. Add notes to your shows to remember the details!</p>
+                </div>
+              ) : (
+                <>
+                  {paginatedMyComments.map((comment, i) => (
+                    <div key={`${comment.show?.id}-${comment.songName || 'show'}-${i}`} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/8 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-white/40 mb-1.5">
+                            <span className={`px-2 py-0.5 rounded-full ${comment.type === 'show' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
+                              {comment.type === 'show' ? 'Show Note' : 'Song Note'}
+                            </span>
+                            <span>{formatShowDate(comment.date)}</span>
+                          </div>
+                          <p className="text-white/90 text-sm leading-relaxed">{comment.text}</p>
+                          <div className="mt-2 text-xs text-white/50">
+                            <span className="font-medium text-white/70">{comment.show?.artist}</span>
+                            {comment.songName && <span> &middot; {comment.songName}</span>}
+                            <span> &middot; {comment.show?.venue}</span>
+                          </div>
+                        </div>
+                        {onViewShow && comment.show?.id && (
+                          <button
+                            onClick={() => onViewShow(comment.show)}
+                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View Show
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {myComments.length > paginatedMyComments.length && (
+                    <button
+                      onClick={() => setMyCommentsPage(p => p + 1)}
+                      className="w-full py-3 text-sm text-white/50 hover:text-white/80 transition-colors"
+                    >
+                      Show more ({myComments.length - paginatedMyComments.length} remaining)
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {commentsTab === 'friends' && (
+            <div className="space-y-3 mt-3">
+              {/* Friend filter */}
+              {uniqueCommenters.length > 1 && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-white/40">Filter by friend:</span>
+                  <select
+                    value={filterFriend}
+                    onChange={(e) => { setFilterFriend(e.target.value); setFriendCommentsPage(1); }}
+                    className="bg-white/10 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  >
+                    <option value="">All friends</option>
+                    {uniqueCommenters.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {friendCommentsLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-white/40 text-sm">Loading friend comments...</p>
+                </div>
+              ) : filteredFriendComments.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-10 h-10 text-white/20 mx-auto mb-3" />
+                  <p className="text-white/40 text-sm">
+                    {filterFriend
+                      ? `No comments from ${filterFriend} yet.`
+                      : "No friend comments yet. Share shows with friends to see their thoughts!"}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {paginatedFriendComments.map((comment) => (
+                    <div key={comment.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/8 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-white/40 mb-1.5">
+                            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                              {comment.authorName || 'Friend'}
+                            </span>
+                            <span>{formatTimestamp(comment.createdAt)}</span>
+                          </div>
+                          <p className="text-white/90 text-sm leading-relaxed">{comment.text}</p>
+                          {comment.showData && (
+                            <div className="mt-2 text-xs text-white/50">
+                              <span className="font-medium text-white/70">{comment.showData.artist}</span>
+                              <span> &middot; {comment.showData.venue}</span>
+                              {comment.showData.date && <span> &middot; {formatShowDate(comment.showData.date)}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredFriendComments.length > paginatedFriendComments.length && (
+                    <button
+                      onClick={() => setFriendCommentsPage(p => p + 1)}
+                      className="w-full py-3 text-sm text-white/50 hover:text-white/80 transition-colors"
+                    >
+                      Show more ({filteredFriendComments.length - paginatedFriendComments.length} remaining)
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Notification Settings */}
       <NotificationSettings userId={user?.uid} />
     </div>
@@ -254,7 +538,7 @@ function StatCard({ icon, label, value, subtext, color }) {
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] transition-all duration-200 cursor-default">
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center mb-3`}>
         <span className="text-white">{icon}</span>
       </div>
