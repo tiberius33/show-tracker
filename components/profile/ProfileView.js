@@ -1,13 +1,13 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut } from 'lucide-react';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from 'react';
+import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Users, Eye } from 'lucide-react';
+import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { apiUrl } from '@/lib/api';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
 
-export default function ProfileView({ user, shows, userRank, onProfileUpdate }) {
+export default function ProfileView({ user, shows, userRank, onProfileUpdate, onViewShow, confirmedSuggestions = [], friends = [] }) {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [photoURL, setPhotoURL] = useState('');
@@ -24,6 +24,16 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  // Comments state
+  const [commentsTab, setCommentsTab] = useState('my');
+  const [friendComments, setFriendComments] = useState([]);
+  const [friendCommentsLoading, setFriendCommentsLoading] = useState(false);
+  const [friendCommentsLoaded, setFriendCommentsLoaded] = useState(false);
+  const [myCommentsPage, setMyCommentsPage] = useState(1);
+  const [friendCommentsPage, setFriendCommentsPage] = useState(1);
+  const [filterFriend, setFilterFriend] = useState('');
+  const COMMENTS_PER_PAGE = 20;
 
   useEffect(() => {
     if (user) {
@@ -57,19 +67,104 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
       : null
   };
 
+  // Extract all user's comments (show notes + song notes)
+  const myComments = useMemo(() => {
+    const comments = [];
+    shows.forEach(show => {
+      if (show.comment && show.comment.trim()) {
+        comments.push({
+          type: 'show',
+          text: show.comment,
+          show,
+          date: show.date,
+          songName: null,
+        });
+      }
+      (show.setlist || []).forEach(song => {
+        if (song.comment && song.comment.trim()) {
+          comments.push({
+            type: 'song',
+            text: song.comment,
+            show,
+            date: show.date,
+            songName: song.name,
+          });
+        }
+      });
+    });
+    comments.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date) : new Date(0);
+      const dateB = b.date ? new Date(b.date) : new Date(0);
+      return dateB - dateA;
+    });
+    return comments;
+  }, [shows]);
+
+  // Load friend comments from confirmed suggestions
+  useEffect(() => {
+    if (commentsTab !== 'friends' || friendCommentsLoaded || !user?.uid) return;
+    if (!confirmedSuggestions || confirmedSuggestions.length === 0) {
+      setFriendCommentsLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    const loadFriendComments = async () => {
+      setFriendCommentsLoading(true);
+      const allComments = [];
+
+      for (const suggestion of confirmedSuggestions) {
+        try {
+          const snap = await getDocs(collection(db, 'showSuggestions', suggestion.id, 'comments'));
+          snap.docs.forEach(d => {
+            const data = d.data();
+            if (data.authorUid !== user.uid) {
+              allComments.push({
+                id: d.id,
+                ...data,
+                suggestionId: suggestion.id,
+                showData: suggestion.showData || suggestion.sharedShow || {},
+              });
+            }
+          });
+        } catch (e) {
+          console.error('Failed to load comments for suggestion:', suggestion.id, e);
+        }
+      }
+
+      if (!cancelled) {
+        allComments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setFriendComments(allComments);
+        setFriendCommentsLoaded(true);
+        setFriendCommentsLoading(false);
+      }
+    };
+
+    loadFriendComments();
+    return () => { cancelled = true; };
+  }, [commentsTab, confirmedSuggestions, user?.uid, friendCommentsLoaded]);
+
+  const uniqueCommenters = useMemo(() => {
+    const names = new Set(friendComments.map(c => c.authorName).filter(Boolean));
+    return [...names].sort();
+  }, [friendComments]);
+
+  const filteredFriendComments = useMemo(() => {
+    if (!filterFriend) return friendComments;
+    return friendComments.filter(c => c.authorName === filterFriend);
+  }, [friendComments, filterFriend]);
+
   const handleSave = async () => {
     if (!user?.uid) return;
     setSaving(true);
     setError('');
 
     try {
-      // Update Firebase Auth profile
       await updateProfile(auth.currentUser, {
         displayName: displayName.trim(),
         photoURL: photoURL.trim() || null
       });
 
-      // Update Firestore profile
       const profileRef = doc(db, 'userProfiles', user.uid);
       await updateDoc(profileRef, {
         displayName: displayName.trim(),
@@ -137,7 +232,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
         throw new Error(data.error || 'Deletion failed');
       }
 
-      // Sign out and redirect
       await signOut(auth);
       window.location.href = '/';
     } catch (err) {
@@ -152,12 +246,26 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
+  const formatShowDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return dateStr; }
+  };
+
+  const formatTimestamp = (ts) => {
+    if (!ts?.seconds) return '';
+    return new Date(ts.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const paginatedMyComments = myComments.slice(0, myCommentsPage * COMMENTS_PER_PAGE);
+  const paginatedFriendComments = filteredFriendComments.slice(0, friendCommentsPage * COMMENTS_PER_PAGE);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Profile Header */}
       <div className="bg-hover border border-subtle rounded-2xl p-6">
         <div className="flex items-start gap-6">
-          {/* Profile Photo */}
           <div className="relative">
             {photoURL || user?.photoURL ? (
               <img
@@ -182,7 +290,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
             )}
           </div>
 
-          {/* Profile Info */}
           <div className="flex-1">
             {isEditing ? (
               <div className="space-y-3">
@@ -250,43 +357,12 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard
-          icon={<Music className="w-5 h-5" />}
-          label="Shows"
-          value={stats.totalShows}
-          color="emerald"
-        />
-        <StatCard
-          icon={<Music className="w-5 h-5" />}
-          label="Songs Heard"
-          value={stats.totalSongs}
-          color="teal"
-        />
-        <StatCard
-          icon={<Star className="w-5 h-5" />}
-          label="Songs Rated"
-          value={stats.ratedSongs}
-          color="amber"
-        />
-        <StatCard
-          icon={<MapPin className="w-5 h-5" />}
-          label="Venues"
-          value={stats.uniqueVenues}
-          color="cyan"
-        />
-        <StatCard
-          icon={<User className="w-5 h-5" />}
-          label="Artists"
-          value={stats.uniqueArtists}
-          color="purple"
-        />
-        <StatCard
-          icon={<Trophy className="w-5 h-5" />}
-          label="Rank"
-          value={userRank ? `#${userRank.rank}` : '-'}
-          subtext={userRank ? `of ${userRank.total}` : ''}
-          color="amber"
-        />
+        <StatCard icon={<Music className="w-5 h-5" />} label="Shows" value={stats.totalShows} color="emerald" />
+        <StatCard icon={<Music className="w-5 h-5" />} label="Songs Heard" value={stats.totalSongs} color="teal" />
+        <StatCard icon={<Star className="w-5 h-5" />} label="Songs Rated" value={stats.ratedSongs} color="amber" />
+        <StatCard icon={<MapPin className="w-5 h-5" />} label="Venues" value={stats.uniqueVenues} color="cyan" />
+        <StatCard icon={<User className="w-5 h-5" />} label="Artists" value={stats.uniqueArtists} color="purple" />
+        <StatCard icon={<Trophy className="w-5 h-5" />} label="Rank" value={userRank ? `#${userRank.rank}` : '-'} subtext={userRank ? `of ${userRank.total}` : ''} color="amber" />
       </div>
 
       {/* Average Rating */}
@@ -305,6 +381,171 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate }) 
           </div>
         </div>
       )}
+
+      {/* Comments Section */}
+      <div className="bg-hover border border-subtle rounded-2xl overflow-hidden">
+        <div className="px-6 pt-5 pb-3">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-amber flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold text-primary">Comments</h3>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCommentsTab('my')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                commentsTab === 'my'
+                  ? 'bg-brand/20 text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-[rgba(255,255,255,0.08)] border border-subtle'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              My Comments
+              {myComments.length > 0 && (
+                <span className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded-full text-xs">{myComments.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => setCommentsTab('friends')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                commentsTab === 'friends'
+                  ? 'bg-brand/20 text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-[rgba(255,255,255,0.08)] border border-subtle'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Friends' Comments
+              {friendComments.length > 0 && (
+                <span className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded-full text-xs">{friendComments.length}</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5">
+          {commentsTab === 'my' && (
+            <div className="space-y-3 mt-3">
+              {myComments.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className="w-10 h-10 text-muted mx-auto mb-3" />
+                  <p className="text-muted text-sm">No comments yet. Add notes to your shows to remember the details!</p>
+                </div>
+              ) : (
+                <>
+                  {paginatedMyComments.map((comment, i) => (
+                    <div key={`${comment.show?.id}-${comment.songName || 'show'}-${i}`} className="bg-surface border border-subtle rounded-xl p-4 hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
+                            <span className={`px-2 py-0.5 rounded-full ${comment.type === 'show' ? 'bg-brand/20 text-brand' : 'bg-amber/20 text-amber'}`}>
+                              {comment.type === 'show' ? 'Show Note' : 'Song Note'}
+                            </span>
+                            <span>{formatShowDate(comment.date)}</span>
+                          </div>
+                          <p className="text-primary text-sm leading-relaxed">{comment.text}</p>
+                          <div className="mt-2 text-xs text-secondary">
+                            <span className="font-medium text-primary">{comment.show?.artist}</span>
+                            {comment.songName && <span> &middot; {comment.songName}</span>}
+                            <span> &middot; {comment.show?.venue}</span>
+                          </div>
+                        </div>
+                        {onViewShow && comment.show?.id && (
+                          <button
+                            onClick={() => onViewShow(comment.show)}
+                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-hover hover:bg-[rgba(255,255,255,0.1)] text-secondary hover:text-primary rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View Show
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {myComments.length > paginatedMyComments.length && (
+                    <button
+                      onClick={() => setMyCommentsPage(p => p + 1)}
+                      className="w-full py-3 text-sm text-secondary hover:text-primary transition-colors"
+                    >
+                      Show more ({myComments.length - paginatedMyComments.length} remaining)
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {commentsTab === 'friends' && (
+            <div className="space-y-3 mt-3">
+              {uniqueCommenters.length > 1 && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-muted">Filter by friend:</span>
+                  <select
+                    value={filterFriend}
+                    onChange={(e) => { setFilterFriend(e.target.value); setFriendCommentsPage(1); }}
+                    className="bg-hover border border-subtle rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/50"
+                  >
+                    <option value="">All friends</option>
+                    {uniqueCommenters.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {friendCommentsLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-2 border-brand/30 border-t-brand rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-muted text-sm">Loading friend comments...</p>
+                </div>
+              ) : filteredFriendComments.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-10 h-10 text-muted mx-auto mb-3" />
+                  <p className="text-muted text-sm">
+                    {filterFriend
+                      ? `No comments from ${filterFriend} yet.`
+                      : "No friend comments yet. Share shows with friends to see their thoughts!"}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {paginatedFriendComments.map((comment) => (
+                    <div key={comment.id} className="bg-surface border border-subtle rounded-xl p-4 hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
+                            <span className="px-2 py-0.5 rounded-full bg-brand/20 text-brand">
+                              {comment.authorName || 'Friend'}
+                            </span>
+                            <span>{formatTimestamp(comment.createdAt)}</span>
+                          </div>
+                          <p className="text-primary text-sm leading-relaxed">{comment.text}</p>
+                          {comment.showData && (
+                            <div className="mt-2 text-xs text-secondary">
+                              <span className="font-medium text-primary">{comment.showData.artist}</span>
+                              <span> &middot; {comment.showData.venue}</span>
+                              {comment.showData.date && <span> &middot; {formatShowDate(comment.showData.date)}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredFriendComments.length > paginatedFriendComments.length && (
+                    <button
+                      onClick={() => setFriendCommentsPage(p => p + 1)}
+                      className="w-full py-3 text-sm text-secondary hover:text-primary transition-colors"
+                    >
+                      Show more ({filteredFriendComments.length - paginatedFriendComments.length} remaining)
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Notification Settings */}
       <NotificationSettings userId={user?.uid} />
@@ -417,7 +658,7 @@ function StatCard({ icon, label, value, subtext, color }) {
   };
 
   return (
-    <div className="bg-hover border border-subtle rounded-2xl p-4">
+    <div className="bg-hover border border-subtle rounded-2xl p-4 hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] hover:scale-[1.02] transition-all duration-200 cursor-default">
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center mb-3`}>
         <span className="text-primary">{icon}</span>
       </div>

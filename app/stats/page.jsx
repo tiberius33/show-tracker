@@ -8,7 +8,7 @@ export default function StatsPage() {
     shows, getSongStats, getArtistStats, getVenueStats, getTopRatedShows,
     updateSongRating, updateSongComment, addSongToShow, deleteSong,
     updateShowRating, updateShowComment, batchRateUnrated,
-    user, guestMode, setVenueRatingShow, statsTab,
+    user, guestMode, setTagFriendsShow, setVenueRatingShow, statsTab,
     getVenueRatings, normalizeVenueKey, computeVenueAggregate,
   } = useApp();
 
@@ -27,6 +27,7 @@ export default function StatsPage() {
       onCommentShow={updateShowComment}
       onBatchRate={batchRateUnrated}
       initialTab={statsTab}
+      onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
       onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
       fetchVenueRatings={getVenueRatings}
       normalizeVenueKey={normalizeVenueKey}

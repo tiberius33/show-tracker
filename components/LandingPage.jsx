@@ -53,7 +53,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
       {/* ── Navigation Bar ─────────────────────────────────────── */}
       <nav className="sticky top-0 z-30 bg-black/30 backdrop-blur-xl border-b border-[rgba(255,255,255,0.08)]">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <img src="/logo.svg" alt="MySetlists" className="h-10 w-auto" />
+          <img src="/logo.svg" alt="MySetlists" className="h-16 w-auto" />
           <div className="flex items-center gap-3">
             <button
               onClick={onSignIn}

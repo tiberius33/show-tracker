@@ -6,6 +6,21 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.12.0',
+      date: 'March 25, 2026',
+      title: 'Profile Comments & UI Polish',
+      changes: [
+        'New: Comments section on Profile page with "My Comments" and "Friends\' Comments" tabs',
+        'View all your show notes and song notes in one place, sorted by date',
+        'See comments friends left on your shared shows, with filter by friend',
+        'Click "View Show" from any comment to jump directly to that show\'s setlist',
+        'Fixed: Tag Friend and Rate Venue options now appear in Stats page show modal (previously missing)',
+        'Added hover effects to all Profile stat cards for better interactivity',
+        'Increased logo size across the app for better visibility',
+        'Pagination for comments (20 at a time) for smooth scrolling with many notes',
+      ]
+    },
+    {
       version: '3.11.0',
       date: 'March 25, 2026',
       title: 'Duplicate Prevention, What\'s New Refresh & UI Polish',
