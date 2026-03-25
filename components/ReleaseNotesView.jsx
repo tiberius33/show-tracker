@@ -6,6 +6,21 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.13.0',
+      date: 'March 25, 2026',
+      title: 'Favorite Artists & Tour Information',
+      changes: [
+        'New: Favorite artists — heart any artist from Stats, Shows, or show detail modal',
+        'New: Favorite Artists section on Profile page showing your favorited artists with show counts and last seen date',
+        'New: Tour Information modal — view current tours, recent tours, and all-time stats for favorited artists via setlist.fm',
+        'New: Netlify functions for fetching artist info and tour data from setlist.fm API',
+        'Tour data is cached for 24 hours in localStorage to avoid excessive API calls',
+        'Heart button appears in Stats artist rows and in the show detail modal header',
+        'MusicBrainz IDs are automatically fetched and stored when you favorite an artist',
+        'Tour Info modal shows setlist.fm tour groupings with venue listings, date ranges, and avg songs per show',
+      ]
+    },
+    {
       version: '3.12.0',
       date: 'March 25, 2026',
       title: 'Profile Comments & UI Polish',

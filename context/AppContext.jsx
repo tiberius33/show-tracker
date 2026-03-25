@@ -329,6 +329,9 @@ export function AppProvider({ children }) {
   const [sharedComments, setSharedComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
 
+  // Favorite artists
+  const [favoriteArtists, setFavoriteArtists] = useState([]);
+
   // Friend annotations for the currently selected show (main view)
   const [friendAnnotationsForShow, setFriendAnnotationsForShow] = useState(null);
 
@@ -483,6 +486,16 @@ export function AppProvider({ children }) {
       console.log('Notifications listener error:', error.message);
     });
 
+    // Favorite artists
+    const favRef = doc(db, 'userProfiles', user.uid);
+    const unsubFavorites = onSnapshot(favRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setFavoriteArtists(docSnap.data().favoriteArtists || []);
+      }
+    }, (error) => {
+      console.log('Favorites listener error:', error.message);
+    });
+
     return () => {
       unsubIncoming();
       unsubSent();
@@ -491,6 +504,7 @@ export function AppProvider({ children }) {
       unsubInvites();
       unsubSentEmailTags();
       unsubNotifications();
+      unsubFavorites();
     };
   }, [user, guestMode, loadFriends]);
 
@@ -2094,6 +2108,43 @@ export function AppProvider({ children }) {
       .sort((a, b) => b.count - a.count);
   };
 
+  // ── Favorite Artists ──────────────────────────────────────────────
+  const toggleFavoriteArtist = async (artistName) => {
+    if (!user?.uid || !artistName) return;
+    const profileRef = doc(db, 'userProfiles', user.uid);
+    const isFav = favoriteArtists.some(a => a.name === artistName);
+    try {
+      if (isFav) {
+        // Remove
+        const updated = favoriteArtists.filter(a => a.name !== artistName);
+        setFavoriteArtists(updated);
+        await updateDoc(profileRef, { favoriteArtists: updated });
+      } else {
+        // Add — fetch mbid from setlist.fm
+        let mbid = null;
+        try {
+          const res = await fetch(`${apiUrl('/.netlify/functions/get-artist-info')}?artistName=${encodeURIComponent(artistName)}`);
+          if (res.ok) {
+            const data = await res.json();
+            mbid = data.mbid || null;
+          }
+        } catch (e) {
+          console.log('Could not fetch mbid for', artistName, e);
+        }
+        const newFav = { name: artistName, mbid, addedAt: new Date().toISOString() };
+        const updated = [...favoriteArtists, newFav];
+        setFavoriteArtists(updated);
+        await updateDoc(profileRef, { favoriteArtists: updated });
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite artist:', err);
+    }
+  };
+
+  const isArtistFavorite = (artistName) => {
+    return favoriteArtists.some(a => a.name === artistName);
+  };
+
   const getVenueStats = () => {
     const venueMap = {};
     shows.forEach(show => {
@@ -2443,6 +2494,11 @@ export function AppProvider({ children }) {
     toast,
     setToast,
 
+
+    // Favorite artists
+    favoriteArtists,
+    toggleFavoriteArtist,
+    isArtistFavorite,
 
     // Venue rating
     venueRatingShow,

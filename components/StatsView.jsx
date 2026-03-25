@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare } from 'lucide-react';
+import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare, Heart } from 'lucide-react';
 import { formatDate, parseDate, artistColor, avgSongRating } from '@/lib/utils';
 import SongStatsRow from '@/components/SongStatsRow';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onTagFriends, onRateVenue, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -262,11 +262,20 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
                         <span className="font-medium group-hover:text-brand transition-colors" style={{ color: artistColor(artist.name) }}>{artist.name}</span>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        {onToggleFavoriteArtist && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onToggleFavoriteArtist(artist.name); }}
+                            className="p-1.5 rounded-lg hover:bg-hover transition-colors"
+                            title={isArtistFavorite?.(artist.name) ? 'Remove from favorites' : 'Add to favorites'}
+                          >
+                            <Heart className={`w-4 h-4 transition-colors ${isArtistFavorite?.(artist.name) ? 'text-red-500 fill-red-500' : 'text-muted hover:text-red-400'}`} />
+                          </button>
+                        )}
                         <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
                           {artist.count} show{artist.count !== 1 ? 's' : ''}
                         </span>
-                        <span className="text-muted text-sm">{artist.totalSongs} songs</span>
+                        <span className="text-muted text-sm hidden sm:inline">{artist.totalSongs} songs</span>
                         {artist.avgRating ? (
                           <div className="flex items-center gap-1 text-secondary text-sm">
                             <Star className="w-3.5 h-3.5 text-brand" />
@@ -659,6 +668,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           onCreatePlaylist={(show) => setPlaylistShow(show)}
           onTagFriends={onTagFriends}
           onRateVenue={onRateVenue}
+          onToggleFavoriteArtist={onToggleFavoriteArtist}
+          isArtistFavorite={isArtistFavorite}
         />
       )}
 
