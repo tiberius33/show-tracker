@@ -407,7 +407,10 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               <Heart className="w-5 h-5 text-red-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-primary">Favorite Artists</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-primary">Favorite Artists</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-subtle text-amber border border-amber/20">Beta</span>
+              </div>
               <p className="text-xs text-muted">Tap the heart on any artist to add them here</p>
             </div>
           </div>
