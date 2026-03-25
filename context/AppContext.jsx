@@ -321,6 +321,8 @@ export function AppProvider({ children }) {
   // Pending Invites
   const [pendingInvites, setPendingInvites] = useState([]);
   const [inviteStats, setInviteStats] = useState(null);
+  // Pending email tags sent by this user (to non-members)
+  const [sentPendingEmailTags, setSentPendingEmailTags] = useState([]);
 
   // Shared Memories
   const [memoriesShow, setMemoriesShow] = useState(null);
@@ -457,6 +459,18 @@ export function AppProvider({ children }) {
       console.log('Pending invites listener error:', error.message);
     });
 
+    // Pending email tags this user has sent (to non-members)
+    const qSentEmailTags = query(
+      collection(db, 'pendingEmailTags'),
+      where('fromUid', '==', user.uid),
+      where('status', '==', 'pending')
+    );
+    const unsubSentEmailTags = onSnapshot(qSentEmailTags, (snapshot) => {
+      setSentPendingEmailTags(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.log('Sent pending email tags listener error:', error.message);
+    });
+
     // In-app notifications
     const qNotifications = query(
       collection(db, 'notifications'),
@@ -475,6 +489,7 @@ export function AppProvider({ children }) {
       unsubTags();
       unsubSuggestions();
       unsubInvites();
+      unsubSentEmailTags();
       unsubNotifications();
     };
   }, [user, guestMode, loadFriends]);
@@ -2356,6 +2371,7 @@ export function AppProvider({ children }) {
 
     // Pending invites
     pendingInvites,
+    sentPendingEmailTags,
     inviteStats,
     sendInvite,
     resendInvite,

@@ -12,7 +12,7 @@ export default function FriendsPage() {
     acceptShowTag, declineShowTag,
     friendsInitialTab, getShowsTogether,
     showSuggestions, respondToSuggestion,
-    pendingInvites, inviteStats, resendInvite, cancelInvite,
+    pendingInvites, sentPendingEmailTags, inviteStats, resendInvite, cancelInvite,
     bulkAcceptAll, bulkAcceptFromFriend,
     addSongToShow, updateSongRating, updateSongComment, deleteSong,
     updateShowRating, updateShowComment, batchRateUnrated,
@@ -43,6 +43,7 @@ export default function FriendsPage() {
       showSuggestions={showSuggestions}
       respondToSuggestion={respondToSuggestion}
       pendingInvites={pendingInvites}
+      sentPendingEmailTags={sentPendingEmailTags}
       inviteStats={inviteStats}
       onResendInvite={resendInvite}
       onCancelInvite={cancelInvite}

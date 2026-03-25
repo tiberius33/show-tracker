@@ -11,7 +11,7 @@ function FriendsView({
   onSendFriendRequestByEmail, onSendFriendRequest, onAcceptFriendRequest,
   onDeclineFriendRequest, onRemoveFriend, onAcceptShowTag, onDeclineShowTag,
   initialTab, getShowsTogether, showSuggestions, respondToSuggestion,
-  pendingInvites, inviteStats, onResendInvite, onCancelInvite,
+  pendingInvites, sentPendingEmailTags, inviteStats, onResendInvite, onCancelInvite,
   onBulkAcceptAll, onBulkAcceptFromFriend,
   // Show interaction handlers for ShowsTogetherView
   onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate,
@@ -147,7 +147,7 @@ function FriendsView({
           { id: 'friends', label: `My Friends (${friends.length})`, badge: 0 },
           { id: 'requests', label: 'Requests', badge: requestCount },
           { id: 'find', label: 'Find Friends', badge: 0 },
-          { id: 'invites', label: 'Invites', badge: inviteList.length },
+          { id: 'invites', label: 'Invites', badge: inviteList.length + (sentPendingEmailTags || []).length },
         ].map(tab => (
           <button
             key={tab.id}
@@ -578,6 +578,55 @@ function FriendsView({
                     </div>
                   );
                 })}
+            </div>
+          )}
+
+          {/* Pending Email Tags (shows tagged to non-members) */}
+          {(sentPendingEmailTags || []).length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-3">
+                <Tag className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                Tagged Shows — Waiting to Join
+              </h3>
+              <div className="space-y-3">
+                {Object.entries(
+                  (sentPendingEmailTags || []).reduce((acc, tag) => {
+                    const email = tag.toEmail || 'unknown';
+                    if (!acc[email]) acc[email] = { name: tag.toName || email, tags: [] };
+                    acc[email].tags.push(tag);
+                    return acc;
+                  }, {})
+                ).map(([email, { name, tags }]) => (
+                  <div key={email} className="bg-hover rounded-2xl p-4 border border-subtle">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="min-w-0">
+                        <div className="font-medium text-primary truncate">{name}</div>
+                        <div className="text-xs text-muted">{email}</div>
+                      </div>
+                      <span className="flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                        Awaiting Signup
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 mt-3">
+                      {tags.map(tag => (
+                        <div key={tag.id} className="flex items-center gap-2 text-sm text-secondary">
+                          <Music className="w-3.5 h-3.5 text-muted flex-shrink-0" />
+                          <span className="truncate">
+                            {tag.showData?.artist}
+                            {tag.showData?.venue && <span className="text-muted"> — {tag.showData.venue}</span>}
+                          </span>
+                          {tag.showData?.date && (
+                            <span className="text-xs text-muted flex-shrink-0">{formatDate(tag.showData.date)}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted mt-2">
+                      {tags.length} show{tags.length !== 1 ? 's' : ''} tagged — invitation sent
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
