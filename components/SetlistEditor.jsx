@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic } from 'lucide-react';
+import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic, Heart } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import RatingSelect from '@/components/ui/RatingSelect';
@@ -9,7 +9,7 @@ import Tip from '@/components/ui/Tip';
 import UpcomingShows from '@/components/UpcomingShows';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 
-function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -114,6 +114,16 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {onToggleFavoriteArtist && (
+              <Tip text={isArtistFavorite?.(show.artist) ? 'Remove from favorites' : 'Favorite this artist'} position="bottom">
+                <button
+                  onClick={() => onToggleFavoriteArtist(show.artist)}
+                  className="p-3 rounded-xl text-secondary hover:text-red-400 hover:bg-hover active:bg-hover transition-colors"
+                >
+                  <Heart className={`w-6 h-6 ${isArtistFavorite?.(show.artist) ? 'text-red-500 fill-red-500' : ''}`} />
+                </button>
+              </Tip>
+            )}
             {onRateVenue && show.venue && (
               <Tip text="Rate this venue" position="bottom">
                 <button

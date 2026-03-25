@@ -39,6 +39,7 @@ export default function ShowsPage() {
     memoriesShow, sharedComments, commentsLoading,
     openMemories, addSharedComment, editSharedComment, deleteSharedComment,
     pendingTagsForReview, acceptPendingEmailTag, declinePendingEmailTag,
+    toggleFavoriteArtist, isArtistFavorite,
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
@@ -469,6 +470,8 @@ export default function ShowsPage() {
                 onCreatePlaylist={(show) => setPlaylistShow(show)}
                 onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
                 onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
+                onToggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
+                isArtistFavorite={isArtistFavorite}
                 confirmedSuggestion={confirmedSuggestion || null}
                 sharedComments={memoriesShow?.suggestion?.id === confirmedSuggestion?.id ? sharedComments : []}
                 commentsLoading={commentsLoading}

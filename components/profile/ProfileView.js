@@ -1,13 +1,15 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Users, Eye } from 'lucide-react';
+import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Users, Eye, Heart, Info } from 'lucide-react';
 import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { apiUrl } from '@/lib/api';
+import { artistColor } from '@/lib/utils';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
+import TourInfoModal from '@/components/TourInfoModal';
 
-export default function ProfileView({ user, shows, userRank, onProfileUpdate, onViewShow, confirmedSuggestions = [], friends = [] }) {
+export default function ProfileView({ user, shows, userRank, onProfileUpdate, onViewShow, confirmedSuggestions = [], friends = [], favoriteArtists = [], onToggleFavoriteArtist }) {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [photoURL, setPhotoURL] = useState('');
@@ -33,6 +35,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
   const [myCommentsPage, setMyCommentsPage] = useState(1);
   const [friendCommentsPage, setFriendCommentsPage] = useState(1);
   const [filterFriend, setFilterFriend] = useState('');
+  const [tourInfoArtist, setTourInfoArtist] = useState(null);
   const COMMENTS_PER_PAGE = 20;
 
   useEffect(() => {
@@ -258,6 +261,20 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
     return new Date(ts.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Compute stats per favorite artist
+  const favoriteArtistStats = useMemo(() => {
+    return favoriteArtists.map(fav => {
+      const artistShows = shows.filter(s => s.artist === fav.name);
+      const lastShow = artistShows.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+      return {
+        ...fav,
+        showCount: artistShows.length,
+        lastSeen: lastShow?.date || null,
+        lastVenue: lastShow?.venue || null,
+      };
+    });
+  }, [favoriteArtists, shows]);
+
   const paginatedMyComments = myComments.slice(0, myCommentsPage * COMMENTS_PER_PAGE);
   const paginatedFriendComments = filteredFriendComments.slice(0, friendCommentsPage * COMMENTS_PER_PAGE);
 
@@ -381,6 +398,68 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           </div>
         </div>
       )}
+
+      {/* Favorite Artists */}
+      <div className="bg-hover border border-subtle rounded-2xl overflow-hidden">
+        <div className="px-6 pt-5 pb-3">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/30 to-red-500/10 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-red-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-primary">Favorite Artists</h3>
+              <p className="text-xs text-muted">Tap the heart on any artist to add them here</p>
+            </div>
+          </div>
+        </div>
+        <div className="px-6 pb-5">
+          {favoriteArtistStats.length === 0 ? (
+            <div className="text-center py-6">
+              <Heart className="w-10 h-10 text-muted mx-auto mb-3" />
+              <p className="text-muted text-sm">No favorite artists yet.</p>
+              <p className="text-muted text-xs mt-1">Heart an artist in Stats or any show modal to add them.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {favoriteArtistStats.map(artist => (
+                <div key={artist.name} className="flex items-center justify-between bg-surface border border-subtle rounded-xl px-4 py-3 hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
+                    <div className="min-w-0">
+                      <span className="font-medium text-primary text-sm">{artist.name}</span>
+                      <div className="flex items-center gap-3 text-xs text-muted mt-0.5">
+                        <span>{artist.showCount} show{artist.showCount !== 1 ? 's' : ''}</span>
+                        {artist.lastSeen && <span>Last: {formatShowDate(artist.lastSeen)}</span>}
+                        {artist.lastVenue && <span className="truncate hidden sm:inline">{artist.lastVenue}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {artist.mbid && (
+                      <button
+                        onClick={() => setTourInfoArtist(artist)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-hover hover:bg-[rgba(255,255,255,0.1)] text-secondary hover:text-primary rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                        Tour Info
+                      </button>
+                    )}
+                    {onToggleFavoriteArtist && (
+                      <button
+                        onClick={() => onToggleFavoriteArtist(artist.name)}
+                        className="p-1.5 rounded-lg hover:bg-hover transition-colors"
+                        title="Remove from favorites"
+                      >
+                        <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Comments Section */}
       <div className="bg-hover border border-subtle rounded-2xl overflow-hidden">
@@ -643,6 +722,15 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tour Info Modal */}
+      {tourInfoArtist && (
+        <TourInfoModal
+          artistName={tourInfoArtist.name}
+          mbid={tourInfoArtist.mbid}
+          onClose={() => setTourInfoArtist(null)}
+        />
       )}
     </div>
   );

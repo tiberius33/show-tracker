@@ -10,6 +10,7 @@ export default function StatsPage() {
     updateShowRating, updateShowComment, batchRateUnrated,
     user, guestMode, setTagFriendsShow, setVenueRatingShow, statsTab,
     getVenueRatings, normalizeVenueKey, computeVenueAggregate,
+    toggleFavoriteArtist, isArtistFavorite,
   } = useApp();
 
   return (
@@ -29,6 +30,8 @@ export default function StatsPage() {
       initialTab={statsTab}
       onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
       onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
+      onToggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
+      isArtistFavorite={isArtistFavorite}
       fetchVenueRatings={getVenueRatings}
       normalizeVenueKey={normalizeVenueKey}
       computeVenueAggregate={computeVenueAggregate}
