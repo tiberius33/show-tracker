@@ -462,7 +462,7 @@ function Sidebar({ activeView, setActiveView, isAdmin, onLogout, userName, isOpe
         <div className="px-5 py-4 border-b border-[rgba(255,255,255,0.08)]">
           <div className="flex items-center justify-between">
             <div>
-              <img src="/logo.svg" alt="MySetlists" className="h-10 w-auto" />
+              <img src="/logo.svg" alt="MySetlists" className="h-16 w-auto" />
               <p className="text-[11px] text-on-dark-muted mt-1 tracking-wide">Your Show History</p>
             </div>
             {/* Mobile close button */}
@@ -615,7 +615,7 @@ function MobileHeader({ onMenuClick }) {
         >
           <Menu className="w-6 h-6 text-primary" />
         </button>
-        <img src="/logo.svg" alt="MySetlists" className="h-8 w-auto" />
+        <img src="/logo.svg" alt="MySetlists" className="h-14 w-auto" />
         <div className="w-10" /> {/* Spacer for centering */}
       </div>
     </div>
@@ -2425,6 +2425,21 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
 // Release Notes View Component
 function ReleaseNotesView() {
   const releases = [
+    {
+      version: '3.8.0',
+      date: 'March 25, 2026',
+      title: 'Profile Comments & UI Polish',
+      changes: [
+        'New: Comments section on Profile page with "My Comments" and "Friends\' Comments" tabs',
+        'View all your show notes and song notes in one place, sorted by date',
+        'See comments friends left on your shared shows, with filter by friend',
+        'Click "View Show" from any comment to jump directly to that show\'s setlist',
+        'Fixed: Tag Friend and Rate Venue options now appear in Stats page show modal (previously missing)',
+        'Added hover effects to all Profile stat cards for better interactivity',
+        'Increased logo size across the app for better visibility',
+        'Pagination for comments (20 at a time) for smooth scrolling with many notes',
+      ]
+    },
     {
       version: '3.7.1',
       date: 'March 23, 2026',
@@ -7035,7 +7050,7 @@ export default function ShowTracker() {
         <div className="bg-surface border-b border-subtle">
           <div className="max-w-6xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <img src="/logo.svg" alt="MySetlists" className="h-11 w-auto" />
+              <img src="/logo.svg" alt="MySetlists" className="h-16 w-auto" />
               <button
                 onClick={() => openAuthModal('login')}
                 className="flex items-center gap-2 px-5 py-2.5 bg-surface hover:bg-hover border border-active text-primary rounded-full font-medium transition-all"
@@ -7802,6 +7817,7 @@ export default function ShowTracker() {
             onCommentShow={updateShowComment}
             onBatchRate={batchRateUnrated}
             initialTab={statsTab}
+            onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
             onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
             fetchVenueRatings={getVenueRatings}
             normalizeVenueKey={normalizeVenueKey}
@@ -7915,6 +7931,9 @@ export default function ShowTracker() {
             onProfileUpdate={() => {
               // Refresh user data if needed
             }}
+            onViewShow={(show) => { setSelectedShow(show); navigateTo('shows'); }}
+            confirmedSuggestions={myConfirmedSuggestions}
+            friends={friends}
           />
         )}
 
@@ -9240,7 +9259,7 @@ function SongStatsRow({ song, index, onRateSong }) {
   );
 }
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onRateVenue, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onTagFriends, onRateVenue, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -9888,6 +9907,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           onCommentShow={(comment) => onCommentShow(selectedShow.id, comment)}
           onBatchRate={(rating) => onBatchRate(selectedShow.id, rating)}
           onClose={() => setSelectedShow(null)}
+          onTagFriends={onTagFriends}
+          onRateVenue={onRateVenue}
         />
       )}
     </div>
@@ -12481,7 +12502,7 @@ export function PublicRoadmapPage() {
       <header className="border-b border-subtle bg-base/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <a href="/" className="flex-shrink-0">
-            <img src="/logo.svg" alt="MySetlists" className="h-8 w-auto" />
+            <img src="/logo.svg" alt="MySetlists" className="h-14 w-auto" />
           </a>
           <div className="flex items-center gap-3">
             {currentUser ? (
