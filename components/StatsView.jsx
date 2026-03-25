@@ -7,7 +7,7 @@ import SongStatsRow from '@/components/SongStatsRow';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onRateVenue, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onTagFriends, onRateVenue, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -657,6 +657,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           onBatchRate={(rating) => onBatchRate(selectedShow.id, rating)}
           onClose={() => setSelectedShow(null)}
           onCreatePlaylist={(show) => setPlaylistShow(show)}
+          onTagFriends={onTagFriends}
+          onRateVenue={onRateVenue}
         />
       )}
 

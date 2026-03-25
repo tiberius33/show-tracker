@@ -67,7 +67,7 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
         <div className="px-5 py-4 border-b border-[rgba(255,255,255,0.08)]">
           <div className="flex items-center justify-between">
             <div>
-              <img src="/logo.svg" alt="MySetlists" className="h-9 w-auto" />
+              <img src="/logo.svg" alt="MySetlists" className="h-16 w-auto" />
               <p className="text-[11px] text-on-dark-muted mt-1 tracking-wide">Your Show History</p>
             </div>
             {/* Mobile close button */}

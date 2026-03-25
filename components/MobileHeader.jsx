@@ -13,7 +13,7 @@ function MobileHeader({ onMenuClick }) {
         >
           <Menu className="w-6 h-6 text-primary" />
         </button>
-        <img src="/logo.svg" alt="MySetlists" className="h-8 w-auto" />
+        <img src="/logo.svg" alt="MySetlists" className="h-14 w-auto" />
         <div className="w-10" /> {/* Spacer for centering */}
       </div>
     </div>
