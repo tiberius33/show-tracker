@@ -6,6 +6,25 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.10.1',
+      date: 'March 24, 2026',
+      title: 'Bulk Tagging, Email Improvements & Post-Accept Navigation',
+      changes: [
+        'New: Bulk friend tagging — select multiple shows and tag friends in all of them at once',
+        'New: Consolidated email notifications — bulk tagging sends one email per friend listing all shows, not one email per show',
+        'New: Deep linking from email notifications — clicking "View Shows" in tag emails takes you directly to Friends > Requests',
+        'New: After accepting tagged shows, you are automatically navigated to the Shows page with a confirmation toast',
+        'New: Pending email tags now visible in Friends > Invites — see which non-members you\'ve tagged and what shows they\'re waiting to accept',
+        'Redesigned email templates — light background, updated branding with green/amber accents, and improved readability',
+        'Updated tag email wording — "tagged you in a show you attended together" replaces uncertain "thinks you were at this show"',
+        'Fixed: Tag notification emails now work correctly (resolved Firestore permission and base64url encoding errors)',
+        'Fixed: Tooltips in show detail modal no longer cut off by container overflow',
+        'Fixed: Application crash caused by missing Sparkles and Upload icon imports',
+        'Fixed: Post-signup crash for invited users resolved',
+        'Fixed: Profile page now accessible from the sidebar navigation',
+      ]
+    },
+    {
       version: '3.9.0',
       date: 'March 24, 2026',
       title: 'Account Management, Email Control & iOS Sign-In Fix',
