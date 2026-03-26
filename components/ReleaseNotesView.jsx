@@ -6,6 +6,22 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.18.0',
+      date: 'March 26, 2026',
+      title: 'Find Missing Setlists — All-Users Admin Tool',
+      changes: [
+        'Fixed: Admin > Tools > Find Missing Setlists now scans ALL users, not just the admin\'s own shows',
+        'New: Cross-reference matching — if User A has a setlist for a show, User B\'s matching show (same artist + date) is auto-populated',
+        'New: Setlist.fm fallback — shows with no cross-reference match are searched on setlist.fm with fuzzy artist name matching',
+        'New: Populate individual setlists or bulk-populate all matched results with one click',
+        'New: Filter results by match status (All / Matched / No Match) to quickly find actionable items',
+        'New: Stats dashboard showing users scanned, missing setlists, cross-ref matches, and setlist.fm matches',
+        'New: admin-find-missing-setlists Netlify function with full Firebase Admin scanning and rate-limited setlist.fm integration',
+        'New: admin-populate-setlist Netlify function for populating individual shows with safety checks (won\'t overwrite user-created setlists)',
+        'Preserves "Scan My Shows Only" button for quick personal scanning alongside the new all-users tool',
+      ]
+    },
+    {
       version: '3.17.0',
       date: 'March 26, 2026',
       title: 'One-Time Popup System',
