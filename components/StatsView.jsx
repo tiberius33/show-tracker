@@ -657,6 +657,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
       {selectedShow && (
         <SetlistEditor
           show={selectedShow}
+          allShows={shows}
           onAddSong={(song) => onAddSong(selectedShow.id, song)}
           onRateSong={(songId, rating) => onRateSong(selectedShow.id, songId, rating)}
           onCommentSong={(songId, comment) => onCommentSong(selectedShow.id, songId, comment)}

@@ -16,7 +16,8 @@ function FriendsView({
   // Show interaction handlers for ShowsTogetherView
   onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate,
   onTagFriends, onRateVenue, confirmedSuggestions, normalizeShowKey,
-  sharedComments, commentsLoading, memoriesShow, onOpenMemories, onAddComment, onEditComment, onDeleteComment
+  sharedComments, commentsLoading, memoriesShow, onOpenMemories, onAddComment, onEditComment, onDeleteComment,
+  allShows
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'friends');
   const [searchEmail, setSearchEmail] = useState('');
@@ -132,6 +133,7 @@ function FriendsView({
         onAddComment={onAddComment}
         onEditComment={onEditComment}
         onDeleteComment={onDeleteComment}
+        allShows={allShows}
       />
     );
   }
