@@ -33,6 +33,11 @@ function AdminView() {
   const [populatingIds, setPopulatingIds] = useState(new Set());
   const [populatedIds, setPopulatedIds] = useState(new Set());
   const [bulkPopulating, setBulkPopulating] = useState(false);
+  // ── Per-user missing setlists scan ──────────────────────────────
+  const [userScanLoading, setUserScanLoading] = useState(false);
+  const [userScanResults, setUserScanResults] = useState(null);
+  const [userPopulatingIds, setUserPopulatingIds] = useState(new Set());
+  const [userPopulatedIds, setUserPopulatedIds] = useState(new Set());
   const [selectedUser, setSelectedUser] = useState(null);
   const [userShows, setUserShows] = useState([]);
   const [loadingShows, setLoadingShows] = useState(false);
@@ -214,6 +219,8 @@ function AdminView() {
     setEmailSubject('');
     setEmailBody('');
     setEmailStatus(null);
+    setUserScanResults(null);
+    setUserPopulatedIds(new Set());
   };
 
   const handleSendEmail = async () => {
@@ -1076,6 +1083,142 @@ function AdminView() {
                 <div className="text-xs font-medium text-secondary mt-1">{stat.label}</div>
               </div>
             ))}
+          </div>
+
+          {/* Find Missing Setlists for this user */}
+          <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div>
+                <h3 className="text-sm font-semibold text-primary">Find Missing Setlists</h3>
+                <p className="text-xs text-muted">Scan this user&apos;s shows and fetch setlists from Setlist.fm</p>
+              </div>
+              <button
+                onClick={async () => {
+                  setUserScanLoading(true);
+                  setUserScanResults(null);
+                  setUserPopulatedIds(new Set());
+                  try {
+                    const token = await auth.currentUser.getIdToken();
+                    const res = await fetch(apiUrl('/.netlify/functions/admin-find-missing-setlists'), {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: selectedUser.id, autoPopulate: false }),
+                    });
+                    const data = await res.json();
+                    setUserScanResults(data);
+                  } catch (e) {
+                    setUserScanResults({ error: e.message });
+                  }
+                  setUserScanLoading(false);
+                }}
+                disabled={userScanLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl text-sm font-medium transition-all shadow-sm disabled:opacity-50 whitespace-nowrap"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${userScanLoading ? 'animate-spin' : ''}`} />
+                {userScanLoading ? 'Scanning...' : 'Scan Setlists'}
+              </button>
+            </div>
+
+            {/* Loading */}
+            {userScanLoading && (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-secondary">Searching Setlist.fm...</span>
+              </div>
+            )}
+
+            {/* Error */}
+            {userScanResults?.error && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <p className="text-red-400 text-xs"><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{userScanResults.error}</p>
+              </div>
+            )}
+
+            {/* Results */}
+            {userScanResults?.success && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center gap-4 text-xs">
+                  <span className="text-secondary">{userScanResults.totalShowsScanned} shows scanned</span>
+                  <span className="text-amber font-medium">{userScanResults.showsMissingSetlists} missing</span>
+                  <span className="text-brand font-medium">{userScanResults.matchesFoundFromSetlistFm} found</span>
+                </div>
+
+                {userScanResults.results?.filter(r => r.matchSource !== 'none').length > 0 && (
+                  <>
+                    <button
+                      onClick={async () => {
+                        const matches = userScanResults.results.filter(
+                          r => r.matchSource !== 'none' && !userPopulatedIds.has(r.showId) && r.songCount > 0
+                        );
+                        if (!matches.length || !confirm(`Populate ${matches.length} setlist${matches.length !== 1 ? 's' : ''}?`)) return;
+                        const token = await auth.currentUser.getIdToken();
+                        let count = 0;
+                        for (const r of matches) {
+                          try {
+                            const res = await fetch(apiUrl('/.netlify/functions/admin-populate-setlist'), {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ userId: r.userId, showId: r.showId, source: 'setlist_fm', artist: r.artist, date: r.date }),
+                            });
+                            if (res.ok) { setUserPopulatedIds(prev => new Set([...prev, r.showId])); count++; }
+                          } catch {}
+                          await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                        alert(`Populated ${count} setlist${count !== 1 ? 's' : ''}.`);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-subtle hover:bg-brand/20 text-brand border border-brand/30 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Populate All ({userScanResults.results.filter(r => r.matchSource !== 'none' && !userPopulatedIds.has(r.showId)).length})
+                    </button>
+
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                      {userScanResults.results.filter(r => r.matchSource !== 'none').map(r => (
+                        <div key={r.showId} className="flex items-center gap-3 p-2 bg-base rounded-lg border border-subtle/50 text-xs">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-primary font-medium">{r.artist}</span>
+                            <span className="text-muted"> · {r.venue} · {r.date}</span>
+                          </div>
+                          <span className="text-muted">{r.songCount} songs</span>
+                          {userPopulatedIds.has(r.showId) ? (
+                            <span className="text-brand font-medium flex items-center gap-1"><Check className="w-3 h-3" />Done</span>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                setUserPopulatingIds(prev => new Set([...prev, r.showId]));
+                                try {
+                                  const token = await auth.currentUser.getIdToken();
+                                  const res = await fetch(apiUrl('/.netlify/functions/admin-populate-setlist'), {
+                                    method: 'POST',
+                                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ userId: r.userId, showId: r.showId, source: 'setlist_fm', artist: r.artist, date: r.date }),
+                                  });
+                                  if (res.ok) setUserPopulatedIds(prev => new Set([...prev, r.showId]));
+                                  else alert((await res.json()).error || 'Failed');
+                                } catch (e) { alert(e.message); }
+                                setUserPopulatingIds(prev => { const n = new Set(prev); n.delete(r.showId); return n; });
+                              }}
+                              disabled={userPopulatingIds.has(r.showId)}
+                              className="px-2 py-1 bg-brand-subtle hover:bg-brand/20 text-brand border border-brand/30 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
+                            >
+                              {userPopulatingIds.has(r.showId) ? '...' : 'Populate'}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {userScanResults.results?.length > 0 && userScanResults.results.every(r => r.matchSource === 'none') && (
+                  <p className="text-muted text-xs">No matches found on Setlist.fm for any missing shows.</p>
+                )}
+
+                {userScanResults.showsMissingSetlists === 0 && (
+                  <p className="text-brand text-xs font-medium">All shows have setlists!</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Search + Sort controls */}
