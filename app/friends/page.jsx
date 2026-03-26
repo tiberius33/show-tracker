@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 
 export default function FriendsPage() {
   const {
-    user, guestMode, friends,
+    user, guestMode, friends, shows,
     pendingFriendRequests, sentFriendRequests, pendingShowTags,
     sendFriendRequestByEmail, sendFriendRequest,
     acceptFriendRequest, declineFriendRequest, removeFriend,
@@ -67,6 +67,7 @@ export default function FriendsPage() {
       onAddComment={addSharedComment}
       onEditComment={editSharedComment}
       onDeleteComment={deleteSharedComment}
+      allShows={shows}
     />
   );
 }

@@ -460,6 +460,7 @@ export default function ShowsPage() {
             return (
               <SetlistEditor
                 show={selectedShow}
+                allShows={shows}
                 onAddSong={(song) => addSongToShow(selectedShow.id, song)}
                 onRateSong={(songId, rating) => updateSongRating(selectedShow.id, songId, rating)}
                 onCommentSong={(songId, comment) => updateSongComment(selectedShow.id, songId, comment)}

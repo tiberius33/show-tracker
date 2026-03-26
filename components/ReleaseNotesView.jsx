@@ -6,6 +6,21 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.16.0',
+      date: 'March 26, 2026',
+      title: 'Song Play Counts & History',
+      changes: [
+        'New: Toggle play counts on setlist songs — see how many times you\'ve seen each song by this artist',
+        'New: First-time songs highlighted with an orange badge so you can spot songs you\'ve never seen before',
+        'New: Click any song name to open the Song History modal with every show where you\'ve heard that song',
+        'Song History shows date, venue, your song rating, and any notes for each performance',
+        'Stats summary at bottom: average rating, first/last heard, venues seen at, and best performance',
+        '"View Show" button in Song History lets you jump directly to that show\'s setlist',
+        'Play count toggle state persists across sessions via localStorage',
+        'Available from Shows, Stats, and Friends views',
+      ]
+    },
+    {
       version: '3.15.0',
       date: 'March 26, 2026',
       title: 'Smart Scroll to Comment & Return Navigation',

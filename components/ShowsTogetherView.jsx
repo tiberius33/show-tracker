@@ -6,7 +6,7 @@ import { formatDate, parseDate, artistColor } from '@/lib/utils';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
-function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onTagFriends, onRateVenue, currentUserUid, confirmedSuggestions, normalizeShowKey, sharedComments, commentsLoading, memoriesShow, onOpenMemories, onAddComment, onEditComment, onDeleteComment }) {
+function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onTagFriends, onRateVenue, currentUserUid, confirmedSuggestions, normalizeShowKey, sharedComments, commentsLoading, memoriesShow, onOpenMemories, onAddComment, onEditComment, onDeleteComment, allShows }) {
   const [sharedShows, setSharedShows] = useState(null); // null = loading
   const [error, setError] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
@@ -261,6 +261,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
         return (
           <SetlistEditor
             show={selectedShow}
+            allShows={allShows}
             onAddSong={(song) => onAddSong(selectedShow.id, song)}
             onRateSong={(songId, rating) => onRateSong(selectedShow.id, songId, rating)}
             onCommentSong={(songId, comment) => onCommentSong(selectedShow.id, songId, comment)}

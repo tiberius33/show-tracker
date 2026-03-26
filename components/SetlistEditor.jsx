@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic, Heart } from 'lucide-react';
+import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic, Heart, Hash } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import RatingSelect from '@/components/ui/RatingSelect';
 import Tip from '@/components/ui/Tip';
 import UpcomingShows from '@/components/UpcomingShows';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
+import SongHistoryModal from '@/components/SongHistoryModal';
 
-function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext }) {
+function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -22,7 +23,35 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const [editingMemoryId, setEditingMemoryId] = useState(null);
   const [editingMemoryText, setEditingMemoryText] = useState('');
   const [showPlaylistTip, setShowPlaylistTip] = useState(false);
+  const [showPlayCounts, setShowPlayCounts] = useState(() => {
+    return storage.get(STORAGE_KEYS.SHOW_PLAY_COUNTS) === 'true';
+  });
+  const [songHistoryTarget, setSongHistoryTarget] = useState(null);
   const scrollableRef = useRef(null);
+
+  // Pre-compute play counts for all songs in setlist
+  const songPlayCounts = useMemo(() => {
+    if (!allShows || !show.setlist?.length) return {};
+    const artistShows = allShows.filter(s => s.artist === show.artist && s.id !== show.id);
+    const counts = {};
+    show.setlist.forEach(song => {
+      const key = song.name.trim().toLowerCase();
+      let count = 1; // current show counts as 1
+      artistShows.forEach(s => {
+        if ((s.setlist || []).some(ss => ss.name.trim().toLowerCase() === key)) {
+          count++;
+        }
+      });
+      counts[song.id] = count;
+    });
+    return counts;
+  }, [allShows, show.artist, show.setlist, show.id]);
+
+  const togglePlayCounts = () => {
+    const newValue = !showPlayCounts;
+    setShowPlayCounts(newValue);
+    storage.set(STORAGE_KEYS.SHOW_PLAY_COUNTS, String(newValue));
+  };
 
   // Show playlist tooltip for users who haven't seen it yet
   useEffect(() => {
@@ -217,6 +246,16 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                 )}
               </div>
             )}
+            {allShows && show.setlist?.length > 0 && (
+              <Tip text={showPlayCounts ? 'Hide play counts' : 'Show play counts'} position="bottom">
+                <button
+                  onClick={togglePlayCounts}
+                  className={`p-3 rounded-xl transition-colors ${showPlayCounts ? 'bg-brand-subtle text-brand' : 'text-secondary hover:text-primary hover:bg-hover active:bg-hover'}`}
+                >
+                  <Hash className="w-6 h-6" />
+                </button>
+              </Tip>
+            )}
             <button onClick={onClose} className="p-3 rounded-xl text-secondary hover:text-primary hover:bg-hover active:bg-hover transition-colors">
               <X className="w-6 h-6" />
             </button>
@@ -362,11 +401,33 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-start gap-3 flex-1">
                         <span className="text-muted font-mono text-sm mt-1">{index + 1}.</span>
-                        <div className="flex-1">
-                          <span className="font-medium text-primary">{song.name}</span>
+                        <div className="flex-1 flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`font-medium text-primary ${allShows ? 'cursor-pointer hover:text-brand transition-colors' : ''}`}
+                            onClick={() => allShows && setSongHistoryTarget(song.name)}
+                          >
+                            {song.name}
+                          </span>
                           {song.cover && (
-                            <span className="text-sm text-brand ml-2">({song.cover})</span>
+                            <span className="text-sm text-brand">({song.cover})</span>
                           )}
+                          {showPlayCounts && allShows && (() => {
+                            const count = songPlayCounts[song.id] || 1;
+                            const isFirstTime = count === 1;
+                            return (
+                              <span
+                                className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer transition-colors ${
+                                  isFirstTime
+                                    ? 'bg-amber-subtle text-amber border border-amber/30'
+                                    : 'bg-hover text-muted border border-subtle'
+                                }`}
+                                onClick={() => setSongHistoryTarget(song.name)}
+                                title={isFirstTime ? 'First time seeing this!' : `Click to see song history`}
+                              >
+                                {count}x
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                       <button
@@ -580,6 +641,21 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
           </div>
         </div>
       </div>
+
+      {/* Song History Modal */}
+      {songHistoryTarget && allShows && (
+        <SongHistoryModal
+          songName={songHistoryTarget}
+          artistName={show.artist}
+          allShows={allShows}
+          onClose={() => setSongHistoryTarget(null)}
+          onViewShow={(targetShow) => {
+            setSongHistoryTarget(null);
+            // If the target show is the current show, just close the modal
+            // Otherwise, we'd need a way to navigate - for now just close
+          }}
+        />
+      )}
     </div>
   );
 }
