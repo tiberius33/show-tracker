@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic, Heart } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
@@ -9,7 +9,7 @@ import Tip from '@/components/ui/Tip';
 import UpcomingShows from '@/components/UpcomingShows';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 
-function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations }) {
+function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -22,6 +22,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
   const [editingMemoryId, setEditingMemoryId] = useState(null);
   const [editingMemoryText, setEditingMemoryText] = useState('');
   const [showPlaylistTip, setShowPlaylistTip] = useState(false);
+  const scrollableRef = useRef(null);
 
   // Show playlist tooltip for users who haven't seen it yet
   useEffect(() => {
@@ -33,6 +34,31 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
       }
     }
   }, [show.setlist, onCreatePlaylist]);
+
+  // Scroll to comment when opened from Profile > Comments
+  useEffect(() => {
+    if (!commentContext) return;
+    const timer = setTimeout(() => {
+      const container = scrollableRef.current;
+      if (!container) return;
+
+      let target = null;
+      if (commentContext.type === 'song' && commentContext.songName) {
+        // Find the song element by data attribute
+        target = container.querySelector(`[data-song-name="${CSS.escape(commentContext.songName)}"]`);
+      } else if (commentContext.type === 'show') {
+        // Scroll to show comment/notes section at the top
+        target = container.querySelector('[data-show-comment]');
+      }
+
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('highlight-comment');
+        setTimeout(() => target.classList.remove('highlight-comment'), 2500);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [commentContext]);
 
   const dismissPlaylistTip = () => {
     setShowPlaylistTip(false);
@@ -198,7 +224,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
         </div>
 
         {/* Scrollable content area with show info + setlist */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" ref={scrollableRef}>
           {/* Show details */}
           <div className="px-4 py-3 md:px-6 md:py-4 border-b border-subtle bg-surface">
             <p className="text-secondary text-sm">
@@ -212,7 +238,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
               <RatingSelect value={show.rating} onChange={onRateShow} label="Show rating:" />
             </div>
             {!editingShowComment && (
-              <div className="mt-2">
+              <div className="mt-2" data-show-comment>
                 {show.comment ? (
                   <div
                     className="text-sm text-secondary italic bg-hover p-2.5 rounded-lg border border-subtle cursor-pointer hover:bg-hover transition-colors"
@@ -332,7 +358,7 @@ function SetlistEditor({ show, onAddSong, onRateSong, onCommentSong, onDeleteSon
                       {song.setBreak}
                     </div>
                   )}
-                  <div className="group bg-hover border border-subtle rounded-2xl p-4 hover:bg-hover transition-colors">
+                  <div className="group bg-hover border border-subtle rounded-2xl p-4 hover:bg-hover transition-colors" data-song-name={song.name}>
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-start gap-3 flex-1">
                         <span className="text-muted font-mono text-sm mt-1">{index + 1}.</span>

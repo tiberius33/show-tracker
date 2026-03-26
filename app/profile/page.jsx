@@ -5,7 +5,7 @@ import ProfileView from '@/components/profile/ProfileView';
 import { useApp } from '@/context/AppContext';
 
 export default function ProfilePage() {
-  const { user, guestMode, shows, userRank, myConfirmedSuggestions, friends, setSelectedShow, favoriteArtists, toggleFavoriteArtist } = useApp();
+  const { user, guestMode, shows, userRank, myConfirmedSuggestions, friends, setSelectedShow, setCommentContext, favoriteArtists, toggleFavoriteArtist } = useApp();
   const router = useRouter();
 
   if (guestMode || !user) return null;
@@ -16,7 +16,13 @@ export default function ProfilePage() {
       shows={shows}
       userRank={userRank}
       onProfileUpdate={() => {}}
-      onViewShow={(show) => { setSelectedShow(show); router.push('/shows'); }}
+      onViewShow={(show, commentData) => {
+        setSelectedShow(show);
+        if (commentData) {
+          setCommentContext(commentData);
+        }
+        router.push('/shows');
+      }}
       confirmedSuggestions={myConfirmedSuggestions}
       friends={friends}
       favoriteArtists={favoriteArtists}

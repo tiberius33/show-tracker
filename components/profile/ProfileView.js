@@ -147,6 +147,21 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
     return () => { cancelled = true; };
   }, [commentsTab, confirmedSuggestions, user?.uid, friendCommentsLoaded]);
 
+  // Restore scroll position when returning from show modal
+  useEffect(() => {
+    try {
+      const savedY = sessionStorage.getItem('profile_scroll_y');
+      if (savedY) {
+        sessionStorage.removeItem('profile_scroll_y');
+        // Small delay to ensure DOM has rendered
+        const timer = setTimeout(() => {
+          window.scrollTo({ top: parseInt(savedY, 10), behavior: 'smooth' });
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    } catch {}
+  }, []);
+
   const uniqueCommenters = useMemo(() => {
     const names = new Set(friendComments.map(c => c.authorName).filter(Boolean));
     return [...names].sort();
@@ -535,7 +550,14 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                         </div>
                         {onViewShow && comment.show?.id && (
                           <button
-                            onClick={() => onViewShow(comment.show)}
+                            onClick={() => {
+                              // Save scroll position so we can restore on return
+                              try { sessionStorage.setItem('profile_scroll_y', String(window.scrollY)); } catch {}
+                              onViewShow(comment.show, {
+                                type: comment.type,
+                                songName: comment.songName || null,
+                              });
+                            }}
                             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-hover hover:bg-[rgba(255,255,255,0.1)] text-secondary hover:text-primary rounded-lg text-xs font-medium transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />

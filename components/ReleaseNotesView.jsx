@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.15.0',
+      date: 'March 26, 2026',
+      title: 'Smart Scroll to Comment & Return Navigation',
+      changes: [
+        'New: Clicking "View Show" from Profile > Comments now scrolls directly to the relevant song or show note in the setlist modal',
+        'New: Song and show comments are briefly highlighted with a green glow so you can spot them instantly',
+        'New: When closing the show modal, the Profile page restores your exact scroll position in the Comments section',
+        'Improved navigation flow between Profile comments and Show modal — no more losing your place',
+      ]
+    },
+    {
       version: '3.14.0',
       date: 'March 26, 2026',
       title: 'Shows & Profile UI Improvements',
