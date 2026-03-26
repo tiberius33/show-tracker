@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.14.0',
+      date: 'March 26, 2026',
+      title: 'Shows & Profile UI Improvements',
+      changes: [
+        'New: Hover effects on Shows page stat buttons (Shows, Songs, Artists, Venues, Avg Rating) with green tint and scale animation',
+        'Updated: "Select" button renamed to "Select Multiple Shows" for clarity',
+        'Removed: "Date" sort option from Shows page sort filter — shows still sort by date by default',
+        'Fixed: Friends badge now accurately shows pending invites + incoming friend requests',
+        'Removed: Hover effects on non-actionable Profile page stats and cards to reduce confusion',
+      ]
+    },
+    {
       version: '3.13.0',
       date: 'March 25, 2026',
       title: 'Favorite Artists & Tour Information',

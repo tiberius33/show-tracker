@@ -425,7 +425,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           ) : (
             <div className="space-y-2">
               {favoriteArtistStats.map(artist => (
-                <div key={artist.name} className="flex items-center justify-between bg-surface border border-subtle rounded-xl px-4 py-3 hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+                <div key={artist.name} className="flex items-center justify-between bg-surface border border-subtle rounded-xl px-4 py-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
                     <div className="min-w-0">
@@ -517,7 +517,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               ) : (
                 <>
                   {paginatedMyComments.map((comment, i) => (
-                    <div key={`${comment.show?.id}-${comment.songName || 'show'}-${i}`} className="bg-surface border border-subtle rounded-xl p-4 hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+                    <div key={`${comment.show?.id}-${comment.songName || 'show'}-${i}`} className="bg-surface border border-subtle rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
@@ -593,7 +593,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               ) : (
                 <>
                   {paginatedFriendComments.map((comment) => (
-                    <div key={comment.id} className="bg-surface border border-subtle rounded-xl p-4 hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+                    <div key={comment.id} className="bg-surface border border-subtle rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
@@ -749,7 +749,7 @@ function StatCard({ icon, label, value, subtext, color }) {
   };
 
   return (
-    <div className="bg-hover border border-subtle rounded-2xl p-4 hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] hover:scale-[1.02] transition-all duration-200 cursor-default">
+    <div className="bg-hover border border-subtle rounded-2xl p-4 cursor-default">
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center mb-3`}>
         <span className="text-primary">{icon}</span>
       </div>
