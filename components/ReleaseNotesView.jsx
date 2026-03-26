@@ -6,17 +6,27 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.19.0',
+      date: 'March 26, 2026',
+      title: 'Find Missing Setlists — Now Available to All Users',
+      changes: [
+        'New: "Find Missing Setlists" banner on the Shows page — users can now auto-fetch setlists from Setlist.fm for any shows missing them',
+        'New: Admin per-user scanning — click into any user in Admin and scan their shows individually for missing setlists',
+        'New: Per-user results with populate buttons, bulk populate, and song count preview',
+        'Scan results clear automatically when navigating between users',
+      ]
+    },
+    {
       version: '3.18.0',
       date: 'March 26, 2026',
       title: 'Find Missing Setlists — All-Users Admin Tool',
       changes: [
         'Fixed: Admin > Tools > Find Missing Setlists now scans ALL users, not just the admin\'s own shows',
-        'New: Cross-reference matching — if User A has a setlist for a show, User B\'s matching show (same artist + date) is auto-populated',
-        'New: Setlist.fm fallback — shows with no cross-reference match are searched on setlist.fm with fuzzy artist name matching',
+        'New: Setlist.fm search with fuzzy artist name matching (handles &/and, The prefix variants)',
         'New: Populate individual setlists or bulk-populate all matched results with one click',
         'New: Filter results by match status (All / Matched / No Match) to quickly find actionable items',
-        'New: Stats dashboard showing users scanned, missing setlists, cross-ref matches, and setlist.fm matches',
-        'New: admin-find-missing-setlists Netlify function with full Firebase Admin scanning and rate-limited setlist.fm integration',
+        'New: Stats dashboard showing users scanned, missing setlists, and setlist.fm matches',
+        'New: admin-find-missing-setlists Netlify function with rate-limited setlist.fm integration',
         'New: admin-populate-setlist Netlify function for populating individual shows with safety checks (won\'t overwrite user-created setlists)',
         'Preserves "Scan My Shows Only" button for quick personal scanning alongside the new all-users tool',
       ]

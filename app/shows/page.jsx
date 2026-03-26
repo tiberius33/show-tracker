@@ -11,7 +11,7 @@ import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import {
-  Search, Camera, RefreshCw, X, Upload,
+  Search, Camera, RefreshCw, X, Upload, Music,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
 
@@ -33,7 +33,7 @@ export default function ShowsPage() {
     setFriendsInitialTab, navigateTo,
     summaryStats, userRank, statsTab, setStatsTab,
     tooltipStep, dismissTooltip,
-    setlistScanning, setlistScanProgress,
+    setlistScanning, setlistScanProgress, scanForMissingSetlists,
     sortedFilteredShows, artistGroups, importedIds,
     myConfirmedSuggestions, normalizeShowKey,
     memoriesShow, sharedComments, commentsLoading,
@@ -233,6 +233,28 @@ export default function ShowsPage() {
               )}
             </div>
           </div>
+
+          {/* Find Missing Setlists banner */}
+          {!guestMode && !setlistScanning && shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
+            <div className="bg-amber-subtle border border-amber/20 rounded-2xl p-4 mb-6 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <Music className="w-5 h-5 text-amber flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-primary text-sm font-medium">
+                    {shows.filter(s => !s.setlist || s.setlist.length === 0).length} show{shows.filter(s => !s.setlist || s.setlist.length === 0).length !== 1 ? 's' : ''} missing setlists
+                  </p>
+                  <p className="text-muted text-xs">Auto-fetch setlists from Setlist.fm</p>
+                </div>
+              </div>
+              <button
+                onClick={scanForMissingSetlists}
+                className="flex items-center gap-2 px-4 py-2 bg-amber hover:bg-amber/90 text-on-dark rounded-xl text-sm font-medium transition-colors whitespace-nowrap shadow-sm"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Find Setlists
+              </button>
+            </div>
+          )}
 
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
