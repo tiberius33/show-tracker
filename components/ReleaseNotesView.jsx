@@ -6,6 +6,23 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.17.0',
+      date: 'March 26, 2026',
+      title: 'One-Time Popup System',
+      changes: [
+        'New: One-time popup announcement system — important updates shown once and dismissed for 12 months',
+        'New: Popup manager utility tracks dismissals in localStorage with automatic 12-month expiration',
+        'New: PopupOverlay component with fade/slide animations, keyboard navigation, and focus trapping',
+        'New: Popup registry for centralized popup definitions with audience targeting (all, new users, returning users, admin)',
+        'New: usePopup hook for standalone popup control in any component',
+        'New: PopupQueue automatically shows eligible popups one at a time on app load',
+        'New: Admin > Popups tab to preview, reset, and manage all popup dismissals',
+        'Handles edge cases: localStorage quota, clock skew, corrupted data, SSR safety',
+        'Full accessibility: ARIA labels, keyboard trap, Escape to close, screen reader support',
+        'Mobile responsive: full-width on small screens, centered modal on desktop',
+      ]
+    },
+    {
       version: '3.16.0',
       date: 'March 26, 2026',
       title: 'Song Play Counts & History',
