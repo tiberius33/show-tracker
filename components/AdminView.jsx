@@ -2455,15 +2455,15 @@ function AdminView() {
                     <p className="text-xs text-muted">Users Scanned</p>
                   </div>
                   <div className="bg-base rounded-xl p-3 border border-subtle text-center">
+                    <p className="text-2xl font-bold text-primary">{missingSetlistsResults.totalShowsScanned}</p>
+                    <p className="text-xs text-muted">Shows Scanned</p>
+                  </div>
+                  <div className="bg-base rounded-xl p-3 border border-subtle text-center">
                     <p className="text-2xl font-bold text-amber">{missingSetlistsResults.showsMissingSetlists}</p>
                     <p className="text-xs text-muted">Missing Setlists</p>
                   </div>
                   <div className="bg-base rounded-xl p-3 border border-subtle text-center">
-                    <p className="text-2xl font-bold text-brand">{missingSetlistsResults.matchesFoundFromOtherUsers}</p>
-                    <p className="text-xs text-muted">Cross-Ref Matches</p>
-                  </div>
-                  <div className="bg-base rounded-xl p-3 border border-subtle text-center">
-                    <p className="text-2xl font-bold text-blue-400">{missingSetlistsResults.matchesFoundFromSetlistFm}</p>
+                    <p className="text-2xl font-bold text-brand">{missingSetlistsResults.matchesFoundFromSetlistFm}</p>
                     <p className="text-xs text-muted">Setlist.fm Matches</p>
                   </div>
                 </div>
@@ -2552,14 +2552,9 @@ function AdminView() {
                                   <td className="px-3 py-2 text-secondary truncate max-w-[140px]" title={r.venue}>{r.venue}</td>
                                   <td className="px-3 py-2 text-secondary whitespace-nowrap">{r.date}</td>
                                   <td className="px-3 py-2">
-                                    {r.matchSource === 'other_user' && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand/15 text-brand text-xs font-medium">
-                                        <Users className="w-3 h-3" /> Cross-ref
-                                      </span>
-                                    )}
                                     {r.matchSource === 'setlist_fm' && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-medium">
-                                        <Music className="w-3 h-3" /> Setlist.fm
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand/15 text-brand text-xs font-medium">
+                                        <Music className="w-3 h-3" /> Found
                                       </span>
                                     )}
                                     {r.matchSource === 'none' && (

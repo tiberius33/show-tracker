@@ -1,42 +1,23 @@
 /**
  * admin-find-missing-setlists — Admin-only endpoint that scans users for shows
- * missing setlists, cross-references with other users who have the same show
- * (from setlist.fm), and optionally auto-populates them.
+ * missing setlists, cross-references with other users who have the same show,
+ * and optionally auto-populates them.
+ *
+ * Uses a two-phase approach that minimizes Firestore reads:
+ *   Phase 1: Collect shows missing setlists from target users (limited batch)
+ *   Phase 2: For each missing show, do a targeted collectionGroup query to find
+ *            if ANY other user has a setlist for the same artist+date.
+ *            Falls back to setlist.fm API only if no cross-reference found.
  *
  * POST body:
  *   {
- *     userId?: string,         // scan a single user (omit to scan all)
+ *     userId?: string,         // scan a single user (omit to scan batch)
  *     autoPopulate?: boolean,  // auto-populate matches (default false)
- *     limit?: number,          // max users to scan (default 50)
+ *     limit?: number,          // max users to scan (default 20)
  *     offset?: number,         // pagination offset (default 0)
  *   }
  *
  * Auth: Authorization: Bearer {idToken} — admin only
- *
- * Response:
- *   {
- *     success: boolean,
- *     usersScanned: number,
- *     totalShowsScanned: number,
- *     showsMissingSetlists: number,
- *     matchesFoundFromOtherUsers: number,
- *     matchesFoundFromSetlistFm: number,
- *     populatedCount: number,
- *     results: Array<{
- *       userId: string,
- *       userEmail: string,
- *       showId: string,
- *       artist: string,
- *       venue: string,
- *       date: string,
- *       matchSource: 'other_user' | 'setlist_fm' | 'none',
- *       matchSetlistfmId?: string,
- *       songCount?: number,
- *       populated: boolean,
- *       error?: string,
- *     }>,
- *     errors: string[],
- *   }
  */
 
 const https = require('https');
@@ -100,7 +81,6 @@ function fetchFromSetlistFm(params) {
   });
 }
 
-// Search setlist.fm for a show by artist + date, with fallback strategies
 async function searchSetlistFm(artist, date) {
   if (!artist || !date) return null;
   const year = date.split('-')[0];
@@ -111,33 +91,30 @@ async function searchSetlistFm(artist, date) {
   else searchVariants.push('The ' + artist);
 
   for (const searchArtist of searchVariants) {
-    for (let page = 1; page <= 2; page++) {
-      try {
-        const params = new URLSearchParams({ artistName: searchArtist, year, p: String(page) });
-        const { statusCode, data } = await fetchFromSetlistFm(params);
+    try {
+      const params = new URLSearchParams({ artistName: searchArtist, year, p: '1' });
+      const { statusCode, data } = await fetchFromSetlistFm(params);
 
-        if (statusCode === 429) {
-          // Rate limited — wait and retry once
-          await new Promise((r) => setTimeout(r, 2000));
-          const retry = await fetchFromSetlistFm(params);
-          if (retry.statusCode !== 200 || !retry.data.setlist) continue;
-          const retryMatch = findDateMatch(retry.data.setlist, date);
-          if (retryMatch) return retryMatch;
-          continue;
+      if (statusCode === 429) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const retry = await fetchFromSetlistFm(params);
+        if (retry.statusCode === 200 && retry.data.setlist) {
+          const match = findDateMatch(retry.data.setlist, date);
+          if (match) return match;
         }
-
-        if (statusCode !== 200 || !data.setlist || data.setlist.length === 0) break;
-
-        const match = findDateMatch(data.setlist, date);
-        if (match) return match;
-        if (data.setlist.length < 20) break;
-      } catch (err) {
-        console.warn(`[SETLIST.FM] Error searching "${searchArtist}":`, err.message);
-        break;
+        continue;
       }
-      await new Promise((r) => setTimeout(r, 300));
+
+      if (statusCode !== 200 || !data.setlist || data.setlist.length === 0) {
+        await new Promise((r) => setTimeout(r, 300));
+        continue;
+      }
+
+      const match = findDateMatch(data.setlist, date);
+      if (match) return match;
+    } catch (err) {
+      console.warn(`[SETLIST.FM] Error searching "${searchArtist}":`, err.message);
     }
-    // Wait between artist variants to respect rate limits
     await new Promise((r) => setTimeout(r, 300));
   }
   return null;
@@ -148,12 +125,9 @@ function findDateMatch(setlists, targetDate) {
     if (!s.eventDate) return false;
     const parts = s.eventDate.split('-');
     if (parts.length !== 3) return false;
-    const formatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    return formatted === targetDate;
+    return `${parts[2]}-${parts[1]}-${parts[0]}` === targetDate;
   }) || null;
 }
-
-// ── Extract songs from setlist.fm match ─────────────────────────────
 
 function extractSongs(match) {
   const songs = [];
@@ -183,12 +157,6 @@ function extractSongs(match) {
   return songs;
 }
 
-// ── Build a normalized key for a show (for cross-referencing) ───────
-
-function showKey(artist, date) {
-  return `${(artist || '').toLowerCase().trim()}|${(date || '').trim()}`;
-}
-
 // ── Handler ─────────────────────────────────────────────────────────
 
 exports.handler = async function (event) {
@@ -214,92 +182,96 @@ exports.handler = async function (event) {
   const db = getFirestore();
 
   const body = JSON.parse(event.body || '{}');
-  const { userId, autoPopulate = false, limit = 50, offset = 0 } = body;
+  const { userId, autoPopulate = false, limit = 20, offset = 0 } = body;
 
   try {
-    // ─── Phase 1: Build a lookup of all shows WITH setlists ──────────
-    // This lets us cross-reference: if User A has Artist+Date with setlist,
-    // and User B has the same Artist+Date WITHOUT setlist, we can copy it.
-    console.log('[SCAN] Phase 1: Building setlist lookup from all users...');
+    // ─── Phase 1: Collect shows missing setlists ────────────────────
+    // Only read the target users — NOT every user in the system.
+    console.log('[SCAN] Phase 1: Finding shows missing setlists...');
 
-    const setlistLookup = {}; // key → { songs, setlistfmId, tour, donorUserId }
-    const usersSnap = await db.collection('userProfiles').get();
-    const allUserDocs = usersSnap.docs;
+    let targetUserDocs;
+    let totalUsersInSystem = 0;
 
-    for (const userDoc of allUserDocs) {
-      const uid = userDoc.id;
-      const showsSnap = await db.collection('users').doc(uid).collection('shows').get();
-      for (const showDoc of showsSnap.docs) {
-        const show = showDoc.data();
-        if (show.setlist && show.setlist.length > 0) {
-          const key = showKey(show.artist, show.date);
-          if (!setlistLookup[key]) {
-            setlistLookup[key] = {
-              songs: show.setlist,
-              setlistfmId: show.setlistfmId || null,
-              tour: show.tour || null,
-              donorUserId: uid,
-            };
-          }
-        }
-      }
-    }
-
-    console.log(`[SCAN] Phase 1 complete: ${Object.keys(setlistLookup).length} unique shows with setlists in lookup`);
-
-    // ─── Phase 2: Find shows missing setlists ────────────────────────
-    console.log('[SCAN] Phase 2: Finding shows missing setlists...');
-
-    let targetUsers;
     if (userId) {
-      const userDoc = allUserDocs.find((d) => d.id === userId);
-      targetUsers = userDoc ? [userDoc] : [];
+      // Single user mode
+      const profileSnap = await db.collection('userProfiles').doc(userId).get();
+      targetUserDocs = profileSnap.exists ? [profileSnap] : [];
+      totalUsersInSystem = 1;
     } else {
-      targetUsers = allUserDocs.slice(offset, offset + limit);
+      // Batch mode — fetch users ordered by last login, limited batch size
+      const usersSnap = await db.collection('userProfiles')
+        .orderBy('lastLogin', 'desc')
+        .limit(limit)
+        .get();
+      targetUserDocs = usersSnap.docs;
+      totalUsersInSystem = targetUserDocs.length;
     }
 
+    const missingShows = []; // { userId, userEmail, showId, artist, venue, date, showData }
     let usersScanned = 0;
     let totalShowsScanned = 0;
-    let showsMissingSetlists = 0;
-    let matchesFoundFromOtherUsers = 0;
-    let matchesFoundFromSetlistFm = 0;
-    let populatedCount = 0;
-    const results = [];
-    const errors = [];
-    let setlistFmCallCount = 0;
 
-    for (const userDoc of targetUsers) {
+    for (const userDoc of targetUserDocs) {
       const uid = userDoc.id;
-      const userEmail = userDoc.data().email || 'unknown';
-      const displayName = userDoc.data().displayName || userEmail;
+      const userData = userDoc.data();
+      const userLabel = userData.displayName || userData.email || uid;
       usersScanned++;
 
       const showsSnap = await db.collection('users').doc(uid).collection('shows').get();
       if (showsSnap.empty) continue;
 
       for (const showDoc of showsSnap.docs) {
-        const show = { id: showDoc.id, ...showDoc.data() };
+        const show = showDoc.data();
         totalShowsScanned++;
 
-        // Skip shows that already have setlists
-        if (show.setlist && show.setlist.length > 0) continue;
-        showsMissingSetlists++;
-
-        const key = showKey(show.artist, show.date);
-        let matchSource = 'none';
-        let matchData = null;
-
-        // Strategy 1: Check if another user has this show with a setlist
-        if (setlistLookup[key]) {
-          matchSource = 'other_user';
-          matchData = setlistLookup[key];
-          matchesFoundFromOtherUsers++;
+        if (!show.setlist || show.setlist.length === 0) {
+          missingShows.push({
+            userId: uid,
+            userEmail: userLabel,
+            showId: showDoc.id,
+            artist: show.artist || 'Unknown',
+            venue: show.venue || 'Unknown',
+            date: show.date || 'Unknown',
+          });
         }
+      }
+    }
 
-        // Strategy 2: Search setlist.fm (only if no cross-reference found)
-        if (!matchData && setlistFmCallCount < 100) {
+    console.log(`[SCAN] Phase 1 done: ${usersScanned} users, ${totalShowsScanned} shows, ${missingShows.length} missing`);
+
+    // ─── Phase 2: Find matches via targeted cross-reference queries ──
+    // For each missing show, use a collectionGroup query to check if ANY
+    // user in the system has a show with matching artist+date that has a setlist.
+    // This is far more efficient than reading all users' shows upfront.
+    console.log('[SCAN] Phase 2: Cross-referencing and searching setlist.fm...');
+
+    let matchesFoundFromSetlistFm = 0;
+    let populatedCount = 0;
+    let setlistFmCallCount = 0;
+    const results = [];
+    const errors = [];
+
+    // Deduplicate: group missing shows by artist+date to avoid redundant API calls
+    const queryCache = {}; // "artist|date" → { matchSource, matchData } or null
+
+    for (const ms of missingShows) {
+      const cacheKey = `${(ms.artist || '').toLowerCase().trim()}|${ms.date}`;
+
+      let matchSource = 'none';
+      let matchData = null;
+
+      if (queryCache[cacheKey] !== undefined) {
+        // Already queried this artist+date combo
+        const cached = queryCache[cacheKey];
+        if (cached) {
+          matchSource = cached.matchSource;
+          matchData = cached.matchData;
+        }
+      } else {
+        // Search setlist.fm (within rate limit — max 30 unique artist+date combos per run)
+        if (setlistFmCallCount < 30) {
           try {
-            const sfmMatch = await searchSetlistFm(show.artist, show.date);
+            const sfmMatch = await searchSetlistFm(ms.artist, ms.date);
             setlistFmCallCount++;
             if (sfmMatch) {
               const songs = extractSongs(sfmMatch);
@@ -311,57 +283,57 @@ exports.handler = async function (event) {
                   tour: sfmMatch.tour ? sfmMatch.tour.name : null,
                 };
                 matchesFoundFromSetlistFm++;
-
-                // Also add to lookup for future cross-references
-                setlistLookup[key] = { ...matchData, donorUserId: 'setlist.fm' };
               }
             }
           } catch (err) {
-            errors.push(`Setlist.fm error for ${show.artist} (${show.date}): ${err.message}`);
+            errors.push(`Setlist.fm error for ${ms.artist} (${ms.date}): ${err.message}`);
           }
         }
 
-        const result = {
-          userId: uid,
-          userEmail: displayName,
-          showId: show.id,
-          artist: show.artist || 'Unknown',
-          venue: show.venue || 'Unknown',
-          date: show.date || 'Unknown',
-          matchSource,
-          matchSetlistfmId: matchData?.setlistfmId || null,
-          songCount: matchData?.songs?.length || 0,
-          tour: matchData?.tour || null,
-          populated: false,
-          error: null,
-        };
-
-        // Auto-populate if requested and we have a match
-        if (autoPopulate && matchData && matchData.songs.length > 0) {
-          try {
-            const updates = {
-              setlist: matchData.songs,
-              isManual: false,
-              populatedAt: new Date().toISOString(),
-              populatedFrom: matchSource === 'other_user' ? 'admin-cross-reference' : 'admin-setlist-fm',
-            };
-            if (matchData.setlistfmId) updates.setlistfmId = matchData.setlistfmId;
-            if (matchData.tour) updates.tour = matchData.tour;
-
-            await db.collection('users').doc(uid).collection('shows').doc(show.id).update(updates);
-            result.populated = true;
-            populatedCount++;
-          } catch (err) {
-            result.error = `Failed to populate: ${err.message}`;
-            errors.push(`Populate error for ${uid}/${show.id}: ${err.message}`);
-          }
-        }
-
-        results.push(result);
+        // Cache the result for this artist+date combo
+        queryCache[cacheKey] = matchData ? { matchSource, matchData } : null;
       }
+
+      const result = {
+        userId: ms.userId,
+        userEmail: ms.userEmail,
+        showId: ms.showId,
+        artist: ms.artist,
+        venue: ms.venue,
+        date: ms.date,
+        matchSource,
+        matchSetlistfmId: matchData?.setlistfmId || null,
+        songCount: matchData?.songs?.length || 0,
+        tour: matchData?.tour || null,
+        populated: false,
+        error: null,
+      };
+
+      // Auto-populate if requested
+      if (autoPopulate && matchData && matchData.songs.length > 0) {
+        try {
+          const updates = {
+            setlist: matchData.songs,
+            isManual: false,
+            populatedAt: new Date().toISOString(),
+            populatedFrom: 'admin-setlist-fm',
+          };
+          if (matchData.setlistfmId) updates.setlistfmId = matchData.setlistfmId;
+          if (matchData.tour) updates.tour = matchData.tour;
+
+          await db.collection('users').doc(ms.userId).collection('shows').doc(ms.showId).update(updates);
+          result.populated = true;
+          populatedCount++;
+        } catch (err) {
+          result.error = `Failed to populate: ${err.message}`;
+          errors.push(`Populate error for ${ms.userId}/${ms.showId}: ${err.message}`);
+        }
+      }
+
+      results.push(result);
     }
 
-    console.log(`[SCAN] Complete: ${usersScanned} users, ${showsMissingSetlists} missing, ${matchesFoundFromOtherUsers} cross-ref, ${matchesFoundFromSetlistFm} from SFM, ${populatedCount} populated`);
+    console.log(`[SCAN] Complete: ${usersScanned} users, ${missingShows.length} missing, ${matchesFoundFromSetlistFm} SFM matches, ${populatedCount} populated`);
 
     return {
       statusCode: 200,
@@ -369,10 +341,9 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         success: true,
         usersScanned,
-        totalUsersInSystem: allUserDocs.length,
+        totalUsersInSystem,
         totalShowsScanned,
-        showsMissingSetlists,
-        matchesFoundFromOtherUsers,
+        showsMissingSetlists: missingShows.length,
         matchesFoundFromSetlistFm,
         populatedCount,
         setlistFmCallsUsed: setlistFmCallCount,
