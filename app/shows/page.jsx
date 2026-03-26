@@ -40,6 +40,7 @@ export default function ShowsPage() {
     openMemories, addSharedComment, editSharedComment, deleteSharedComment,
     pendingTagsForReview, acceptPendingEmailTag, declinePendingEmailTag,
     toggleFavoriteArtist, isArtistFavorite,
+    commentContext, setCommentContext,
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
@@ -466,7 +467,7 @@ export default function ShowsPage() {
                 onRateShow={(rating) => updateShowRating(selectedShow.id, rating)}
                 onCommentShow={(comment) => updateShowComment(selectedShow.id, comment)}
                 onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
-                onClose={() => setSelectedShow(null)}
+                onClose={() => { setSelectedShow(null); setCommentContext(null); }}
                 onCreatePlaylist={(show) => setPlaylistShow(show)}
                 onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
                 onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
@@ -481,6 +482,7 @@ export default function ShowsPage() {
                 onDeleteComment={confirmedSuggestion ? (cid) => deleteSharedComment(confirmedSuggestion.id, cid) : null}
                 currentUserUid={user?.uid}
                 friendAnnotations={friendAnnotationsForShow}
+                commentContext={commentContext}
               />
             );
           })()}

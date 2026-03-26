@@ -194,6 +194,7 @@ export function AppProvider({ children }) {
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
+  const [commentContext, setCommentContext] = useState(null); // { type: 'song'|'show', songName, songId }
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -2346,6 +2347,8 @@ export function AppProvider({ children }) {
     setShowForm,
     selectedShow,
     setSelectedShow,
+    commentContext,
+    setCommentContext,
     searchTerm,
     setSearchTerm,
     filterYear,

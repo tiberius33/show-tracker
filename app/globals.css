@@ -161,6 +161,26 @@ code {
   }
 }
 
+/* ── Comment Highlight Animation ─────────────────── */
+.highlight-comment {
+  animation: highlightPulse 2.5s ease-out;
+}
+
+@keyframes highlightPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(75, 200, 106, 0.6);
+    background-color: rgba(75, 200, 106, 0.15);
+  }
+  30% {
+    box-shadow: 0 0 12px 4px rgba(75, 200, 106, 0.3);
+    background-color: rgba(75, 200, 106, 0.1);
+  }
+  100% {
+    box-shadow: none;
+    background-color: transparent;
+  }
+}
+
 /* Mobile: keep tooltips within viewport */
 @media (max-width: 639px) {
   .tooltip-wrap .tooltip-text {
