@@ -197,7 +197,7 @@ export default function ShowsPage() {
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button
               onClick={() => navigateTo('search')}
-              className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#FB923C] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
+              className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
             >
               {shows.length === 0 && (
                 <span className="absolute inset-0 rounded-xl bg-[#34D399] animate-ping opacity-20" />
@@ -208,7 +208,7 @@ export default function ShowsPage() {
             <div className="relative">
               <button
                 onClick={() => navigateTo('scan-import')}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#FB923C] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${tooltipStep === 1 ? 'ring-2 ring-[#34D399]/60 ring-offset-2 ring-offset-base' : ''}`}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${tooltipStep === 1 ? 'ring-2 ring-[#34D399]/60 ring-offset-2 ring-offset-base' : ''}`}
               >
                 <Camera className="w-4 h-4" />
                 Scan / Import
@@ -360,7 +360,7 @@ export default function ShowsPage() {
               <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
                 <button
                   onClick={() => navigateTo('search')}
-                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#FB923C] rounded-xl font-semibold transition-all shadow-lg shadow-[#34D399]/20 hover:shadow-[#34D399]/50 hover:scale-105"
+                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-semibold transition-all shadow-lg shadow-[#34D399]/20 hover:shadow-[#34D399]/50 hover:scale-105"
                 >
                   <span className="absolute inset-0 rounded-xl bg-[#34D399] animate-ping opacity-20" />
                   <Search className="w-5 h-5" />
