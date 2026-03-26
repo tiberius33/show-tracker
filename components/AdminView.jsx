@@ -26,6 +26,13 @@ function AdminView() {
   const [cacheStatus, setCacheStatus] = useState('');
   const [dupeCleanupLoading, setDupeCleanupLoading] = useState(false);
   const [dupeCleanupResult, setDupeCleanupResult] = useState(null);
+  // ── Missing setlists (all-users scan) ────────────────────────────
+  const [missingSetlistsLoading, setMissingSetlistsLoading] = useState(false);
+  const [missingSetlistsResults, setMissingSetlistsResults] = useState(null);
+  const [missingSetlistsFilter, setMissingSetlistsFilter] = useState('all'); // 'all' | 'matched' | 'unmatched'
+  const [populatingIds, setPopulatingIds] = useState(new Set());
+  const [populatedIds, setPopulatedIds] = useState(new Set());
+  const [bulkPopulating, setBulkPopulating] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userShows, setUserShows] = useState([]);
   const [loadingShows, setLoadingShows] = useState(false);
@@ -2364,40 +2371,271 @@ function AdminView() {
         <div className="space-y-6">
           <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-6">
             <h3 className="text-lg font-semibold text-primary mb-1">Find Missing Setlists</h3>
-            <p className="text-secondary text-sm mb-4">Scan all shows that are missing setlists and attempt to fetch them from Setlist.fm.</p>
-            {shows.some(s => !s.setlist || s.setlist.length === 0) ? (
-              <>
-                <p className="text-muted text-sm mb-4">
-                  {shows.filter(s => !s.setlist || s.setlist.length === 0).length} show{shows.filter(s => !s.setlist || s.setlist.length === 0).length !== 1 ? 's' : ''} missing setlists
-                </p>
-                <button
-                  onClick={scanForMissingSetlists}
-                  disabled={setlistScanning}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all shadow-lg shadow-brand/20 disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
-                  {setlistScanning ? 'Scanning...' : 'Find Missing Setlists'}
-                </button>
-                {setlistScanning && (
-                  <div className="mt-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-primary font-medium text-sm">Scanning...</span>
-                      <span className="text-secondary text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
-                    </div>
-                    <div className="w-full bg-hover rounded-full h-2">
-                      <div
-                        className="bg-amber h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${setlistScanProgress.total > 0 ? (setlistScanProgress.current / setlistScanProgress.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                    {setlistScanProgress.found > 0 && (
-                      <p className="text-amber text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
-                    )}
-                  </div>
+            <p className="text-secondary text-sm mb-4">
+              Scan <strong>all users</strong> for shows missing setlists. Cross-references other users who have the same show, then falls back to Setlist.fm API.
+            </p>
+
+            {/* Scan Buttons */}
+            <div className="flex flex-wrap gap-3 mb-4">
+              <button
+                onClick={async () => {
+                  setMissingSetlistsLoading(true);
+                  setMissingSetlistsResults(null);
+                  setPopulatedIds(new Set());
+                  try {
+                    const token = await auth.currentUser.getIdToken();
+                    const res = await fetch(apiUrl('/.netlify/functions/admin-find-missing-setlists'), {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ autoPopulate: false, limit: 100 }),
+                    });
+                    const data = await res.json();
+                    setMissingSetlistsResults(data);
+                  } catch (e) {
+                    setMissingSetlistsResults({ error: e.message });
+                  }
+                  setMissingSetlistsLoading(false);
+                }}
+                disabled={missingSetlistsLoading}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl font-medium transition-all shadow-lg shadow-brand/20 disabled:opacity-50 text-sm"
+              >
+                <Search className={`w-4 h-4 ${missingSetlistsLoading ? 'animate-pulse' : ''}`} />
+                {missingSetlistsLoading ? 'Scanning All Users...' : 'Scan All Users'}
+              </button>
+              <button
+                onClick={scanForMissingSetlists}
+                disabled={setlistScanning}
+                className="flex items-center gap-2 px-5 py-2.5 bg-brand-subtle hover:bg-brand/20 text-brand border border-brand/30 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${setlistScanning ? 'animate-spin' : ''}`} />
+                {setlistScanning ? 'Scanning...' : 'Scan My Shows Only'}
+              </button>
+            </div>
+
+            {/* My Shows scan progress (legacy) */}
+            {setlistScanning && (
+              <div className="mb-4 p-3 bg-base rounded-xl border border-subtle">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-primary font-medium text-sm">Scanning your shows...</span>
+                  <span className="text-secondary text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
+                </div>
+                <div className="w-full bg-hover rounded-full h-2">
+                  <div className="bg-amber h-2 rounded-full transition-all duration-300" style={{ width: `${setlistScanProgress.total > 0 ? (setlistScanProgress.current / setlistScanProgress.total) * 100 : 0}%` }} />
+                </div>
+                {setlistScanProgress.found > 0 && (
+                  <p className="text-amber text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
                 )}
-              </>
-            ) : (
-              <p className="text-brand text-sm">All shows have setlists!</p>
+              </div>
+            )}
+
+            {/* All-users scan loading */}
+            {missingSetlistsLoading && (
+              <div className="p-4 bg-base rounded-xl border border-subtle">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                  <span className="text-primary text-sm font-medium">Scanning all users for missing setlists... This may take a minute.</span>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {missingSetlistsResults?.error && (
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl mb-4">
+                <p className="text-red-400 text-sm"><AlertTriangle className="w-4 h-4 inline mr-1" />{missingSetlistsResults.error}</p>
+              </div>
+            )}
+
+            {/* Results Summary */}
+            {missingSetlistsResults?.success && (
+              <div className="space-y-4">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-base rounded-xl p-3 border border-subtle text-center">
+                    <p className="text-2xl font-bold text-primary">{missingSetlistsResults.usersScanned}</p>
+                    <p className="text-xs text-muted">Users Scanned</p>
+                  </div>
+                  <div className="bg-base rounded-xl p-3 border border-subtle text-center">
+                    <p className="text-2xl font-bold text-amber">{missingSetlistsResults.showsMissingSetlists}</p>
+                    <p className="text-xs text-muted">Missing Setlists</p>
+                  </div>
+                  <div className="bg-base rounded-xl p-3 border border-subtle text-center">
+                    <p className="text-2xl font-bold text-brand">{missingSetlistsResults.matchesFoundFromOtherUsers}</p>
+                    <p className="text-xs text-muted">Cross-Ref Matches</p>
+                  </div>
+                  <div className="bg-base rounded-xl p-3 border border-subtle text-center">
+                    <p className="text-2xl font-bold text-blue-400">{missingSetlistsResults.matchesFoundFromSetlistFm}</p>
+                    <p className="text-xs text-muted">Setlist.fm Matches</p>
+                  </div>
+                </div>
+
+                {/* Filter + Bulk Action Bar */}
+                {missingSetlistsResults.results?.length > 0 && (
+                  <>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex bg-base rounded-lg border border-subtle overflow-hidden text-sm">
+                        {['all', 'matched', 'unmatched'].map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setMissingSetlistsFilter(f)}
+                            className={`px-3 py-1.5 transition-colors capitalize ${missingSetlistsFilter === f ? 'bg-brand text-on-dark' : 'text-secondary hover:text-primary'}`}
+                          >
+                            {f === 'all' ? `All (${missingSetlistsResults.results.length})` :
+                             f === 'matched' ? `Matched (${missingSetlistsResults.results.filter(r => r.matchSource !== 'none').length})` :
+                             `No Match (${missingSetlistsResults.results.filter(r => r.matchSource === 'none').length})`}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const matchedResults = missingSetlistsResults.results.filter(
+                            r => r.matchSource !== 'none' && !populatedIds.has(`${r.userId}/${r.showId}`) && r.songCount > 0
+                          );
+                          if (matchedResults.length === 0) return;
+                          if (!confirm(`Populate ${matchedResults.length} shows with matched setlists?`)) return;
+                          setBulkPopulating(true);
+                          const token = await auth.currentUser.getIdToken();
+                          let count = 0;
+                          for (const r of matchedResults) {
+                            try {
+                              const res = await fetch(apiUrl('/.netlify/functions/admin-find-missing-setlists'), {
+                                method: 'POST',
+                                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: r.userId, autoPopulate: true, limit: 1 }),
+                              });
+                              if (res.ok) {
+                                setPopulatedIds(prev => new Set([...prev, `${r.userId}/${r.showId}`]));
+                                count++;
+                              }
+                            } catch {}
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                          }
+                          setBulkPopulating(false);
+                          alert(`Populated ${count} of ${matchedResults.length} setlists.`);
+                        }}
+                        disabled={bulkPopulating || missingSetlistsResults.results.filter(r => r.matchSource !== 'none' && !populatedIds.has(`${r.userId}/${r.showId}`)).length === 0}
+                        className="flex items-center gap-2 px-4 py-1.5 bg-brand-subtle hover:bg-brand/20 text-brand border border-brand/30 rounded-lg font-medium transition-colors text-sm disabled:opacity-50"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        {bulkPopulating ? 'Populating...' : 'Populate All Matches'}
+                      </button>
+                    </div>
+
+                    {/* Results Table */}
+                    <div className="overflow-x-auto rounded-xl border border-subtle">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-base border-b border-subtle">
+                            <th className="text-left px-3 py-2 text-muted font-medium">User</th>
+                            <th className="text-left px-3 py-2 text-muted font-medium">Artist</th>
+                            <th className="text-left px-3 py-2 text-muted font-medium">Venue</th>
+                            <th className="text-left px-3 py-2 text-muted font-medium">Date</th>
+                            <th className="text-left px-3 py-2 text-muted font-medium">Match</th>
+                            <th className="text-left px-3 py-2 text-muted font-medium">Songs</th>
+                            <th className="text-right px-3 py-2 text-muted font-medium">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {missingSetlistsResults.results
+                            .filter(r => {
+                              if (missingSetlistsFilter === 'matched') return r.matchSource !== 'none';
+                              if (missingSetlistsFilter === 'unmatched') return r.matchSource === 'none';
+                              return true;
+                            })
+                            .map((r, i) => {
+                              const key = `${r.userId}/${r.showId}`;
+                              const isPopulated = populatedIds.has(key) || r.populated;
+                              const isPopulating = populatingIds.has(key);
+                              return (
+                                <tr key={key} className={`border-b border-subtle/50 ${i % 2 === 0 ? 'bg-hover/30' : ''}`}>
+                                  <td className="px-3 py-2 text-secondary text-xs truncate max-w-[120px]" title={r.userEmail}>{r.userEmail}</td>
+                                  <td className="px-3 py-2 text-primary font-medium">{r.artist}</td>
+                                  <td className="px-3 py-2 text-secondary truncate max-w-[140px]" title={r.venue}>{r.venue}</td>
+                                  <td className="px-3 py-2 text-secondary whitespace-nowrap">{r.date}</td>
+                                  <td className="px-3 py-2">
+                                    {r.matchSource === 'other_user' && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand/15 text-brand text-xs font-medium">
+                                        <Users className="w-3 h-3" /> Cross-ref
+                                      </span>
+                                    )}
+                                    {r.matchSource === 'setlist_fm' && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-medium">
+                                        <Music className="w-3 h-3" /> Setlist.fm
+                                      </span>
+                                    )}
+                                    {r.matchSource === 'none' && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-xs font-medium">
+                                        <X className="w-3 h-3" /> None
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-secondary">{r.songCount || '—'}</td>
+                                  <td className="px-3 py-2 text-right">
+                                    {isPopulated ? (
+                                      <span className="inline-flex items-center gap-1 text-brand text-xs font-medium">
+                                        <Check className="w-3.5 h-3.5" /> Done
+                                      </span>
+                                    ) : r.matchSource !== 'none' && r.songCount > 0 ? (
+                                      <button
+                                        onClick={async () => {
+                                          setPopulatingIds(prev => new Set([...prev, key]));
+                                          try {
+                                            const token = await auth.currentUser.getIdToken();
+                                            const res = await fetch(apiUrl('/.netlify/functions/admin-populate-setlist'), {
+                                              method: 'POST',
+                                              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                userId: r.userId,
+                                                showId: r.showId,
+                                                source: 'setlist_fm',
+                                                artist: r.artist,
+                                                date: r.date,
+                                              }),
+                                            });
+                                            if (res.ok) {
+                                              setPopulatedIds(prev => new Set([...prev, key]));
+                                            } else {
+                                              const err = await res.json();
+                                              alert(`Failed: ${err.error || 'Unknown error'}`);
+                                            }
+                                          } catch (e) {
+                                            alert(`Error: ${e.message}`);
+                                          }
+                                          setPopulatingIds(prev => { const next = new Set(prev); next.delete(key); return next; });
+                                        }}
+                                        disabled={isPopulating}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-subtle hover:bg-brand/20 text-brand border border-brand/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                                      >
+                                        {isPopulating ? (
+                                          <><div className="w-3 h-3 border border-brand border-t-transparent rounded-full animate-spin" /> Populating...</>
+                                        ) : (
+                                          <><Plus className="w-3 h-3" /> Populate</>
+                                        )}
+                                      </button>
+                                    ) : (
+                                      <span className="text-muted text-xs">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* Errors */}
+                {missingSetlistsResults.errors?.length > 0 && (
+                  <details className="mt-3">
+                    <summary className="text-amber text-sm cursor-pointer font-medium">{missingSetlistsResults.errors.length} warning{missingSetlistsResults.errors.length !== 1 ? 's' : ''}</summary>
+                    <div className="mt-2 p-3 bg-amber/5 border border-amber/20 rounded-lg max-h-40 overflow-y-auto">
+                      {missingSetlistsResults.errors.map((e, i) => (
+                        <p key={i} className="text-xs text-amber/80 mb-1">{e}</p>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
             )}
           </div>
 
