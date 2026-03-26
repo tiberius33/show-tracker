@@ -348,7 +348,7 @@ export function AppProvider({ children }) {
   const myPendingSuggestions = showSuggestions.filter(s => s.responses?.[user?.uid] === 'pending' && s.overallStatus !== 'declined');
   const myConfirmedSuggestions = showSuggestions.filter(s => s.overallStatus === 'confirmed');
 
-  const pendingNotificationCount = pendingFriendRequests.length + pendingShowTags.length + myPendingSuggestions.length + pendingInvites.length + unreadNotifications.length;
+  const pendingNotificationCount = pendingInvites.length + pendingFriendRequests.length;
   const [upcomingShowsBadgeCount, setUpcomingShowsBadgeCount] = useState(null);
 
   // Post-signup welcome + pending tags

@@ -175,7 +175,7 @@ export default function ShowsPage() {
                 { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-amber to-amber', action: () => { setStatsTab('venues'); navigateTo('stats'); } },
                 { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-danger to-danger', action: () => { setStatsTab('top'); navigateTo('stats'); } },
               ].map(stat => (
-                <button key={stat.label} onClick={stat.action} className="bg-hover backdrop-blur-xl border border-subtle rounded-xl p-2.5 text-center hover:bg-hover transition-all cursor-pointer">
+                <button key={stat.label} onClick={stat.action} className="bg-hover backdrop-blur-xl border border-subtle rounded-xl p-2.5 text-center hover:bg-[rgba(52,211,153,0.1)] hover:scale-105 hover:shadow-md transition-all duration-200 cursor-pointer">
                   <div className={`text-xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
                   <div className="text-[10px] font-medium text-secondary uppercase tracking-wide mt-0.5">{stat.label}</div>
                 </button>
@@ -249,7 +249,7 @@ export default function ShowsPage() {
                 }`}
               >
                 {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                {selectionMode ? 'Done' : 'Select'}
+                {selectionMode ? 'Done' : 'Select Multiple Shows'}
               </button>
             )}
           </div>
@@ -329,7 +329,7 @@ export default function ShowsPage() {
             {shows.length > 1 && (
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-subtle">
                 <span className="text-sm font-medium text-secondary">Sort:</span>
-                {['date', 'artist', 'rating'].map(opt => (
+                {['artist', 'rating'].map(opt => (
                   <button
                     key={opt}
                     onClick={() => setSortBy(opt)}
