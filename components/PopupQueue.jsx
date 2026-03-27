@@ -9,10 +9,11 @@ import PopupOverlay from '@/components/PopupOverlay';
  * PopupQueue — renders eligible popups one at a time.
  *
  * Props:
- *   isAdmin    (bool)   — current user is admin
- *   showCount  (number) — how many shows the user has
+ *   isAdmin          (bool)   — current user is admin
+ *   showCount        (number) — how many shows the user has
+ *   isReturningUser  (bool)   — account ≥ 7 days old
  */
-export default function PopupQueue({ isAdmin = false, showCount = 0 }) {
+export default function PopupQueue({ isAdmin = false, showCount = 0, isReturningUser = false }) {
   const [dismissedSet, setDismissedSet] = useState(new Set());
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -21,10 +22,10 @@ export default function PopupQueue({ isAdmin = false, showCount = 0 }) {
     popupManager.cleanupExpiredDismissals();
   }, []);
 
-  // Get all eligible popups (filtered by audience)
+  // Get all eligible popups (filtered by audience + account age)
   const eligiblePopups = useMemo(() => {
-    return getPopupsForUser({ isAdmin, showCount });
-  }, [isAdmin, showCount]);
+    return getPopupsForUser({ isAdmin, showCount, isReturningUser });
+  }, [isAdmin, showCount, isReturningUser]);
 
   // Filter to only popups that haven't been dismissed
   const pendingPopups = useMemo(() => {

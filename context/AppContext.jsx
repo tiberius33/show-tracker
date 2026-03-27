@@ -12,6 +12,7 @@ import { formatDate, parseDate, extractFirstName } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
+import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import {
   inviteEmail,
   friendJoinedEmail,
@@ -212,12 +213,18 @@ export function AppProvider({ children }) {
   const [guestMode, setGuestMode] = useState(() => !!storage.get(STORAGE_KEYS.GUEST_SESSION));
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
+  // Account age tracking (millis since epoch, from Firestore userProfile.createdAt)
+  const [userCreatedAt, setUserCreatedAt] = useState(null);
+
   // Onboarding tooltip state
   const [tooltipStep, setTooltipStep] = useState(0); // 0=hidden, 1=import, 2=scan
 
   useEffect(() => {
     const onShowsPage = pathname === '/shows' || pathname === '/shows/';
     if (!isLoading && (user || guestMode) && onShowsPage) {
+      // Suppress onboarding tooltips for returning users (account ≥ 7 days)
+      if (isReturningUser && !guestMode) return;
+
       const now = Date.now();
       const lastVisit = storage.get(STORAGE_KEYS.LAST_VISIT);
       const hasSeenTooltips = storage.get(STORAGE_KEYS.SEEN_TOOLTIPS);
@@ -233,7 +240,7 @@ export function AppProvider({ children }) {
 
       storage.set(STORAGE_KEYS.LAST_VISIT, String(now));
     }
-  }, [isLoading, user, guestMode, pathname]);
+  }, [isLoading, user, guestMode, pathname, isReturningUser]);
 
   const dismissTooltip = () => {
     setTooltipStep(0);
@@ -341,6 +348,9 @@ export function AppProvider({ children }) {
 
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
+  // Account-age eligibility — true if account ≥ 7 days old
+  const isReturningUser = useMemo(() => checkIsReturningUser(userCreatedAt), [userCreatedAt]);
 
   // Derived friends data
   const friendUids = useMemo(() => friends.map(f => f.friendUid), [friends]);
@@ -487,11 +497,15 @@ export function AppProvider({ children }) {
       console.log('Notifications listener error:', error.message);
     });
 
-    // Favorite artists
+    // Favorite artists + account createdAt
     const favRef = doc(db, 'userProfiles', user.uid);
     const unsubFavorites = onSnapshot(favRef, (docSnap) => {
       if (docSnap.exists()) {
-        setFavoriteArtists(docSnap.data().favoriteArtists || []);
+        const data = docSnap.data();
+        setFavoriteArtists(data.favoriteArtists || []);
+        // Extract createdAt for account-age tooltip eligibility
+        const createdMs = data.createdAt?.toMillis?.() || null;
+        setUserCreatedAt(createdMs);
       }
     }, (error) => {
       console.log('Favorites listener error:', error.message);
@@ -2398,6 +2412,10 @@ export function AppProvider({ children }) {
 
     // Admin
     isAdmin,
+
+    // Account age
+    userCreatedAt,
+    isReturningUser,
 
     // Community
     communityStats,

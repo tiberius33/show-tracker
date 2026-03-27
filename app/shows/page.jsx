@@ -41,6 +41,7 @@ export default function ShowsPage() {
     pendingTagsForReview, acceptPendingEmailTag, declinePendingEmailTag,
     toggleFavoriteArtist, isArtistFavorite,
     commentContext, setCommentContext,
+    isReturningUser,
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
@@ -506,6 +507,7 @@ export default function ShowsPage() {
                 currentUserUid={user?.uid}
                 friendAnnotations={friendAnnotationsForShow}
                 commentContext={commentContext}
+                isReturningUser={isReturningUser}
               />
             );
           })()}

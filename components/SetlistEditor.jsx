@@ -10,7 +10,7 @@ import UpcomingShows from '@/components/UpcomingShows';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 import SongHistoryModal from '@/components/SongHistoryModal';
 
-function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext }) {
+function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext, isReturningUser }) {
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -53,8 +53,10 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
     storage.set(STORAGE_KEYS.SHOW_PLAY_COUNTS, String(newValue));
   };
 
-  // Show playlist tooltip for users who haven't seen it yet
+  // Show playlist tooltip for new users who haven't seen it yet
   useEffect(() => {
+    // Suppress for returning users (account ≥ 7 days) — fixes mobile tooltip bug
+    if (isReturningUser) return;
     if (show.setlist?.length > 0 && onCreatePlaylist) {
       const seen = storage.get(STORAGE_KEYS.PLAYLIST_TOOLTIP_SEEN);
       if (!seen) {
@@ -62,7 +64,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
         return () => clearTimeout(timer);
       }
     }
-  }, [show.setlist, onCreatePlaylist]);
+  }, [show.setlist, onCreatePlaylist, isReturningUser]);
 
   // Scroll to comment when opened from Profile > Comments
   useEffect(() => {

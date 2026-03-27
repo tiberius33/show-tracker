@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Trash2, Eye, RotateCcw, Check, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, Trash2, Eye, RotateCcw, Check, Copy, ChevronDown, ChevronUp, Clock, UserCheck, UserPlus } from 'lucide-react';
 import { popupManager, POPUP_STORAGE_KEY } from '@/lib/popupManager';
 import { POPUPS, getPopupById } from '@/lib/popups';
 import PopupOverlay from '@/components/PopupOverlay';
+import { useApp } from '@/context/AppContext';
 
 /**
  * AdminPopups — admin tab for managing popup dismissals.
  */
 export default function AdminPopups() {
+  const { userCreatedAt, isReturningUser } = useApp();
   const [popupStates, setPopupStates] = useState([]);
   const [previewPopupId, setPreviewPopupId] = useState(null);
   const [showRawData, setShowRawData] = useState(false);
@@ -54,11 +56,64 @@ export default function AdminPopups() {
 
   const previewPopup = previewPopupId ? getPopupById(previewPopupId) : null;
 
+  const [testAsNewUser, setTestAsNewUser] = useState(false);
+
   const dismissedCount = popupStates.filter((p) => p.dismissed).length;
   const activeCount = popupStates.filter((p) => !p.dismissed && p.enabled !== false).length;
 
+  const accountAgeDays = userCreatedAt
+    ? Math.floor((Date.now() - userCreatedAt) / (24 * 60 * 60 * 1000))
+    : null;
+
   return (
     <div className="space-y-6">
+      {/* Account Age Info */}
+      <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-4 h-4 text-amber" />
+          <h3 className="text-sm font-semibold text-primary">Tooltip Eligibility</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          <div>
+            <span className="text-muted">Account Created</span>
+            <div className="text-secondary font-medium mt-0.5">
+              {userCreatedAt ? new Date(userCreatedAt).toLocaleDateString() : 'Unknown'}
+            </div>
+          </div>
+          <div>
+            <span className="text-muted">Account Age</span>
+            <div className="text-secondary font-medium mt-0.5">
+              {accountAgeDays !== null ? `${accountAgeDays} day${accountAgeDays !== 1 ? 's' : ''}` : 'Unknown'}
+            </div>
+          </div>
+          <div>
+            <span className="text-muted">Classification</span>
+            <div className="mt-0.5">
+              {isReturningUser ? (
+                <span className="inline-flex items-center gap-1 text-amber font-medium">
+                  <UserCheck className="w-3 h-3" /> Returning User
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-brand font-medium">
+                  <UserPlus className="w-3 h-3" /> New User
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 pt-3 border-t border-subtle flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer">
+            <input
+              type="checkbox"
+              checked={testAsNewUser}
+              onChange={() => setTestAsNewUser(!testAsNewUser)}
+              className="rounded"
+            />
+            Test as New User (preview which popups would show for accounts &lt; 7 days)
+          </label>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -127,6 +182,13 @@ export default function AdminPopups() {
                   <span className="text-[10px] text-muted bg-hover px-2 py-0.5 rounded-full border border-subtle">
                     v{popup.releaseVersion}
                   </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    popup.newUsersOnly !== false
+                      ? 'bg-amber-subtle text-amber'
+                      : 'bg-brand-subtle text-brand'
+                  }`}>
+                    {popup.newUsersOnly !== false ? 'NEW ONLY' : 'ALL USERS'}
+                  </span>
                 </div>
                 <p className="text-xs text-muted mt-1 font-mono truncate">{popup.id}</p>
               </div>
@@ -163,6 +225,18 @@ export default function AdminPopups() {
                 <div className="flex justify-between">
                   <span className="text-muted">Target Audience</span>
                   <span className="text-secondary font-medium">{popup.targetAudience}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">New Users Only</span>
+                  <span className="text-secondary font-medium">{popup.newUsersOnly !== false ? 'Yes' : 'No'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Eligible for You</span>
+                  <span className={`font-medium ${
+                    (!isReturningUser || testAsNewUser || popup.newUsersOnly === false) ? 'text-brand' : 'text-danger'
+                  }`}>
+                    {(!isReturningUser || testAsNewUser || popup.newUsersOnly === false) ? 'Yes' : 'Suppressed (returning user)'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted">Dismissed</span>
