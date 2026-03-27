@@ -216,6 +216,9 @@ export function AppProvider({ children }) {
   // Account age tracking (millis since epoch, from Firestore userProfile.createdAt)
   const [userCreatedAt, setUserCreatedAt] = useState(null);
 
+  // Account-age eligibility — true if account ≥ 7 days old (must be before tooltip useEffect)
+  const isReturningUser = useMemo(() => checkIsReturningUser(userCreatedAt), [userCreatedAt]);
+
   // Onboarding tooltip state
   const [tooltipStep, setTooltipStep] = useState(0); // 0=hidden, 1=import, 2=scan
 
@@ -348,9 +351,6 @@ export function AppProvider({ children }) {
 
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
-
-  // Account-age eligibility — true if account ≥ 7 days old
-  const isReturningUser = useMemo(() => checkIsReturningUser(userCreatedAt), [userCreatedAt]);
 
   // Derived friends data
   const friendUids = useMemo(() => friends.map(f => f.friendUid), [friends]);
