@@ -37,7 +37,7 @@ function AppShell({ children }) {
     pendingNotificationCount, upcomingShowsBadgeCount,
     friends, handleLogout,
     enterGuestMode, exitGuestMode, communityStats,
-    handleAuthSuccess,
+    handleAuthSuccess, isReturningUser,
   } = useApp();
 
   // Initialize Capacitor native plugins on mount
@@ -226,6 +226,7 @@ function AppShell({ children }) {
         <PopupQueue
           isAdmin={isAdmin}
           showCount={shows?.length || 0}
+          isReturningUser={isReturningUser}
         />
       )}
 
