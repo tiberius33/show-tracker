@@ -22,16 +22,23 @@ async function loginUser(page, email, password) {
 /**
  * Dismiss any overlay modals/banners that appear after login.
  * These can block subsequent clicks if not handled.
+ *
+ * The "What's New" modal often appears 200-500ms after the sidebar renders,
+ * so we wait up to 5s for it rather than giving up after 2s.
  */
 async function dismissOverlays(page) {
-  // "What's New" modal
+  // "What's New" modal — wait generously since it can appear after a short delay
   const whatsNew = page.getByRole('button', { name: 'Got it' });
-  if (await whatsNew.isVisible({ timeout: 2000 }).catch(() => false)) {
+  if (await whatsNew.isVisible({ timeout: 5000 }).catch(() => false)) {
     await whatsNew.click();
-    await whatsNew.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    // Wait until the modal heading is fully gone before proceeding
+    await page
+      .getByRole('heading', { name: "What's New" })
+      .waitFor({ state: 'hidden', timeout: 5000 })
+      .catch(() => {});
   }
 
-  // Onboarding tooltip
+  // Onboarding tooltip (shares the same "Got it" text, check again briefly)
   const tooltip = page.getByRole('button', { name: /got it/i });
   if (await tooltip.isVisible({ timeout: 1500 }).catch(() => false)) {
     await tooltip.click();

@@ -45,9 +45,9 @@ test.describe('Shows Smoke Tests', () => {
   // Add a show
   // ---------------------------------------------------------------------------
   test('can add a show via the add-show flow', async ({ page }) => {
-    // Open the add-show modal/form — button text varies; try common labels
+    // The main add-show entry point is "Search for a Show"
     const addBtn = page
-      .getByRole('button', { name: /add show|log show|add a show/i })
+      .getByRole('button', { name: /search for a show/i })
       .first();
     await expect(addBtn).toBeVisible({ timeout: 10000 });
     await addBtn.click();
