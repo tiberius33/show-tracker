@@ -8,7 +8,7 @@ import {
   browserSessionPersistence
 } from 'firebase/auth';
 import { auth, authProviders } from '@/lib/firebase';
-import { nativeGoogleSignIn, nativeAppleSignIn } from '@/lib/native-auth';
+import { nativeGoogleSignIn } from '@/lib/native-auth';
 import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
@@ -49,8 +49,6 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
       let result = null;
       if (providerName === 'google') {
         result = await nativeGoogleSignIn();
-      } else if (providerName === 'apple') {
-        result = await nativeAppleSignIn();
       }
 
       // If native didn't handle it, use web popup

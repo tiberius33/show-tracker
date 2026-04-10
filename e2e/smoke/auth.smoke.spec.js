@@ -67,6 +67,24 @@ test.describe('Auth Smoke Tests', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Apple Sign-In removal verification
+  // ---------------------------------------------------------------------------
+  test('Apple Sign-In button is not present on auth page', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'load' });
+    // Open the sign-in modal
+    const signInBtn = page.getByRole('button', { name: /sign in/i }).first();
+    if (await signInBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await signInBtn.click();
+    }
+    // Apple button must not appear
+    await expect(
+      page.getByRole('button', { name: /sign in with apple|sign up with apple/i })
+    ).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText('Sign in with Apple');
+    await expect(page.locator('body')).not.toContainText('Sign up with Apple');
+  });
+
+  // ---------------------------------------------------------------------------
   // Session Persistence
   // ---------------------------------------------------------------------------
   test('session persists across page reload', async ({ page }) => {
