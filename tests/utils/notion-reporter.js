@@ -73,7 +73,7 @@ class NotionReporter {
         Total: { number: total },
         Duration: { number: duration },
         Status: {
-          status: { name: allPassed ? 'Pass' : 'Fail' },
+          select: { name: allPassed ? 'Pass' : 'Fail' },
         },
         Suite: {
           rich_text: [{ text: { content: this._suiteName } }],

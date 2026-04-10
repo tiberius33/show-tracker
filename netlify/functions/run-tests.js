@@ -210,7 +210,7 @@ exports.handler = async function (event) {
           Failed: { number: summary.failed },
           Total: { number: summary.total },
           Duration: { number: duration },
-          Status: { status: { name: allPassed ? 'Pass' : 'Fail' } },
+          Status: { select: { name: allPassed ? 'Pass' : 'Fail' } },
           Suite: { rich_text: [{ text: { content: 'API Health Checks' } }] },
           Environment: {
             select: { name: process.env.ENVIRONMENT || 'production' },
