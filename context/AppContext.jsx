@@ -219,38 +219,6 @@ export function AppProvider({ children }) {
   // Account-age eligibility — true if account ≥ 7 days old (must be before tooltip useEffect)
   const isReturningUser = useMemo(() => checkIsReturningUser(userCreatedAt), [userCreatedAt]);
 
-  // Onboarding tooltip state
-  const [tooltipStep, setTooltipStep] = useState(0); // 0=hidden, 1=import, 2=scan
-
-  useEffect(() => {
-    const onShowsPage = pathname === '/shows' || pathname === '/shows/';
-    if (!isLoading && (user || guestMode) && onShowsPage) {
-      // Suppress onboarding tooltips for returning users (account ≥ 7 days)
-      if (isReturningUser && !guestMode) return;
-
-      const now = Date.now();
-      const lastVisit = storage.get(STORAGE_KEYS.LAST_VISIT);
-      const hasSeenTooltips = storage.get(STORAGE_KEYS.SEEN_TOOLTIPS);
-      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-
-      const shouldShow = !hasSeenTooltips || !lastVisit || (now - parseInt(lastVisit, 10)) > sevenDaysMs;
-
-      if (shouldShow) {
-        const timer = setTimeout(() => setTooltipStep(1), 800);
-        storage.set(STORAGE_KEYS.LAST_VISIT, String(now));
-        return () => clearTimeout(timer);
-      }
-
-      storage.set(STORAGE_KEYS.LAST_VISIT, String(now));
-    }
-  }, [isLoading, user, guestMode, pathname, isReturningUser]);
-
-  const dismissTooltip = () => {
-    setTooltipStep(0);
-    storage.set(STORAGE_KEYS.SEEN_TOOLTIPS, '1');
-    storage.set(STORAGE_KEYS.LAST_VISIT, String(Date.now()));
-  };
-
   // ── Navigation ──────────────────────────────────────────────────────
   // In Next.js the active view is determined by the pathname.
   // navigateTo pushes a new route instead of setting ?view= query params.
@@ -2404,11 +2372,6 @@ export function AppProvider({ children }) {
     exitGuestMode,
     handleMigrateData,
     handleSkipMigration,
-
-    // Onboarding tooltips
-    tooltipStep,
-    setTooltipStep,
-    dismissTooltip,
 
     // Admin
     isAdmin,
