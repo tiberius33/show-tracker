@@ -32,8 +32,7 @@ export default function ShowsPage() {
     pendingNotificationCount, pendingFriendRequests, pendingShowTags,
     setFriendsInitialTab, navigateTo,
     summaryStats, userRank, statsTab, setStatsTab,
-    tooltipStep, dismissTooltip,
-    setlistScanning, setlistScanProgress, scanForMissingSetlists,
+setlistScanning, setlistScanProgress, scanForMissingSetlists,
     sortedFilteredShows, artistGroups, importedIds,
     myConfirmedSuggestions, normalizeShowKey,
     memoriesShow, sharedComments, commentsLoading,
@@ -209,29 +208,11 @@ export default function ShowsPage() {
             <div className="relative">
               <button
                 onClick={() => navigateTo('scan-import')}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${tooltipStep === 1 ? 'ring-2 ring-[#34D399]/60 ring-offset-2 ring-offset-base' : ''}`}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20"
               >
                 <Camera className="w-4 h-4" />
                 Scan / Import
               </button>
-              {tooltipStep === 1 && (
-                <>
-                  <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 w-56 z-[60] animate-in">
-                    <div className="bg-sidebar border border-sidebar rounded-xl p-3 shadow-xl shadow-sidebar/30 relative">
-                      <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-sidebar" />
-                      <p className="text-on-dark text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                      <button onClick={dismissTooltip} className="bg-[#34D399] hover:bg-[#2bb583] text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">Got it ✓</button>
-                    </div>
-                  </div>
-                  <div className="md:hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 z-[60] animate-in-mobile">
-                    <div className="bg-sidebar border border-sidebar rounded-xl p-3 shadow-xl shadow-sidebar/30 relative">
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-sidebar" />
-                      <p className="text-on-dark text-xs leading-relaxed mb-2">Scan ticket stubs with AI or import a CSV/Excel file to add shows in bulk</p>
-                      <button onClick={dismissTooltip} className="bg-[#34D399] hover:bg-[#2bb583] text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">Got it ✓</button>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 

@@ -117,4 +117,15 @@ test.describe('Shows Smoke Tests', () => {
     await expect(page.locator('body')).not.toContainText('Application error');
     await expect(page).toHaveTitle(/MySetlists/i);
   });
+
+  // ---------------------------------------------------------------------------
+  // How to Use page loads
+  // ---------------------------------------------------------------------------
+  test('how-to-use page loads with content', async ({ page }) => {
+    await page.goto('/how-to-use', { waitUntil: 'load' });
+    await expect(page.locator('body')).not.toContainText('Application error');
+    await expect(page.getByRole('heading', { name: /how to use/i })).toBeVisible();
+    // Sidebar link should be present and active
+    await expect(page.getByRole('link', { name: /how to use/i })).toBeVisible();
+  });
 });
