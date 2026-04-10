@@ -30,8 +30,15 @@
     "lint": "next lint",
     "build:ios": "next build && npx cap sync ios",
     "open:ios": "npx cap open ios",
+
     "test:e2e": "npx playwright test",
-    "test:smoke": "npx playwright test e2e/smoke.spec.js"
+    "test:smoke": "npx playwright test --project=smoke",
+    "test:integration": "npx playwright test --project=integration",
+    "test:legacy": "npx playwright test --project=legacy-smoke",
+    "test:all": "npx playwright test --project=smoke --project=integration",
+
+    "test:pre-deploy": "node tests/utils/pre-deploy-checks.js",
+    "test:cleanup": "node e2e/utils/cleanup.js"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.2.0",

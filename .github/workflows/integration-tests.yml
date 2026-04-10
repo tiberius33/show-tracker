@@ -1,0 +1,98 @@
+name: Integration Tests
+
+on:
+  # Run after smoke tests pass on main (feature-level validation)
+  push:
+    branches: [main]
+  # Allow manual trigger for one-off integration test runs
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Target URL (defaults to https://mysetlists.net)'
+        required: false
+        default: 'https://mysetlists.net'
+      suite:
+        description: 'Test suite to run (all | social | setlists | playlists | ai-ticket-scan | notifications)'
+        required: false
+        default: 'all'
+
+jobs:
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    # Only run integration tests when pushing to main, not on PRs
+    # (PRs get smoke tests; full integration runs only after merge)
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      # Wait for Netlify deploy to complete before running integration tests
+      - name: Wait for Netlify deploy
+        if: github.event_name == 'push'
+        run: sleep 120
+
+      - name: Run integration tests (all suites)
+        if: ${{ inputs.suite == 'all' || inputs.suite == '' || github.event_name == 'push' }}
+        env:
+          TEST_BASE_URL: ${{ inputs.base_url || 'https://mysetlists.net' }}
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          TEST_EMAIL_2: ${{ secrets.TEST_EMAIL_2 }}
+          TEST_PASSWORD_2: ${{ secrets.TEST_PASSWORD_2 }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_TEST_DATABASE_ID: ${{ secrets.NOTION_TEST_DATABASE_ID }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TEST_SUITE_NAME: Integration Tests
+          ENVIRONMENT: production
+        run: npx playwright test --project=integration
+
+      - name: Run single integration suite
+        if: ${{ inputs.suite != 'all' && inputs.suite != '' && github.event_name == 'workflow_dispatch' }}
+        env:
+          TEST_BASE_URL: ${{ inputs.base_url || 'https://mysetlists.net' }}
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          TEST_EMAIL_2: ${{ secrets.TEST_EMAIL_2 }}
+          TEST_PASSWORD_2: ${{ secrets.TEST_PASSWORD_2 }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_TEST_DATABASE_ID: ${{ secrets.NOTION_TEST_DATABASE_ID }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          TEST_SUITE_NAME: ${{ inputs.suite }} Integration Tests
+          ENVIRONMENT: production
+        run: npx playwright test --project=integration e2e/integration/${{ inputs.suite }}.integration.spec.js
+
+      # Clean up any test- prefixed data left by the integration tests
+      - name: Clean up test data
+        if: always()
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          TEST_FIREBASE_UID: ${{ secrets.TEST_FIREBASE_UID }}
+        run: |
+          if [ -n "$TEST_FIREBASE_UID" ] && [ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            node e2e/utils/cleanup.js "$TEST_FIREBASE_UID"
+          else
+            echo "Skipping cleanup: TEST_FIREBASE_UID or FIREBASE_SERVICE_ACCOUNT_JSON not set"
+          fi
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: integration-test-results
+          path: test-results/
+          retention-days: 14
