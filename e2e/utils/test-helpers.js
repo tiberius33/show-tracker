@@ -1,0 +1,84 @@
+// @ts-check
+'use strict';
+
+const { expect } = require('@playwright/test');
+
+/**
+ * Sign in via the email/password form.
+ * Returns once the main authenticated sidebar is visible.
+ */
+async function loginUser(page, email, password) {
+  await page.goto('/', { waitUntil: 'load' });
+  await page.getByRole('button', { name: /sign in/i }).click();
+  await page.getByPlaceholder('Email address').fill(email);
+  await page.getByPlaceholder('Password').fill(password);
+  await page.locator('form').getByRole('button', { name: /sign in/i }).click();
+  // Wait for the sidebar nav link to appear — confirms auth + render
+  await expect(
+    page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first()
+  ).toBeVisible({ timeout: 20000 });
+}
+
+/**
+ * Dismiss any overlay modals/banners that appear after login.
+ * These can block subsequent clicks if not handled.
+ */
+async function dismissOverlays(page) {
+  // "What's New" modal
+  const whatsNew = page.getByRole('button', { name: 'Got it' });
+  if (await whatsNew.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await whatsNew.click();
+    await whatsNew.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+  }
+
+  // Onboarding tooltip
+  const tooltip = page.getByRole('button', { name: /got it/i });
+  if (await tooltip.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await tooltip.click();
+  }
+
+  // Cookie consent banner
+  const cookieBanner = page
+    .locator('[class*="fixed bottom-0"]')
+    .filter({ hasText: /cookie|accept/i });
+  if (await cookieBanner.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await cookieBanner.getByRole('button').first().click();
+    await cookieBanner
+      .waitFor({ state: 'hidden', timeout: 3000 })
+      .catch(() => {});
+  }
+}
+
+/**
+ * Full authenticated session setup: navigate, sign in, dismiss overlays.
+ */
+async function setupAuthenticatedSession(page, email, password) {
+  await loginUser(page, email, password);
+  await dismissOverlays(page);
+}
+
+/**
+ * Sign out via the Logout button.
+ */
+async function logoutUser(page) {
+  await page.getByText('Logout').click({ force: true });
+  await expect(
+    page.getByRole('button', { name: /get started/i }).first()
+  ).toBeVisible({ timeout: 15000 });
+}
+
+/**
+ * Navigate to a page via the sidebar link by its label.
+ */
+async function navigateSidebar(page, label) {
+  await page.getByRole('link', { name: new RegExp(label, 'i') }).first().click();
+  await expect(page.locator('body')).not.toContainText('Application error');
+}
+
+module.exports = {
+  loginUser,
+  dismissOverlays,
+  setupAuthenticatedSession,
+  logoutUser,
+  navigateSidebar,
+};
