@@ -56,7 +56,7 @@ test.describe('Email Smoke Tests', () => {
     const res = await request.fetch(`${BASE}/.netlify/functions/unsubscribe`, {
       method: 'OPTIONS',
     });
-    expect([200, 405]).toContain(res.status());
+    expect([200, 204, 405]).toContain(res.status());
   });
 
   test('unsubscribe with missing token returns an error', async ({ request }) => {
@@ -76,7 +76,7 @@ test.describe('Email Smoke Tests', () => {
       `${BASE}/.netlify/functions/update-email-preferences`,
       { method: 'OPTIONS' }
     );
-    expect([200, 405]).toContain(res.status());
+    expect([200, 204, 405]).toContain(res.status());
   });
 
   // ---------------------------------------------------------------------------

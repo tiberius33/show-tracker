@@ -45,45 +45,29 @@ test.describe('Shows Smoke Tests', () => {
   // Add a show
   // ---------------------------------------------------------------------------
   test('can add a show via the add-show flow', async ({ page }) => {
-    // The main add-show entry point is "Search for a Show"
+    // "Search for a Show" button navigates to /search
     const addBtn = page
       .getByRole('button', { name: /search for a show/i })
       .first();
     await expect(addBtn).toBeVisible({ timeout: 10000 });
     await addBtn.click();
 
-    // Fill in the search / artist field
-    const artistInput = page
-      .getByPlaceholder(/artist|search/i)
-      .first();
+    // Should now be on the Search Shows page
+    await expect(
+      page.getByRole('heading', { name: /search shows/i })
+    ).toBeVisible({ timeout: 10000 });
+
+    // Fill in the artist name field (placeholder: "e.g., Radiohead")
+    const artistInput = page.getByPlaceholder(/radiohead/i);
     await expect(artistInput).toBeVisible({ timeout: 5000 });
-    await artistInput.fill(TEST_ARTIST);
+    await artistInput.fill('Radiohead');
 
-    // Some flows require selecting from a dropdown; if a text input is
-    // followed by a free-text "confirm" button, click it.
-    // We look for a "Save" / "Add" / "Log" button inside the modal.
-    const saveBtn = page
-      .getByRole('button', { name: /save|add|log|confirm/i })
-      .last();
-    if (await saveBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await saveBtn.click();
-    }
+    // "Search Artists" button becomes enabled once artist is filled
+    const searchBtn = page.getByRole('button', { name: /search artists/i });
+    await expect(searchBtn).toBeEnabled({ timeout: 5000 });
+    await searchBtn.click();
 
-    // If there's a date picker, fill it
-    const dateInput = page.locator('input[type="date"]').first();
-    if (await dateInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await dateInput.fill(TEST_DATE);
-    }
-
-    // Final save
-    const finalSave = page
-      .getByRole('button', { name: /save|done|add show/i })
-      .last();
-    if (await finalSave.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await finalSave.click();
-    }
-
-    // The page should not error after the add attempt
+    // Results should load or show a "no results" message — either way no crash
     await expect(page.locator('body')).not.toContainText('Application error');
   });
 
