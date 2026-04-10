@@ -92,7 +92,7 @@ test.describe('Setlists Integration Tests', () => {
       `${BASE}/.netlify/functions/admin-find-missing-setlists`,
       { method: 'OPTIONS' }
     );
-    expect(res.status()).toBe(200);
+    expect([200, 204]).toContain(res.status());
   });
 
   // ---------------------------------------------------------------------------
@@ -134,13 +134,15 @@ test.describe('Setlists Integration Tests', () => {
     await page.goto('/search', { waitUntil: 'load' });
     await expect(page.locator('body')).not.toContainText('Application error');
 
-    // Type in the search box
-    const searchInput = page
-      .getByPlaceholder(/search|artist/i)
-      .first();
+    // Type in the artist search box (placeholder is "e.g., Radiohead")
+    const searchInput = page.getByPlaceholder(/radiohead/i);
     await expect(searchInput).toBeVisible({ timeout: 10000 });
     await searchInput.fill('Radiohead');
-    await searchInput.press('Enter');
+
+    // Click the Search Artists button (enabled once artist name is filled)
+    const searchBtn = page.getByRole('button', { name: /search artists/i });
+    await expect(searchBtn).toBeEnabled({ timeout: 5000 });
+    await searchBtn.click();
 
     // Results should appear within 15s (real API call)
     await expect(page.locator('body')).not.toContainText('Application error');

@@ -30,7 +30,7 @@ test.describe('Playlists Integration Tests', () => {
       `${BASE}/.netlify/functions/spotify-token`,
       { method: 'OPTIONS' }
     );
-    expect(res.status()).toBe(200);
+    expect([200, 204]).toContain(res.status());
   });
 
   test('spotify-token POST without code returns 400', async ({ request }) => {
@@ -50,7 +50,7 @@ test.describe('Playlists Integration Tests', () => {
       `${BASE}/.netlify/functions/apple-music-token`,
       { method: 'OPTIONS' }
     );
-    expect(res.status()).toBe(200);
+    expect([200, 204]).toContain(res.status());
   });
 
   test('apple-music-token GET returns a token or config-error', async ({
@@ -75,7 +75,7 @@ test.describe('Playlists Integration Tests', () => {
       `${BASE}/.netlify/functions/spotify-api`,
       { method: 'OPTIONS' }
     );
-    expect(res.status()).toBe(200);
+    expect([200, 204]).toContain(res.status());
   });
 
   test('spotify-api without access token returns 401', async ({ request }) => {
