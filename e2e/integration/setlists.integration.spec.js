@@ -99,8 +99,9 @@ test.describe('Setlists Integration Tests', () => {
   // Artist stats (uses real data from setlist.fm + cache)
   // ---------------------------------------------------------------------------
   test('get-artist-stats returns stats for Radiohead', async ({ request }) => {
+    // Function requires ?slug= (lowercase artist slug), not ?artistName=
     const res = await request.get(
-      `${BASE}/.netlify/functions/get-artist-stats?artistName=Radiohead`
+      `${BASE}/.netlify/functions/get-artist-stats?slug=radiohead`
     );
     // 200 with stats, 404 if not cached, 500 if upstream API unavailable
     expect([200, 404, 500]).toContain(res.status());
@@ -111,10 +112,12 @@ test.describe('Setlists Integration Tests', () => {
   });
 
   test('get-artist-tours returns tours for Radiohead', async ({ request }) => {
+    // Function requires ?mbid= (MusicBrainz ID), not ?artistName=
+    // Radiohead MBID: a74b1b7f-71a5-4011-9441-d0b5e4122711
     const res = await request.get(
-      `${BASE}/.netlify/functions/get-artist-tours?artistName=Radiohead`
+      `${BASE}/.netlify/functions/get-artist-tours?mbid=a74b1b7f-71a5-4011-9441-d0b5e4122711`
     );
-    // 200 with tours, 404 if none found, 500 if upstream API unavailable
+    // 200 with tours, 404/500 if upstream API unavailable
     expect([200, 404, 500]).toContain(res.status());
   });
 
