@@ -80,7 +80,8 @@ function checkEnvVars() {
   const recommended = [
     'SETLISTFM_API_KEY',
     'RESEND_API_KEY',
-    'FIREBASE_SERVICE_ACCOUNT_JSON',
+    'FIREBASE_PRIVATE_KEY',
+    'FIREBASE_CLIENT_EMAIL',
     'ANTHROPIC_API_KEY',
   ];
   for (const v of recommended) {

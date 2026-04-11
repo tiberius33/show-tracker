@@ -7,13 +7,14 @@ const CORS_HEADERS = { 'Content-Type': 'application/json', 'Access-Control-Allow
 // --- Firebase Admin (lazy init, graceful degradation if env vars missing) ---
 
 function getDb() {
-  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const projectId = process.env.FIREBASE_PROJECT_ID;
-  if (!json || !projectId) return null;
+  if (!privateKey || !clientEmail || !projectId) return null;
   try {
     const { getApps, initializeApp, cert } = require('firebase-admin/app');
     if (!getApps().length) {
-      initializeApp({ credential: cert(JSON.parse(json)), projectId });
+      initializeApp({ credential: cert({ privateKey, clientEmail, projectId }), projectId });
     }
     const { getFirestore } = require('firebase-admin/firestore');
     return getFirestore();
