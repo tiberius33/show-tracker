@@ -70,6 +70,14 @@ test.describe('Auth Smoke Tests', () => {
   // Apple Sign-In removal verification
   // ---------------------------------------------------------------------------
   test('Apple Sign-In button is not present on auth page', async ({ page }) => {
+    // On pull_request runs the test targets production, which may still have
+    // Apple auth until the removal PR is merged and deployed. Skip pre-deploy;
+    // enforce on push (post-deploy) and manual runs.
+    if (process.env.GITHUB_EVENT_NAME === 'pull_request') {
+      test.skip(true, 'Skipping Apple removal check on PR run — production not yet updated');
+      return;
+    }
+
     await page.goto('/', { waitUntil: 'load' });
     // Open the sign-in modal
     const signInBtn = page.getByRole('button', { name: /sign in/i }).first();
