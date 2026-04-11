@@ -170,8 +170,8 @@ async function checkExternalApis() {
     const { statusCode } = await httpsGet(
       'https://accounts.spotify.com/api/token'
     );
-    // 400 = endpoint reachable (missing grant type), which is fine
-    if ([200, 400, 401].includes(statusCode)) {
+    // 400/401 = reachable but missing auth; 405 = GET not allowed (POST-only endpoint) — all fine
+    if ([200, 400, 401, 405].includes(statusCode)) {
       pass(`Spotify accounts API (${statusCode})`);
     } else {
       fail('Spotify accounts API', `unexpected status ${statusCode}`);
