@@ -47,6 +47,7 @@ jobs:
           NOTION_TEST_DATABASE_ID: ${{ secrets.NOTION_TEST_DATABASE_ID }}
           TEST_SUITE_NAME: Smoke Tests
           ENVIRONMENT: production
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: npx playwright test --project=smoke
 
       - name: Upload test results on failure
