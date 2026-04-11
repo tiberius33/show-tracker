@@ -204,15 +204,25 @@ async function checkExternalApis() {
 // Netlify injects every site-level env var into every function, so this check
 // catches oversized payloads before Netlify even tries to upload functions.
 
-// System/OS env vars that are always present in any Unix process but are NOT
-// injected by Netlify into Lambda functions — exclude them from the size count
-// so the check reflects only what Netlify actually sends to AWS.
+// Prefixes and exact keys for env vars that exist during the Netlify BUILD
+// process but are NOT injected into Lambda functions at runtime.
+// Netlify itself injects many build-system vars (FEATURE_FLAGS, BUILD_ID,
+// DEPLOY_ID, etc.) that never reach AWS Lambda.
+const SYSTEM_KEY_PREFIXES = [
+  'npm_', 'NEXT_PUBLIC_', 'NETLIFY_', 'NODE_', 'AWS_',
+];
 const SYSTEM_ENV_KEYS = new Set([
+  // OS / shell
   'PATH', 'HOME', 'USER', 'SHELL', 'PWD', 'OLDPWD', 'TMPDIR', 'TEMP', 'TMP',
   'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'COLORTERM', 'SHLVL', 'LOGNAME',
-  'HOSTNAME', 'NODE', 'npm_execpath', 'npm_config_cache', 'npm_config_prefix',
-  'npm_lifecycle_event', 'npm_lifecycle_script', 'npm_package_name',
-  'npm_package_version', 'INIT_CWD', 'NODE_ENV', 'CI',
+  'HOSTNAME', 'INIT_CWD', 'CI',
+  // Netlify build-system vars (injected by Netlify, not user-defined)
+  'FEATURE_FLAGS', 'BUILD_ID', 'DEPLOY_ID', 'DEPLOY_URL', 'DEPLOY_PRIME_URL',
+  'URL', 'REPOSITORY_URL', 'BRANCH', 'HEAD', 'COMMIT_REF', 'CACHED_COMMIT_REF',
+  'PULL_REQUEST', 'REVIEW_ID', 'CONTEXT', 'NETLIFY',
+  'NETLIFY_BUILD_BASE', 'NETLIFY_REPO_URL', 'NETLIFY_IMAGES_CDN_DOMAIN',
+  // Node / build tooling
+  'NODE_ENV', 'NODE_VERSION', 'NPM_VERSION',
 ]);
 
 function checkEnvVarSize() {
@@ -224,10 +234,9 @@ function checkEnvVarSize() {
   const large = [];
 
   for (const [key, value] of Object.entries(process.env)) {
-    // Skip system/OS vars that Netlify does not inject into Lambda functions
+    // Skip OS, Netlify build-system, and frontend-only vars
     if (SYSTEM_ENV_KEYS.has(key)) continue;
-    // Skip npm_* and NEXT_PUBLIC_* — latter is baked into the static bundle
-    if (key.startsWith('npm_') || key.startsWith('NEXT_PUBLIC_')) continue;
+    if (SYSTEM_KEY_PREFIXES.some((p) => key.startsWith(p))) continue;
 
     const size = Buffer.byteLength(key + '=' + (value || ''), 'utf8');
     totalBytes += size;
