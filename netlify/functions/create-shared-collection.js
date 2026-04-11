@@ -12,10 +12,11 @@ const CORS_HEADERS = {
 function initFirebase() {
   const { getApps, initializeApp, cert } = require('firebase-admin/app');
   if (getApps().length > 0) return;
-  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const projectId = process.env.FIREBASE_PROJECT_ID;
-  if (!json || !projectId) throw new Error('Firebase env vars not configured');
-  initializeApp({ credential: cert(JSON.parse(json)), projectId });
+  if (!privateKey || !clientEmail || !projectId) throw new Error('Firebase env vars not configured');
+  initializeApp({ credential: cert({ privateKey, clientEmail, projectId }), projectId });
 }
 
 async function verifyToken(authHeader) {

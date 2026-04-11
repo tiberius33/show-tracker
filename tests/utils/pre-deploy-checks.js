@@ -80,7 +80,8 @@ function checkEnvVars() {
   const recommended = [
     'SETLISTFM_API_KEY',
     'RESEND_API_KEY',
-    'FIREBASE_SERVICE_ACCOUNT_JSON',
+    'FIREBASE_PRIVATE_KEY',
+    'FIREBASE_CLIENT_EMAIL',
     'ANTHROPIC_API_KEY',
   ];
   for (const v of recommended) {
@@ -198,6 +199,51 @@ async function checkExternalApis() {
   }
 }
 
+// ── Lambda env-var size check ─────────────────────────────────────────────────
+// AWS Lambda rejects functions when the total env var payload exceeds 4 KB.
+// Netlify injects every site-level env var into every function, so this check
+// catches oversized payloads before Netlify even tries to upload functions.
+
+function checkEnvVarSize() {
+  console.log('\n4. Lambda Environment Variable Size');
+  const LAMBDA_LIMIT_BYTES = 4 * 1024; // 4 KB
+  const WARN_THRESHOLD = 3 * 1024;     // Warn at 3 KB
+
+  let totalBytes = 0;
+  const large = [];
+
+  for (const [key, value] of Object.entries(process.env)) {
+    const size = Buffer.byteLength(key + '=' + (value || ''), 'utf8');
+    totalBytes += size;
+    if (size > 256) {
+      large.push({ key, bytes: size });
+    }
+  }
+
+  if (totalBytes >= LAMBDA_LIMIT_BYTES) {
+    const kb = (totalBytes / 1024).toFixed(1);
+    const top = large
+      .sort((a, b) => b.bytes - a.bytes)
+      .slice(0, 5)
+      .map(({ key, bytes }) => `${key} (${(bytes / 1024).toFixed(1)} KB)`)
+      .join(', ');
+    fail(
+      'Lambda env var size',
+      `${kb} KB exceeds the 4 KB limit — deploy will fail at function upload.\n` +
+      `  Largest variables: ${top}\n` +
+      `  Fix: in Netlify dashboard → Environment variables, change the scope of\n` +
+      `  large secrets (e.g. APPLE_MUSIC_PRIVATE_KEY, FIREBASE_ADMIN_PRIVATE_KEY)\n` +
+      `  from "All scopes" to "Builds" only so they are not injected into functions.`
+    );
+  } else if (totalBytes >= WARN_THRESHOLD) {
+    const kb = (totalBytes / 1024).toFixed(1);
+    pass(`Lambda env var size (${kb} KB — approaching 4 KB limit, monitor this)`);
+  } else {
+    const kb = (totalBytes / 1024).toFixed(1);
+    pass(`Lambda env var size (${kb} KB)`);
+  }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -208,6 +254,7 @@ async function main() {
   checkEnvVars();
   checkFunctionFiles();
   await checkExternalApis();
+  checkEnvVarSize();
 
   console.log('\n─────────────────────────────────────');
   console.log(`  Passed: ${passed}`);
