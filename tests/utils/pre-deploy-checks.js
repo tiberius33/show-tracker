@@ -201,22 +201,90 @@ async function checkExternalApis() {
 
 // ── Lambda env-var size check ─────────────────────────────────────────────────
 // AWS Lambda rejects functions when the total env var payload exceeds 4 KB.
-// Netlify injects every site-level env var into every function, so this check
-// catches oversized payloads before Netlify even tries to upload functions.
+// Netlify only injects site-level env vars with "functions" scope into Lambda,
+// but during the build process.env contains many additional system/build-only
+// variables.  We query the Netlify API to measure only the vars that will
+// actually be present in the deployed function environment.
 
-function checkEnvVarSize() {
+async function fetchFunctionScopedEnvSize() {
+  const token = process.env.NETLIFY_AUTH_TOKEN;
+  const siteId = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+  const accountId = process.env.ACCOUNT_ID;
+  if (!token || !siteId || !accountId) return null;
+
+  const https = require('https');
+  const url = `https://api.netlify.com/api/v1/accounts/${accountId}/env?site_id=${siteId}`;
+
+  return new Promise((resolve) => {
+    const req = https.get(url, { headers: { Authorization: `Bearer ${token}` } }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(Buffer.concat(chunks).toString());
+          if (!Array.isArray(data)) { resolve(null); return; }
+
+          let totalBytes = 0;
+          const large = [];
+          for (const v of data) {
+            if (!v.scopes || !v.scopes.includes('functions')) continue;
+            const val = v.values && v.values[0] ? v.values[0].value || '' : '';
+            const size = Buffer.byteLength(v.key + '=' + val, 'utf8');
+            totalBytes += size;
+            if (size > 256) large.push({ key: v.key, bytes: size });
+          }
+          resolve({ totalBytes, large });
+        } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(5000, () => { req.destroy(); resolve(null); });
+  });
+}
+
+async function checkEnvVarSize() {
   console.log('\n4. Lambda Environment Variable Size');
   const LAMBDA_LIMIT_BYTES = 4 * 1024; // 4 KB
   const WARN_THRESHOLD = 3 * 1024;     // Warn at 3 KB
 
-  let totalBytes = 0;
-  const large = [];
+  // Try the Netlify API first for an accurate count of function-scoped vars
+  const apiResult = await fetchFunctionScopedEnvSize();
 
-  for (const [key, value] of Object.entries(process.env)) {
-    const size = Buffer.byteLength(key + '=' + (value || ''), 'utf8');
-    totalBytes += size;
-    if (size > 256) {
-      large.push({ key, bytes: size });
+  let totalBytes;
+  let large;
+
+  if (apiResult) {
+    totalBytes = apiResult.totalBytes;
+    large = apiResult.large;
+  } else {
+    // Fallback: estimate from process.env, excluding known build-only vars
+    totalBytes = 0;
+    large = [];
+    const buildOnlyPrefixes = [
+      'npm_', 'NPM_', 'NVM_', 'NODE_', 'YARN_', 'PNPM_',
+      'NETLIFY', 'BUILD_', 'DEPLOY_', 'CACHED_', 'INCOMING_',
+      'CI', 'GITHUB_', 'GITLAB_', 'BITBUCKET_',
+      'AWS_', 'LAMBDA_',
+      'LANG', 'LC_',
+      'GOPATH', 'GIMME_', 'GO_', 'GEM_', 'RUBY', 'BUNDLE_',
+      'CPATH', 'C_INCLUDE', 'CPLUS_', 'LD_', 'LIBRARY_', 'PKG_CONFIG',
+    ];
+    const buildOnlyExact = new Set([
+      'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'TERM', 'HOSTNAME',
+      'PWD', 'OLDPWD', 'SHLVL', '_', 'TMPDIR', 'TEMP', 'TMP',
+      'EDITOR', 'VISUAL', 'PAGER', 'LESS', 'MANPATH',
+      'FEATURE_FLAGS',
+      'URL', 'REPOSITORY_URL', 'HEAD', 'BRANCH', 'CONTEXT', 'REVIEW_ID',
+      'COMMIT_REF', 'PULL_REQUEST', 'ENVIRONMENT',
+      'NETLIFY_AUTH_TOKEN', 'SITE_ID', 'ACCOUNT_ID',
+    ]);
+
+    for (const [key, value] of Object.entries(process.env)) {
+      if (buildOnlyExact.has(key)) continue;
+      if (buildOnlyPrefixes.some((p) => key.startsWith(p))) continue;
+      const size = Buffer.byteLength(key + '=' + (value || ''), 'utf8');
+      totalBytes += size;
+      if (size > 256) large.push({ key, bytes: size });
     }
   }
 
@@ -254,7 +322,7 @@ async function main() {
   checkEnvVars();
   checkFunctionFiles();
   await checkExternalApis();
-  checkEnvVarSize();
+  await checkEnvVarSize();
 
   console.log('\n─────────────────────────────────────');
   console.log(`  Passed: ${passed}`);
