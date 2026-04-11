@@ -204,6 +204,17 @@ async function checkExternalApis() {
 // Netlify injects every site-level env var into every function, so this check
 // catches oversized payloads before Netlify even tries to upload functions.
 
+// System/OS env vars that are always present in any Unix process but are NOT
+// injected by Netlify into Lambda functions — exclude them from the size count
+// so the check reflects only what Netlify actually sends to AWS.
+const SYSTEM_ENV_KEYS = new Set([
+  'PATH', 'HOME', 'USER', 'SHELL', 'PWD', 'OLDPWD', 'TMPDIR', 'TEMP', 'TMP',
+  'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'COLORTERM', 'SHLVL', 'LOGNAME',
+  'HOSTNAME', 'NODE', 'npm_execpath', 'npm_config_cache', 'npm_config_prefix',
+  'npm_lifecycle_event', 'npm_lifecycle_script', 'npm_package_name',
+  'npm_package_version', 'INIT_CWD', 'NODE_ENV', 'CI',
+]);
+
 function checkEnvVarSize() {
   console.log('\n4. Lambda Environment Variable Size');
   const LAMBDA_LIMIT_BYTES = 4 * 1024; // 4 KB
@@ -213,9 +224,14 @@ function checkEnvVarSize() {
   const large = [];
 
   for (const [key, value] of Object.entries(process.env)) {
+    // Skip system/OS vars that Netlify does not inject into Lambda functions
+    if (SYSTEM_ENV_KEYS.has(key)) continue;
+    // Skip npm_* and NEXT_PUBLIC_* — latter is baked into the static bundle
+    if (key.startsWith('npm_') || key.startsWith('NEXT_PUBLIC_')) continue;
+
     const size = Buffer.byteLength(key + '=' + (value || ''), 'utf8');
     totalBytes += size;
-    if (size > 256) {
+    if (size > 200) {
       large.push({ key, bytes: size });
     }
   }
@@ -232,7 +248,7 @@ function checkEnvVarSize() {
       `${kb} KB exceeds the 4 KB limit — deploy will fail at function upload.\n` +
       `  Largest variables: ${top}\n` +
       `  Fix: in Netlify dashboard → Environment variables, change the scope of\n` +
-      `  large secrets (e.g. APPLE_MUSIC_PRIVATE_KEY, FIREBASE_ADMIN_PRIVATE_KEY)\n` +
+      `  vars not needed at function runtime (e.g. FEATURE_FLAGS, NEXT_PUBLIC_*)\n` +
       `  from "All scopes" to "Builds" only so they are not injected into functions.`
     );
   } else if (totalBytes >= WARN_THRESHOLD) {
