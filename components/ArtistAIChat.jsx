@@ -37,10 +37,11 @@ function getRemainingQuestions() {
 }
 
 const EXAMPLE_QUESTIONS = [
-  "What's their most played song?",
+  "What's their most played song of all time?",
   "When did they last play [song name]?",
-  "Have I seen [song name] live?",
-  "What songs haven't I heard yet?",
+  "How many times have they played [song name]?",
+  "What songs do they play at [venue name]?",
+  "What are their rarest songs?",
 ];
 
 function LoadingDots() {
@@ -175,13 +176,13 @@ export default function ArtistAIChat({ artistName, mbid, userShows = [], onClose
           {messages.length === 0 && !loading && (
             <div className="space-y-4">
               <p className="text-sm text-secondary text-center">
-                Ask anything about {artistName} — their tours, setlists, or your own show history.
+                Ask anything about {artistName} — most played songs, rare gems, venue histories, or your own show history.
               </p>
               <div className="space-y-2">
                 {EXAMPLE_QUESTIONS.map((q) => (
                   <button
                     key={q}
-                    onClick={() => sendMessage(q.replace('[song name]', ''))}
+                    onClick={() => setInput(q.replace('[song name]', '').replace('[venue name]', ''))}
                     disabled={atLimit}
                     className="w-full text-left px-3 py-2.5 rounded-xl bg-hover hover:bg-[rgba(255,255,255,0.08)] border border-subtle text-sm text-secondary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
@@ -276,7 +277,7 @@ export default function ArtistAIChat({ artistName, mbid, userShows = [], onClose
               </button>
             </div>
           )}
-          <p className="text-[10px] text-muted text-center mt-2">Powered by Claude AI</p>
+          <p className="text-[10px] text-muted text-center mt-2">Powered by Claude AI + setlist.fm data</p>
         </div>
       </div>
     </div>
