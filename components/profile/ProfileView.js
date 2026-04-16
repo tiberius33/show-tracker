@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Users, Eye, Heart, Info } from 'lucide-react';
+import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Users, Eye, Heart, Info, Sparkles } from 'lucide-react';
 import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
@@ -8,6 +8,7 @@ import { apiUrl } from '@/lib/api';
 import { artistColor } from '@/lib/utils';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
 import TourInfoModal from '@/components/TourInfoModal';
+import ArtistAIChat from '@/components/ArtistAIChat';
 
 export default function ProfileView({ user, shows, userRank, onProfileUpdate, onViewShow, confirmedSuggestions = [], friends = [], favoriteArtists = [], onToggleFavoriteArtist }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -36,6 +37,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
   const [friendCommentsPage, setFriendCommentsPage] = useState(1);
   const [filterFriend, setFilterFriend] = useState('');
   const [tourInfoArtist, setTourInfoArtist] = useState(null);
+  const [aiChatArtist, setAiChatArtist] = useState(null);
   const COMMENTS_PER_PAGE = 20;
 
   useEffect(() => {
@@ -453,6 +455,13 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => setAiChatArtist(artist)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand rounded-lg text-xs font-medium transition-colors border border-brand/20"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Ask AI
+                    </button>
                     {artist.mbid && (
                       <button
                         onClick={() => setTourInfoArtist(artist)}
@@ -755,6 +764,16 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           artistName={tourInfoArtist.name}
           mbid={tourInfoArtist.mbid}
           onClose={() => setTourInfoArtist(null)}
+        />
+      )}
+
+      {/* Artist AI Chat Modal */}
+      {aiChatArtist && (
+        <ArtistAIChat
+          artistName={aiChatArtist.name}
+          mbid={aiChatArtist.mbid}
+          userShows={shows.filter(s => s.artist === aiChatArtist.name)}
+          onClose={() => setAiChatArtist(null)}
         />
       )}
     </div>
