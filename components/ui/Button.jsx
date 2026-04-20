@@ -1,0 +1,82 @@
+// The canonical button for MySetlists. Uses brand tokens from tailwind.config.js.
+//
+// Variants: primary / secondary / ghost / outline / danger / dark
+// Sizes: sm / md / lg
+// Extra: `icon` prop renders a lucide icon. `loading` adds a spinner. `full` = w-full.
+
+import React from 'react';
+import { Loader2 } from 'lucide-react';
+
+const VARIANTS = {
+  primary:
+    'bg-brand text-white hover:bg-[#42b75f] shadow-[0_1px_2px_rgba(75,200,106,0.25)] ' +
+    'hover:shadow-[0_4px_12px_rgba(75,200,106,0.3)] hover:-translate-y-0.5 active:translate-y-0 ' +
+    'focus-visible:ring-brand/40',
+  secondary:
+    'bg-surface text-primary border border-subtle hover:border-active hover:-translate-y-0.5 ' +
+    'active:translate-y-0 focus-visible:ring-brand/40',
+  ghost:
+    'bg-transparent text-secondary hover:bg-hover hover:text-primary ' +
+    'focus-visible:ring-brand/40',
+  outline:
+    'bg-transparent text-primary border border-active hover:bg-hover ' +
+    'focus-visible:ring-brand/40',
+  danger:
+    'bg-danger text-white hover:bg-[#c84848] shadow-[0_1px_2px_rgba(224,85,85,0.25)] ' +
+    'hover:shadow-[0_4px_12px_rgba(224,85,85,0.3)] focus-visible:ring-danger/40',
+  dark:
+    'bg-sidebar text-on-dark hover:bg-[#2a334d] focus-visible:ring-brand/40',
+};
+
+const SIZES = {
+  sm: 'text-sm font-semibold px-3 py-1.5 rounded-lg gap-1.5',
+  md: 'text-[15px] font-bold px-[18px] py-2.5 rounded-full gap-2',
+  lg: 'text-base font-extrabold px-[26px] py-[14px] rounded-full gap-2',
+};
+
+const ICON_SIZE = { sm: 14, md: 16, lg: 18 };
+
+export default function Button({
+  children,
+  variant = 'primary',
+  size = 'md',
+  icon: Icon,
+  iconPosition = 'left',
+  loading = false,
+  disabled = false,
+  full = false,
+  type = 'button',
+  onClick,
+  className = '',
+  ...rest
+}) {
+  const isDisabled = disabled || loading;
+
+  const base =
+    'inline-flex items-center justify-center whitespace-nowrap select-none ' +
+    'transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+    'focus-visible:ring-offset-base disabled:opacity-50 disabled:cursor-not-allowed ' +
+    'disabled:hover:translate-y-0 disabled:hover:shadow-none';
+
+  const iconPx = ICON_SIZE[size];
+
+  return (
+    <button
+      type={type}
+      disabled={isDisabled}
+      onClick={onClick}
+      className={[base, VARIANTS[variant], SIZES[size], full && 'w-full', className]
+        .filter(Boolean)
+        .join(' ')}
+      {...rest}
+    >
+      {loading ? (
+        <Loader2 size={iconPx} className="animate-spin" />
+      ) : (
+        Icon && iconPosition === 'left' && <Icon size={iconPx} strokeWidth={2.4} />
+      )}
+      {children && <span>{children}</span>}
+      {!loading && Icon && iconPosition === 'right' && <Icon size={iconPx} strokeWidth={2.4} />}
+    </button>
+  );
+}
