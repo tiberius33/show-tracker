@@ -1,9 +1,18 @@
-'use client';
-
-import Link from 'next/link';
-import Pick from './brand/Pick';
+import { Link } from 'react-router-dom';
+import Pick from '../brand/Pick';
 import './LandingPage.css';
 
+// ── Inline SVG icons ────────────────────────────────────────
+function Icon({ d, fill, children, className = '' }) {
+  return (
+    <svg className={`lp-ico ${className}`} viewBox="0 0 24 24">
+      {d && <path d={d} fill={fill || 'none'} />}
+      {children}
+    </svg>
+  );
+}
+
+// ── Pick (small, no gradients — used inside app mock sidebar) ──
 function PickSimple({ size = 20 }) {
   return (
     <svg width={size} height={Math.round(size * 1.2)} viewBox="0 0 160 190">
@@ -12,7 +21,7 @@ function PickSimple({ size = 20 }) {
   );
 }
 
-export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStats }) {
+export default function LandingPage({ onSignUp, onLogin, onGuestMode, communityStats }) {
   return (
     <div className="lp-root">
 
@@ -26,14 +35,14 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               <span style={{ color: 'var(--lp-amber)' }}>setlists</span>
             </div>
           </div>
-          <div className="lp-nav-links">
+          <nav className="lp-nav-links">
             <a>Browse</a>
             <a>Artists</a>
             <a>Venues</a>
             <a>Stats</a>
-          </div>
+          </nav>
           <div className="lp-nav-right">
-            <button className="lp-btn-ghost" onClick={onSignIn}>Log in</button>
+            <button className="lp-btn-ghost" onClick={onLogin}>Log in</button>
             <button className="lp-btn-primary" onClick={onSignUp}>Start tracking</button>
           </div>
         </div>
@@ -47,18 +56,18 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             3.2M shows indexed · updated daily
           </div>
           <h1>
-            Every show you&apos;ve seen,<br />
+            Every show you've seen,<br />
             in <span className="lp-accent">one place</span>.
           </h1>
           <p className="lp-hero-sub">
-            The setlist archive for live music lovers. Track the shows you&apos;ve been to, discover
+            The setlist archive for live music lovers. Track the shows you've been to, discover
             the ones you missed, and keep a running log of the best nights of your life.
           </p>
           <div className="lp-hero-cta">
             <button className="lp-btn-primary lp-cta-lg" onClick={onSignUp}>
               Start your show log →
             </button>
-            <button className="lp-cta-secondary" onClick={onGuest}>
+            <button className="lp-cta-secondary" onClick={onGuestMode}>
               <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24">
                 <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none" />
               </svg>
@@ -73,12 +82,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               <div className="lp-a lp-a4" />
             </div>
             <div>
-              <b>
-                {communityStats
-                  ? `${(communityStats.totalUsers || 24000).toLocaleString()}+`
-                  : '24,000+'} fans
-              </b>{' '}
-              tracking their shows
+              <b>{communityStats ? `${(communityStats.totalUsers || 24000).toLocaleString()}+` : '24,000+'} fans</b> tracking their shows
             </div>
           </div>
         </div>
@@ -104,14 +108,14 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
                 <span className="lp-score">4.8</span>
                 <span className="lp-score-sub">· 3,421 reviews</span>
               </div>
-              <div className="lp-card-setlist-head">Set II — Sgt. Pepper&apos;s, front to back</div>
+              <div className="lp-card-setlist-head">Set II — Sgt. Pepper's, front to back</div>
               <div className="lp-card-setlist">
                 <div><span className="lp-num">01</span>I Saw Her Standing There</div>
                 <div><span className="lp-num">04</span>Getting Better</div>
                 <div><span className="lp-num">02</span>With a Little Help</div>
                 <div><span className="lp-num">05</span>Fixing a Hole</div>
                 <div><span className="lp-num">03</span>Lucy in the Sky</div>
-                <div><span className="lp-num">06</span>She&apos;s Leaving Home</div>
+                <div><span className="lp-num">06</span>She's Leaving Home</div>
               </div>
             </div>
           </div>
@@ -167,7 +171,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               </svg>
             </div>
             <h3>Auto-import your shows</h3>
-            <p>Scan a ticket, paste a setlist.fm link, or connect Spotify. We pull dates, venues, openers, and the full setlist so you don&apos;t type a thing.</p>
+            <p>Scan a ticket, paste a setlist.fm link, or connect Spotify. We pull dates, venues, openers, and the full setlist so you don't type a thing.</p>
           </div>
           <div className="lp-feature lp-amber">
             <div className="lp-feature-icon">
@@ -186,7 +190,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               </svg>
             </div>
             <h3>Stats that actually matter</h3>
-            <p>How many &quot;Tweezer&quot;s have you heard? Top venues, songs seen live, minutes on the lawn. Year-end wraps that beat Spotify&apos;s.</p>
+            <p>How many "Tweezer"s have you heard? Top venues, songs seen live, minutes on the lawn. Year-end wraps that beat Spotify's.</p>
           </div>
           <div className="lp-feature">
             <div className="lp-feature-icon">
@@ -217,7 +221,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               </svg>
             </div>
             <h3>Wishlist the ones you missed</h3>
-            <p>Build a &quot;should have been there&quot; list. When archival recordings surface, we let you know — so you can finally hear that legendary show.</p>
+            <p>Build a "should have been there" list. When archival recordings surface, we let you know — so you can finally hear that legendary show.</p>
           </div>
         </div>
       </section>
@@ -229,9 +233,9 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <div>
               <div className="lp-kicker">The web app</div>
               <h2>Your library, sortable, searchable, alive.</h2>
-              <p>Every show you&apos;ve logged, one keystroke away. Filter by artist, tour, year, venue. Jump to any setlist in two clicks.</p>
+              <p>Every show you've logged, one keystroke away. Filter by artist, tour, year, venue. Jump to any setlist in two clicks.</p>
               <ul className="lp-showcase-list">
-                <li><span className="lp-check">✓</span><span>Smart filters — &quot;Phish shows in the Northeast before 2000&quot; just works</span></li>
+                <li><span className="lp-check">✓</span><span>Smart filters — "Phish shows in the Northeast before 2000" just works</span></li>
                 <li><span className="lp-check">✓</span><span>Virtualized list handles 1,000+ shows without breaking a sweat</span></li>
                 <li><span className="lp-check">✓</span><span>Offline-ready PWA — your show diary works on a festival field</span></li>
                 <li><span className="lp-check">✓</span><span>Native iOS app with ticket scanning &amp; push for announces</span></li>
@@ -314,17 +318,13 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
         <div className="lp-stats-grid">
           <div className="lp-stat">
             <div className="lp-n">
-              {communityStats
-                ? (communityStats.totalShows || 0).toLocaleString()
-                : <><span>3.2</span><span className="lp-u">M</span></>}
+              {communityStats ? (communityStats.totalShows || 0).toLocaleString() : <>3.2<span className="lp-u">M</span></>}
             </div>
             <div className="lp-l">Shows indexed</div>
           </div>
           <div className="lp-stat">
             <div className="lp-n">
-              {communityStats
-                ? (communityStats.totalUsers || 0).toLocaleString()
-                : <><span>24</span><span className="lp-u">K</span></>}
+              {communityStats ? (communityStats.totalUsers || 0).toLocaleString() : <>24<span className="lp-u">K</span></>}
             </div>
             <div className="lp-l">Active trackers</div>
           </div>
@@ -362,7 +362,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <div className="lp-step-visual">
               <div style={{ fontFamily: 'source-code-pro, monospace', fontSize: 12, color: 'var(--lp-text-muted)', marginBottom: 10 }}>RATE &amp; NOTE</div>
               <div style={{ fontSize: 22, color: 'var(--lp-amber)', letterSpacing: 2, marginBottom: 8 }}>★★★★★</div>
-              <div style={{ fontSize: 12, color: 'var(--lp-text-secondary)', fontStyle: 'italic' }}>&quot;Type II Tweezer &gt; Makisupa. Ghost encore. Life-changing.&quot;</div>
+              <div style={{ fontSize: 12, color: 'var(--lp-text-secondary)', fontStyle: 'italic' }}>"Type II Tweezer &gt; Makisupa. Ghost encore. Life-changing."</div>
             </div>
             <div className="lp-step-num">Step 02</div>
             <h3>Remember the night</h3>
@@ -393,13 +393,13 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
       <section className="lp-cta-section">
         <div className="lp-cta-card">
           <h2>Your show log is one click away.</h2>
-          <p>Free forever. No ads. Built by fans who&apos;ve lost too many stub ticket memories already.</p>
+          <p>Free forever. No ads. Built by fans who've lost too many stub ticket memories already.</p>
           <button className="lp-btn-white" onClick={onSignUp}>Claim your profile →</button>
           <p style={{ marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>
             By signing up you agree to our{' '}
-            <Link href="/terms" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>Terms</Link>
+            <Link to="/terms" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>Terms</Link>
             {' '}and{' '}
-            <Link href="/privacy" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>Privacy Policy</Link>.
+            <Link to="/privacy" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>Privacy Policy</Link>.
           </p>
         </div>
       </section>
@@ -426,14 +426,16 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
           <div className="lp-footer-col">
             <h4>Resources</h4>
             <a>How to use</a>
-            <a href="https://buymeacoffee.com/phillipd" target="_blank" rel="noopener noreferrer">Support this project</a>
+            <a>Roadmap</a>
+            <a>Release notes</a>
             <a>Community</a>
           </div>
           <div className="lp-footer-col">
             <h4>Company</h4>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
-            <Link href="/cookies">Cookies</Link>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/cookies">Cookies</Link>
+            <a href="mailto:hello@mysetlists.net">Contact</a>
           </div>
         </div>
         <div className="lp-footer-bottom">

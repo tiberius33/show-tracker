@@ -41,6 +41,7 @@ module.exports = {
         'theme-sm': 'var(--shadow-sm)',
         'theme-md': 'var(--shadow-md)',
         'theme-lg': 'var(--shadow-lg)',
+        'theme-xl': 'var(--shadow-xl)',
       },
     },
   },
