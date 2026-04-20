@@ -9,6 +9,7 @@ import Tip from '@/components/ui/Tip';
 import UpcomingShows from '@/components/UpcomingShows';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 import SongHistoryModal from '@/components/SongHistoryModal';
+import StreamingLinks from '@/components/StreamingLinks';
 
 function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext, isReturningUser }) {
   const [songName, setSongName] = useState('');
@@ -516,6 +517,8 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
             </div>
           )}
           <UpcomingShows artistName={show.artist} />
+
+          <StreamingLinks show={show} />
 
           {/* Shared Memories (confirmed show together) */}
           {confirmedSuggestion && (() => {
