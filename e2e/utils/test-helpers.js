@@ -9,9 +9,11 @@ const { expect } = require('@playwright/test');
  */
 async function loginUser(page, email, password) {
   await page.goto('/', { waitUntil: 'load' });
-  await page.getByRole('button', { name: /sign in/i }).click();
+  // Landing page uses "Log in" (updated from "Sign in" in the v2 design)
+  await page.getByRole('button', { name: /log in/i }).click();
   await page.getByPlaceholder('Email address').fill(email);
   await page.getByPlaceholder('Password').fill(password);
+  // Auth modal submit still says "Sign In"
   await page.locator('form').getByRole('button', { name: /sign in/i }).click();
   // Wait for the sidebar nav link to appear — confirms auth + render
   await expect(
@@ -69,8 +71,9 @@ async function setupAuthenticatedSession(page, email, password) {
  */
 async function logoutUser(page) {
   await page.getByText('Logout').click({ force: true });
+  // Landing page CTA is "Start tracking" (updated from "Get started" in v2 design)
   await expect(
-    page.getByRole('button', { name: /get started/i }).first()
+    page.getByRole('button', { name: /start tracking/i }).first()
   ).toBeVisible({ timeout: 15000 });
 }
 

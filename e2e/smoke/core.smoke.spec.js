@@ -21,9 +21,10 @@ test.describe('Landing Page', () => {
   });
 
   test('shows sign-in and get started buttons', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
+    // v2 landing page uses "Log in" and "Start tracking"
+    await expect(page.getByRole('button', { name: /log in/i })).toBeVisible();
     await expect(
-      page.getByRole('button', { name: /get started/i }).first()
+      page.getByRole('button', { name: /start tracking/i }).first()
     ).toBeVisible();
   });
 
@@ -34,13 +35,14 @@ test.describe('Landing Page', () => {
   });
 
   test('renders feature grid', async ({ page }) => {
+    // Feature headings updated in v2 landing page redesign
     const features = [
-      'Track Every Show',
-      'Scan Ticket Stubs',
-      'Import Your History',
-      'Create Playlists',
-      'Discover Your Stats',
-      'Connect with Friends',
+      'Auto-import your shows',
+      'Rate & remember',
+      'Stats that actually matter',
+      'Follow friends & bands',
+      'One-click Spotify playlists',
+      'Wishlist the ones you missed',
     ];
     for (const feature of features) {
       await expect(page.getByRole('heading', { name: feature })).toBeVisible();
@@ -89,19 +91,20 @@ test.describe('Auth Modal UI', () => {
   });
 
   test('sign in opens login form', async ({ page }) => {
-    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.getByRole('button', { name: /log in/i }).click();
     await expect(page.getByText('Welcome Back')).toBeVisible();
     await expect(page.getByPlaceholder('Email address')).toBeVisible();
     await expect(page.getByPlaceholder('Password')).toBeVisible();
   });
 
   test('get started opens signup form', async ({ page }) => {
-    await page.getByRole('button', { name: /get started/i }).first().click();
+    // v2 landing page uses "Start tracking" as the primary CTA
+    await page.getByRole('button', { name: /start tracking/i }).first().click();
     await expect(page.getByPlaceholder('Email address')).toBeVisible();
   });
 
   test('can switch between login and signup', async ({ page }) => {
-    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.getByRole('button', { name: /log in/i }).click();
     await expect(page.getByText('Welcome Back')).toBeVisible();
     await page.getByText('Sign up').click();
     await expect(page.getByPlaceholder(/name/i).first()).toBeVisible();
@@ -115,7 +118,8 @@ test.describe('Guest Mode', () => {
   test('enter guest mode and navigate pages', async ({ page }) => {
     await page.goto('/', { waitUntil: 'load' });
     await page.getByRole('button', { name: /try it first/i }).click();
-    await expect(page.getByText('Guest').first()).toBeVisible({
+    // Guest sidebar shows "Create Account" and "Exit Guest Mode" — not a "Guest" label
+    await expect(page.getByText('Exit Guest Mode').first()).toBeVisible({
       timeout: 15000,
     });
 
@@ -132,7 +136,7 @@ test.describe('Guest Mode', () => {
   test('exit guest mode returns to landing', async ({ page }) => {
     await page.goto('/', { waitUntil: 'load' });
     await page.getByRole('button', { name: /try it first/i }).click();
-    await expect(page.getByText('Guest').first()).toBeVisible({
+    await expect(page.getByText('Exit Guest Mode').first()).toBeVisible({
       timeout: 15000,
     });
 
@@ -147,8 +151,9 @@ test.describe('Guest Mode', () => {
     }
 
     await page.getByText('Exit Guest Mode').click({ force: true });
+    // v2 landing page uses "Start tracking" instead of "Get started"
     await expect(
-      page.getByRole('button', { name: /get started/i }).first()
+      page.getByRole('button', { name: /start tracking/i }).first()
     ).toBeVisible({ timeout: 15000 });
   });
 });

@@ -47,7 +47,8 @@ test.describe('Auth Smoke Tests', () => {
 
   test('sign in with wrong password shows error', async ({ page }) => {
     await page.goto('/', { waitUntil: 'load' });
-    await page.getByRole('button', { name: /sign in/i }).click();
+    // Landing page uses "Log in" in v2 design; the modal submit button still says "Sign In"
+    await page.getByRole('button', { name: /log in/i }).click();
     await page.getByPlaceholder('Email address').fill(TEST_EMAIL);
     await page.getByPlaceholder('Password').fill('definitely-wrong-password');
     await page.locator('form').getByRole('button', { name: /sign in/i }).click();
@@ -79,8 +80,8 @@ test.describe('Auth Smoke Tests', () => {
     }
 
     await page.goto('/', { waitUntil: 'load' });
-    // Open the sign-in modal
-    const signInBtn = page.getByRole('button', { name: /sign in/i }).first();
+    // Open the sign-in modal — v2 landing page uses "Log in"
+    const signInBtn = page.getByRole('button', { name: /log in/i }).first();
     if (await signInBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await signInBtn.click();
     }
