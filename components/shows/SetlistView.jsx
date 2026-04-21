@@ -28,32 +28,42 @@ export default function SetlistView({ sets = [] }) {
           </div>
           <ol className="list-none p-0 m-0">
             {set.tracks.map((t, ti) => (
-              <li
-                key={ti}
-                className="grid grid-cols-[28px_1fr_auto] gap-3 items-center px-2.5 py-2 rounded-lg hover:bg-hover cursor-pointer transition-colors"
-              >
-                <span className="font-mono text-xs text-muted font-bold text-right">
-                  {String(ti + 1).padStart(2, '0')}
-                </span>
-                <span className="text-[15px] font-medium text-primary">
-                  {t.title}
-                  {t.debut && (
-                    <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2a8a47] bg-brand-subtle px-1.5 py-0.5 rounded">
-                      debut
-                    </span>
-                  )}
-                  {t.bustout && (
-                    <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#a0680f] bg-amber-subtle px-1.5 py-0.5 rounded">
-                      bust-out{t.bustoutNote ? ` · ${t.bustoutNote}` : ''}
-                    </span>
-                  )}
-                </span>
-                {t.duration && (
-                  <span className="font-mono text-[11px] text-muted font-semibold">
-                    {t.duration}
+              <React.Fragment key={ti}>
+                <li className="grid grid-cols-[28px_1fr_auto] gap-3 items-center px-2.5 py-2 rounded-lg hover:bg-hover cursor-pointer transition-colors">
+                  <span className="font-mono text-xs text-muted font-bold text-right">
+                    {String(ti + 1).padStart(2, '0')}
                   </span>
+                  <span className="text-[15px] font-medium text-primary leading-snug">
+                    {t.title}
+                    {t.cover && (
+                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded">
+                        {t.cover} cover
+                      </span>
+                    )}
+                    {t.debut && (
+                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2a8a47] bg-brand-subtle px-1.5 py-0.5 rounded">
+                        debut
+                      </span>
+                    )}
+                    {t.bustout && (
+                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#a0680f] bg-amber-subtle px-1.5 py-0.5 rounded">
+                        bust-out{t.bustoutNote ? ` · ${t.bustoutNote}` : ''}
+                      </span>
+                    )}
+                  </span>
+                  {t.duration && (
+                    <span className="font-mono text-[11px] text-muted font-semibold">
+                      {t.duration}
+                    </span>
+                  )}
+                </li>
+                {t.tape && (
+                  <li className="grid grid-cols-[28px_1fr] gap-3 px-2.5 py-0.5 pointer-events-none">
+                    <span />
+                    <span className="text-[11px] text-muted font-medium tracking-wide">&gt; segue</span>
+                  </li>
                 )}
-              </li>
+              </React.Fragment>
             ))}
           </ol>
         </section>

@@ -31,14 +31,43 @@ function formatShowDate(dateStr) {
   return `${DAYS[d.getDay()]} · ${MONTHS[d.getMonth()]} ${d.getDate()} · ${d.getFullYear()}`;
 }
 
+// Maps legacy setBreak marker values to canonical set labels
+function setBreakToLabel(setBreak) {
+  if (!setBreak) return null;
+  if (setBreak === 'Main Set') return 'Set I';
+  if (setBreak === 'Encore') return 'Encore';
+  if (setBreak === 'Encore 2') return 'Encore II';
+  const m = setBreak.match(/^Set (\d+)$/);
+  if (m) {
+    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+    const n = parseInt(m[1]);
+    return `Set ${ROMAN[n - 1] || n}`;
+  }
+  return setBreak;
+}
+
 function buildSets(setlist = []) {
   if (!setlist.length) return [];
   const groups = {};
-  setlist.forEach(song => {
-    const key = song.set || 'Set I';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(song);
-  });
+  const hasSetField = setlist.some(s => s.set);
+
+  if (hasSetField) {
+    // New format: each song carries its own set label
+    setlist.forEach(song => {
+      const key = song.set || 'Set I';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(song);
+    });
+  } else {
+    // Legacy format: setBreak marker on first song of each set
+    let currentLabel = 'Set I';
+    setlist.forEach(song => {
+      if (song.setBreak) currentLabel = setBreakToLabel(song.setBreak) || currentLabel;
+      if (!groups[currentLabel]) groups[currentLabel] = [];
+      groups[currentLabel].push(song);
+    });
+  }
+
   const ORDER = ['Set I', 'Set II', 'Set III', 'Encore', 'Encore II'];
   const keys = [
     ...ORDER.filter(k => groups[k]),
@@ -47,11 +76,13 @@ function buildSets(setlist = []) {
   return keys.map(label => ({
     label,
     tracks: (groups[label] || []).map(s => ({
-      title:      s.song || s.title || s.name || '',
-      duration:   s.duration || '',
-      debut:      !!(s.tags?.includes('debut')   || s.debut),
-      bustout:    !!(s.tags?.includes('bustout') || s.bustout),
+      title:       s.song || s.title || s.name || '',
+      duration:    s.duration || '',
+      debut:       !!(s.tags?.includes('debut')   || s.debut),
+      bustout:     !!(s.tags?.includes('bustout') || s.bustout),
       bustoutNote: s.bustoutNote || '',
+      cover:       s.cover || null,
+      tape:        s.tape || false,
     })),
   }));
 }
@@ -193,13 +224,16 @@ export default function ShowDetailView({
                 <SidebarLabel>Show Stats</SidebarLabel>
                 <dl className="space-y-2.5">
                   <StatRow label="Songs" value={totalSongs} />
+                  {show.tour && (
+                    <StatRow label="Tour" value={show.tour} />
+                  )}
                   {debuts > 0 && (
                     <StatRow label="Debuts" value={`${debuts} songs`} tone="brand" />
                   )}
                   {bustouts.length > 0 && (
                     <StatRow
                       label="Bust-outs"
-                      value={`${bustouts[0].song || bustouts[0].title}${bustouts.length > 1 ? ` (+${bustouts.length - 1})` : ''}`}
+                      value={`${bustouts[0].name || bustouts[0].song || bustouts[0].title}${bustouts.length > 1 ? ` (+${bustouts.length - 1})` : ''}`}
                       tone="amber"
                     />
                   )}

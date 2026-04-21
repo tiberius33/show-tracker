@@ -77,27 +77,40 @@ function fetchFromSetlistFm(params) {
 
 function extractSongs(match) {
   const songs = [];
-  let setIndex = 0;
+  const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+  let regularSetCount = 0;
+  let encoreCount = 0;
+
   if (match.sets && match.sets.set) {
     match.sets.set.forEach((set) => {
+      let setLabel;
+      if (set.encore) {
+        encoreCount++;
+        setLabel = encoreCount === 1 ? 'Encore' : `Encore ${ROMAN[encoreCount - 1] || encoreCount}`;
+      } else {
+        regularSetCount++;
+        setLabel = `Set ${ROMAN[regularSetCount - 1] || regularSetCount}`;
+      }
+
       if (set.song) {
-        set.song.forEach((song, songIdx) => {
+        set.song.forEach((song) => {
+          const info = (song.info || '').toLowerCase();
+          const isDebut = info.includes('debut');
+          const bustoutMatch = !isDebut && info.match(/(\d+)\s*show/i);
+          const isBustout = !!(bustoutMatch && parseInt(bustoutMatch[1]) >= 10);
+
           songs.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-            name: song.name.trim(),
-            cover: song.cover ? `${song.cover.name} cover` : null,
-            setBreak:
-              setIndex > 0 && songIdx === 0
-                ? set.encore
-                  ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}`
-                  : `Set ${setIndex + 1}`
-                : setIndex === 0 && songIdx === 0
-                  ? 'Main Set'
-                  : null,
+            name: (song.name || '').trim(),
+            set: setLabel,
+            cover: song.cover ? song.cover.name : null,
+            tape: song.tape || false,
+            debut: isDebut,
+            bustout: isBustout,
+            bustoutNote: bustoutMatch ? `${bustoutMatch[1]} shows` : '',
           });
         });
       }
-      setIndex++;
     });
   }
   return songs;
