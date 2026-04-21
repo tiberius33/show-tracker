@@ -87,26 +87,28 @@ export default function StatsPage() {
 
   return (
     <>
+      {/* Header — no actions prop so the title always gets full width */}
       <PageHeader
-        eyebrow={`Stats · ${period === 'all-time' ? 'All time' : period}`}
+        eyebrow="Stats"
         title="Your year, in shows."
         subtitle={periodShows.length > 0
           ? `${periodShows.length} shows. ${uniqueArtists} artists. ${uniqueVenues} venues. Let's look at the tape.`
           : 'Add some shows to start seeing your stats'}
-        actions={
-          <div className="flex gap-2 flex-wrap">
-            {periodLabels.map((p) => (
-              <Tag
-                key={p}
-                selected={p === period}
-                onClick={() => setPeriod(p)}
-              >
-                {p === 'all-time' ? 'All-time' : p}
-              </Tag>
-            ))}
-          </div>
-        }
       />
+
+      {/* Period selector — scrollable strip, never crowds the title */}
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-6 scrollbar-none">
+        {periodLabels.map((p) => (
+          <Tag
+            key={p}
+            selected={p === period}
+            onClick={() => setPeriod(p)}
+            className="flex-shrink-0"
+          >
+            {p === 'all-time' ? 'All-time' : p}
+          </Tag>
+        ))}
+      </div>
 
       {periodShows.length > 0 && (
         <>
