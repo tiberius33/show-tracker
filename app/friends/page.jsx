@@ -1,7 +1,8 @@
 'use client';
 
 import FriendsView from '@/components/FriendsView';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, Button } from '@/components/ui';
+import { UserPlus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 export default function FriendsPage() {
@@ -27,12 +28,34 @@ export default function FriendsPage() {
 
   const totalPending = (pendingFriendRequests?.length || 0) + (pendingShowTags?.length || 0);
 
+  // Rough count of shared shows this year across all friends
+  const thisYear = new Date().getFullYear();
+  const sharedThisYear = (shows || []).filter(s => {
+    if (!s.taggedFriends?.length) return false;
+    try { return new Date(s.date).getFullYear() === thisYear; } catch { return false; }
+  }).length;
+
+  const subtitleParts = [
+    `${friends.length} friend${friends.length !== 1 ? 's' : ''}`,
+    sharedThisYear > 0 ? `${sharedThisYear} shared show${sharedThisYear !== 1 ? 's' : ''} this year` : null,
+    totalPending > 0 ? `${totalPending} pending request${totalPending !== 1 ? 's' : ''}` : null,
+  ].filter(Boolean).join(' · ');
+
   return (
     <>
       <PageHeader
         eyebrow="Social"
         title="Friends"
-        subtitle={`${friends.length} friend${friends.length !== 1 ? 's' : ''}${totalPending > 0 ? ` · ${totalPending} pending` : ''}`}
+        subtitle={subtitleParts}
+        actions={
+          <Button
+            variant="primary"
+            icon={UserPlus}
+            onClick={() => {/* FriendsView handles this via Find Friends tab */}}
+          >
+            Add friend
+          </Button>
+        }
       />
       <FriendsView
         user={user}

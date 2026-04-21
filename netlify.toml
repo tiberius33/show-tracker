@@ -52,3 +52,11 @@
   from = "/api/unsubscribe/"
   to = "/.netlify/functions/unsubscribe"
   status = 200
+
+# Catch-all SPA fallback — lets Next.js handle dynamic routes like /shows/[id]/
+# that are not pre-generated at build time (Firebase data is runtime-only).
+# Must be last so API rules above take priority.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

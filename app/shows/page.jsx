@@ -11,6 +11,7 @@ import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatTile } from '@/components/ui';
+import ShowCard from '@/components/shows/ShowCard';
 import {
   Search, Camera, RefreshCw, X, Upload, Music,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
@@ -48,6 +49,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
+  const [showsTab, setShowsTab] = useState('timeline'); // 'timeline' | 'artist'
   const [bulkTagShows, setBulkTagShows] = useState(null); // array of shows for bulk tag modal
 
   const toggleSelectShow = (showId) => {
@@ -195,6 +197,30 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
             </div>
           )}
 
+          {/* View tabs — Timeline (card grid) vs By Artist (table) */}
+          {shows.length > 0 && (
+            <div className="flex items-center gap-1 border-b border-subtle mb-6">
+              {[
+                { id: 'timeline', label: 'Timeline', count: sortedFilteredShows.length },
+                { id: 'artist', label: 'By artist', count: artistGroups.length },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setShowsTab(t.id)}
+                  className={`px-4 pb-3 pt-1 text-[14px] font-semibold transition-colors border-b-2 -mb-px ${
+                    showsTab === t.id
+                      ? 'border-brand text-primary'
+                      : 'border-transparent text-muted hover:text-secondary'
+                  }`}
+                >
+                  {t.label}
+                  <span className={`ml-1.5 text-[11px] font-bold ${showsTab === t.id ? 'text-brand' : 'text-muted'}`}>
+                    {t.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Find Missing Setlists banner */}
           {!guestMode && !setlistScanning && shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
@@ -399,8 +425,37 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
             />
           )}
 
+          {/* Timeline: card grid */}
+          {showsTab === 'timeline' && sortedFilteredShows.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+              {sortedFilteredShows.map(show => {
+                // Map real show data to the ShowCard shape
+                const tags = [];
+                if (show.notes?.toLowerCase().includes('halloween')) tags.push({ label: 'HALLOWEEN', tone: 'amber' });
+                if (show.setlist?.some(s => s.tags?.includes('debut'))) tags.push({ label: 'DEBUT', tone: 'brand' });
+                if (show.setlist?.some(s => s.tags?.includes('bustout'))) tags.push({ label: 'BUST-OUT', tone: 'amber' });
+
+                return (
+                  <ShowCard
+                    key={show.id}
+                    show={{
+                      id: show.id,
+                      artist: show.artist,
+                      venue: show.venue,
+                      city: show.city,
+                      date: show.date,
+                      rating: show.rating,
+                      tags,
+                    }}
+                    onClick={() => setSelectedShow(show)}
+                  />
+                );
+              })}
+            </div>
+          )}
+
           {/* Artist groups table */}
-          {sortedFilteredShows.length > 0 && (
+          {showsTab === 'artist' && sortedFilteredShows.length > 0 && (
             <Card variant="elevated" padding="none" className="shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
