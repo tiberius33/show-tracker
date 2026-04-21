@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Music, Users, UserCheck, Mail, Camera, ChevronRight } from 'lucide-react';
+import { Button, Card } from '@/components/ui';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 // Bump this version string whenever you add new features to announce.
@@ -77,18 +78,21 @@ function WhatsNewModal({ onClose, navigateTo }) {
       className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-200 ${visible ? 'bg-sidebar/50 backdrop-blur-sm' : 'bg-black/0'}`}
       onClick={handleClose}
     >
-      <div
-        className={`bg-elevated border border-subtle rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transition-all duration-200 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+      <Card
+        variant="elevated"
+        padding="none"
+        className={`w-full max-w-md overflow-hidden shadow-2xl transition-all duration-200 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="relative px-5 pt-6 pb-4 text-center border-b border-subtle bg-gradient-to-b from-amber/10 to-transparent">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={X}
             onClick={handleClose}
-            className="absolute top-4 right-4 p-2 rounded-xl text-muted hover:text-primary hover:bg-hover transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+            className="absolute top-4 right-4"
+          />
           <div className="w-12 h-12 rounded-full bg-amber-subtle flex items-center justify-center mx-auto mb-3">
             <Sparkles className="w-6 h-6 text-amber" />
           </div>
@@ -113,13 +117,16 @@ function WhatsNewModal({ onClose, navigateTo }) {
                     <h3 className="text-sm font-semibold text-primary">{feature.title}</h3>
                     <p className="text-xs text-secondary mt-0.5 leading-relaxed">{feature.description}</p>
                     {feature.cta && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={ChevronRight}
+                        iconPosition="right"
                         onClick={() => handleCta(feature.cta.view)}
-                        className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-amber hover:text-amber transition-colors"
+                        className="mt-1.5 text-amber hover:text-amber p-0 h-auto"
                       >
                         {feature.cta.label}
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -130,17 +137,12 @@ function WhatsNewModal({ onClose, navigateTo }) {
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-subtle">
-          <button
-            onClick={handleClose}
-            className="w-full py-3 rounded-xl bg-[#34D399] hover:bg-[#2bb583] text-white text-sm font-semibold transition-colors"
-          >
-            Got it
-          </button>
+          <Button variant="primary" full onClick={handleClose}>Got it</Button>
           <p className="text-center text-[10px] text-muted mt-2">
             See all updates in Release Notes
           </p>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
