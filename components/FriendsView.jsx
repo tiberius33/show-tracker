@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/utils';
 import { Button, Card, Badge } from '@/components/ui';
 import Input from '@/components/ui/Input';
 import Tip from '@/components/ui/Tip';
+import FriendCard from '@/components/friends/FriendCard';
 import ShowsTogetherView from '@/components/ShowsTogetherView';
 
 function FriendsView({
@@ -141,17 +142,14 @@ function FriendsView({
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">Friends</h1>
-      <p className="text-secondary mb-6">Connect with friends and tag them at shows</p>
-
+    <div>
       {/* Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {[
-          { id: 'friends', label: `My Friends (${friends.length})`, badge: 0 },
-          { id: 'requests', label: 'Requests', badge: requestCount },
-          { id: 'find', label: 'Find Friends', badge: 0 },
-          { id: 'invites', label: 'Invites', badge: inviteList.length + (sentPendingEmailTags || []).length },
+          { id: 'friends', label: `All`, count: friends.length, badge: 0 },
+          { id: 'requests', label: 'Requests', count: requestCount, badge: requestCount },
+          { id: 'find', label: 'Find Friends', count: null, badge: 0 },
+          { id: 'invites', label: 'Invites', count: inviteList.length + (sentPendingEmailTags || []).length, badge: inviteList.length + (sentPendingEmailTags || []).length },
         ].map(tab => (
           <Button
             key={tab.id}
@@ -161,6 +159,11 @@ function FriendsView({
             className={`relative ${activeTab === tab.id ? 'bg-brand-subtle text-brand border border-brand/30' : 'text-secondary border border-subtle'}`}
           >
             {tab.label}
+            {tab.count !== null && (
+              <span className={`ml-1.5 text-[11px] font-bold ${activeTab === tab.id ? 'text-brand' : 'text-muted'}`}>
+                {tab.count}
+              </span>
+            )}
             {tab.badge > 0 && (
               <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-danger text-on-dark text-[10px] font-bold rounded-full px-1">
                 {tab.badge}
@@ -170,53 +173,36 @@ function FriendsView({
         ))}
       </div>
 
-      {/* My Friends Tab */}
+      {/* My Friends Tab — card grid */}
       {activeTab === 'friends' && (
-        <div className="space-y-3">
+        <div>
           {friends.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-16">
               <Users className="w-12 h-12 text-muted mx-auto mb-4" />
-              <p className="text-muted mb-2">No friends yet</p>
+              <p className="text-primary font-semibold mb-1">No friends yet</p>
               <p className="text-muted text-sm">Search by email or add from the Community leaderboard!</p>
             </div>
           ) : (
-            friends.map(friend => (
-              <Card key={friend.friendUid} padding="none" className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-amber flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-primary">{friend.friendName || 'Anonymous'}</div>
-                    <div className="text-sm text-muted">{friend.friendEmail}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {getShowsTogether && (
-                    <Tip text="Shows together">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={Music}
-                        onClick={() => setShowingTogetherWith({ uid: friend.friendUid, name: friend.friendName || 'Friend' })}
-                        className="bg-amber-subtle text-amber border border-amber/30 hover:bg-amber/20"
-                      >
-                        Shows Together
-                      </Button>
-                    </Tip>
-                  )}
-                  <Tip text="Remove friend">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={UserX}
-                      onClick={() => onRemoveFriend(friend.friendUid)}
-                      className="text-muted hover:text-danger hover:bg-danger/10"
-                    />
-                  </Tip>
-                </div>
-              </Card>
-            ))
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {friends.map(friend => {
+                const sharedCount = getShowsTogether
+                  ? (getShowsTogether(friend.friendUid)?.length ?? 0)
+                  : 0;
+                return (
+                  <FriendCard
+                    key={friend.friendUid}
+                    name={friend.friendName || 'Anonymous'}
+                    handle={friend.friendEmail?.split('@')[0]}
+                    avatarSrc={friend.photoURL}
+                    sharedShows={sharedCount}
+                    theirShows={friend.showCount ?? null}
+                    theirShowsLabel="Their shows"
+                    onMessage={() => {}}
+                    onView={() => setShowingTogetherWith({ uid: friend.friendUid, name: friend.friendName || 'Friend' })}
+                  />
+                );
+              })}
+            </div>
           )}
         </div>
       )}

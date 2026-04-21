@@ -27,7 +27,7 @@ export default function StatsPage() {
     return [...years].sort((a, b) => b - a);
   }, [shows]);
 
-  const [period, setPeriod] = useState('all-time');
+  const [period, setPeriod] = useState(() => availableYears[0] ? String(availableYears[0]) : 'all-time');
 
   const periodShows = useMemo(() => {
     if (period === 'all-time') return shows;
@@ -50,6 +50,9 @@ export default function StatsPage() {
   const totalSongs = useMemo(() =>
     periodShows.reduce((acc, s) => acc + (s.setlist?.length || 0), 0),
   [periodShows]);
+
+  // Estimate hours of live music (~2h avg per show) — good enough without duration data
+  const estimatedHours = useMemo(() => Math.round(periodShows.length * 2), [periodShows]);
 
   const uniqueArtists = useMemo(() =>
     new Set(periodShows.map(s => s.artist)).size,
@@ -80,15 +83,15 @@ export default function StatsPage() {
       .slice(0, 8);
   }, [periodShows]);
 
-  const periodLabels = ['all-time', ...availableYears.map(String)];
+  const periodLabels = [...availableYears.map(String), 'all-time'];
 
   return (
     <>
       <PageHeader
         eyebrow={`Stats · ${period === 'all-time' ? 'All time' : period}`}
-        title="Your shows, by the numbers."
+        title="Your year, in shows."
         subtitle={periodShows.length > 0
-          ? `${periodShows.length} shows · ${uniqueArtists} artists · ${uniqueVenues} venues`
+          ? `${periodShows.length} shows. ${uniqueArtists} artists. ${uniqueVenues} venues. Let's look at the tape.`
           : 'Add some shows to start seeing your stats'}
         actions={
           <div className="flex gap-2 flex-wrap">
@@ -109,9 +112,9 @@ export default function StatsPage() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
             <StatTile value={periodShows.length} label="Shows" />
-            <StatTile value={totalSongs.toLocaleString()} label="Songs heard" tone="brand" />
+            <StatTile value={estimatedHours} label="Hours of live music" tone="brand" />
+            <StatTile value={totalSongs.toLocaleString()} label="Songs heard" />
             <StatTile value={uniqueArtists} label="Artists" />
-            <StatTile value={uniqueVenues} label="Venues" />
           </div>
 
           <section className="bg-surface border border-subtle rounded-2xl p-7 md:p-8 mb-5">

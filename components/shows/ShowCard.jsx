@@ -8,7 +8,7 @@ import Link from 'next/link';
 import ShowCover from './ShowCover';
 import Badge from '../ui/Badge';
 
-export default function ShowCard({ show }) {
+export default function ShowCard({ show, onClick }) {
   const {
     id, artist, venue, city,
     date, year, rating, night,
@@ -16,10 +16,13 @@ export default function ShowCard({ show }) {
     variant,
   } = show;
 
+  const Wrapper = onClick
+    ? ({ children, ...props }) => <div {...props} onClick={onClick} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onClick()}>{children}</div>
+    : ({ children, ...props }) => <Link href={`/shows/${id}`} {...props}>{children}</Link>;
+
   return (
-    <Link
-      href={`/shows/${id}`}
-      className="group block bg-surface border border-subtle rounded-2xl overflow-hidden transition-all duration-150 hover:border-active hover:-translate-y-0.5 hover:shadow-theme-md"
+    <Wrapper
+      className="group block bg-surface border border-subtle rounded-2xl overflow-hidden transition-all duration-150 hover:border-active hover:-translate-y-0.5 hover:shadow-theme-md cursor-pointer"
     >
       <ShowCover
         variant={variant}
@@ -43,6 +46,6 @@ export default function ShowCard({ show }) {
           </div>
         )}
       </div>
-    </Link>
+    </Wrapper>
   );
 }
