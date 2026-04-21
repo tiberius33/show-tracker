@@ -5,21 +5,30 @@
 // dynamic routing or page reload — the parent just swaps state.
 //
 // Props:
-//   show          – raw show object from Firebase
-//   friends       – full friends array (to resolve taggedFriends UIDs)
-//   onClose       – () => void  called by the back button
-//   onUpdateRating – (showId, rating) => void
-//   onTagFriends  – (show) => void  opens TagFriendsModal
-//   user          – current Firebase user (or null)
+//   show                 – raw show object from Firebase
+//   friends              – full friends array (to resolve taggedFriends UIDs)
+//   onClose              – () => void  called by the back button
+//   onUpdateRating       – (showId, rating) => void  (1-10 scale)
+//   onUpdateVenueRating  – (showId, venueRating) => void  (1-10 scale)
+//   onTagFriends         – (show) => void  opens TagFriendsModal
+//   onCreatePlaylist     – (show) => void  opens PlaylistCreatorModal
+//   toggleFavoriteArtist – (artistName) => void
+//   isArtistFavorite     – (artistName) => boolean
+//   allShows             – all user shows (for play counts + venue/artist stats)
+//   user                 – current Firebase user (or null)
 
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { parseDate } from '@/lib/utils';
 import ShowHero from './ShowHero';
 import SetlistView from './SetlistView';
-import { RatingStars, Avatar, Button } from '@/components/ui';
-import { ArrowLeft, UserPlus } from 'lucide-react';
+import { Avatar, Button } from '@/components/ui';
+import SongHistoryModal from '@/components/SongHistoryModal';
+import {
+  ArrowLeft, UserPlus, Heart, Share2, ListMusic, Hash,
+  ChevronDown, Music, MapPin,
+} from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +40,6 @@ function formatShowDate(dateStr) {
   return `${DAYS[d.getDay()]} · ${MONTHS[d.getMonth()]} ${d.getDate()} · ${d.getFullYear()}`;
 }
 
-// Maps legacy setBreak marker values to canonical set labels
 function setBreakToLabel(setBreak) {
   if (!setBreak) return null;
   if (setBreak === 'Main Set') return 'Set I';
@@ -52,14 +60,12 @@ function buildSets(setlist = []) {
   const hasSetField = setlist.some(s => s.set);
 
   if (hasSetField) {
-    // New format: each song carries its own set label
     setlist.forEach(song => {
       const key = song.set || 'Set I';
       if (!groups[key]) groups[key] = [];
       groups[key].push(song);
     });
   } else {
-    // Legacy format: setBreak marker on first song of each set
     let currentLabel = 'Set I';
     setlist.forEach(song => {
       if (song.setBreak) currentLabel = setBreakToLabel(song.setBreak) || currentLabel;
@@ -86,6 +92,19 @@ function buildSets(setlist = []) {
     })),
   }));
 }
+
+function getRatingLabel(r) {
+  if (!r) return '';
+  if (r >= 9) return 'Legendary';
+  if (r === 8) return 'Amazing';
+  if (r === 7) return 'Great';
+  if (r === 6) return 'Good';
+  if (r === 5) return 'Solid';
+  if (r === 4) return 'Okay';
+  return 'Meh';
+}
+
+// ── Micro-components ───────────────────────────────────────────────────────────
 
 function SidebarLabel({ children }) {
   return (
@@ -118,6 +137,28 @@ function StatRow({ label, value, tone }) {
   );
 }
 
+// 1-10 rating button grid
+function RatingButtons({ value, onRate, accentClass = 'bg-emerald-400 text-black' }) {
+  return (
+    <div className="grid grid-cols-5 gap-1.5">
+      {[1,2,3,4,5,6,7,8,9,10].map(n => (
+        <button
+          key={n}
+          onClick={() => onRate(value === n ? 0 : n)}
+          className={`h-10 rounded-lg font-semibold text-sm transition-colors ${
+            n === value
+              ? accentClass
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+          }`}
+          style={{ minWidth: 0 }}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function ShowDetailView({
@@ -125,9 +166,57 @@ export default function ShowDetailView({
   friends = [],
   onClose,
   onUpdateRating,
+  onUpdateVenueRating,
   onTagFriends,
+  onCreatePlaylist,
+  toggleFavoriteArtist,
+  isArtistFavorite,
+  allShows = [],
   user,
 }) {
+  const [showPlayCounts, setShowPlayCounts] = useState(false);
+  const [artistExpanded, setArtistExpanded]   = useState(false);
+  const [venueExpanded, setVenueExpanded]     = useState(false);
+  const [songHistorySong, setSongHistorySong] = useState(null);
+  const [toast, setToast] = useState(false);
+
+  // All hooks must run unconditionally — computed after hooks, used only when show != null
+  const artistShowCount = useMemo(
+    () => allShows.filter(s => s.artist === show?.artist).length,
+    [allShows, show?.artist]
+  );
+
+  const venueShowCount = useMemo(
+    () => allShows.filter(s => s.venue === show?.venue).length,
+    [allShows, show?.venue]
+  );
+
+  const playCounts = useMemo(() => {
+    const counts = {};
+    allShows
+      .filter(s => s.artist === show?.artist)
+      .forEach(s => {
+        (s.setlist || []).forEach(song => {
+          const name = song.song || song.title || song.name || '';
+          if (name) counts[name] = (counts[name] || 0) + 1;
+        });
+      });
+    return counts;
+  }, [allShows, show?.artist]);
+
+  const totalDuration = useMemo(() => {
+    let totalSecs = 0;
+    (show?.setlist || []).forEach(s => {
+      const d = s.duration || '';
+      const parts = d.split(':').map(Number);
+      if (parts.length === 2) totalSecs += parts[0] * 60 + parts[1];
+    });
+    if (!totalSecs) return null;
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }, [show?.setlist]);
+
   if (!show) return null;
 
   const sets       = buildSets(show.setlist);
@@ -147,6 +236,23 @@ export default function ShowDetailView({
 
   const dateFull = [formatShowDate(show.date), specialLabel].filter(Boolean).join(' · ');
 
+  const isFavorite = isArtistFavorite?.(show.artist) || false;
+
+  const handleShare = async () => {
+    const url = `https://mysetlists.net/show/${show.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // silently fail
+    }
+    setToast(true);
+    setTimeout(() => setToast(false), 2000);
+  };
+
+  const handleViewShow = () => {
+    setSongHistorySong(null);
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
 
@@ -159,7 +265,7 @@ export default function ShowDetailView({
         All shows
       </button>
 
-      {/* Hero — ShowHero has -mb-20 built in; content below overlaps it */}
+      {/* Hero */}
       <ShowHero
         artist={show.artist}
         venue={show.venue}
@@ -170,23 +276,154 @@ export default function ShowDetailView({
         height={280}
       />
 
-      {/* Body — relative z-10 lifts above hero gradient */}
-      <div className="relative z-10 pt-2">
+      {/* Action buttons row */}
+      <div className="relative z-10 mt-4 mb-6 flex flex-wrap gap-2">
+        {/* Favorite artist */}
+        {toggleFavoriteArtist && (
+          <button
+            onClick={() => toggleFavoriteArtist(show.artist)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isFavorite
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-400' : ''}`} />
+            {isFavorite ? 'Favorited' : 'Favorite Artist'}
+          </button>
+        )}
+
+        {/* Tag friend */}
+        {onTagFriends && user && (
+          <button
+            onClick={() => onTagFriends(show)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            Tag Friend
+          </button>
+        )}
+
+        {/* Share */}
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+        >
+          <Share2 className="w-4 h-4" />
+          Share
+        </button>
+
+        {/* Create playlist */}
+        {onCreatePlaylist && (show.setlist?.length || 0) > 0 && (
+          <button
+            onClick={() => onCreatePlaylist(show)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-400 text-black hover:bg-emerald-300 transition-colors"
+          >
+            <ListMusic className="w-4 h-4" />
+            Create Playlist
+          </button>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-10 items-start">
 
-          {/* LEFT — Setlist + Notes */}
-          <section>
-            <h2 className="text-[22px] font-extrabold text-primary tracking-tight mb-5">
-              Setlist
-            </h2>
+          {/* LEFT — Ratings + Setlist + Info sections */}
+          <section className="space-y-8">
 
-            {sets.length > 0
-              ? <SetlistView sets={sets} />
-              : <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
-            }
+            {/* Ratings row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
+              {/* Show rating */}
+              <div className="bg-surface border border-subtle rounded-2xl p-5">
+                <SidebarLabel>Show Rating</SidebarLabel>
+                <RatingButtons
+                  value={show.rating || 0}
+                  onRate={r => onUpdateRating?.(show.id, r)}
+                  accentClass="bg-emerald-400 text-black"
+                />
+                {(show.rating || 0) > 0 && (
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-emerald-400 font-bold text-sm">
+                      {show.rating}/10 · {getRatingLabel(show.rating)}
+                    </span>
+                    <button
+                      onClick={() => onUpdateRating?.(show.id, 0)}
+                      className="text-xs text-muted hover:text-secondary transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+                {show.comment && (
+                  <p className="text-secondary text-sm mt-2 italic">
+                    &ldquo;{show.comment}&rdquo;
+                  </p>
+                )}
+              </div>
+
+              {/* Venue rating */}
+              <div className="bg-surface border border-subtle rounded-2xl p-5">
+                <SidebarLabel>Venue Rating</SidebarLabel>
+                <RatingButtons
+                  value={show.venueRating || 0}
+                  onRate={r => onUpdateVenueRating?.(show.id, r)}
+                  accentClass="bg-orange-400 text-black"
+                />
+                {(show.venueRating || 0) > 0 && (
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-orange-400 font-bold text-sm">
+                      {show.venueRating}/10 · {getRatingLabel(show.venueRating)}
+                    </span>
+                    <button
+                      onClick={() => onUpdateVenueRating?.(show.id, 0)}
+                      className="text-xs text-muted hover:text-secondary transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Setlist */}
+            <div>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-[22px] font-extrabold text-primary tracking-tight">
+                  Setlist
+                </h2>
+                {totalSongs > 0 && (
+                  <button
+                    onClick={() => setShowPlayCounts(v => !v)}
+                    className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                      showPlayCounts
+                        ? 'bg-emerald-400/10 text-emerald-400'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    <Hash className="w-3.5 h-3.5" />
+                    {showPlayCounts ? 'Hide play counts' : 'Show play counts'}
+                  </button>
+                )}
+              </div>
+
+              {sets.length > 0
+                ? (
+                  <SetlistView
+                    sets={sets}
+                    showPlayCounts={showPlayCounts}
+                    playCounts={playCounts}
+                    onSongClick={title => setSongHistorySong(title)}
+                  />
+                )
+                : <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
+              }
+            </div>
+
+            {/* Notes */}
             {show.notes && (
-              <div className="mt-10">
+              <div>
                 <h2 className="text-[22px] font-extrabold text-primary tracking-tight mb-4">
                   Notes
                 </h2>
@@ -195,28 +432,84 @@ export default function ShowDetailView({
                 </div>
               </div>
             )}
+
+            {/* Artist Info — expandable */}
+            <div className="bg-gray-900 border border-subtle rounded-lg overflow-hidden">
+              <button
+                onClick={() => setArtistExpanded(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-800/50 transition-colors"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                  <Music className="w-4 h-4 text-brand" />
+                  Artist Info
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-muted transition-transform ${artistExpanded ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {artistExpanded && (
+                <div className="px-4 pb-4 space-y-2.5 border-t border-subtle pt-4">
+                  <StatRow label="Artist" value={show.artist} />
+                  {artistShowCount > 0 && (
+                    <StatRow label="Times you've seen them" value={`${artistShowCount} show${artistShowCount !== 1 ? 's' : ''}`} tone="brand" />
+                  )}
+                  {show.tour && (
+                    <StatRow label="Current tour" value={show.tour} />
+                  )}
+                  <div className="pt-2">
+                    <a
+                      href={`/stats?artist=${encodeURIComponent(show.artist)}`}
+                      className="text-xs text-brand hover:underline"
+                    >
+                      View full artist stats →
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Venue Info — expandable */}
+            <div className="bg-gray-900 border border-subtle rounded-lg overflow-hidden">
+              <button
+                onClick={() => setVenueExpanded(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-800/50 transition-colors"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                  <MapPin className="w-4 h-4 text-orange-400" />
+                  Venue Info
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-muted transition-transform ${venueExpanded ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {venueExpanded && (
+                <div className="px-4 pb-4 space-y-2.5 border-t border-subtle pt-4">
+                  <StatRow label="Venue" value={show.venue} />
+                  {show.city && (
+                    <StatRow label="Location" value={show.city} />
+                  )}
+                  {venueShowCount > 0 && (
+                    <StatRow label="Shows you've seen here" value={`${venueShowCount} show${venueShowCount !== 1 ? 's' : ''}`} tone="amber" />
+                  )}
+                  {(show.venueRating || 0) > 0 && (
+                    <StatRow label="Your venue rating" value={`${show.venueRating}/10`} />
+                  )}
+                  <div className="pt-2">
+                    <a
+                      href={`/shows?venue=${encodeURIComponent(show.venue)}`}
+                      className="text-xs text-brand hover:underline"
+                    >
+                      All shows at this venue →
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </section>
 
-          {/* RIGHT — Sidebar cards */}
+          {/* RIGHT — Sidebar */}
           <aside className="space-y-3 lg:sticky lg:top-6">
-
-            {/* Your Rating */}
-            <SidebarCard>
-              <SidebarLabel>Your Rating</SidebarLabel>
-              <RatingStars
-                value={show.rating || 0}
-                onChange={r => onUpdateRating?.(show.id, r)}
-                size={26}
-              />
-              {show.rating > 0 && (
-                <p className="text-secondary text-sm mt-2">
-                  {show.rating} / 5
-                  {show.comment && (
-                    <span className="italic"> — &ldquo;{show.comment}&rdquo;</span>
-                  )}
-                </p>
-              )}
-            </SidebarCard>
 
             {/* Show Stats */}
             {totalSongs > 0 && (
@@ -224,11 +517,14 @@ export default function ShowDetailView({
                 <SidebarLabel>Show Stats</SidebarLabel>
                 <dl className="space-y-2.5">
                   <StatRow label="Songs" value={totalSongs} />
+                  {totalDuration && (
+                    <StatRow label="Duration" value={totalDuration} />
+                  )}
                   {show.tour && (
                     <StatRow label="Tour" value={show.tour} />
                   )}
                   {debuts > 0 && (
-                    <StatRow label="Debuts" value={`${debuts} songs`} tone="brand" />
+                    <StatRow label="Debuts" value={`${debuts} song${debuts !== 1 ? 's' : ''}`} tone="brand" />
                   )}
                   {bustouts.length > 0 && (
                     <StatRow
@@ -264,12 +560,12 @@ export default function ShowDetailView({
             )}
 
             {/* Tag friends */}
-            {user && (
+            {user && onTagFriends && (
               <Button
                 variant="secondary"
                 icon={UserPlus}
                 className="w-full"
-                onClick={() => onTagFriends?.(show)}
+                onClick={() => onTagFriends(show)}
               >
                 Tag friends
               </Button>
@@ -278,6 +574,25 @@ export default function ShowDetailView({
           </aside>
         </div>
       </div>
+
+      {/* Share toast */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 bg-emerald-400 text-black font-medium text-sm px-4 py-2 rounded-lg shadow-lg pointer-events-none">
+          Link copied to clipboard!
+        </div>
+      )}
+
+      {/* Song history modal */}
+      {songHistorySong && (
+        <SongHistoryModal
+          songName={songHistorySong}
+          artistName={show.artist}
+          allShows={allShows}
+          onClose={() => setSongHistorySong(null)}
+          onViewShow={handleViewShow}
+        />
+      )}
+
     </div>
   );
 }

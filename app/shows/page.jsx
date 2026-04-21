@@ -28,7 +28,7 @@ export default function ShowsPage() {
     filterYear, setFilterYear, filterDate, setFilterDate, availableYears,
     sortBy, setSortBy,
     addShow, addSongToShow, updateSongRating, updateSongComment,
-    deleteSong, updateShowRating, updateShowComment, batchRateUnrated, deleteShow,
+    deleteSong, updateShowRating, updateShowComment, batchRateUnrated, deleteShow, updateShowData,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow, setVenueRatingShow,
     friends, friendAnnotationsForShow,
@@ -97,7 +97,12 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
         friends={friends}
         onClose={() => setSelectedShow(null)}
         onUpdateRating={updateShowRating}
+        onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
         onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
+        onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
+        toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
+        isArtistFavorite={isArtistFavorite}
+        allShows={shows}
         user={user}
       />
     );
