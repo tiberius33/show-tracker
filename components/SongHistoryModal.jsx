@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { X, Star, MapPin, MessageSquare, Calendar, Music, ExternalLink } from 'lucide-react';
+import { Button, Card, Badge } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 
 function SongHistoryModal({ songName, artistName, allShows, onClose, onViewShow }) {
@@ -53,9 +54,9 @@ function SongHistoryModal({ songName, artistName, allShows, onClose, onViewShow 
 
   return (
     <div className="fixed inset-0 md:left-64 bg-sidebar/50 backdrop-blur-xl flex items-end md:items-center justify-center md:p-4 z-[70]" onClick={onClose}>
-      <div className="bg-surface border border-subtle rounded-t-2xl md:rounded-3xl max-w-[100vw] sm:max-w-lg md:max-w-xl w-full max-h-[85vh] md:max-h-[80vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+      <Card variant="elevated" padding="none" className="rounded-t-2xl md:rounded-3xl max-w-[100vw] sm:max-w-lg md:max-w-xl w-full max-h-[85vh] md:max-h-[80vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-start justify-between px-4 py-3 md:px-6 md:py-4 border-b border-subtle bg-surface flex-shrink-0">
+        <div className="flex items-start justify-between px-4 py-3 md:px-6 md:py-4 border-b border-subtle flex-shrink-0">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <Music className="w-5 h-5 text-brand flex-shrink-0" />
@@ -63,26 +64,24 @@ function SongHistoryModal({ songName, artistName, allShows, onClose, onViewShow 
             </div>
             <p className="text-sm text-secondary mt-0.5">by {artistName}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-hover transition-colors flex-shrink-0">
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="ghost" icon={X} onClick={onClose} />
         </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {/* Count header */}
           <div className="text-center mb-4">
-            <span className="inline-block px-4 py-2 rounded-full bg-brand-subtle text-brand font-bold text-sm">
+            <Badge tone="navy" size="sm">
               {performances.length === 1
                 ? "You've seen this song 1 time"
                 : `You've seen this song ${performances.length} times`}
-            </span>
+            </Badge>
           </div>
 
           {/* Performance list */}
           <div className="space-y-3 mb-6">
             {performances.map((perf, idx) => (
-              <div key={idx} className="bg-hover border border-subtle rounded-2xl p-4 hover:bg-hover transition-colors">
+              <Card key={idx} padding="none" interactive className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -110,16 +109,18 @@ function SongHistoryModal({ songName, artistName, allShows, onClose, onViewShow 
                     )}
                   </div>
                   {onViewShow && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={ExternalLink}
                       onClick={() => onViewShow(perf.show)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-brand-subtle text-brand text-xs font-medium rounded-lg hover:bg-brand/20 transition-colors flex-shrink-0"
+                      className="bg-brand-subtle text-brand hover:bg-brand/20 flex-shrink-0"
                     >
-                      <ExternalLink className="w-3 h-3" />
                       View Show
-                    </button>
+                    </Button>
                   )}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
 
@@ -162,7 +163,7 @@ function SongHistoryModal({ songName, artistName, allShows, onClose, onViewShow 
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
