@@ -10,7 +10,7 @@ import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
-import { Button, Card, SearchField } from '@/components/ui';
+import { Button, Card, SearchField, PageHeader, StatTile } from '@/components/ui';
 import {
   Search, Camera, RefreshCw, X, Upload, Music,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
@@ -147,6 +147,20 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
 
       {(!pendingTagsForReview || pendingTagsForReview.length === 0) && (
         <>
+          <PageHeader
+            eyebrow="Library"
+            title="My Shows"
+            subtitle={shows.length > 0
+              ? `${shows.length} shows · ${summaryStats.uniqueArtists} artists · ${summaryStats.uniqueVenues} venues`
+              : 'Your concert journey starts here'}
+            actions={
+              <>
+                <Button variant="secondary" icon={Camera} onClick={() => navigateTo('scan-import')}>Scan / Import</Button>
+                <Button icon={Search} onClick={() => navigateTo('search')}>Search for a Show</Button>
+              </>
+            }
+          />
+
           {/* Friend request / show tag notification banner */}
           {!guestMode && pendingNotificationCount > 0 && (
             <button
@@ -172,56 +186,15 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
             </button>
           )}
 
-          {/* Summary stats */}
           {shows.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
-              {[
-                { label: 'Shows', value: shows.length, color: 'from-brand to-amber', action: () => {} },
-                { label: 'Songs', value: summaryStats.totalSongs, color: 'from-amber to-amber', action: () => { setStatsTab('songs'); navigateTo('stats'); } },
-                { label: 'Artists', value: summaryStats.uniqueArtists, color: 'from-brand to-brand', action: () => { setStatsTab('artists'); navigateTo('stats'); } },
-                { label: 'Venues', value: summaryStats.uniqueVenues, color: 'from-amber to-amber', action: () => { setStatsTab('venues'); navigateTo('stats'); } },
-                { label: 'Avg Rating', value: summaryStats.avgRating || '--', color: 'from-danger to-danger', action: () => { setStatsTab('top'); navigateTo('stats'); } },
-              ].map(stat => (
-                <button key={stat.label} onClick={stat.action} className="bg-hover backdrop-blur-xl border border-subtle rounded-xl p-2.5 text-center hover:bg-[rgba(52,211,153,0.1)] hover:scale-105 hover:shadow-md transition-all duration-200 cursor-pointer">
-                  <div className={`text-xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
-                  <div className="text-[10px] font-medium text-secondary uppercase tracking-wide mt-0.5">{stat.label}</div>
-                </button>
-              ))}
-              {userRank && (
-                <button onClick={() => navigateTo('community')} className="bg-gradient-to-br from-brand/20 to-brand/20 backdrop-blur-xl border border-brand/30 rounded-xl p-2.5 text-center hover:from-brand/30 hover:to-brand/30 transition-all cursor-pointer">
-                  <div className="flex items-center justify-center gap-1">
-                    <Crown className="w-4 h-4 text-brand" />
-                    <div className="text-xl font-bold text-brand">#{userRank.rank}</div>
-                  </div>
-                  <div className="text-[10px] font-medium text-brand/70 uppercase tracking-wide mt-0.5">of {userRank.total}</div>
-                </button>
-              )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
+              <StatTile value={shows.length} label="Shows" />
+              <StatTile value={summaryStats.uniqueArtists} label="Artists" />
+              <StatTile value={summaryStats.uniqueVenues} label="Venues" />
+              <StatTile value={summaryStats.avgRating || '--'} unit="★" label="Avg rating" tone="brand" />
             </div>
           )}
 
-          {/* Action buttons row */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <Button
-              variant="primary"
-              full
-              icon={Search}
-              onClick={() => navigateTo('search')}
-              className={`relative${shows.length === 0 ? ' animate-pulse' : ''}`}
-            >
-              {shows.length === 0 && (
-                <span className="absolute inset-0 rounded-full bg-brand animate-ping opacity-20 pointer-events-none" />
-              )}
-              Search for a Show
-            </Button>
-            <Button
-              variant="primary"
-              full
-              icon={Camera}
-              onClick={() => navigateTo('scan-import')}
-            >
-              Scan / Import
-            </Button>
-          </div>
 
           {/* Find Missing Setlists banner */}
           {!guestMode && !setlistScanning && shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
@@ -247,26 +220,18 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
             </div>
           )}
 
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-primary mb-1">My Shows</h1>
-              <p className="text-secondary">All the concerts you&apos;ve attended</p>
-            </div>
-            {shows.length > 0 && !guestMode && friends.length > 0 && (
-              <button
+          {shows.length > 0 && !guestMode && friends.length > 0 && (
+            <div className="flex justify-end mb-4">
+              <Button
+                size="sm"
+                variant={selectionMode ? 'secondary' : 'ghost'}
+                icon={selectionMode ? CheckSquare : Square}
                 onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectionMode
-                    ? 'bg-brand-subtle text-brand border border-brand/30'
-                    : 'bg-hover text-secondary hover:bg-hover border border-subtle'
-                }`}
               >
-                {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                {selectionMode ? 'Done' : 'Select Multiple Shows'}
-              </button>
-            )}
-          </div>
+                {selectionMode ? 'Done selecting' : 'Select shows'}
+              </Button>
+            </div>
+          )}
 
           {/* Setlist scanning progress */}
           {setlistScanning && (
