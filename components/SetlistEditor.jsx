@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic, Heart, Hash } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { Button, Card } from '@/components/ui';
 import RatingSelect from '@/components/ui/RatingSelect';
 import Tip from '@/components/ui/Tip';
 import UpcomingShows from '@/components/UpcomingShows';
@@ -292,13 +293,15 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                     </div>
                   </div>
                 ) : (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={MessageSquare}
                     onClick={() => { setEditingShowComment(true); setShowCommentText(''); }}
-                    className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-hover text-muted hover:bg-hover hover:text-primary transition-colors"
+                    className="text-muted"
                   >
-                    <MessageSquare className="w-3 h-3" />
                     Add show note
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -315,18 +318,8 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                   className="flex-1 px-3 py-2 bg-hover border border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                   autoFocus
                 />
-                <button
-                  onClick={() => { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }}
-                  className="px-3 py-2 bg-brand hover:bg-brand text-on-dark rounded-lg text-xs font-medium transition-colors"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditingShowComment(false)}
-                  className="px-3 py-2 bg-hover hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
-                >
-                  Cancel
-                </button>
+                <Button variant="primary" size="sm" onClick={() => { onCommentShow(showCommentText.trim()); setEditingShowComment(false); }}>Save</Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditingShowComment(false)}>Cancel</Button>
               </div>
             )}
 
@@ -369,22 +362,15 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                 onChange={(e) => setSongName(e.target.value)}
                 className="flex-1 px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted text-sm"
               />
-              <button type="submit" className="px-4 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl transition-all shadow-lg shadow-brand/20">
-                <Plus className="w-5 h-5" />
-              </button>
+              <Button variant="primary" type="submit" icon={Plus} />
             </form>
 
             {unratedCount > 0 && (
-              <div className="flex items-center gap-3 mt-3 p-3 bg-hover border border-subtle rounded-xl">
+              <Card variant="inset" padding="none" className="flex items-center gap-3 mt-3 p-3">
                 <span className="text-xs font-medium text-secondary">Rate {unratedCount} unrated:</span>
                 <RatingSelect value={batchRating} onChange={(v) => setBatchRating(v || 5)} />
-                <button
-                  onClick={() => onBatchRate(batchRating)}
-                  className="px-4 py-2 md:px-3 md:py-1.5 bg-brand hover:bg-brand text-on-dark rounded-lg text-sm md:text-xs font-medium transition-colors"
-                >
-                  Apply
-                </button>
-              </div>
+                <Button variant="primary" size="sm" onClick={() => onBatchRate(batchRating)}>Apply</Button>
+              </Card>
             )}
           </div>
 
@@ -400,7 +386,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                       {song.setBreak}
                     </div>
                   )}
-                  <div className="group bg-hover border border-subtle rounded-2xl p-4 hover:bg-hover transition-colors" data-song-name={song.name}>
+                  <Card variant="inset" padding="none" className="group p-4 hover:border-active transition-colors" data-song-name={song.name}>
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-start gap-3 flex-1">
                         <span className="text-muted font-mono text-sm mt-1">{index + 1}.</span>
@@ -442,17 +428,15 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                     </div>
                     <div className="flex items-center gap-3 ml-8">
                       <RatingSelect value={song.rating} onChange={(v) => onRateSong(song.id, v)} label="Rating:" />
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={MessageSquare}
                         onClick={() => startEditComment(song)}
-                        className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors ${
-                          song.comment
-                            ? 'bg-brand-subtle text-brand hover:bg-brand/30'
-                            : 'bg-hover text-muted hover:bg-hover hover:text-primary'
-                        }`}
+                        className={song.comment ? 'bg-brand-subtle text-brand hover:bg-brand/30' : 'text-muted'}
                       >
-                        <MessageSquare className="w-3 h-3" />
                         {song.comment ? 'Edit note' : 'Add note'}
-                      </button>
+                      </Button>
                     </div>
                     {song.comment && editingComment !== song.id && (
                       <div className="ml-8 mt-2 text-sm text-secondary italic bg-hover p-2.5 rounded-lg border border-subtle">
@@ -470,18 +454,8 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                           className="flex-1 px-3 py-2 bg-hover border border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                           autoFocus
                         />
-                        <button
-                          onClick={() => saveComment(song.id)}
-                          className="px-3 py-2 bg-brand hover:bg-brand text-on-dark rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingComment(null)}
-                          className="px-3 py-2 bg-hover hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Cancel
-                        </button>
+                        <Button variant="primary" size="sm" onClick={() => saveComment(song.id)}>Save</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingComment(null)}>Cancel</Button>
                       </div>
                     )}
                     {/* Friend's song annotation */}
@@ -511,7 +485,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                         </div>
                       );
                     })()}
-                  </div>
+                  </Card>
                 </React.Fragment>
               ))}
             </div>
@@ -578,14 +552,8 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                                       }}
                                       autoFocus
                                     />
-                                    <button
-                                      onClick={() => { onEditComment && onEditComment(c.id, editingMemoryText.trim()); setEditingMemoryId(null); }}
-                                      className="px-2 py-1 bg-brand hover:bg-amber text-primary rounded-lg text-xs"
-                                    >Save</button>
-                                    <button
-                                      onClick={() => setEditingMemoryId(null)}
-                                      className="px-2 py-1 bg-hover hover:bg-hover text-secondary rounded-lg text-xs"
-                                    >Cancel</button>
+                                    <Button variant="primary" size="sm" onClick={() => { onEditComment && onEditComment(c.id, editingMemoryText.trim()); setEditingMemoryId(null); }}>Save</Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setEditingMemoryId(null)}>Cancel</Button>
                                   </div>
                                 ) : (
                                   <p className="text-sm text-secondary mt-0.5">{c.text}</p>
@@ -623,18 +591,18 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                             }}
                             className="flex-1 px-3 py-2 bg-hover border border-subtle rounded-xl text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-amber/50"
                           />
-                          <button
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={Send}
+                            disabled={!newMemoryText.trim()}
                             onClick={() => {
                               if (newMemoryText.trim()) {
                                 onAddComment && onAddComment(newMemoryText.trim());
                                 setNewMemoryText('');
                               }
                             }}
-                            disabled={!newMemoryText.trim()}
-                            className="px-3 py-2 bg-brand/80 hover:bg-brand disabled:opacity-40 text-primary rounded-xl text-sm transition-colors"
-                          >
-                            <Send className="w-4 h-4" />
-                          </button>
+                          />
                         </div>
                       </>
                     )}
