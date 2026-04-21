@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { Play } from 'lucide-react';
 import Pick from './brand/Pick';
+import { Button, Card, Badge } from './ui';
 import './LandingPage.css';
 
 function PickSimple({ size = 20 }) {
@@ -33,8 +35,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <a>Stats</a>
           </div>
           <div className="lp-nav-right">
-            <button className="lp-btn-ghost" onClick={onSignIn}>Log in</button>
-            <button className="lp-btn-primary" onClick={onSignUp}>Start tracking</button>
+            <Button variant="ghost" size="sm" onClick={onSignIn}>Log in</Button>
+            <Button variant="primary" size="sm" onClick={onSignUp}>Start tracking</Button>
           </div>
         </div>
       </nav>
@@ -55,15 +57,12 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             the ones you missed, and keep a running log of the best nights of your life.
           </p>
           <div className="lp-hero-cta">
-            <button className="lp-btn-primary lp-cta-lg" onClick={onSignUp}>
+            <Button variant="primary" size="lg" onClick={onSignUp}>
               Start your show log →
-            </button>
-            <button className="lp-cta-secondary" onClick={onGuest}>
-              <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24">
-                <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none" />
-              </svg>
+            </Button>
+            <Button variant="secondary" size="lg" icon={Play} onClick={onGuest}>
               Try it first
-            </button>
+            </Button>
           </div>
           <div className="lp-hero-trust">
             <div className="lp-avatar-stack">
@@ -129,7 +128,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               </svg>
             </div>
             <div className="lp-ticket-info">
-              <div className="lp-badge">Checked in</div>
+              <Badge tone="green" size="sm" dot>Checked in</Badge>
               <div className="lp-t1">Billy Strings · Red Rocks</div>
               <div className="lp-t2">Sep 14, 2024</div>
             </div>
@@ -160,7 +159,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
           <p>Not just a list. A searchable, sortable, sharable record of every live moment — with the setlists, venues, tour stops, and memories that make each show its own.</p>
         </div>
         <div className="lp-feature-grid">
-          <div className="lp-feature">
+          <Card padding="none" interactive className="lp-feature">
             <div className="lp-feature-icon">
               <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
                 <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
@@ -168,8 +167,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             </div>
             <h3>Auto-import your shows</h3>
             <p>Scan a ticket, paste a setlist.fm link, or connect Spotify. We pull dates, venues, openers, and the full setlist so you don&apos;t type a thing.</p>
-          </div>
-          <div className="lp-feature lp-amber">
+          </Card>
+          <Card padding="none" interactive className="lp-feature lp-amber">
             <div className="lp-feature-icon">
               <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
                 <polygon points="12 2 15 9 22 9 17 14 19 22 12 17 5 22 7 14 2 9 9 9 12 2" fill="currentColor" opacity="0.15" stroke="none" />
@@ -178,8 +177,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             </div>
             <h3>Rate &amp; remember</h3>
             <p>Five-star ratings, private notes, photos from your camera roll. Your show history reads like a music journal — because it is one.</p>
-          </div>
-          <div className="lp-feature lp-navy">
+          </Card>
+          <Card padding="none" interactive className="lp-feature lp-navy">
             <div className="lp-feature-icon">
               <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
                 <path d="M3 3v18h18M7 14l3-3 4 4 5-6" />
@@ -187,8 +186,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             </div>
             <h3>Stats that actually matter</h3>
             <p>How many &quot;Tweezer&quot;s have you heard? Top venues, songs seen live, minutes on the lawn. Year-end wraps that beat Spotify&apos;s.</p>
-          </div>
-          <div className="lp-feature">
+          </Card>
+          <Card padding="none" interactive className="lp-feature">
             <div className="lp-feature-icon">
               <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" />
@@ -197,8 +196,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             </div>
             <h3>Follow friends &amp; bands</h3>
             <p>See who else was at the 10/31 show. Compare tour runs. Get notified when your favorites announce new dates in your city.</p>
-          </div>
-          <div className="lp-feature lp-amber">
+          </Card>
+          <Card padding="none" interactive className="lp-feature lp-amber">
             <div className="lp-feature-icon">
               <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
                 <path d="M9 18V5l12-2v13" />
@@ -208,8 +207,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             </div>
             <h3>One-click Spotify playlists</h3>
             <p>Export any setlist to Spotify or Apple Music. Re-live the show on your drive home — in the order it happened.</p>
-          </div>
-          <div className="lp-feature lp-navy">
+          </Card>
+          <Card padding="none" interactive className="lp-feature lp-navy">
             <div className="lp-feature-icon">
               <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -218,7 +217,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             </div>
             <h3>Wishlist the ones you missed</h3>
             <p>Build a &quot;should have been there&quot; list. When archival recordings surface, we let you know — so you can finally hear that legendary show.</p>
-          </div>
+          </Card>
         </div>
       </section>
 
@@ -296,7 +295,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
                         <div className="lp-s-venue">{show.venue}</div>
                         <div className="lp-s-tags">
                           {show.tags.map(([color, label]) => (
-                            <span key={label} className={`lp-s-tag lp-tag-${color}`}>{label}</span>
+                            <Badge key={label} tone={color} size="sm" uppercase={false}>{label}</Badge>
                           ))}
                         </div>
                       </div>
@@ -346,7 +345,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
           <h2>Three steps to your complete show history.</h2>
         </div>
         <div className="lp-how-grid">
-          <div className="lp-step">
+          <Card padding="none" className="lp-step">
             <div className="lp-step-visual">
               <div style={{ fontFamily: 'source-code-pro, monospace', fontSize: 12, color: 'var(--lp-text-muted)', marginBottom: 10 }}>PASTE LINK</div>
               <div style={{ background: 'var(--lp-bg-surface)', borderRadius: 8, padding: '10px 14px', fontFamily: 'source-code-pro, monospace', fontSize: 11, color: 'var(--lp-text-secondary)', border: '1px solid var(--lp-border-subtle)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -357,8 +356,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <div className="lp-step-num">Step 01</div>
             <h3>Import anything</h3>
             <p>Setlist.fm link, ticket scan, or manual entry. Most shows auto-fill in under a second.</p>
-          </div>
-          <div className="lp-step">
+          </Card>
+          <Card padding="none" className="lp-step">
             <div className="lp-step-visual">
               <div style={{ fontFamily: 'source-code-pro, monospace', fontSize: 12, color: 'var(--lp-text-muted)', marginBottom: 10 }}>RATE &amp; NOTE</div>
               <div style={{ fontSize: 22, color: 'var(--lp-amber)', letterSpacing: 2, marginBottom: 8 }}>★★★★★</div>
@@ -367,8 +366,8 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <div className="lp-step-num">Step 02</div>
             <h3>Remember the night</h3>
             <p>Star ratings, notes, photos. Tag the highlights so you can find them years later.</p>
-          </div>
-          <div className="lp-step">
+          </Card>
+          <Card padding="none" className="lp-step">
             <div className="lp-step-visual">
               <div style={{ fontFamily: 'source-code-pro, monospace', fontSize: 12, color: 'var(--lp-text-muted)', marginBottom: 12 }}>YEAR IN REVIEW</div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
@@ -385,7 +384,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <div className="lp-step-num">Step 03</div>
             <h3>See the patterns</h3>
             <p>Stats, streaks, and year-end wraps that reveal what you actually love seeing live.</p>
-          </div>
+          </Card>
         </div>
       </section>
 
@@ -394,7 +393,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
         <div className="lp-cta-card">
           <h2>Your show log is one click away.</h2>
           <p>Free forever. No ads. Built by fans who&apos;ve lost too many stub ticket memories already.</p>
-          <button className="lp-btn-white" onClick={onSignUp}>Claim your profile →</button>
+          <Button variant="secondary" size="lg" onClick={onSignUp}>Claim your profile →</Button>
           <p style={{ marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>
             By signing up you agree to our{' '}
             <Link href="/terms" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>Terms</Link>
