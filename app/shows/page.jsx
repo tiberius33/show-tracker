@@ -447,9 +447,10 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                       rating: show.rating,
                       tags,
                     }}
-                    onClick={() => setSelectedShow(show)}
                   />
                 );
+                // No onClick — let ShowCard's built-in <Link href="/shows/[id]">
+                // navigate to the new show detail page.
               })}
             </div>
           )}
