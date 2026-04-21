@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Users, Eye, Heart, Info, Sparkles } from 'lucide-react';
+import { Button, Card, Badge, Input } from '@/components/ui';
 import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
@@ -298,7 +299,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Profile Header */}
-      <div className="bg-hover border border-subtle rounded-2xl p-6">
+      <Card padding="md">
         <div className="flex items-start gap-6">
           <div className="relative">
             {photoURL || user?.photoURL ? (
@@ -327,38 +328,37 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           <div className="flex-1">
             {isEditing ? (
               <div className="space-y-3">
-                <input
+                <Input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Display name"
-                  className="w-full px-4 py-2 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
                 />
-                <input
+                <Input
                   type="url"
                   value={photoURL}
                   onChange={(e) => setPhotoURL(e.target.value)}
                   placeholder="Photo URL (optional)"
-                  className="w-full px-4 py-2 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted text-sm"
                 />
                 {error && <p className="text-danger text-sm">{error}</p>}
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    variant="primary"
+                    icon={Save}
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand disabled:opacity-50 text-primary rounded-xl font-medium transition-colors"
+                    loading={saving}
                   >
-                    <Save className="w-4 h-4" />
                     {saving ? 'Saving...' : 'Save'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    icon={X}
                     onClick={handleCancel}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
                   >
-                    <X className="w-4 h-4" />
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -367,13 +367,9 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                   <h2 className="text-2xl font-bold text-primary">
                     {user?.displayName || 'Anonymous'}
                   </h2>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-hover hover:bg-hover text-secondary rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
+                  <Button variant="ghost" size="sm" icon={Edit2} onClick={() => setIsEditing(true)}>
                     Edit
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex items-center gap-2 text-secondary mt-1">
                   <Mail className="w-4 h-4" />
@@ -387,7 +383,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
             )}
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -401,7 +397,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
       {/* Average Rating */}
       {stats.avgShowRating && (
-        <div className="bg-hover border border-subtle rounded-2xl p-6">
+        <Card padding="md">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-primary">Average Show Rating</h3>
@@ -413,11 +409,11 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               <span className="text-secondary">/10</span>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Favorite Artists */}
-      <div className="bg-hover border border-subtle rounded-2xl overflow-hidden">
+      <Card padding="none" className="overflow-hidden">
         <div className="px-6 pt-5 pb-3">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/30 to-red-500/10 flex items-center justify-center">
@@ -426,7 +422,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-semibold text-primary">Favorite Artists</h3>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-subtle text-amber border border-amber/20">Beta</span>
+                <Badge tone="beta" size="sm" uppercase>Beta</Badge>
               </div>
               <p className="text-xs text-muted">Tap the heart on any artist to add them here</p>
             </div>
@@ -442,7 +438,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           ) : (
             <div className="space-y-2">
               {favoriteArtistStats.map(artist => (
-                <div key={artist.name} className="flex items-center justify-between bg-surface border border-subtle rounded-xl px-4 py-3">
+                <Card key={artist.name} padding="none" className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: artistColor(artist.name) }} />
                     <div className="min-w-0">
@@ -455,41 +451,45 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={Sparkles}
                       onClick={() => setAiChatArtist(artist)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand rounded-lg text-xs font-medium transition-colors border border-brand/20"
+                      className="bg-brand/10 text-brand hover:bg-brand/20 border border-brand/20"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
                       Ask AI
-                    </button>
+                    </Button>
                     {artist.mbid && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Info}
                         onClick={() => setTourInfoArtist(artist)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-hover hover:bg-[rgba(255,255,255,0.1)] text-secondary hover:text-primary rounded-lg text-xs font-medium transition-colors"
                       >
-                        <Info className="w-3.5 h-3.5" />
                         Tour Info
-                      </button>
+                      </Button>
                     )}
                     {onToggleFavoriteArtist && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Heart}
                         onClick={() => onToggleFavoriteArtist(artist.name)}
-                        className="p-1.5 rounded-lg hover:bg-hover transition-colors"
+                        className="text-red-500"
                         title="Remove from favorites"
-                      >
-                        <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-                      </button>
+                      />
                     )}
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Comments Section */}
-      <div className="bg-hover border border-subtle rounded-2xl overflow-hidden">
+      <Card padding="none" className="overflow-hidden">
         <div className="px-6 pt-5 pb-3">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-amber flex items-center justify-center">
@@ -499,34 +499,30 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           </div>
 
           <div className="flex gap-2">
-            <button
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={MessageSquare}
               onClick={() => setCommentsTab('my')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                commentsTab === 'my'
-                  ? 'bg-brand/20 text-brand border border-brand/30'
-                  : 'bg-hover text-secondary hover:bg-[rgba(255,255,255,0.08)] border border-subtle'
-              }`}
+              className={commentsTab === 'my' ? 'bg-brand/20 text-brand border border-brand/30' : 'border border-subtle text-secondary'}
             >
-              <MessageSquare className="w-4 h-4" />
               My Comments
               {myComments.length > 0 && (
-                <span className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded-full text-xs">{myComments.length}</span>
+                <span className="bg-brand-subtle text-brand px-2 py-0.5 rounded-full text-xs ml-1">{myComments.length}</span>
               )}
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={Users}
               onClick={() => setCommentsTab('friends')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                commentsTab === 'friends'
-                  ? 'bg-brand/20 text-brand border border-brand/30'
-                  : 'bg-hover text-secondary hover:bg-[rgba(255,255,255,0.08)] border border-subtle'
-              }`}
+              className={commentsTab === 'friends' ? 'bg-brand/20 text-brand border border-brand/30' : 'border border-subtle text-secondary'}
             >
-              <Users className="w-4 h-4" />
-              Friends' Comments
+              Friends&apos; Comments
               {friendComments.length > 0 && (
-                <span className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded-full text-xs">{friendComments.length}</span>
+                <span className="bg-brand-subtle text-brand px-2 py-0.5 rounded-full text-xs ml-1">{friendComments.length}</span>
               )}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -541,13 +537,13 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               ) : (
                 <>
                   {paginatedMyComments.map((comment, i) => (
-                    <div key={`${comment.show?.id}-${comment.songName || 'show'}-${i}`} className="bg-surface border border-subtle rounded-xl p-4">
+                    <Card key={`${comment.show?.id}-${comment.songName || 'show'}-${i}`} padding="none" className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
-                            <span className={`px-2 py-0.5 rounded-full ${comment.type === 'show' ? 'bg-brand/20 text-brand' : 'bg-amber/20 text-amber'}`}>
+                            <Badge tone={comment.type === 'show' ? 'navy' : 'amber'} size="sm">
                               {comment.type === 'show' ? 'Show Note' : 'Song Note'}
-                            </span>
+                            </Badge>
                             <span>{formatShowDate(comment.date)}</span>
                           </div>
                           <p className="text-primary text-sm leading-relaxed">{comment.text}</p>
@@ -558,31 +554,32 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                           </div>
                         </div>
                         {onViewShow && comment.show?.id && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={Eye}
                             onClick={() => {
-                              // Save scroll position so we can restore on return
                               try { sessionStorage.setItem('profile_scroll_y', String(window.scrollY)); } catch {}
                               onViewShow(comment.show, {
                                 type: comment.type,
                                 songName: comment.songName || null,
                               });
                             }}
-                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-hover hover:bg-[rgba(255,255,255,0.1)] text-secondary hover:text-primary rounded-lg text-xs font-medium transition-colors"
                           >
-                            <Eye className="w-3.5 h-3.5" />
                             View Show
-                          </button>
+                          </Button>
                         )}
                       </div>
-                    </div>
+                    </Card>
                   ))}
                   {myComments.length > paginatedMyComments.length && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      full
                       onClick={() => setMyCommentsPage(p => p + 1)}
-                      className="w-full py-3 text-sm text-secondary hover:text-primary transition-colors"
                     >
                       Show more ({myComments.length - paginatedMyComments.length} remaining)
-                    </button>
+                    </Button>
                   )}
                 </>
               )}
@@ -624,13 +621,11 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               ) : (
                 <>
                   {paginatedFriendComments.map((comment) => (
-                    <div key={comment.id} className="bg-surface border border-subtle rounded-xl p-4">
+                    <Card key={comment.id} padding="none" className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
-                            <span className="px-2 py-0.5 rounded-full bg-brand/20 text-brand">
-                              {comment.authorName || 'Friend'}
-                            </span>
+                            <Badge tone="navy" size="sm">{comment.authorName || 'Friend'}</Badge>
                             <span>{formatTimestamp(comment.createdAt)}</span>
                           </div>
                           <p className="text-primary text-sm leading-relaxed">{comment.text}</p>
@@ -643,28 +638,29 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                           )}
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   ))}
                   {filteredFriendComments.length > paginatedFriendComments.length && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      full
                       onClick={() => setFriendCommentsPage(p => p + 1)}
-                      className="w-full py-3 text-sm text-secondary hover:text-primary transition-colors"
                     >
                       Show more ({filteredFriendComments.length - paginatedFriendComments.length} remaining)
-                    </button>
+                    </Button>
                   )}
                 </>
               )}
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Notification Settings */}
       <NotificationSettings userId={user?.uid} />
 
       {/* Email Preferences */}
-      <div className="bg-hover border border-subtle rounded-2xl p-6">
+      <Card padding="md">
         <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
           <MailX className="w-5 h-5 text-brand" />
           Email Preferences
@@ -691,10 +687,10 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
         {emailOptOutLoading && (
           <p className="text-muted text-xs mt-2">Saving...</p>
         )}
-      </div>
+      </Card>
 
       {/* Delete Account */}
-      <div className="bg-hover border border-red-500/20 rounded-2xl p-6">
+      <Card padding="md" className="border-red-500/20">
         <h3 className="text-lg font-semibold text-primary mb-2 flex items-center gap-2">
           <Trash2 className="w-5 h-5 text-red-500" />
           Delete Account
@@ -702,19 +698,19 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
         <p className="text-secondary text-sm mb-4">
           Permanently delete your account and all associated data. This action cannot be undone.
         </p>
-        <button
+        <Button
+          variant="danger"
+          icon={Trash2}
           onClick={() => setShowDeleteModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl font-medium transition-colors text-sm"
         >
-          <Trash2 className="w-4 h-4" />
           Delete My Account
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {/* Delete Account Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface border border-subtle rounded-2xl p-6 max-w-md w-full">
+          <Card padding="md" className="max-w-md w-full" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold text-primary mb-2">Delete your account?</h3>
             <p className="text-secondary text-sm mb-4">
               This will permanently delete your account, all your shows, friend connections, tags, and any other data. This cannot be undone.
@@ -722,39 +718,41 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
             <p className="text-secondary text-sm mb-4">
               Type your email address <strong className="text-primary">{user?.email}</strong> to confirm:
             </p>
-            <input
+            <Input
               type="email"
               value={deleteConfirmEmail}
               onChange={(e) => setDeleteConfirmEmail(e.target.value)}
               placeholder="Enter your email to confirm"
-              className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 text-primary placeholder-muted mb-4"
               disabled={deleteLoading}
+              className="mb-4"
             />
             {deleteError && (
               <p className="text-red-500 text-sm mb-4">{deleteError}</p>
             )}
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="danger"
+                icon={Trash2}
+                full
                 onClick={handleDeleteAccount}
                 disabled={deleteLoading || !deleteConfirmEmail}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl font-medium transition-colors"
+                loading={deleteLoading}
               >
-                <Trash2 className="w-4 h-4" />
                 {deleteLoading ? 'Deleting...' : 'Permanently Delete'}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => {
                   setShowDeleteModal(false);
                   setDeleteConfirmEmail('');
                   setDeleteError('');
                 }}
                 disabled={deleteLoading}
-                className="px-4 py-3 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -790,13 +788,13 @@ function StatCard({ icon, label, value, subtext, color }) {
   };
 
   return (
-    <div className="bg-hover border border-subtle rounded-2xl p-4 cursor-default">
+    <Card padding="sm" className="cursor-default">
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center mb-3`}>
         <span className="text-primary">{icon}</span>
       </div>
       <div className="text-2xl font-bold text-primary">{value}</div>
       {subtext && <div className="text-sm text-muted">{subtext}</div>}
       <div className="text-sm text-secondary">{label}</div>
-    </div>
+    </Card>
   );
 }
