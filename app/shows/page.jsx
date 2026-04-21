@@ -12,6 +12,7 @@ import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatTile } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
+import ShowDetailView from '@/components/shows/ShowDetailView';
 import {
   Search, Camera, RefreshCw, X, Upload, Music,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
@@ -85,6 +86,21 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
 
   if (isLoading) {
     return <ShowsListSkeleton />;
+  }
+
+  // When a show is selected from the Timeline card grid, render the full
+  // detail view inline (no routing, no page reload).
+  if (selectedShow && showsTab === 'timeline') {
+    return (
+      <ShowDetailView
+        show={selectedShow}
+        friends={friends}
+        onClose={() => setSelectedShow(null)}
+        onUpdateRating={updateShowRating}
+        onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
+        user={user}
+      />
+    );
   }
 
   return (
@@ -447,10 +463,9 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                       rating: show.rating,
                       tags,
                     }}
+                    onClick={() => setSelectedShow(show)}
                   />
                 );
-                // No onClick — let ShowCard's built-in <Link href="/shows/[id]">
-                // navigate to the new show detail page.
               })}
             </div>
           )}

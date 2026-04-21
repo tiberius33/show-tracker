@@ -1,10 +1,10 @@
 // components/shows/ShowCard.jsx
 //
-// Grid card for the /shows page and anywhere shows are surfaced in 2–4 column
-// grids. Hover-lift + click navigates to /shows/[id].
+// Grid card for the /shows page. Always uses an onClick handler (no Link)
+// so the parent can render ShowDetailView inline without any page navigation
+// or static-export routing issues.
 
 import React from 'react';
-import Link from 'next/link';
 import ShowCover from './ShowCover';
 import Badge from '../ui/Badge';
 
@@ -12,16 +12,16 @@ export default function ShowCard({ show, onClick }) {
   const {
     id, artist, venue, city,
     date, year, rating, night,
-    tags = [],     // [{ label, tone }]
+    tags = [],
     variant,
   } = show;
 
-  const Wrapper = onClick
-    ? ({ children, ...props }) => <div {...props} onClick={onClick} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onClick()}>{children}</div>
-    : ({ children, ...props }) => <Link href={`/shows/${id}`} {...props}>{children}</Link>;
-
   return (
-    <Wrapper
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick?.()}
       className="group block bg-surface border border-subtle rounded-2xl overflow-hidden transition-all duration-150 hover:border-active hover:-translate-y-0.5 hover:shadow-theme-md cursor-pointer"
     >
       <ShowCover
@@ -46,6 +46,6 @@ export default function ShowCard({ show, onClick }) {
           </div>
         )}
       </div>
-    </Wrapper>
+    </div>
   );
 }
