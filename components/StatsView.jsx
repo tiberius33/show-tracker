@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare, Heart } from 'lucide-react';
+import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare, Heart, X } from 'lucide-react';
 import { formatDate, parseDate, artistColor, avgSongRating } from '@/lib/utils';
+import { Button, Card, Badge } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
@@ -169,18 +170,19 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           { id: 'venues', label: 'Venues', icon: Building2 },
           { id: 'top', label: 'Top Shows', icon: Star },
         ].map(({ id, label, icon: Icon }) => (
-          <button
+          <Button
             key={id}
+            size="sm"
+            variant="ghost"
+            icon={Icon}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-medium transition-all text-sm ${
-              tab === id
-                ? 'bg-gradient-to-r from-brand to-amber text-on-dark shadow-lg shadow-brand/20'
-                : 'bg-hover border border-subtle hover:bg-hover text-secondary'
-            }`}
+            className={tab === id
+              ? 'bg-gradient-to-r from-brand to-amber text-on-dark shadow-lg shadow-brand/20 rounded-full'
+              : 'border border-subtle text-secondary rounded-full'
+            }
           >
-            <Icon className="w-4 h-4" />
             {label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -188,7 +190,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         <div>
           <h2 className="text-xl font-bold mb-4 text-primary">Song Statistics</h2>
 
-          <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-4 mb-4">
+          <Card padding="sm" className="mb-4">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-secondary">Filter:</span>
               <select value={filterArtist} onChange={(e) => setFilterArtist(e.target.value)} className={selectClass}>
@@ -204,22 +206,25 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                 {uniqueYears.map(y => <option key={y} value={y} className="bg-elevated">{y}</option>)}
               </select>
               {hasFilters && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={X}
                   onClick={() => { setFilterArtist(''); setFilterVenue(''); setFilterYear(''); }}
-                  className="text-xs font-medium text-secondary hover:text-primary px-2 py-1 rounded-lg hover:bg-hover transition-colors"
+                  className="text-danger hover:bg-danger/10"
                 >
                   Clear filters
-                </button>
+                </Button>
               )}
             </div>
-          </div>
+          </Card>
 
           {filteredSongStats.length === 0 ? (
             <p className="text-center text-muted py-8 font-medium">
               {hasFilters ? 'No songs match the current filters' : 'No songs tracked yet'}
             </p>
           ) : (
-            <div className="bg-hover border border-subtle rounded-2xl shadow-xl overflow-hidden">
+            <Card variant="elevated" padding="none" className="shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-hover border-b border-subtle">
@@ -234,7 +239,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           )}
         </div>
       )}
@@ -264,17 +269,16 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                       </div>
                       <div className="flex items-center gap-3">
                         {onToggleFavoriteArtist && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={Heart}
                             onClick={(e) => { e.stopPropagation(); onToggleFavoriteArtist(artist.name); }}
-                            className="p-1.5 rounded-lg hover:bg-hover transition-colors"
                             title={isArtistFavorite?.(artist.name) ? 'Remove from favorites' : 'Add to favorites'}
-                          >
-                            <Heart className={`w-4 h-4 transition-colors ${isArtistFavorite?.(artist.name) ? 'text-red-500 fill-red-500' : 'text-muted hover:text-red-400'}`} />
-                          </button>
+                            className={isArtistFavorite?.(artist.name) ? 'text-red-500' : 'text-muted hover:text-red-400'}
+                          />
                         )}
-                        <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
-                          {artist.count} show{artist.count !== 1 ? 's' : ''}
-                        </span>
+                        <Badge tone="neutral" size="sm">{artist.count} show{artist.count !== 1 ? 's' : ''}</Badge>
                         <span className="text-muted text-sm hidden sm:inline">{artist.totalSongs} songs</span>
                         {artist.avgRating ? (
                           <div className="flex items-center gap-1 text-secondary text-sm">
@@ -287,10 +291,12 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                     {isExpanded && (
                       <div className="space-y-2 pl-4 pr-2 pb-2 mt-1">
                         {artistShows.map(show => (
-                          <div
+                          <Card
                             key={show.id}
+                            padding="none"
+                            interactive
+                            className="p-4"
                             onDoubleClick={() => setSelectedShow(show)}
-                            className="bg-hover border border-subtle rounded-2xl p-4 hover:bg-hover transition-colors cursor-pointer"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
@@ -316,7 +322,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                                 <span className="text-muted text-sm">{show.setlist?.length || 0} songs</span>
                               </div>
                             </div>
-                          </div>
+                          </Card>
                         ))}
                       </div>
                     )}
@@ -361,7 +367,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           ) : (
             <div className="space-y-3">
               {venueDetails.map((venue) => (
-                <div key={venue.name} className="bg-hover border border-subtle rounded-2xl overflow-hidden">
+                <Card key={venue.name} padding="none" className="overflow-hidden">
                   {/* Venue Header */}
                   <button
                     onClick={() => setExpandedVenue(expandedVenue === venue.name ? null : venue.name)}
@@ -379,9 +385,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                           <span className="text-brand/50 font-normal">({venueRatingsMap[venue.venueKey].count})</span>
                         </span>
                       )}
-                      <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
-                        {venue.showCount} shows
-                      </span>
+                      <Badge tone="neutral" size="sm">{venue.showCount} shows</Badge>
                       <span className="text-secondary text-sm">{venue.artistCount} artists</span>
                     </div>
                   </button>
@@ -401,13 +405,15 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                               </span>
                             </div>
                           ) : <span className="text-muted text-sm">No ratings yet</span>}
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={Star}
                             onClick={() => onRateVenue(venue.sampleShow)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl text-xs font-medium transition-colors"
+                            className="bg-brand-subtle text-brand hover:bg-brand/30 border border-brand/30"
                           >
-                            <Star className="w-3.5 h-3.5" />
                             Rate Venue
-                          </button>
+                          </Button>
                         </div>
                       )}
                       {venue.years.map(({ year, shows: yearShows }) => (
@@ -478,7 +484,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -491,7 +497,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           {uniqueYears.length === 0 ? (
             <p className="text-center text-muted py-8 font-medium">No shows tracked yet</p>
           ) : (
-            <div className="bg-hover border border-subtle rounded-2xl shadow-xl overflow-hidden">
+            <Card variant="elevated" padding="none" className="shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-hover border-b border-subtle">
@@ -522,9 +528,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                             </div>
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className="bg-brand-subtle text-brand px-2.5 py-1 rounded-full text-sm font-semibold">
-                              {yearShows.length}
-                            </span>
+                            <Badge tone="neutral" size="sm">{yearShows.length}</Badge>
                           </td>
                           <td className="px-4 py-4 text-center">
                             {avgRating ? (
@@ -543,9 +547,11 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                                   {yearShows.map((show) => {
                                     const songAvg = avgSongRating(show.setlist);
                                     return (
-                                      <div
+                                      <Card
                                         key={show.id}
-                                        className="flex items-start justify-between bg-hover rounded-2xl p-4 border border-subtle cursor-pointer hover:bg-hover transition-colors"
+                                        padding="none"
+                                        interactive
+                                        className="flex items-start justify-between p-4"
                                         onClick={(e) => { e.stopPropagation(); setSelectedShow(show); }}
                                       >
                                         <div className="flex-1">
@@ -580,14 +586,12 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
                                           {show.rating ? (
-                                            <span className="inline-flex items-center gap-1 bg-brand-subtle text-brand px-2.5 py-1 rounded-full font-bold text-sm">
-                                              {show.rating}/10
-                                            </span>
+                                            <Badge tone="navy" size="sm">{show.rating}/10</Badge>
                                           ) : (
                                             <span className="text-muted text-sm">Not rated</span>
                                           )}
                                         </div>
-                                      </div>
+                                      </Card>
                                     );
                                   })}
                                 </div>
@@ -600,7 +604,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                   })}
                 </tbody>
               </table>
-            </div>
+            </Card>
           )}
         </div>
       )}
@@ -611,7 +615,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           {topRatedShows.length === 0 ? (
             <p className="text-center text-muted py-8 font-medium">No rated shows yet</p>
           ) : (
-            <div className="bg-hover border border-subtle rounded-2xl shadow-xl overflow-hidden">
+            <Card variant="elevated" padding="none" className="shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-hover border-b border-subtle">
@@ -641,15 +645,13 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                       </td>
                       <td className="px-4 py-3 text-secondary">{formatDate(show.date)}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center gap-1 bg-brand-subtle text-brand px-2.5 py-1 rounded-full font-bold text-sm">
-                          {show.rating || '--'}/10
-                        </span>
+                        <Badge tone="navy" size="sm">{show.rating || '--'}/10</Badge>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           )}
         </div>
       )}
