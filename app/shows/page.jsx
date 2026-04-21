@@ -10,6 +10,7 @@ import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
+import { Button, Card, SearchField } from '@/components/ui';
 import {
   Search, Camera, RefreshCw, X, Upload, Music,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
@@ -100,7 +101,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
           </div>
           <div className="space-y-4">
             {pendingTagsForReview.map(tag => (
-              <div key={tag.id} className="bg-hover border border-subtle rounded-2xl p-5">
+              <Card key={tag.id} padding="none" className="p-5">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
                     <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{tag.showData?.artist}</div>
@@ -120,20 +121,25 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={Check}
                     onClick={() => acceptPendingEmailTag(tag)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl font-medium transition-colors text-sm"
+                    className="flex-1"
                   >
-                    <Check className="w-4 h-4" /> Add to My History
-                  </button>
-                  <button
+                    Add to My History
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => declinePendingEmailTag(tag)}
-                    className="flex-1 px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
+                    className="flex-1"
                   >
                     Not Me — Skip
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -195,25 +201,26 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
 
           {/* Action buttons row */}
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <button
+            <Button
+              variant="primary"
+              full
+              icon={Search}
               onClick={() => navigateTo('search')}
-              className={`relative flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20 ${shows.length === 0 ? 'animate-pulse' : ''}`}
+              className={`relative${shows.length === 0 ? ' animate-pulse' : ''}`}
             >
               {shows.length === 0 && (
-                <span className="absolute inset-0 rounded-xl bg-[#34D399] animate-ping opacity-20" />
+                <span className="absolute inset-0 rounded-full bg-brand animate-ping opacity-20 pointer-events-none" />
               )}
-              <Search className="w-4 h-4" />
               Search for a Show
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => navigateTo('scan-import')}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-medium transition-all shadow-lg shadow-[#34D399]/20"
-              >
-                <Camera className="w-4 h-4" />
-                Scan / Import
-              </button>
-            </div>
+            </Button>
+            <Button
+              variant="primary"
+              full
+              icon={Camera}
+              onClick={() => navigateTo('scan-import')}
+            >
+              Scan / Import
+            </Button>
           </div>
 
           {/* Find Missing Setlists banner */}
@@ -228,13 +235,15 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                   <p className="text-muted text-xs">Auto-fetch setlists from Setlist.fm</p>
                 </div>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={RefreshCw}
                 onClick={scanForMissingSetlists}
-                className="flex items-center gap-2 px-4 py-2 bg-amber hover:bg-amber/90 text-on-dark rounded-xl text-sm font-medium transition-colors whitespace-nowrap shadow-sm"
+                className="bg-amber hover:bg-amber/90 text-on-dark whitespace-nowrap shadow-sm"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
                 Find Setlists
-              </button>
+              </Button>
             </div>
           )}
 
@@ -280,19 +289,15 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
           )}
 
           {/* Search, Filter & Sort */}
-          <div className="bg-surface rounded-2xl border border-subtle p-4 mb-6 shadow-theme-sm">
+          <Card padding="sm" className="mb-6 shadow-theme-sm">
             <div className="flex gap-3 flex-wrap items-center">
               {/* Text search */}
-              <div className="flex-1 min-w-[200px] relative">
-                <Search className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Filter by artist or venue..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-surface border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
-                />
-              </div>
+              <SearchField
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Filter by artist or venue..."
+                className="flex-1 min-w-[200px]"
+              />
 
               {/* Year dropdown */}
               {availableYears.length > 1 && (
@@ -320,13 +325,15 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
 
               {/* Clear filters */}
               {(filterYear || filterDate || searchTerm) && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={X}
                   onClick={() => { setFilterYear(''); setFilterDate(''); setSearchTerm(''); }}
-                  className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-danger hover:bg-danger/10 rounded-xl transition-colors"
+                  className="text-danger hover:bg-danger/10"
                 >
-                  <X className="w-3.5 h-3.5" />
                   Clear
-                </button>
+                </Button>
               )}
             </div>
 
@@ -335,21 +342,21 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-subtle">
                 <span className="text-sm font-medium text-secondary">Sort:</span>
                 {['artist', 'rating'].map(opt => (
-                  <button
+                  <Button
                     key={opt}
+                    size="sm"
+                    variant="ghost"
                     onClick={() => setSortBy(opt)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      sortBy === opt
-                        ? 'bg-brand-subtle text-brand border border-brand/30'
-                        : 'bg-hover text-secondary hover:bg-hover border border-subtle'
-                    }`}
+                    className={sortBy === opt
+                      ? 'bg-brand-subtle text-brand border border-brand/30'
+                      : 'text-secondary border border-subtle'}
                   >
                     {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Empty state */}
           {sortedFilteredShows.length === 0 && !showForm && (
@@ -362,23 +369,27 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                 Build your personal concert history with setlists, ratings, and stats.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
-                <button
+                <Button
+                  variant="primary"
+                  size="lg"
+                  icon={Search}
                   onClick={() => navigateTo('search')}
-                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#34D399] hover:bg-[#2AB384] text-[#1F2937] rounded-xl font-semibold transition-all shadow-lg shadow-[#34D399]/20 hover:shadow-[#34D399]/50 hover:scale-105"
+                  className="relative"
                 >
-                  <span className="absolute inset-0 rounded-xl bg-[#34D399] animate-ping opacity-20" />
-                  <Search className="w-5 h-5" />
+                  <span className="absolute inset-0 rounded-full bg-brand animate-ping opacity-20 pointer-events-none" />
                   Search for a Show
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  icon={Upload}
                   onClick={() => navigateTo('scan-import')}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-subtle hover:bg-amber-subtle text-amber rounded-xl font-semibold transition-all border border-amber/30 hover:scale-105"
+                  className="bg-amber-subtle text-amber border border-amber/30 hover:bg-amber/20"
                 >
-                  <Upload className="w-5 h-5" />
                   Bulk Import
-                </button>
+                </Button>
               </div>
-              <div className="max-w-lg mx-auto bg-hover border border-subtle rounded-2xl p-6 text-left">
+              <Card padding="md" className="max-w-lg mx-auto text-left">
                 <h3 className="text-primary font-semibold mb-4 text-center">Quick ways to add your shows</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
@@ -409,7 +420,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
           )}
 
@@ -425,7 +436,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
 
           {/* Artist groups table */}
           {sortedFilteredShows.length > 0 && (
-            <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl shadow-xl overflow-hidden">
+            <Card variant="elevated" padding="none" className="shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-hover border-b border-subtle">
@@ -453,7 +464,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           )}
 
           {/* SetlistEditor modal */}
@@ -535,25 +546,9 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                   {selectedShowIds.size} show{selectedShowIds.size !== 1 ? 's' : ''} selected
                 </span>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={selectAllShows}
-                    className="px-3 py-2 text-sm font-medium text-secondary hover:text-primary bg-hover rounded-xl transition-colors"
-                  >
-                    Select All
-                  </button>
-                  <button
-                    onClick={() => setSelectedShowIds(new Set())}
-                    className="px-3 py-2 text-sm font-medium text-secondary hover:text-primary bg-hover rounded-xl transition-colors"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    onClick={openBulkTagModal}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand to-amber text-primary rounded-xl font-medium text-sm shadow-lg shadow-brand/20"
-                  >
-                    <Tag className="w-4 h-4" />
-                    Tag Friends
-                  </button>
+                  <Button variant="ghost" size="sm" onClick={selectAllShows}>Select All</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedShowIds(new Set())}>Clear</Button>
+                  <Button variant="primary" size="sm" icon={Tag} onClick={openBulkTagModal}>Tag Friends</Button>
                 </div>
               </div>
             </div>
