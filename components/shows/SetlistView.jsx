@@ -14,7 +14,12 @@
 
 import React from 'react';
 
-export default function SetlistView({ sets = [] }) {
+// Props:
+//   sets           – array of { label, tracks[] }
+//   showPlayCounts – boolean, display "Seen Nx" pill next to each song
+//   playCounts     – { [songTitle]: count } map
+//   onSongClick    – (title) => void, called when song title is clicked
+export default function SetlistView({ sets = [], showPlayCounts = false, playCounts = {}, onSongClick }) {
   return (
     <div>
       {sets.map((set, si) => (
@@ -34,7 +39,12 @@ export default function SetlistView({ sets = [] }) {
                     {String(ti + 1).padStart(2, '0')}
                   </span>
                   <span className="text-[15px] font-medium text-primary leading-snug">
-                    {t.title}
+                    <button
+                      onClick={() => onSongClick?.(t.title)}
+                      className="hover:text-brand hover:underline transition-colors text-left"
+                    >
+                      {t.title}
+                    </button>
                     {t.cover && (
                       <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded">
                         {t.cover} cover
@@ -49,6 +59,14 @@ export default function SetlistView({ sets = [] }) {
                       <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#a0680f] bg-amber-subtle px-1.5 py-0.5 rounded">
                         bust-out{t.bustoutNote ? ` · ${t.bustoutNote}` : ''}
                       </span>
+                    )}
+                    {showPlayCounts && playCounts[t.title] > 0 && (
+                      <button
+                        onClick={() => onSongClick?.(t.title)}
+                        className="ml-2 inline-block text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                      >
+                        Seen {playCounts[t.title]}×
+                      </button>
                     )}
                   </span>
                   {t.duration && (
