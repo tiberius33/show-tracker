@@ -1,5 +1,7 @@
-// Inset card used in show detail sidebar — stats, notes, friends.
-// Pairs with SideStat row for key-value lists.
+// components/shows/SideCard.jsx
+//
+// Inset card used in /shows/[id] sidebar — stats, notes, friends. Uppercase
+// eyebrow heading. Pairs with <SideStat> row for key-value lists.
 
 import React from 'react';
 

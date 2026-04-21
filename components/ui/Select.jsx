@@ -1,4 +1,6 @@
-// Styled native <select>. Zero dependency, accessible by default, matches Input.
+// components/ui/Select.jsx
+//
+// Styled native <select> — zero dependency, accessible by default, matches Input.
 
 import React, { forwardRef } from 'react';
 import { ChevronDown } from 'lucide-react';
@@ -40,10 +42,15 @@ const Select = forwardRef(function Select(
             )
           )}
         </select>
-        <ChevronDown size={16} className="absolute right-3 text-muted pointer-events-none" />
+        <ChevronDown
+          size={16}
+          className="absolute right-3 text-muted pointer-events-none"
+        />
       </div>
       {(error || hint) && (
-        <span className={`text-xs ${error ? 'text-danger' : 'text-muted'}`}>{error || hint}</span>
+        <span className={`text-xs ${error ? 'text-danger' : 'text-muted'}`}>
+          {error || hint}
+        </span>
       )}
     </div>
   );

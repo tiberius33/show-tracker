@@ -1,3 +1,5 @@
+// components/ui/SectionHeader.jsx
+//
 // Title + optional right-side action for subsections within a page.
 //
 //   <SectionHeader title="Recently added" action={<a>See all →</a>} />

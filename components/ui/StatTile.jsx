@@ -1,6 +1,10 @@
-// Single big-number stat tile.
+// components/ui/StatTile.jsx
+//
+// Single big-number stat. Mixed in with Cards — drop-in for any page.
+// Optional delta + trend (up/down/flat) for when you're comparing periods.
 //
 //   <StatTile value="87" label="Shows this year" />
+//   <StatTile value="3.2" unit="M" label="Shows indexed" tone="brand" />
 //   <StatTile value="12" label="This month" delta="+3" trend="up" />
 
 import React from 'react';
@@ -18,11 +22,21 @@ const TREND = {
   flat: { icon: Minus,        cls: 'text-muted bg-hover' },
 };
 
-export default function StatTile({ value, unit, label, delta, trend = 'up', tone = 'default', className = '' }) {
+export default function StatTile({
+  value,
+  unit,
+  label,
+  delta,
+  trend = 'up',
+  tone = 'default',
+  className = '',
+}) {
   const TrendIcon = TREND[trend]?.icon;
 
   return (
-    <div className={`bg-surface border border-subtle rounded-2xl p-5 md:p-6 ${className}`}>
+    <div
+      className={`bg-surface border border-subtle rounded-2xl p-5 md:p-6 ${className}`}
+    >
       <div className="flex items-baseline gap-1">
         <div className={`text-[40px] md:text-[48px] font-extrabold leading-none tracking-[-0.03em] ${TONES[tone]}`}>
           {value}

@@ -1,4 +1,5 @@
-// The logged-in footer (narrow, muted). Use on every authenticated page.
+// components/layout/AppFooter.jsx
+// The logged-in footer (narrow, muted). Use <MarketingFooter> on public pages.
 
 'use client';
 

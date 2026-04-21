@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
-import Sidebar from '@/components/Sidebar';
-import MobileHeader from '@/components/MobileHeader';
+import Sidebar from '@/components/layout/Sidebar';
+import MobileHeader from '@/components/layout/MobileHeader';
 import VenueRatingModal from '@/components/VenueRatingModal';
 import InstallPrompt from '@/components/InstallPrompt';
 import Footer from '@/components/Footer';
@@ -77,7 +77,7 @@ function AppShell({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base text-primary">
+    <div className="min-h-screen bg-base text-primary">
       {/* Migration Prompt Modal */}
       {showMigrationPrompt && (
         <div className="fixed inset-0 md:left-64 bg-sidebar/50 backdrop-blur-xl flex items-center justify-center p-3 md:p-4 z-[60]">
@@ -213,8 +213,8 @@ function AppShell({ children }) {
       />
 
       {/* Main Content Area */}
-      <div className="ml-0 md:ml-64 min-h-screen pt-14 md:pt-0">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 md:py-8">
+      <div className="md:pl-64 min-h-screen pt-[calc(env(safe-area-inset-top)+56px)] md:pt-0">
+        <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10">
           {children}
         </div>
       </div>

@@ -1,3 +1,4 @@
+// components/brand/Wordmark.jsx
 // "my · setlists · .net" lockup. Use `inverse` on dark backgrounds.
 
 import React from 'react';

@@ -1,13 +1,15 @@
-// Read-only setlist renderer. Takes sets[] where each set has label + tracks[].
-// Tracks can be flagged `debut` or `bustout`.
+// components/shows/SetlistView.jsx
+//
+// Setlist renderer. Takes sets[] where each set has a label + tracks[]. Tracks
+// can be flagged `debut` or `bustout` to render a pill alongside the title.
 //
 // Example:
 //   <SetlistView sets={[
 //     { label: 'Set I', tracks: [
-//       { title: 'Tweezer', duration: '22:14' },
-//       { title: 'Chalk Dust Torture', bustout: true, bustoutNote: '47 shows' },
+//       { title: 'Frankenstein', duration: '8:14' },
+//       { title: 'Foam', duration: '9:03', bustout: true, bustoutNote: '47 shows' },
 //     ]},
-//     { label: 'Encore', tracks: [{ title: 'Tweezer Reprise' }] },
+//     { label: 'Encore', tracks: [{ title: 'Tweezer Reprise', duration: '6:55' }] },
 //   ]} />
 
 import React from 'react';
@@ -47,7 +49,9 @@ export default function SetlistView({ sets = [] }) {
                   )}
                 </span>
                 {t.duration && (
-                  <span className="font-mono text-[11px] text-muted font-semibold">{t.duration}</span>
+                  <span className="font-mono text-[11px] text-muted font-semibold">
+                    {t.duration}
+                  </span>
                 )}
               </li>
             ))}

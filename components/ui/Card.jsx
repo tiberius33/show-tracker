@@ -1,8 +1,16 @@
-// Base surface for grouped content.
+// components/ui/Card.jsx
 //
-// Variants: default / elevated / inset / dark
-// Padding: none / sm / md / lg
-// interactive — adds hover lift + pointer cursor
+// The base surface for grouped content. Use everywhere a box is needed.
+//
+// Variants:
+//   default   — white surface with subtle border (main card style)
+//   elevated  — white surface with md shadow (for modals, floating panels)
+//   inset     — no border, bg-base (for cards-within-cards)
+//   dark      — navy sidebar surface (for inverted sections like Showcase)
+//
+// Props:
+//   interactive — adds hover lift + pointer cursor
+//   padding     — 'none' | 'sm' | 'md' | 'lg'
 
 import React from 'react';
 

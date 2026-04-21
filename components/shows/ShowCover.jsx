@@ -1,12 +1,16 @@
-// Gradient cover artwork for a show. Six deterministic variants via seed string.
+// components/shows/ShowCover.jsx
 //
-//   <ShowCover seed={show.id} date="Oct 31" year={1994} rating={4.8} night="Halloween" />
+// Gradient cover artwork for a show. Six deterministic variants so cards in a
+// grid don't all look the same. Pick a variant by show id hash, or pass one.
+// The cover is pure CSS — no image asset needed.
+//
+//   <ShowCover variant={1} date="Oct 31" year={1994} rating={4.8} night="Halloween" />
 
 import React from 'react';
 import { Star } from 'lucide-react';
 
 const VARIANTS = [
-  // 0 — amber/green
+  // 0 — amber/green (default)
   {
     a: 'radial-gradient(ellipse at 25% 20%, rgba(245,166,35,0.50), transparent 60%)',
     b: 'radial-gradient(ellipse at 75% 80%, rgba(75,200,106,0.55), transparent 60%)',
@@ -46,11 +50,11 @@ function variantFor(key) {
 
 export default function ShowCover({
   variant,
-  seed,
-  date,
-  year,
-  rating,
-  night,
+  seed,            // alternative to variant — any string (show id, artist+date…)
+  date,            // e.g. "Oct 31"
+  year,            // e.g. 1994
+  rating,          // e.g. 4.8
+  night,           // e.g. "Halloween", "Night 2 / 3"
   aspectRatio = '16 / 10',
   rounded = 'rounded-t-2xl',
   className = '',

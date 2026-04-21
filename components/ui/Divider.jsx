@@ -1,3 +1,4 @@
+// components/ui/Divider.jsx
 // Horizontal rule with optional centered label ("OR", "Set II", etc.).
 
 import React from 'react';

@@ -1,3 +1,4 @@
+// components/ui/Skeleton.jsx
 // Shimmering placeholder. Use whenever data is loading & layout is predictable.
 
 import React from 'react';
