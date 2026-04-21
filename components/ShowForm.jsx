@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Tag, ChevronDown, Check } from 'lucide-react';
+import { Button, Card, Input, Badge } from '@/components/ui';
 
 function ShowForm({ onSubmit, onCancel, friends = [], onTagFriends }) {
   const [formData, setFormData] = useState({
@@ -31,23 +32,19 @@ function ShowForm({ onSubmit, onCancel, friends = [], onTagFriends }) {
   };
 
   return (
-    <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-6 mb-4">
+    <Card variant="inset" padding="md" className="mb-4">
       <h3 className="text-lg font-semibold mb-4 text-primary">Add Show Manually</h3>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input
-          type="text"
+        <Input
           placeholder="Artist/Band"
           value={formData.artist}
           onChange={(e) => setFormData({...formData, artist: e.target.value})}
-          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required
         />
-        <input
-          type="text"
+        <Input
           placeholder="Venue"
           value={formData.venue}
           onChange={(e) => setFormData({...formData, venue: e.target.value})}
-          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required
         />
         <input
@@ -69,9 +66,7 @@ function ShowForm({ onSubmit, onCancel, friends = [], onTagFriends }) {
                 <Tag className="w-4 h-4" />
                 Tag friends at this show
                 {selectedTagFriends.size > 0 && (
-                  <span className="ml-1 px-2 py-0.5 bg-brand-subtle text-brand rounded-full text-xs font-medium">
-                    {selectedTagFriends.size} selected
-                  </span>
+                  <Badge tone="green" size="sm">{selectedTagFriends.size} selected</Badge>
                 )}
               </span>
               <ChevronDown className={`w-4 h-4 text-muted transition-transform ${tagOpen ? 'rotate-180' : ''}`} />
@@ -99,15 +94,11 @@ function ShowForm({ onSubmit, onCancel, friends = [], onTagFriends }) {
           </div>
         )}
         <div className="flex gap-3 pt-2">
-          <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20">
-            Add Show
-          </button>
-          <button type="button" onClick={onCancel} className="px-4 py-3 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors">
-            Cancel
-          </button>
+          <Button type="submit" variant="primary" full>Add Show</Button>
+          <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
         </div>
       </form>
-    </div>
+    </Card>
   );
 }
 

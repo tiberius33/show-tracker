@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Check, AlertTriangle, ExternalLink, Music, ChevronDown, Loader2 } from 'lucide-react';
+import { Button, Card } from '@/components/ui';
 import {
   generateCodeVerifier, generateCodeChallenge, buildSpotifyAuthUrl,
   storeCodeVerifier, getCodeVerifier, storePlaylistContext,
@@ -347,16 +348,16 @@ function PlaylistCreatorModal({ show, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-sidebar/50 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="bg-elevated border border-subtle rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+      <Card
+        variant="elevated"
+        padding="none"
+        className="w-full max-w-md overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
           <h2 className="text-lg font-bold text-primary">Create Playlist</h2>
-          <button onClick={onClose} className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-hover transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="ghost" icon={X} onClick={onClose} />
         </div>
 
         <div className="p-5">
@@ -364,12 +365,12 @@ function PlaylistCreatorModal({ show, onClose }) {
           {step === 'select' && (
             <>
               {/* Show info */}
-              <div className="bg-hover rounded-xl p-4 mb-5">
+              <Card variant="inset" padding="none" className="rounded-xl p-4 mb-5">
                 <div className="text-sm font-semibold text-primary">{show.artist}</div>
                 <div className="text-xs text-secondary mt-1">
                   {show.venue}{show.city ? `, ${show.city}` : ''} &middot; {songs.length} songs
                 </div>
-              </div>
+              </Card>
 
               {/* Platform buttons */}
               <div className="space-y-3">
@@ -505,7 +506,7 @@ function PlaylistCreatorModal({ show, onClose }) {
 
               {/* Unmatched songs */}
               {result.unmatched.length > 0 && (
-                <div className="bg-hover rounded-xl border border-subtle">
+                <Card padding="none" className="overflow-hidden">
                   <button
                     onClick={() => setUnmatchedOpen(!unmatchedOpen)}
                     className="w-full flex items-center justify-between px-4 py-3 text-xs font-medium text-brand"
@@ -523,16 +524,11 @@ function PlaylistCreatorModal({ show, onClose }) {
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
               )}
 
               {/* Done button */}
-              <button
-                onClick={onClose}
-                className="w-full mt-4 py-3 rounded-xl bg-hover hover:bg-hover text-primary text-sm font-medium transition-colors"
-              >
-                Done
-              </button>
+              <Button variant="ghost" full onClick={onClose} className="mt-4">Done</Button>
             </div>
           )}
 
@@ -543,23 +539,13 @@ function PlaylistCreatorModal({ show, onClose }) {
               <h3 className="text-sm font-semibold text-primary mb-2">Something went wrong</h3>
               <p className="text-xs text-secondary mb-5">{error}</p>
               <div className="flex gap-3">
-                <button
-                  onClick={handleRetry}
-                  className="flex-1 py-2.5 rounded-xl bg-hover hover:bg-hover text-primary text-sm font-medium transition-colors"
-                >
-                  Try Again
-                </button>
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl bg-hover hover:bg-hover text-secondary text-sm font-medium transition-colors"
-                >
-                  Close
-                </button>
+                <Button variant="primary" full onClick={handleRetry}>Try Again</Button>
+                <Button variant="ghost" full onClick={onClose}>Close</Button>
               </div>
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Calendar, MapPin, Check, Search, ChevronLeft, Users, Send, RefreshCw, X } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { Button, Card, Input } from '@/components/ui';
 
 function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEmail, onClose }) {
   const isBulk = Array.isArray(bulkShows) && bulkShows.length > 0;
@@ -60,26 +61,24 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
 
   return (
     <div className="fixed inset-0 md:left-64 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-      <div className="bg-elevated border border-subtle rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+      <Card variant="elevated" padding="none" className="w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-subtle">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-primary">Tag Friends</h2>
-            <button onClick={onClose} className="p-3 text-muted hover:text-primary hover:bg-hover active:bg-hover rounded-xl transition-colors">
-              <X className="w-6 h-6" />
-            </button>
+            <Button variant="ghost" icon={X} onClick={onClose} />
           </div>
           {isBulk ? (
-            <div className="bg-hover rounded-xl p-3">
+            <Card variant="inset" padding="none" className="rounded-xl p-3">
               <div className="font-medium text-brand">{bulkShows.length} shows selected</div>
               <div className="text-xs text-secondary mt-1 max-h-20 overflow-y-auto space-y-0.5">
                 {bulkShows.map(s => (
                   <div key={s.id}>{s.artist} &middot; {formatDate(s.date)} &middot; {s.venue}</div>
                 ))}
               </div>
-            </div>
+            </Card>
           ) : (
-            <div className="bg-hover rounded-xl p-3">
+            <Card variant="inset" padding="none" className="rounded-xl p-3">
               <div className="font-medium" style={{ color: '#f59e0b' }}>{show.artist}</div>
               <div className="flex items-center gap-2 text-sm text-secondary mt-1">
                 <Calendar className="w-3.5 h-3.5" />
@@ -88,7 +87,7 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
                 <MapPin className="w-3.5 h-3.5" />
                 <span>{show.venue}</span>
               </div>
-            </div>
+            </Card>
           )}
         </div>
 
@@ -96,14 +95,12 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
         <div className="flex-1 overflow-y-auto p-6">
           {/* Search input */}
           {!inviteMode && (
-            <div className="relative mb-4">
-              <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
+            <div className="mb-4">
+              <Input
+                icon={Search}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search friends by name or email..."
-                className="w-full pl-9 pr-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary text-sm placeholder-muted"
               />
             </div>
           )}
@@ -111,21 +108,24 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
           {/* Invite sub-form */}
           {inviteMode && (
             <div>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={ChevronLeft}
                 onClick={() => { setInviteMode(false); setInviteStatus(null); }}
-                className="flex items-center gap-1.5 text-secondary hover:text-primary text-sm mb-4 transition-colors"
+                className="mb-4"
               >
-                <ChevronLeft className="w-4 h-4" /> Back to friend list
-              </button>
+                Back to friend list
+              </Button>
               <p className="text-secondary text-sm mb-3">
                 Send <span className="text-primary font-medium">{query.trim()}</span> an invite to join mysetlists.net, with this show included.
               </p>
-              <input
+              <Input
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="friend@example.com"
-                className="w-full px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary text-sm placeholder-muted mb-3"
+                className="mb-3"
               />
               <textarea
                 value={inviteMessage}
@@ -136,20 +136,22 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
               />
               {inviteStatus === 'success' && (
                 <div className="flex items-center gap-2 text-brand text-sm font-medium mb-3">
-                  <Check className="w-4 h-4" /> Invite sent! They'll get an email with the show details.
+                  <Check className="w-4 h-4" /> Invite sent! They&apos;ll get an email with the show details.
                 </div>
               )}
               {inviteStatus === 'error' && (
                 <div className="text-danger text-sm mb-3">Something went wrong. Please try again.</div>
               )}
-              <button
+              <Button
+                variant="primary"
+                icon={Send}
+                full
                 onClick={handleSendInvite}
                 disabled={!inviteEmail.trim() || inviteSending}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                loading={inviteSending}
               >
-                {inviteSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {inviteSending ? 'Sending...' : 'Send Invite'}
-              </button>
+              </Button>
             </div>
           )}
 
@@ -183,12 +185,14 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
                   <p className="text-secondary text-sm mb-3">
                     <span className="text-primary font-medium">{query.trim()}</span> isn't on mysetlists.net yet.
                   </p>
-                  <button
+                  <Button
+                    variant="ghost"
+                    icon={Send}
                     onClick={() => { setInviteMode(true); setInviteStatus(null); }}
-                    className="flex items-center gap-2 mx-auto px-4 py-2.5 bg-brand-subtle hover:bg-brand/30 text-brand border border-brand/30 rounded-xl font-medium text-sm transition-colors"
+                    className="mx-auto bg-brand-subtle text-brand hover:bg-brand/30 border border-brand/30"
                   >
-                    <Send className="w-4 h-4" /> Invite {query.trim()}
-                  </button>
+                    Invite {query.trim()}
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -230,25 +234,22 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
         {/* Footer -- tag button (only shown in list mode with selections) */}
         {!inviteMode && selectedFriends.size > 0 && (
           <div className="p-6 border-t border-subtle flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button
+            <Button variant="ghost" full onClick={onClose}>Cancel</Button>
+            <Button
+              variant="primary"
+              full
               onClick={handleTag}
               disabled={sending}
-              className="flex-1 px-4 py-2.5 rounded-xl font-medium transition-all bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary shadow-lg shadow-brand/20 disabled:opacity-50"
+              loading={sending}
             >
               {sending ? 'Tagging...' : isBulk
-                ? `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} in ${bulkShows.length} Shows \u2192`
-                : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} at This Show \u2192`
+                ? `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} in ${bulkShows.length} Shows →`
+                : `Tag ${selectedFriends.size} Friend${selectedFriends.size !== 1 ? 's' : ''} at This Show →`
               }
-            </button>
+            </Button>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

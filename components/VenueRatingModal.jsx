@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Star, X, RefreshCw } from 'lucide-react';
+import { Button, Card } from '@/components/ui';
 import { collection, doc, setDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -92,15 +93,13 @@ function VenueRatingModal({ show, currentUser, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 md:left-64 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-      <div className="bg-elevated border border-subtle rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+      <Card variant="elevated" padding="none" className="w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-subtle flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-primary">{existingId ? 'Edit Your Rating' : 'Rate This Venue'}</h2>
             <p className="text-secondary text-sm mt-0.5">{show.venue}{show.city ? `, ${show.city}` : ''}</p>
           </div>
-          <button onClick={onClose} className="p-3 text-muted hover:text-primary hover:bg-hover rounded-xl transition-colors">
-            <X className="w-6 h-6" />
-          </button>
+          <Button variant="ghost" icon={X} onClick={onClose} />
         </div>
         {loading ? (
           <div className="flex-1 flex items-center justify-center p-8">
@@ -138,18 +137,18 @@ function VenueRatingModal({ show, currentUser, onClose, onSaved }) {
           </div>
         )}
         <div className="p-6 border-t border-subtle flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors">
-            Cancel
-          </button>
-          <button
+          <Button variant="ghost" full onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            full
             onClick={handleSave}
             disabled={!overallRating || saving}
-            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-brand to-brand hover:from-brand hover:to-brand text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={saving}
           >
             {saving ? 'Saving...' : existingId ? 'Update Rating' : 'Save Rating'}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
