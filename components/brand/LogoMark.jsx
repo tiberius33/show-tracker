@@ -1,3 +1,4 @@
+// components/brand/LogoMark.jsx
 // Pick + Wordmark as a linked logo. Default link = "/".
 
 import React from 'react';

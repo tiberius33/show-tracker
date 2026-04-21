@@ -1,3 +1,4 @@
+// components/ui/Textarea.jsx
 // Multi-line input. Same visual language as Input.
 
 import React, { forwardRef } from 'react';
@@ -30,7 +31,9 @@ const Textarea = forwardRef(function Textarea(
         {...rest}
       />
       {(error || hint) && (
-        <span className={`text-xs ${error ? 'text-danger' : 'text-muted'}`}>{error || hint}</span>
+        <span className={`text-xs ${error ? 'text-danger' : 'text-muted'}`}>
+          {error || hint}
+        </span>
       )}
     </div>
   );

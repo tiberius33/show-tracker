@@ -1,4 +1,7 @@
-// Tooltip wrapper using globals.css .tooltip-wrap / .tooltip-text classes.
+// components/ui/Tooltip.jsx
+//
+// Piggybacks on globals.css `.tooltip-wrap` / `.tooltip-text` classes already
+// in your stylesheet — so it stays visually identical to existing tooltips.
 //
 //   <Tooltip text="Sort by date"><button>…</button></Tooltip>
 

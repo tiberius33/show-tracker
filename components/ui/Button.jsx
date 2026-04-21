@@ -1,8 +1,18 @@
+// components/ui/Button.jsx
+//
 // The canonical button for MySetlists. Uses brand tokens from tailwind.config.js.
 //
-// Variants: primary / secondary / ghost / outline / danger / dark
+// Variants:
+//   primary   — green, for the main action on a screen (one per screen, ideally)
+//   secondary — light gray, for secondary actions
+//   ghost     — transparent, for low-weight actions (toolbar, inline)
+//   outline   — bordered, for destructive-adjacent or neutral ghost-with-edges
+//   danger    — red, for destructive actions
+//   dark      — navy (matches sidebar), for surfaces on light bg when you need emphasis
+//
 // Sizes: sm / md / lg
-// Extra: `icon` prop renders a lucide icon. `loading` adds a spinner. `full` = w-full.
+// Extra: `icon` prop renders a lucide icon with correct spacing. `loading` adds
+// a spinner and disables. `full` makes it w-full.
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';

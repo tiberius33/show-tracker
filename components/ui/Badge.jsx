@@ -1,3 +1,5 @@
+// components/ui/Badge.jsx
+//
 // Small label for meta/status info. Use Tag for interactive chips.
 //
 // Tones: neutral / green / amber / navy / red / beta
@@ -12,6 +14,7 @@ const TONES = {
   navy:    'bg-[#eaecf2] text-sidebar',
   red:     'bg-[#fdecec] text-danger',
   beta:    'bg-amber-subtle text-[#a0680f] border border-amber/20',
+  dot:     'bg-brand-subtle text-[#2a8a47]', // used with <span className="w-1.5 h-1.5 rounded-full bg-brand" />
 };
 
 const SIZES = {
@@ -32,7 +35,7 @@ export default function Badge({
       className={[
         'inline-flex items-center gap-1.5 font-bold whitespace-nowrap',
         uppercase && 'tracking-[0.08em] uppercase',
-        TONES[tone] || TONES.neutral,
+        TONES[tone],
         SIZES[size],
         className,
       ]

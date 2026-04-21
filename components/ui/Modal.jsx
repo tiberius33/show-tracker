@@ -1,10 +1,15 @@
-// Accessible modal with backdrop, escape-to-close, scroll-lock.
+// components/ui/Modal.jsx
+//
+// Accessible modal with backdrop, escape-to-close, scroll-lock, focus trap-ish.
 // Named size presets: sm / md / lg / xl / full.
 //
 // Usage:
 //   <Modal open={isOpen} onClose={close} title="Add a show" size="lg">
 //     <div>content</div>
-//     <Modal.Footer><Button>Save</Button></Modal.Footer>
+//     <Modal.Footer>
+//       <Button variant="secondary" onClick={close}>Cancel</Button>
+//       <Button onClick={save}>Save</Button>
+//     </Modal.Footer>
 //   </Modal>
 
 'use client';
@@ -20,7 +25,17 @@ const SIZES = {
   full: 'max-w-[calc(100vw-2rem)]',
 };
 
-export default function Modal({ open, onClose, title, subtitle, children, size = 'md', showClose = true, footer }) {
+export default function Modal({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  size = 'md',
+  showClose = true,
+  footer,
+}) {
+  // Escape to close + scroll lock
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === 'Escape' && onClose?.();
@@ -37,7 +52,7 @@ export default function Modal({ open, onClose, title, subtitle, children, size =
 
   return (
     <div
-      className="fixed inset-0 z-[9000] flex items-end md:items-center justify-center p-0 md:p-4 bg-sidebar/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[9000] flex items-end md:items-center justify-center p-0 md:p-4 bg-sidebar/60 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -46,11 +61,12 @@ export default function Modal({ open, onClose, title, subtitle, children, size =
       <div
         onClick={(e) => e.stopPropagation()}
         className={[
-          'bg-surface w-full shadow-theme-xl flex flex-col max-h-[92vh]',
+          'bg-surface w-full shadow-theme-xl flex flex-col max-h-[92vh] animate-slide-up',
           'rounded-t-2xl md:rounded-2xl',
           SIZES[size],
         ].join(' ')}
       >
+        {/* Header */}
         {(title || showClose) && (
           <div className="flex items-start justify-between gap-4 p-5 md:p-6 border-b border-subtle">
             <div className="min-w-0 flex-1">
@@ -59,7 +75,9 @@ export default function Modal({ open, onClose, title, subtitle, children, size =
                   {title}
                 </h2>
               )}
-              {subtitle && <p className="text-sm text-secondary mt-1">{subtitle}</p>}
+              {subtitle && (
+                <p className="text-sm text-secondary mt-1">{subtitle}</p>
+              )}
             </div>
             {showClose && (
               <button
@@ -74,8 +92,10 @@ export default function Modal({ open, onClose, title, subtitle, children, size =
           </div>
         )}
 
+        {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 md:p-6">{children}</div>
 
+        {/* Footer */}
         {footer && (
           <div className="flex justify-end gap-2.5 p-5 md:p-6 border-t border-subtle bg-base/40">
             {footer}
@@ -86,6 +106,9 @@ export default function Modal({ open, onClose, title, subtitle, children, size =
   );
 }
 
+// Convenience — <Modal.Footer> passes children straight through,
+// but renders nothing if you use the `footer` prop directly. Useful for
+// callers who prefer the compositional form.
 Modal.Footer = function ModalFooter({ children }) {
   return <>{children}</>;
 };

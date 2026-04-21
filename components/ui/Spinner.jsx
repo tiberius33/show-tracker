@@ -1,3 +1,4 @@
+// components/ui/Spinner.jsx
 // Indeterminate loading spinner. Use for async states.
 
 import React from 'react';

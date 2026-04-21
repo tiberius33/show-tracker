@@ -1,8 +1,11 @@
+// components/ui/Tabs.jsx
+//
 // Underline-style tab bar. Controlled.
 //
 // Usage:
 //   <Tabs value={tab} onChange={setTab} tabs={[
 //     { id: 'shows', label: 'Shows', count: 87 },
+//     { id: 'wishlist', label: 'Wishlist', count: 12 },
 //     { id: 'upcoming', label: 'Upcoming' },
 //   ]} />
 
@@ -12,7 +15,7 @@ export default function Tabs({ tabs, value, onChange, className = '' }) {
   return (
     <div
       role="tablist"
-      className={`flex gap-1 border-b border-subtle overflow-x-auto ${className}`}
+      className={`flex gap-1 border-b border-subtle overflow-x-auto scrollbar-hide ${className}`}
     >
       {tabs.map((t) => {
         const active = t.id === value;

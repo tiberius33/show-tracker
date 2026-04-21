@@ -1,8 +1,10 @@
-// Big gradient hero at the top of a show detail page.
-// Use negative top-margin on the content below: className="-mt-20 relative z-10"
+// components/shows/ShowHero.jsx
+//
+// Big gradient hero at the top of /shows/[id]. The body card below should use
+// negative top-margin to slightly overlap: `className="-mt-20 relative z-10"`.
 
 import React from 'react';
-import Badge from '@/components/ui/Badge';
+import Badge from '../ui/Badge';
 
 export default function ShowHero({
   artist,

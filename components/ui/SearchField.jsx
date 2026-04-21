@@ -1,4 +1,6 @@
-// Pre-styled search input. Wraps Input with keyboard affordance.
+// components/ui/SearchField.jsx
+//
+// Pre-styled search input. Wraps <Input icon={Search}> with keyboard affordance.
 //
 //   <SearchField value={q} onChange={setQ} placeholder="Search your 87 shows…" />
 
@@ -10,7 +12,7 @@ export default function SearchField({
   value,
   onChange,
   placeholder = 'Search…',
-  shortcut = null,
+  shortcut = null, // e.g. '⌘K'
   className = '',
   ...rest
 }) {

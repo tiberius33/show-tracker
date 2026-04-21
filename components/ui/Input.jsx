@@ -1,13 +1,26 @@
-// Text input with optional left icon, right affix, error state, label.
+// components/ui/Input.jsx
+//
+// Text input with optional left icon, right-aligned affix, error state, label.
 //
 // Usage:
 //   <Input label="Email" type="email" value={v} onChange={e => setV(e.target.value)} />
 //   <Input icon={Search} placeholder="Search shows…" />
+//   <Input label="Rating" error="Must be between 1 and 5" value={r} />
 
 import React, { forwardRef } from 'react';
 
 const Input = forwardRef(function Input(
-  { label, error, hint, icon: Icon, rightElement, className = '', containerClassName = '', id, ...rest },
+  {
+    label,
+    error,
+    hint,
+    icon: Icon,
+    rightElement,
+    className = '',
+    containerClassName = '',
+    id,
+    ...rest
+  },
   ref,
 ) {
   const inputId = id || (label ? `in-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
@@ -29,7 +42,9 @@ const Input = forwardRef(function Input(
           error ? 'focus-within:ring-danger/20' : 'focus-within:ring-brand/15',
         ].join(' ')}
       >
-        {Icon && <Icon size={18} strokeWidth={2} className="ml-3.5 text-muted flex-shrink-0" />}
+        {Icon && (
+          <Icon size={18} strokeWidth={2} className="ml-3.5 text-muted flex-shrink-0" />
+        )}
         <input
           id={inputId}
           ref={ref}
@@ -45,7 +60,9 @@ const Input = forwardRef(function Input(
         {rightElement && <div className="mr-2 flex-shrink-0">{rightElement}</div>}
       </div>
       {(error || hint) && (
-        <span className={`text-xs ${error ? 'text-danger' : 'text-muted'}`}>{error || hint}</span>
+        <span className={`text-xs ${error ? 'text-danger' : 'text-muted'}`}>
+          {error || hint}
+        </span>
       )}
     </div>
   );

@@ -1,14 +1,20 @@
+// components/ui/RatingStars.jsx
+//
 // Five-star rating. Works read-only (display) or interactive.
 //
 //   <RatingStars value={4.8} />
 //   <RatingStars value={rating} onChange={setRating} />
 
-'use client';
-
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
 
-export default function RatingStars({ value = 0, onChange, size = 18, className = '', showValue = false }) {
+export default function RatingStars({
+  value = 0,
+  onChange,
+  size = 18,
+  className = '',
+  showValue = false,
+}) {
   const [hover, setHover] = useState(null);
   const interactive = !!onChange;
   const display = hover ?? value;
@@ -43,6 +49,7 @@ export default function RatingStars({ value = 0, onChange, size = 18, className 
       {showValue && value > 0 && (
         <span className="text-sm font-bold text-primary ml-1">{value.toFixed(1)}</span>
       )}
+      {/* Half-star gradient. Inlined once per component. */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
           <linearGradient id="half-star" x1="0" x2="1" y1="0" y2="0">

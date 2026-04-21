@@ -1,11 +1,24 @@
+// components/ui/PageHeader.jsx
+//
 // Top-of-page title block. Consistent across every route.
 //
 // Usage:
-//   <PageHeader eyebrow="Library" title="My Shows" subtitle="87 shows" actions={<Button>Add</Button>} />
+//   <PageHeader
+//     eyebrow="Library"
+//     title="My Shows"
+//     subtitle="87 shows · 24 artists · 19 venues"
+//     actions={<Button icon={Plus}>Add show</Button>}
+//   />
 
 import React from 'react';
 
-export default function PageHeader({ eyebrow, title, subtitle, actions, className = '' }) {
+export default function PageHeader({
+  eyebrow,
+  title,
+  subtitle,
+  actions,
+  className = '',
+}) {
   return (
     <header
       className={`flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-6 mb-7 border-b border-subtle ${className}`}

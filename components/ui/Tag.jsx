@@ -1,10 +1,24 @@
-// Small interactive chip — for tags, filters, taxonomy.
-// For non-interactive status labels, use <Badge> instead.
+// components/ui/Tag.jsx
+//
+// Small interactive chip — for tags, filters, taxonomy. If you need a
+// non-interactive status label, use <Badge> instead.
+//
+// Usage:
+//   <Tag>Jam band</Tag>
+//   <Tag selected onClick={toggle}>Setlist II</Tag>
+//   <Tag onRemove={() => delete(t)}>Red Rocks</Tag>
 
 import React from 'react';
 import { X } from 'lucide-react';
 
-export default function Tag({ children, selected = false, onClick, onRemove, icon: Icon, className = '' }) {
+export default function Tag({
+  children,
+  selected = false,
+  onClick,
+  onRemove,
+  icon: Icon,
+  className = '',
+}) {
   const interactive = !!onClick;
 
   return (
@@ -33,7 +47,10 @@ export default function Tag({ children, selected = false, onClick, onRemove, ico
       {onRemove && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onRemove(e); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(e);
+          }}
           aria-label="Remove"
           className="ml-0.5 -mr-1 p-0.5 rounded-full hover:bg-hover"
         >

@@ -1,10 +1,13 @@
-// Circle user avatar. Falls back to colored gradient + initials.
+// components/ui/Avatar.jsx
+//
+// Circle user/entity avatar. Falls back to a colored gradient + initials.
 // Size in px: sm(28) md(40) lg(56) xl(80).
 
 import React from 'react';
 
 const SIZES = { sm: 28, md: 40, lg: 56, xl: 80 };
 
+// Deterministic pick so the same user always gets the same color.
 const GRADIENTS = [
   'from-amber-light to-amber',
   'from-brand-light to-brand',
@@ -20,7 +23,13 @@ function hashPick(key, arr) {
   return arr[Math.abs(h) % arr.length];
 }
 
-export default function Avatar({ src, name = '', size = 'md', className = '', ring = false }) {
+export default function Avatar({
+  src,
+  name = '',
+  size = 'md',
+  className = '',
+  ring = false,
+}) {
   const px = SIZES[size] || size;
   const initials = name
     .split(/\s+/)
