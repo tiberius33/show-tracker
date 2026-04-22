@@ -13,6 +13,7 @@ import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatTile } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
+import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import {
   Search, Camera, RefreshCw, X, Upload, Music,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
@@ -48,6 +49,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
 
   const [playlistShow, setPlaylistShow] = useState(null);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showToDelete, setShowToDelete] = useState(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
   const [showsTab, setShowsTab] = useState('timeline'); // 'timeline' | 'artist'
@@ -100,6 +102,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
         onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
         onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
         onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
+        onDeleteShow={deleteShow}
         toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
         isArtistFavorite={isArtistFavorite}
         allShows={shows}
@@ -469,6 +472,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                       tags,
                     }}
                     onClick={() => setSelectedShow(show)}
+                    onDelete={() => setShowToDelete(show)}
                   />
                 );
               })}
@@ -495,7 +499,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                       expanded={selectedArtist === artist}
                       onToggle={() => setSelectedArtist(selectedArtist === artist ? null : artist)}
                       onSelectShow={setSelectedShow}
-                      onDeleteShow={deleteShow}
+                      onDeleteShow={(show) => setShowToDelete(show)}
                       onRateShow={updateShowRating}
                       selectedShowId={selectedShow?.id}
                       selectionMode={selectionMode}
@@ -602,6 +606,14 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
               navigateTo={navigateTo}
             />
           )}
+
+          {/* Delete show confirmation modal */}
+          <DeleteShowModal
+            show={showToDelete}
+            isOpen={!!showToDelete}
+            onClose={() => setShowToDelete(null)}
+            onConfirm={deleteShow}
+          />
 
         </>
       )}

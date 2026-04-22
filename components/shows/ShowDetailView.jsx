@@ -27,8 +27,9 @@ import { Avatar, Button } from '@/components/ui';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import {
   ArrowLeft, UserPlus, Heart, Share2, ListMusic, Hash,
-  ChevronDown, Music, MapPin,
+  ChevronDown, Music, MapPin, Trash2,
 } from 'lucide-react';
+import DeleteShowModal from './DeleteShowModal';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -171,6 +172,7 @@ export default function ShowDetailView({
   onUpdateVenueRating,
   onTagFriends,
   onCreatePlaylist,
+  onDeleteShow,
   toggleFavoriteArtist,
   isArtistFavorite,
   allShows = [],
@@ -181,6 +183,7 @@ export default function ShowDetailView({
   const [venueExpanded, setVenueExpanded]     = useState(false);
   const [songHistorySong, setSongHistorySong] = useState(null);
   const [toast, setToast] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // All hooks must run unconditionally — computed after hooks, used only when show != null
   const artistShowCount = useMemo(
@@ -323,6 +326,17 @@ export default function ShowDetailView({
           >
             <ListMusic className="w-4 h-4" />
             Create Playlist
+          </button>
+        )}
+
+        {/* Delete show */}
+        {onDeleteShow && user && (
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-900/20 transition-colors ml-auto"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
           </button>
         )}
       </div>
@@ -560,6 +574,17 @@ export default function ShowDetailView({
           onViewShow={handleViewShow}
         />
       )}
+
+      {/* Delete confirmation modal */}
+      <DeleteShowModal
+        show={show}
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={async (showId) => {
+          await onDeleteShow(showId);
+          onClose();
+        }}
+      />
 
     </div>
   );
