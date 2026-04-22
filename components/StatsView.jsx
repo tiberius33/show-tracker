@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare, Heart, X } from 'lucide-react';
+import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare, Heart, X, Trash2 } from 'lucide-react';
+import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import { formatDate, parseDate, artistColor, avgSongRating } from '@/lib/utils';
 import { Button, Card, Badge } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onDeleteShow, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -20,6 +21,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
   const [selectedShow, setSelectedShow] = useState(null);
   const [playlistShow, setPlaylistShow] = useState(null);
   const [venueRatingsMap, setVenueRatingsMap] = useState({}); // venueKey -> aggregate | null
+  const [showToDelete, setShowToDelete] = useState(null);
 
   useEffect(() => {
     if (initialTab) setTab(initialTab);
@@ -624,13 +626,14 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                     <th className="text-left px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Venue</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Date</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-secondary uppercase tracking-wide">Rating</th>
+                    {onDeleteShow && <th className="px-2 py-3 w-10" />}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {topRatedShows.map((show, i) => (
                     <tr
                       key={show.id}
-                      className="hover:bg-hover transition-colors cursor-pointer"
+                      className="group hover:bg-hover transition-colors cursor-pointer"
                       onClick={() => setSelectedShow(show)}
                     >
                       <td className="px-4 py-3 text-center text-lg font-bold text-muted">
@@ -647,6 +650,17 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                       <td className="px-4 py-3 text-center">
                         <Badge tone="navy" size="sm">{show.rating || '--'}/10</Badge>
                       </td>
+                      {onDeleteShow && (
+                        <td className="px-2 py-3 text-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setShowToDelete(show); }}
+                            className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete show"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -680,6 +694,15 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         <PlaylistCreatorModal
           show={playlistShow}
           onClose={() => setPlaylistShow(null)}
+        />
+      )}
+
+      {onDeleteShow && (
+        <DeleteShowModal
+          show={showToDelete}
+          isOpen={!!showToDelete}
+          onClose={() => setShowToDelete(null)}
+          onConfirm={onDeleteShow}
         />
       )}
     </div>

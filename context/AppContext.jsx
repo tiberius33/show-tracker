@@ -1096,13 +1096,12 @@ export function AppProvider({ children }) {
 
   // ── Delete show ─────────────────────────────────────────────────────
   const deleteShow = async (showId) => {
-    if (!window.confirm('Delete this show?')) return;
-
     if (guestMode) {
       const updatedShows = shows.filter(s => s.id !== showId);
       setShows(updatedShows);
       saveGuestShows(updatedShows);
       if (selectedShow?.id === showId) setSelectedShow(null);
+      setToast('Show deleted.');
       return;
     }
 
@@ -1118,9 +1117,11 @@ export function AppProvider({ children }) {
       await updateUserProfile(user, updatedShows);
       updateCommunityStats();
       calculateUserRank(user.uid, updatedShows.length);
+      setToast('Show deleted.');
     } catch (error) {
       console.error('Failed to delete show:', error);
-      alert('Failed to delete show. Please try again.');
+      setToast({ message: 'Failed to delete show. Please try again.', type: 'error' });
+      throw error;
     }
   };
 

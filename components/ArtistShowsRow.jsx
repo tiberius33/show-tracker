@@ -95,9 +95,10 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteShow(show.id);
+                          onDeleteShow(show);
                         }}
                         className="text-muted hover:text-danger transition-all opacity-0 group-hover:opacity-100 ml-2"
+                        title="Delete show"
                       >
                         <X className="w-4 h-4" />
                       </button>
