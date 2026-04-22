@@ -93,17 +93,6 @@ function buildSets(setlist = []) {
   }));
 }
 
-function getRatingLabel(r) {
-  if (!r) return '';
-  if (r >= 9) return 'Legendary';
-  if (r === 8) return 'Amazing';
-  if (r === 7) return 'Great';
-  if (r === 6) return 'Good';
-  if (r === 5) return 'Solid';
-  if (r === 4) return 'Okay';
-  return 'Meh';
-}
-
 // ── Micro-components ───────────────────────────────────────────────────────────
 
 function SidebarLabel({ children }) {
@@ -137,24 +126,37 @@ function StatRow({ label, value, tone }) {
   );
 }
 
-// 1-10 rating button grid
-function RatingButtons({ value, onRate, accentClass = 'bg-emerald-400 text-black' }) {
+function CompactRating({ label, value, onChange, accentColor = 'emerald' }) {
+  const borderClass = accentColor === 'orange'
+    ? 'border-orange-400 focus:ring-orange-400'
+    : 'border-emerald-400 focus:ring-emerald-400';
+  const textClass = accentColor === 'orange' ? 'text-orange-400' : 'text-emerald-400';
+
   return (
-    <div className="grid grid-cols-5 gap-1.5">
-      {[1,2,3,4,5,6,7,8,9,10].map(n => (
+    <div className="flex items-center gap-3">
+      <label className="text-xs font-extrabold tracking-[0.14em] uppercase text-muted min-w-[100px]">
+        {label}
+      </label>
+      <select
+        value={value || ''}
+        onChange={e => onChange(Number(e.target.value) || 0)}
+        className={`bg-gray-800 text-white border-2 ${
+          value > 0 ? borderClass : 'border-gray-700'
+        } rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${borderClass} cursor-pointer`}
+      >
+        <option value="">Not rated</option>
+        {[1,2,3,4,5,6,7,8,9,10].map(n => (
+          <option key={n} value={n}>{n}/10</option>
+        ))}
+      </select>
+      {value > 0 && (
         <button
-          key={n}
-          onClick={() => onRate(value === n ? 0 : n)}
-          className={`h-10 rounded-lg font-semibold text-sm transition-colors ${
-            n === value
-              ? accentClass
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-          }`}
-          style={{ minWidth: 0 }}
+          onClick={() => onChange(0)}
+          className={`text-xs font-semibold ${textClass}`}
         >
-          {n}
+          {value}/10
         </button>
-      ))}
+      )}
     </div>
   );
 }
@@ -333,58 +335,24 @@ export default function ShowDetailView({
           <section className="space-y-8">
 
             {/* Ratings row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-              {/* Show rating */}
-              <div className="bg-surface border border-subtle rounded-2xl p-5">
-                <SidebarLabel>Show Rating</SidebarLabel>
-                <RatingButtons
-                  value={show.rating || 0}
-                  onRate={r => onUpdateRating?.(show.id, r)}
-                  accentClass="bg-emerald-400 text-black"
-                />
-                {(show.rating || 0) > 0 && (
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-emerald-400 font-bold text-sm">
-                      {show.rating}/10 · {getRatingLabel(show.rating)}
-                    </span>
-                    <button
-                      onClick={() => onUpdateRating?.(show.id, 0)}
-                      className="text-xs text-muted hover:text-secondary transition-colors"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                )}
-                {show.comment && (
-                  <p className="text-secondary text-sm mt-2 italic">
-                    &ldquo;{show.comment}&rdquo;
-                  </p>
-                )}
-              </div>
-
-              {/* Venue rating */}
-              <div className="bg-surface border border-subtle rounded-2xl p-5">
-                <SidebarLabel>Venue Rating</SidebarLabel>
-                <RatingButtons
-                  value={show.venueRating || 0}
-                  onRate={r => onUpdateVenueRating?.(show.id, r)}
-                  accentClass="bg-orange-400 text-black"
-                />
-                {(show.venueRating || 0) > 0 && (
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-orange-400 font-bold text-sm">
-                      {show.venueRating}/10 · {getRatingLabel(show.venueRating)}
-                    </span>
-                    <button
-                      onClick={() => onUpdateVenueRating?.(show.id, 0)}
-                      className="text-xs text-muted hover:text-secondary transition-colors"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                )}
-              </div>
+            <div className="bg-surface border border-subtle rounded-2xl p-4 space-y-3">
+              <CompactRating
+                label="Show Rating"
+                value={show.rating || 0}
+                onChange={r => onUpdateRating?.(show.id, r)}
+                accentColor="emerald"
+              />
+              <CompactRating
+                label="Venue Rating"
+                value={show.venueRating || 0}
+                onChange={r => onUpdateVenueRating?.(show.id, r)}
+                accentColor="orange"
+              />
+              {show.comment && (
+                <p className="text-secondary text-sm italic pt-1 border-t border-subtle">
+                  &ldquo;{show.comment}&rdquo;
+                </p>
+              )}
             </div>
 
             {/* Setlist */}
