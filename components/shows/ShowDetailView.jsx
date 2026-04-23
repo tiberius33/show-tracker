@@ -141,9 +141,9 @@ function CompactRating({ label, value, onChange, accentColor = 'emerald' }) {
       <select
         value={value || ''}
         onChange={e => onChange(Number(e.target.value) || 0)}
-        className={`bg-gray-800 text-white border-2 ${
-          value > 0 ? borderClass : 'border-gray-700'
-        } rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${borderClass} cursor-pointer`}
+        className={`bg-gray-100 text-gray-900 font-medium border-2 ${
+          value > 0 ? borderClass : 'border-gray-300'
+        } rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${borderClass} cursor-pointer hover:bg-gray-200 transition-colors`}
       >
         <option value="">Not rated</option>
         {[1,2,3,4,5,6,7,8,9,10].map(n => (
@@ -416,13 +416,13 @@ export default function ShowDetailView({
             )}
 
             {/* Artist Info — expandable */}
-            <div className="bg-gray-900 border border-subtle rounded-lg overflow-hidden">
+            <div className="bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 border border-subtle rounded-lg overflow-hidden">
               <button
                 onClick={() => setArtistExpanded(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-800/50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-black/20 transition-colors"
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                  <Music className="w-4 h-4 text-brand" />
+                  <Music className="w-4 h-4 text-emerald-400" />
                   Artist Info
                 </div>
                 <ChevronDown
@@ -430,18 +430,21 @@ export default function ShowDetailView({
                 />
               </button>
               {artistExpanded && (
-                <div className="px-4 pb-4 space-y-2.5 border-t border-subtle pt-4">
+                <div className="px-4 pb-4 space-y-2.5 border-t border-white/10 pt-4">
                   <StatRow label="Artist" value={show.artist} />
-                  {artistShowCount > 0 && (
-                    <StatRow label="Times you've seen them" value={`${artistShowCount} show${artistShowCount !== 1 ? 's' : ''}`} tone="brand" />
-                  )}
-                  {show.tour && (
-                    <StatRow label="Current tour" value={show.tour} />
-                  )}
+                  <StatRow
+                    label="Times you've seen them"
+                    value={`${artistShowCount} show${artistShowCount !== 1 ? 's' : ''}`}
+                    tone="brand"
+                  />
+                  <StatRow
+                    label="Current tour"
+                    value={show.tourName || show.tour || 'No tour information'}
+                  />
                   <div className="pt-2">
                     <a
                       href={`/stats?artist=${encodeURIComponent(show.artist)}`}
-                      className="text-xs text-brand hover:underline"
+                      className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline transition-colors"
                     >
                       View full artist stats →
                     </a>
@@ -451,10 +454,10 @@ export default function ShowDetailView({
             </div>
 
             {/* Venue Info — expandable */}
-            <div className="bg-gray-900 border border-subtle rounded-lg overflow-hidden">
+            <div className="bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 border border-subtle rounded-lg overflow-hidden">
               <button
                 onClick={() => setVenueExpanded(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-800/50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-black/20 transition-colors"
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                   <MapPin className="w-4 h-4 text-orange-400" />
@@ -465,21 +468,26 @@ export default function ShowDetailView({
                 />
               </button>
               {venueExpanded && (
-                <div className="px-4 pb-4 space-y-2.5 border-t border-subtle pt-4">
+                <div className="px-4 pb-4 space-y-2.5 border-t border-white/10 pt-4">
                   <StatRow label="Venue" value={show.venue} />
-                  {show.city && (
-                    <StatRow label="Location" value={show.city} />
+                  {(show.city || show.state) && (
+                    <StatRow
+                      label="Location"
+                      value={[show.city, show.state].filter(Boolean).join(', ')}
+                    />
                   )}
-                  {venueShowCount > 0 && (
-                    <StatRow label="Shows you've seen here" value={`${venueShowCount} show${venueShowCount !== 1 ? 's' : ''}`} tone="amber" />
-                  )}
+                  <StatRow
+                    label="Shows you've seen here"
+                    value={`${venueShowCount} show${venueShowCount !== 1 ? 's' : ''}`}
+                    tone="amber"
+                  />
                   {(show.venueRating || 0) > 0 && (
                     <StatRow label="Your venue rating" value={`${show.venueRating}/10`} />
                   )}
                   <div className="pt-2">
                     <a
                       href={`/shows?venue=${encodeURIComponent(show.venue)}`}
-                      className="text-xs text-brand hover:underline"
+                      className="text-xs text-orange-400 hover:text-orange-300 hover:underline transition-colors"
                     >
                       All shows at this venue →
                     </a>
