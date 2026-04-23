@@ -29,7 +29,7 @@ export default function ShowsPage() {
     filterYear, setFilterYear, filterDate, setFilterDate, availableYears,
     sortBy, setSortBy,
     addShow, addSongToShow, updateSongRating, updateSongComment,
-    deleteSong, updateShowRating, updateShowComment, batchRateUnrated, deleteShow, updateShowData,
+    deleteSong, updateShowRating, updateShowComment, batchRateUnrated, deleteShow, updateShowData, backfillArtistImages,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow, setVenueRatingShow,
     friends, friendAnnotationsForShow,
@@ -85,6 +85,18 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
       return () => clearTimeout(timer);
     }
   }, [isLoading, user, shows.length]);
+
+  // Backfill artist images for existing shows — runs once after shows load, non-blocking
+  useEffect(() => {
+    if (isLoading || !shows.length) return;
+    const hasMissing = shows.some(s => !s.artistImage);
+    if (hasMissing) {
+      // Delay start so the page renders first
+      const timer = setTimeout(() => backfillArtistImages(), 3000);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   if (isLoading) {
     return <ShowsListSkeleton />;
@@ -470,6 +482,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
                       date: show.date,
                       rating: show.rating,
                       tags,
+                      artistImage: show.artistImage || null,
                     }}
                     onClick={() => setSelectedShow(show)}
                     onDelete={() => setShowToDelete(show)}
