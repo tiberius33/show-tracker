@@ -12,6 +12,7 @@ import { formatDate, parseDate, extractFirstName } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
+import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import {
   inviteEmail,
@@ -937,6 +938,17 @@ export function AppProvider({ children }) {
           setShowGuestPrompt(true);
         }, 2000);
       }
+
+      // Fetch artist image in background for guest mode
+      fetchArtistImage(newShow.artist).then(imageUrl => {
+        if (!imageUrl) return;
+        setShows(prev => {
+          const updated = prev.map(s => s.id === showId ? { ...s, artistImage: imageUrl } : s);
+          saveGuestShows(updated);
+          return updated;
+        });
+      }).catch(() => {});
+
       return showId;
     }
 
@@ -962,6 +974,13 @@ export function AppProvider({ children }) {
       // Background suggestion check — non-blocking
       checkShowSuggestionsForNewShow(newShow).catch(() => {});
 
+      // Fetch and store artist image in background — non-blocking
+      fetchArtistImage(newShow.artist).then(imageUrl => {
+        if (!imageUrl) return;
+        updateDoc(showRef, { artistImage: imageUrl }).catch(() => {});
+        setShows(prev => prev.map(s => s.id === showId ? { ...s, artistImage: imageUrl } : s));
+      }).catch(() => {});
+
       return showId;
     } catch (error) {
       console.error('Failed to add show:', error);
@@ -984,6 +1003,36 @@ export function AppProvider({ children }) {
       setShows(prev => prev.map(s => s.id === showId ? { ...s, ...updates } : s));
     } catch (error) {
       console.error('Failed to update show data:', error);
+    }
+  };
+
+  // Backfill artist images for existing shows that don't have one yet.
+  // Runs in the background; caller can fire-and-forget.
+  const backfillArtistImages = async () => {
+    const missing = shows.filter(s => !s.artistImage);
+    if (!missing.length) return;
+
+    for (const show of missing) {
+      try {
+        const imageUrl = await fetchArtistImage(show.artist);
+        if (imageUrl) {
+          if (guestMode) {
+            setShows(prev => {
+              const updated = prev.map(s => s.id === show.id ? { ...s, artistImage: imageUrl } : s);
+              saveGuestShows(updated);
+              return updated;
+            });
+          } else if (user) {
+            const showRef = doc(db, 'users', user.uid, 'shows', show.id);
+            updateDoc(showRef, { artistImage: imageUrl }).catch(() => {});
+            setShows(prev => prev.map(s => s.id === show.id ? { ...s, artistImage: imageUrl } : s));
+          }
+        }
+      } catch {
+        // skip this show and continue
+      }
+      // Rate limit: MusicBrainz allows ~1 req/sec; our function makes 2 calls per artist
+      await new Promise(resolve => setTimeout(resolve, 2500));
     }
   };
 
@@ -2497,6 +2546,7 @@ export function AppProvider({ children }) {
     addShow,
     updateShowData,
     deleteShow,
+    backfillArtistImages,
     updateShowRating,
     updateShowComment,
     addSongToShow,
