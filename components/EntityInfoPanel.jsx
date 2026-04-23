@@ -36,7 +36,7 @@ const LINK_TYPES_TO_SHOW = [
   'youtube', 'soundcloud',
 ];
 
-function EntityInfoPanel({ name, type, city }) {
+function EntityInfoPanel({ name, type, city, extraContent }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -276,6 +276,12 @@ function EntityInfoPanel({ name, type, city }) {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {extraContent && (
+            <div className="mt-3 pt-3 border-t border-subtle/50">
+              {extraContent}
             </div>
           )}
         </div>

@@ -5,9 +5,10 @@ import { parseDate } from '@/lib/utils';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import SongHistoryModal from '@/components/SongHistoryModal';
+import EntityInfoPanel from '@/components/EntityInfoPanel';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
-  ChevronDown, Trash2, X, Tag, MessageSquare, BookOpen,
+  Trash2, X, Tag, MessageSquare,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 
@@ -139,8 +140,6 @@ export default function ShowDetailView({
   user,
 }) {
   const [showPlayCounts, setShowPlayCounts] = useState(false);
-  const [artistExpanded, setArtistExpanded] = useState(false);
-  const [venueExpanded, setVenueExpanded] = useState(false);
   const [songHistorySong, setSongHistorySong] = useState(null);
   const [toast, setToast] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -344,48 +343,30 @@ export default function ShowDetailView({
           </button>
         )}
 
-        {/* About pills */}
-        <div className="space-y-2">
-          {/* About Artist */}
-          <div>
-            <button
-              onClick={() => setArtistExpanded(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-2.5 rounded-full border border-brand/40 text-brand hover:bg-brand/5 transition-colors text-sm font-medium"
-            >
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                About {show.artist}
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${artistExpanded ? 'rotate-180' : ''}`} />
-            </button>
-            {artistExpanded && (
-              <div className="mt-1 px-4 py-3 rounded-xl border border-brand/20 bg-brand/5 space-y-2 text-sm">
+        {/* About panels */}
+        <div className="space-y-1">
+          <EntityInfoPanel
+            name={show.artist}
+            type="artist"
+            extraContent={
+              <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
                   <span className="text-secondary">Shows seen</span>
                   <span className="font-semibold text-primary">{artistShowCount}</span>
                 </div>
-                <a href={`/stats?artist=${encodeURIComponent(show.artist)}`} className="text-xs text-brand hover:underline block pt-1">
+                <a href={`/stats?artist=${encodeURIComponent(show.artist)}`} className="text-xs text-brand hover:underline block">
                   View full artist stats →
                 </a>
               </div>
-            )}
-          </div>
-
-          {/* About Venue */}
+            }
+          />
           {show.venue && (
-            <div>
-              <button
-                onClick={() => setVenueExpanded(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-full border border-amber-400/40 text-amber-500 hover:bg-amber-400/5 transition-colors text-sm font-medium"
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  About {show.venue}{show.city ? `, ${show.city}` : ''}
-                </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${venueExpanded ? 'rotate-180' : ''}`} />
-              </button>
-              {venueExpanded && (
-                <div className="mt-1 px-4 py-3 rounded-xl border border-amber-400/20 bg-amber-400/5 space-y-2 text-sm">
+            <EntityInfoPanel
+              name={show.venue}
+              type="venue"
+              city={show.city}
+              extraContent={
+                <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-secondary">Shows seen here</span>
                     <span className="font-semibold text-primary">{venueShowCount}</span>
@@ -396,12 +377,12 @@ export default function ShowDetailView({
                       <span className="font-semibold text-primary">{[show.city, show.state].filter(Boolean).join(', ')}</span>
                     </div>
                   )}
-                  <a href={`/shows?venue=${encodeURIComponent(show.venue)}`} className="text-xs text-amber-500 hover:underline block pt-1">
+                  <a href={`/shows?venue=${encodeURIComponent(show.venue)}`} className="text-xs text-amber-500 hover:underline block">
                     All shows at this venue →
                   </a>
                 </div>
-              )}
-            </div>
+              }
+            />
           )}
         </div>
       </div>
