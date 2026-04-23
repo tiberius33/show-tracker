@@ -113,6 +113,7 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
           onClose={() => setSelectedShow(null)}
           onUpdateRating={updateShowRating}
           onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
+          onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
           onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
           onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
           onDeleteShow={deleteShow}

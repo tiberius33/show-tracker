@@ -14,10 +14,9 @@ export default function ShowHero({
   rating,
   badges = [],  // [{ label, tone }]
   height = 320,
-  actions,      // optional JSX rendered at the bottom of the hero
 }) {
   return (
-    <div className={`relative rounded-3xl overflow-hidden ${actions ? 'mb-6' : '-mb-20'}`} style={{ height }}>
+    <div className="relative rounded-3xl overflow-hidden -mb-20" style={{ height }}>
       <div
         className="absolute inset-0"
         style={{
@@ -47,11 +46,6 @@ export default function ShowHero({
             <Badge key={i} tone={b.tone || 'neutral'} size="md">{b.label}</Badge>
           ))}
         </div>
-        {actions && (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {actions}
-          </div>
-        )}
       </div>
     </div>
   );
