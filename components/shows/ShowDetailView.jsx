@@ -10,6 +10,8 @@
 //   onClose              – () => void  called by the back button
 //   onUpdateRating       – (showId, rating) => void  (1-10 scale)
 //   onUpdateVenueRating  – (showId, venueRating) => void  (1-10 scale)
+//   onRateSong           – (songId, rating) => void
+//   onCommentSong        – (songId, comment) => void
 //   onTagFriends         – (show) => void  opens TagFriendsModal
 //   onCreatePlaylist     – (show) => void  opens PlaylistCreatorModal
 //   toggleFavoriteArtist – (artistName) => void
@@ -22,12 +24,12 @@
 import React, { useState, useMemo } from 'react';
 import { parseDate } from '@/lib/utils';
 import ShowHero from './ShowHero';
-import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
+import RatingSelect from '@/components/ui/RatingSelect';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import {
   ArrowLeft, UserPlus, Heart, Share2, ListMusic, Hash,
-  ChevronDown, Music, MapPin, Trash2,
+  ChevronDown, Music, MapPin, Trash2, MessageSquare,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 
@@ -55,6 +57,7 @@ function setBreakToLabel(setBreak) {
   return setBreak;
 }
 
+// Groups setlist into sets, preserving the original song objects
 function buildSets(setlist = []) {
   if (!setlist.length) return [];
   const groups = {};
@@ -78,20 +81,9 @@ function buildSets(setlist = []) {
   const ORDER = ['Set I', 'Set II', 'Set III', 'Encore', 'Encore II'];
   const keys = [
     ...ORDER.filter(k => groups[k]),
-    ...Object.keys(groups).filter(k => !ORDER.includes(k)),
+    ...Object.keys(groups).filter(k => !ORDER.includes(k) && groups[k]),
   ];
-  return keys.map(label => ({
-    label,
-    tracks: (groups[label] || []).map(s => ({
-      title:       s.song || s.title || s.name || '',
-      duration:    s.duration || '',
-      debut:       !!(s.tags?.includes('debut')   || s.debut),
-      bustout:     !!(s.tags?.includes('bustout') || s.bustout),
-      bustoutNote: s.bustoutNote || '',
-      cover:       s.cover || null,
-      tape:        s.tape || false,
-    })),
-  }));
+  return keys.map(label => ({ label, songs: groups[label] || [] }));
 }
 
 // ── Micro-components ───────────────────────────────────────────────────────────
@@ -170,6 +162,8 @@ export default function ShowDetailView({
   onClose,
   onUpdateRating,
   onUpdateVenueRating,
+  onRateSong,
+  onCommentSong,
   onTagFriends,
   onCreatePlaylist,
   onDeleteShow,
@@ -184,6 +178,8 @@ export default function ShowDetailView({
   const [songHistorySong, setSongHistorySong] = useState(null);
   const [toast, setToast] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingComment, setEditingComment] = useState(null);
+  const [commentText, setCommentText] = useState('');
 
   // All hooks must run unconditionally — computed after hooks, used only when show != null
   const artistShowCount = useMemo(
@@ -254,8 +250,10 @@ export default function ShowDetailView({
     setTimeout(() => setToast(false), 2000);
   };
 
-  const handleViewShow = () => {
-    setSongHistorySong(null);
+  const saveComment = (songId) => {
+    onCommentSong?.(songId, commentText.trim());
+    setEditingComment(null);
+    setCommentText('');
   };
 
   return (
@@ -369,7 +367,7 @@ export default function ShowDetailView({
               )}
             </div>
 
-            {/* Setlist */}
+            {/* Setlist — interactive song cards */}
             <div>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-[22px] font-extrabold text-primary tracking-tight">
@@ -390,17 +388,133 @@ export default function ShowDetailView({
                 )}
               </div>
 
-              {sets.length > 0
-                ? (
-                  <SetlistView
-                    sets={sets}
-                    showPlayCounts={showPlayCounts}
-                    playCounts={playCounts}
-                    onSongClick={title => setSongHistorySong(title)}
-                  />
-                )
-                : <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
-              }
+              {sets.length > 0 ? (
+                <div>
+                  {sets.map((set, si) => (
+                    <section key={si} className="mb-2">
+                      {/* Set header */}
+                      <div className="flex items-center gap-3 mt-6 mb-3 first:mt-0">
+                        <hr className="flex-1 border-t border-subtle m-0" />
+                        <span className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-muted">
+                          {set.label}
+                        </span>
+                        <hr className="flex-1 border-t border-subtle m-0" />
+                      </div>
+
+                      {/* Song cards */}
+                      <div className="space-y-2">
+                        {set.songs.map((song, ti) => {
+                          const songTitle = song.song || song.name || song.title || '';
+                          const playCount = playCounts[songTitle] || 0;
+
+                          return (
+                            <div
+                              key={song.id || ti}
+                              className="bg-hover border border-subtle rounded-2xl p-4"
+                            >
+                              {/* Song name row */}
+                              <div className="flex items-start gap-3 mb-2">
+                                <span className="text-muted font-mono text-xs font-bold mt-0.5 shrink-0">
+                                  {String(ti + 1).padStart(2, '0')}
+                                </span>
+                                <div className="flex-1 flex items-center gap-2 flex-wrap">
+                                  <button
+                                    onClick={() => setSongHistorySong(songTitle)}
+                                    className="font-medium text-primary hover:text-brand hover:underline transition-colors text-left"
+                                  >
+                                    {songTitle}
+                                  </button>
+                                  {song.cover && (
+                                    <span className="text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                      {song.cover} cover
+                                    </span>
+                                  )}
+                                  {song.debut && (
+                                    <span className="text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2a8a47] bg-brand-subtle px-1.5 py-0.5 rounded">
+                                      debut
+                                    </span>
+                                  )}
+                                  {showPlayCounts && playCount > 1 && (
+                                    <button
+                                      onClick={() => setSongHistorySong(songTitle)}
+                                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                                    >
+                                      Seen {playCount}×
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Rating + Note buttons */}
+                              <div className="flex items-center gap-3 ml-9">
+                                {onRateSong && (
+                                  <RatingSelect
+                                    value={song.rating}
+                                    onChange={(v) => onRateSong(song.id, v)}
+                                    label="Rating:"
+                                  />
+                                )}
+                                {onCommentSong && (
+                                  <button
+                                    onClick={() => {
+                                      setEditingComment(song.id);
+                                      setCommentText(song.comment || '');
+                                    }}
+                                    className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors ${
+                                      song.comment
+                                        ? 'bg-brand-subtle text-brand hover:bg-brand/30'
+                                        : 'bg-hover text-muted hover:text-primary'
+                                    }`}
+                                  >
+                                    <MessageSquare className="w-3 h-3" />
+                                    {song.comment ? 'Edit note' : 'Add note'}
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Comment display */}
+                              {song.comment && editingComment !== song.id && (
+                                <div className="ml-9 mt-2 text-sm text-secondary italic bg-hover p-2.5 rounded-lg border border-subtle">
+                                  {song.comment}
+                                </div>
+                              )}
+
+                              {/* Comment edit */}
+                              {editingComment === song.id && (
+                                <div className="ml-9 mt-2 flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={commentText}
+                                    onChange={e => setCommentText(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && saveComment(song.id)}
+                                    placeholder="Add a note about this song..."
+                                    className="flex-1 px-3 py-2 bg-hover border border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => saveComment(song.id)}
+                                    className="px-3 py-2 bg-brand hover:bg-brand text-on-dark rounded-lg text-xs font-medium transition-colors"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingComment(null)}
+                                    className="px-3 py-2 bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
+              )}
             </div>
 
             {/* Notes */}
@@ -579,7 +693,7 @@ export default function ShowDetailView({
           artistName={show.artist}
           allShows={allShows}
           onClose={() => setSongHistorySong(null)}
-          onViewShow={handleViewShow}
+          onViewShow={() => setSongHistorySong(null)}
         />
       )}
 

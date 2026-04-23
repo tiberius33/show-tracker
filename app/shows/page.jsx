@@ -102,24 +102,43 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
     return <ShowsListSkeleton />;
   }
 
-  // When a show is selected from the Timeline card grid, render the full
-  // detail view inline (no routing, no page reload).
-  if (selectedShow && showsTab === 'timeline') {
+  // When a show is selected (from either Timeline or Artist tab), render the
+  // unified full detail view inline (no routing, no page reload).
+  if (selectedShow) {
     return (
-      <ShowDetailView
-        show={selectedShow}
-        friends={friends}
-        onClose={() => setSelectedShow(null)}
-        onUpdateRating={updateShowRating}
-        onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
-        onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
-        onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
-        onDeleteShow={deleteShow}
-        toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
-        isArtistFavorite={isArtistFavorite}
-        allShows={shows}
-        user={user}
-      />
+      <>
+        <ShowDetailView
+          show={selectedShow}
+          friends={friends}
+          onClose={() => setSelectedShow(null)}
+          onUpdateRating={updateShowRating}
+          onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
+          onRateSong={(songId, rating) => updateSongRating(selectedShow.id, songId, rating)}
+          onCommentSong={(songId, comment) => updateSongComment(selectedShow.id, songId, comment)}
+          onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
+          onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
+          onDeleteShow={deleteShow}
+          toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
+          isArtistFavorite={isArtistFavorite}
+          allShows={shows}
+          user={user}
+        />
+        {tagFriendsShow && (
+          <TagFriendsModal
+            show={tagFriendsShow}
+            friends={friends}
+            onTag={(selectedFriendUids) => tagFriendsAtShow(tagFriendsShow, selectedFriendUids)}
+            onInviteByEmail={(params) => tagFriendByEmail({ ...params, show: tagFriendsShow })}
+            onClose={() => setTagFriendsShow(null)}
+          />
+        )}
+        {playlistShow && (
+          <PlaylistCreatorModal
+            show={playlistShow}
+            onClose={() => setPlaylistShow(null)}
+          />
+        )}
+      </>
     );
   }
 
