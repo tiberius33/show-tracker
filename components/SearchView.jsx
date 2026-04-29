@@ -196,7 +196,11 @@ function SearchView({ onImport, importedIds, onAddManually }) {
       venue: setlist.venue.name,
       city: setlist.venue.city.name,
       country: setlist.venue.city.country.name,
-      date: setlist.eventDate,
+      date: (() => {
+        // setlist.fm returns DD-MM-YYYY; normalize to YYYY-MM-DD for storage
+        const parts = (setlist.eventDate || '').split('-');
+        return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : setlist.eventDate;
+      })(),
       setlist: songs,
       setlistfmId: setlist.id,
       tour: setlist.tour ? setlist.tour.name : null
