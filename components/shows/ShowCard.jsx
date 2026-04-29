@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { Star, Users, Trash2 } from 'lucide-react';
+import { parseDate } from '@/lib/utils';
 
 function formatDate(dateStr) {
   if (!dateStr) return null;
-  try {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
+  const d = parseDate(dateStr);
+  if (!d || isNaN(d.getTime()) || d.getFullYear() < 1900) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function ShowCard({ show, onClick, onDelete }) {

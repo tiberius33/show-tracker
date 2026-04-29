@@ -8,7 +8,7 @@ import SongHistoryModal from '@/components/SongHistoryModal';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
-  Trash2, X, Tag, MessageSquare,
+  Trash2, X, Tag, MessageSquare, ArrowLeft,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 
@@ -198,6 +198,15 @@ export default function ShowDetailView({
 
   return (
     <div className="max-w-5xl mx-auto">
+
+      {/* ── Back button ────────────────────────────────────────────────────── */}
+      <button
+        onClick={onClose}
+        className="flex items-center gap-1.5 text-sm text-muted hover:text-primary mb-5 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        All shows
+      </button>
 
       {/* ── Header card ────────────────────────────────────────────────────── */}
       <div className="bg-surface border border-subtle rounded-2xl p-6 mb-6">
