@@ -2,8 +2,8 @@
 //
 // /wishlist page body. Pick an artist, see songs you've already witnessed
 // live (from your own logged shows — Firestore only, no external calls),
-// check off songs from their catalog you want to see, and it persists
-// per-user/per-artist to Firestore.
+// star songs from their catalog you want to see, and it persists
+// per-user/per-artist to Firestore (see lib/wishlist.js).
 //
 // Catalog data comes from setlist.fm's own aggregate of every song this
 // artist has ever played live, across all public setlist.fm setlists (see
@@ -13,23 +13,67 @@
 // source the user's own logged setlists came from, and it doesn't require
 // the user to connect Spotify or Apple Music just to browse.
 //
-// UX call: checking a catalog song leaves it in place in the catalog list
-// (still checked, not removed) rather than moving it out — the Wishlist
-// column above is the canonical "your wishlist" view, and leaving checked
-// items visible below lets you uncheck without hunting for them. This
+// wishlistMap is the single source of truth for "is this song starred" —
+// both the catalog list and the Wishlist column render from the same
+// state and call the same toggleSong, so starring/unstarring is symmetric
+// no matter which list you click from (see StarToggleRow below).
+//
+// UX call: starring a catalog song leaves it in place in the catalog list
+// (still starred, not removed) rather than moving it out — the Wishlist
+// column above is the canonical "your wishlist" view, and leaving starred
+// items visible below lets you unstar without hunting for them. This
 // mirrors how TagFriendsModal keeps selected friends in the same list
 // rather than relocating them.
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Music, Heart, Search as SearchIcon, Check, RefreshCw, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Music, Heart, Search as SearchIcon, Star, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, EmptyState, Spinner, Badge } from '@/components/ui';
 import ArtistPicker from '@/components/wishlist/ArtistPicker';
 import { useApp } from '@/context/AppContext';
 import { apiUrl } from '@/lib/api';
 import { normalizeSongTitle } from '@/lib/utils';
 import { artistKeyFor, loadWishlist, addWishlistSong, removeWishlistSong } from '@/lib/wishlist';
+
+const ERROR_FLASH_MS = 5000;
+
+// Star toggle, shared by the catalog list and the Wishlist column so both
+// read/write the exact same wishlistMap state — starring/unstarring is
+// symmetric no matter which list you click from.
+function StarToggleRow({ title, meta, checked, pending, hasError, onToggle }) {
+  const label = checked ? `Remove ${title} from wishlist` : `Add ${title} to wishlist`;
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onToggle(title)}
+        disabled={pending}
+        aria-pressed={checked}
+        aria-label={label}
+        title={label}
+        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all ${
+          checked ? 'bg-amber-subtle border border-amber/30' : 'bg-hover border border-transparent hover:border-subtle'
+        } ${pending ? 'opacity-60 cursor-wait' : ''}`}
+      >
+        <Star
+          size={17}
+          strokeWidth={2}
+          aria-hidden="true"
+          className={`flex-shrink-0 ${checked ? 'text-amber' : 'text-muted'}`}
+          fill={checked ? 'currentColor' : 'none'}
+        />
+        <span className="min-w-0 flex items-baseline gap-2 flex-1">
+          <span className="text-sm text-primary truncate">{title}</span>
+          {meta && <span className="text-xs text-muted flex-shrink-0">{meta}</span>}
+        </span>
+        {hasError && (
+          <span className="text-xs font-semibold text-danger flex-shrink-0">Couldn't save — try again</span>
+        )}
+      </button>
+    </li>
+  );
+}
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — mirrors TourInfoModal's setlist.fm cache
 
@@ -51,7 +95,7 @@ function setCachedCatalog(mbid, data) {
 }
 
 export default function WishlistView() {
-  const { user, shows } = useApp();
+  const { user, shows, setToast } = useApp();
 
   const [artist, setArtist] = useState(null); // { name, mbid, disambiguation }
 
@@ -59,9 +103,15 @@ export default function WishlistView() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState('');
 
-  const [wishlistMap, setWishlistMap] = useState({}); // { [normalizedKey]: { title, addedAt } }
+  const [wishlistMap, setWishlistMap] = useState({}); // { [normalizedKey]: { title, addedAt } } — single source of truth for "is this song starred", read by both the catalog list and the Wishlist column
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [pendingKeys, setPendingKeys] = useState(() => new Set());
+  const [errorKeys, setErrorKeys] = useState(() => new Set());
+  const errorTimers = useRef({});
+
+  useEffect(() => () => {
+    Object.values(errorTimers.current).forEach(clearTimeout);
+  }, []);
 
   // ── Songs I've Seen — computed entirely from the user's own Firestore shows ──
   const seenSongs = useMemo(() => {
@@ -162,6 +212,19 @@ export default function WishlistView() {
     return () => { cancelled = true; };
   }, [artist, user]);
 
+  const flashError = useCallback((key) => {
+    setErrorKeys(prev => new Set(prev).add(key));
+    clearTimeout(errorTimers.current[key]);
+    errorTimers.current[key] = setTimeout(() => {
+      setErrorKeys(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+      delete errorTimers.current[key];
+    }, ERROR_FLASH_MS);
+  }, []);
+
   const toggleSong = useCallback(async (songTitle) => {
     if (!user || !artist) return;
     const key = normalizeSongTitle(songTitle);
@@ -169,6 +232,12 @@ export default function WishlistView() {
 
     const alreadyWishlisted = !!wishlistMap[key];
 
+    setErrorKeys(prev => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
     setPendingKeys(prev => new Set(prev).add(key));
     setWishlistMap(prev => {
       const next = { ...prev };
@@ -187,8 +256,10 @@ export default function WishlistView() {
         await addWishlistSong(user.uid, artist, songTitle);
       }
     } catch (err) {
-      console.error('Failed to update wishlist:', err);
-      // Revert optimistic update on failure
+      // Surfaced, not swallowed: log the real Firestore error code and
+      // revert the optimistic update so the star reflects what's actually
+      // persisted, plus flash an inline + toast error on the row that failed.
+      console.error(`[wishlist] toggle failed for "${songTitle}" (${err.code || 'unknown'}):`, err);
       setWishlistMap(prev => {
         const next = { ...prev };
         if (alreadyWishlisted) {
@@ -198,6 +269,12 @@ export default function WishlistView() {
         }
         return next;
       });
+      flashError(key);
+      setToast?.(
+        err.code === 'permission-denied'
+          ? "Couldn't save — you don't have permission to update your wishlist."
+          : "Couldn't save your wishlist change. Please try again."
+      );
     } finally {
       setPendingKeys(prev => {
         const next = new Set(prev);
@@ -205,7 +282,7 @@ export default function WishlistView() {
         return next;
       });
     }
-  }, [user, artist, wishlistMap, pendingKeys]);
+  }, [user, artist, wishlistMap, pendingKeys, flashError, setToast]);
 
   // ── Empty state: no artist selected yet ──────────────────────────────
   if (!artist) {
@@ -292,21 +369,19 @@ export default function WishlistView() {
             <div className="py-6"><Spinner size="sm" label="Loading your wishlist…" /></div>
           ) : wishlistEntries.length === 0 ? (
             <p className="text-sm text-secondary py-6 text-center">
-              Check songs below to add them to your wishlist.
+              Star songs below to add them to your wishlist.
             </p>
           ) : (
             <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
               {wishlistEntries.map((s) => (
-                <li key={s.key} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover">
-                  <span className="text-sm text-primary min-w-0 truncate">{s.title}</span>
-                  <button
-                    type="button"
-                    onClick={() => toggleSong(s.title)}
-                    className="text-xs font-semibold text-muted hover:text-danger flex-shrink-0 transition-colors"
-                  >
-                    Remove
-                  </button>
-                </li>
+                <StarToggleRow
+                  key={s.key}
+                  title={s.title}
+                  checked
+                  pending={pendingKeys.has(s.key)}
+                  hasError={errorKeys.has(s.key)}
+                  onToggle={toggleSong}
+                />
               ))}
             </ul>
           )}
@@ -347,38 +422,16 @@ export default function WishlistView() {
           <ul className="space-y-1 max-h-[32rem] overflow-y-auto pr-1" role="list">
             {catalogRemaining.map((song) => {
               const key = normalizeSongTitle(song.name);
-              const checked = !!wishlistMap[key];
-              const pending = pendingKeys.has(key);
               return (
-                <li key={song.name}>
-                  <label
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
-                      checked ? 'bg-amber-subtle border border-amber/30' : 'bg-hover border border-transparent hover:border-subtle'
-                    } ${pending ? 'opacity-60' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={pending}
-                      onChange={() => toggleSong(song.name)}
-                      className="sr-only"
-                    />
-                    <span
-                      aria-hidden="true"
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                        checked ? 'bg-amber border-amber' : 'border-active'
-                      }`}
-                    >
-                      {checked && <Check className="w-3.5 h-3.5 text-white" />}
-                    </span>
-                    <span className="min-w-0 flex items-baseline gap-2">
-                      <span className="text-sm text-primary truncate">{song.name}</span>
-                      {song.count > 0 && (
-                        <span className="text-xs text-muted flex-shrink-0">played {song.count}×</span>
-                      )}
-                    </span>
-                  </label>
-                </li>
+                <StarToggleRow
+                  key={song.name}
+                  title={song.name}
+                  meta={song.count > 0 ? `played ${song.count}×` : null}
+                  checked={!!wishlistMap[key]}
+                  pending={pendingKeys.has(key)}
+                  hasError={errorKeys.has(key)}
+                  onToggle={toggleSong}
+                />
               );
             })}
           </ul>
