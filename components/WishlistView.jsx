@@ -5,8 +5,13 @@
 // check off songs from their catalog you want to see, and it persists
 // per-user/per-artist to Firestore.
 //
-// Catalog data comes from Apple Music (MusicKit catalog search — no user
-// sign-in required, see lib/appleMusic.js#configureMusicKitCatalog).
+// Catalog data comes from setlist.fm's own aggregate of every song this
+// artist has ever played live, across all public setlist.fm setlists (see
+// netlify/functions/get-artist-song-stats.js, already used by
+// TourInfoModal.jsx for tour stats) — not a streaming service's studio
+// catalog. That's a better match for a live-show tracker: it's the same
+// source the user's own logged setlists came from, and it doesn't require
+// the user to connect Spotify or Apple Music just to browse.
 //
 // UX call: checking a catalog song leaves it in place in the catalog list
 // (still checked, not removed) rather than moving it out — the Wishlist
@@ -17,7 +22,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Music, Heart, Search as SearchIcon, Check, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, EmptyState, Spinner, Badge } from '@/components/ui';
 import ArtistPicker from '@/components/wishlist/ArtistPicker';
@@ -26,7 +31,24 @@ import { apiUrl } from '@/lib/api';
 import { normalizeSongTitle } from '@/lib/utils';
 import { artistKeyFor, loadWishlist, addWishlistSong, removeWishlistSong } from '@/lib/wishlist';
 
-const MAX_CATALOG_SONGS = 500;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — mirrors TourInfoModal's setlist.fm cache
+
+function getCachedCatalog(mbid) {
+  try {
+    const raw = localStorage.getItem(`wishlist_catalog_${mbid}`);
+    if (!raw) return null;
+    const { data, cachedAt } = JSON.parse(raw);
+    if (Date.now() - cachedAt < CACHE_TTL_MS) return data;
+    localStorage.removeItem(`wishlist_catalog_${mbid}`);
+  } catch { /* ignore */ }
+  return null;
+}
+
+function setCachedCatalog(mbid, data) {
+  try {
+    localStorage.setItem(`wishlist_catalog_${mbid}`, JSON.stringify({ data, cachedAt: Date.now() }));
+  } catch { /* ignore */ }
+}
 
 export default function WishlistView() {
   const { user, shows } = useApp();
@@ -40,8 +62,6 @@ export default function WishlistView() {
   const [wishlistMap, setWishlistMap] = useState({}); // { [normalizedKey]: { title, addedAt } }
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [pendingKeys, setPendingKeys] = useState(() => new Set());
-
-  const musicRef = useRef(null);
 
   // ── Songs I've Seen — computed entirely from the user's own Firestore shows ──
   const seenSongs = useMemo(() => {
@@ -82,40 +102,38 @@ export default function WishlistView() {
     [wishlistMap]
   );
 
-  // ── Load catalog (Apple Music, no user sign-in needed) ──────────────
+  // ── Load catalog — every song this artist has played live, per setlist.fm ──
   useEffect(() => {
     if (!artist) return;
+
+    if (!artist.mbid) {
+      setCatalogSongs([]);
+      setCatalogError("This artist doesn't have a matched setlist.fm profile, so catalog data isn't available.");
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
       setCatalogLoading(true);
       setCatalogError('');
       setCatalogSongs([]);
+
+      const cached = getCachedCatalog(artist.mbid);
+      if (cached) {
+        setCatalogSongs(cached);
+        setCatalogLoading(false);
+        return;
+      }
+
       try {
-        const appleMusic = await import('@/lib/appleMusic');
-        if (!musicRef.current) {
-          await appleMusic.loadMusicKit();
-          const tokenRes = await fetch(apiUrl('/.netlify/functions/apple-music-token'));
-          if (!tokenRes.ok) throw new Error('Failed to get Apple Music developer token');
-          const { token } = await tokenRes.json();
-          musicRef.current = await appleMusic.configureMusicKitCatalog(token);
-        }
-        const music = musicRef.current;
-
-        const artistMatches = await appleMusic.searchCatalogArtists(music, artist.name);
+        const res = await fetch(apiUrl(`/.netlify/functions/get-artist-song-stats?mbid=${encodeURIComponent(artist.mbid)}`));
+        if (!res.ok) throw new Error('Failed to fetch catalog from setlist.fm');
+        const data = await res.json();
         if (cancelled) return;
-        if (artistMatches.length === 0) {
-          setCatalogError('No catalog match found on Apple Music for this artist.');
-          return;
-        }
-        const exact = artistMatches.find(
-          a => a.name.trim().toLowerCase() === artist.name.trim().toLowerCase()
-        );
-        const bestMatch = exact || artistMatches[0];
-
-        const songs = await appleMusic.getArtistCatalogSongs(music, bestMatch.id, { maxSongs: MAX_CATALOG_SONGS });
-        if (cancelled) return;
+        const songs = (data.songs || []).map(s => ({ name: s.name, count: s.count }));
         setCatalogSongs(songs);
+        setCachedCatalog(artist.mbid, songs);
       } catch (err) {
         if (!cancelled) setCatalogError(err.message || 'Failed to load catalog.');
       } finally {
@@ -252,7 +270,7 @@ export default function WishlistView() {
                       {s.title}
                       {notInCatalog && (
                         <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                          not in official catalog
+                          no setlist.fm record
                         </span>
                       )}
                     </span>
@@ -295,10 +313,10 @@ export default function WishlistView() {
         </Card>
       </div>
 
-      {/* Catalog — remaining songs not yet seen live */}
+      {/* Catalog — every song setlist.fm has this artist playing live, minus songs you've seen */}
       <Card padding="md">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="font-bold text-primary">Full Catalog — Songs You Haven't Seen</h3>
+          <h3 className="font-bold text-primary">Played Live — Songs You Haven't Seen</h3>
           {catalogLoading && <Spinner size="sm" />}
         </div>
 
@@ -318,12 +336,12 @@ export default function WishlistView() {
             }
           />
         ) : catalogLoading ? (
-          <div className="py-10"><Spinner size="md" label="Loading catalog from Apple Music…" /></div>
+          <div className="py-10"><Spinner size="md" label="Loading catalog from setlist.fm…" /></div>
         ) : catalogRemaining.length === 0 ? (
           <p className="text-sm text-secondary py-6 text-center">
             {catalogSongs.length === 0
               ? 'No catalog data available for this artist.'
-              : "You've seen everything in this artist's official catalog live. Nice."}
+              : "You've seen everything setlist.fm has on record for this artist live. Nice."}
           </p>
         ) : (
           <ul className="space-y-1 max-h-[32rem] overflow-y-auto pr-1" role="list">
@@ -332,7 +350,7 @@ export default function WishlistView() {
               const checked = !!wishlistMap[key];
               const pending = pendingKeys.has(key);
               return (
-                <li key={song.id}>
+                <li key={song.name}>
                   <label
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
                       checked ? 'bg-amber-subtle border border-amber/30' : 'bg-hover border border-transparent hover:border-subtle'
@@ -353,9 +371,11 @@ export default function WishlistView() {
                     >
                       {checked && <Check className="w-3.5 h-3.5 text-white" />}
                     </span>
-                    <span className="min-w-0">
-                      <span className="text-sm text-primary block truncate">{song.name}</span>
-                      {song.album && <span className="text-xs text-muted block truncate">{song.album}</span>}
+                    <span className="min-w-0 flex items-baseline gap-2">
+                      <span className="text-sm text-primary truncate">{song.name}</span>
+                      {song.count > 0 && (
+                        <span className="text-xs text-muted flex-shrink-0">played {song.count}×</span>
+                      )}
                     </span>
                   </label>
                 </li>

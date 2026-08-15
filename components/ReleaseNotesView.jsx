@@ -10,12 +10,12 @@ function ReleaseNotesView() {
       date: 'August 15, 2026',
       title: 'Wishlist — Songs You Want to See Live',
       changes: [
-        'New: Wishlist page — pick an artist and see every song from their catalog you haven\'t caught live yet',
+        'New: Wishlist page — pick an artist and see every song they\'ve played live that you haven\'t caught yet, sourced from setlist.fm',
         'New: "Songs I\'ve Seen" panel shows every song by that artist from your own logged shows, with play counts',
-        'New: Check off songs from the full catalog to build a per-artist wishlist that saves automatically',
+        'New: Check off songs from their live catalog to build a per-artist wishlist that saves automatically',
         'Wishlist persists per artist across sessions — pre-checked boxes pick up right where you left off',
-        'Song titles are normalized when matching your setlists against the official catalog, so covers, "(Live)" tags, and punctuation differences don\'t cause duplicates',
-        'Songs you\'ve logged that aren\'t in the official catalog (covers, jams, one-offs) are flagged rather than hidden',
+        'Song titles are normalized when matching your setlists against setlist.fm\'s catalog, so "(Live)" tags and punctuation differences don\'t cause duplicates',
+        'Songs you\'ve logged that setlist.fm has no record of (private edits, typos) are flagged rather than hidden',
         'Sign-in required — Wishlist is not available in guest mode',
       ]
     },
