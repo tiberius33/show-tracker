@@ -374,7 +374,19 @@ export function AppProvider({ children }) {
     try {
       const friendsRef = collection(db, 'users', user.uid, 'friends');
       const snapshot = await getDocs(friendsRef);
-      setFriends(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      const friendDocs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Enrich with each friend's live show count from their profile
+      // (the friend subcollection doc never stores showCount itself).
+      const profileSnaps = await Promise.all(
+        friendDocs.map(f => getDoc(doc(db, 'userProfiles', f.friendUid)))
+      );
+      const enriched = friendDocs.map((f, i) => ({
+        ...f,
+        showCount: profileSnaps[i].exists() ? (profileSnaps[i].data().showCount || 0) : 0,
+      }));
+
+      setFriends(enriched);
     } catch (error) {
       console.error('Failed to load friends:', error);
     }
@@ -1442,7 +1454,7 @@ export function AppProvider({ children }) {
 
   // === SHOWS TOGETHER ===
 
-  const getShowsTogether = async (friendUid) => {
+  const getShowsTogether = useCallback(async (friendUid) => {
     const [mySnap, theirSnap] = await Promise.all([
       getDocs(collection(db, 'users', user.uid, 'shows')),
       getDocs(collection(db, 'users', friendUid, 'shows')),
@@ -1456,7 +1468,7 @@ export function AppProvider({ children }) {
     return myShows
       .filter(s => theirMap[key(s)])
       .map(s => ({ ...s, friendShow: theirMap[key(s)] }));
-  };
+  }, [user]);
 
   // === FRIEND ANNOTATIONS FOR SHOW VIEW ===
   const fetchFriendAnnotations = useCallback(async (show) => {

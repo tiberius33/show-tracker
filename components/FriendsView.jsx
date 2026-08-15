@@ -29,6 +29,7 @@ function FriendsView({
   const [resendingIds, setResendingIds] = useState(new Set()); // invite IDs currently being resent
   const [bulkConfirm, setBulkConfirm] = useState(null); // null | { type: 'all' } | { type: 'friend', friendUid, friendName }
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [sharedCounts, setSharedCounts] = useState({}); // friendUid -> together count
 
   const inviteList = pendingInvites || [];
 
@@ -58,6 +59,18 @@ function FriendsView({
   useEffect(() => {
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
+
+  // Load "together" counts for each friend card (getShowsTogether is async)
+  useEffect(() => {
+    if (!getShowsTogether || friends.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      friends.map(f => getShowsTogether(f.friendUid).then(shows => [f.friendUid, shows?.length ?? 0]))
+    ).then(entries => {
+      if (!cancelled) setSharedCounts(Object.fromEntries(entries));
+    });
+    return () => { cancelled = true; };
+  }, [friends, getShowsTogether]);
 
   const handleSendRequest = async () => {
     if (!searchEmail.trim()) return;
@@ -185,9 +198,7 @@ function FriendsView({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {friends.map(friend => {
-                const sharedCount = getShowsTogether
-                  ? (getShowsTogether(friend.friendUid)?.length ?? 0)
-                  : 0;
+                const sharedCount = sharedCounts[friend.friendUid] ?? 0;
                 return (
                   <FriendCard
                     key={friend.friendUid}
