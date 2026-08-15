@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '3.20.0',
+      date: 'August 15, 2026',
+      title: 'Wishlist — Songs You Want to See Live',
+      changes: [
+        'New: Wishlist page — pick an artist and see every song from their catalog you haven\'t caught live yet',
+        'New: "Songs I\'ve Seen" panel shows every song by that artist from your own logged shows, with play counts',
+        'New: Check off songs from the full catalog to build a per-artist wishlist that saves automatically',
+        'Wishlist persists per artist across sessions — pre-checked boxes pick up right where you left off',
+        'Song titles are normalized when matching your setlists against the official catalog, so covers, "(Live)" tags, and punctuation differences don\'t cause duplicates',
+        'Songs you\'ve logged that aren\'t in the official catalog (covers, jams, one-offs) are flagged rather than hidden',
+        'Sign-in required — Wishlist is not available in guest mode',
+      ]
+    },
+    {
       version: '3.19.0',
       date: 'March 26, 2026',
       title: 'Find Missing Setlists — Now Available to All Users',

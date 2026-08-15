@@ -1,0 +1,369 @@
+// components/WishlistView.jsx
+//
+// /wishlist page body. Pick an artist, see songs you've already witnessed
+// live (from your own logged shows — Firestore only, no external calls),
+// check off songs from their catalog you want to see, and it persists
+// per-user/per-artist to Firestore.
+//
+// Catalog data comes from Apple Music (MusicKit catalog search — no user
+// sign-in required, see lib/appleMusic.js#configureMusicKitCatalog).
+//
+// UX call: checking a catalog song leaves it in place in the catalog list
+// (still checked, not removed) rather than moving it out — the Wishlist
+// column above is the canonical "your wishlist" view, and leaving checked
+// items visible below lets you uncheck without hunting for them. This
+// mirrors how TagFriendsModal keeps selected friends in the same list
+// rather than relocating them.
+
+'use client';
+
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Music, Heart, Search as SearchIcon, Check, RefreshCw, AlertCircle } from 'lucide-react';
+import { Card, EmptyState, Spinner, Badge } from '@/components/ui';
+import ArtistPicker from '@/components/wishlist/ArtistPicker';
+import { useApp } from '@/context/AppContext';
+import { apiUrl } from '@/lib/api';
+import { normalizeSongTitle } from '@/lib/utils';
+import { artistKeyFor, loadWishlist, addWishlistSong, removeWishlistSong } from '@/lib/wishlist';
+
+const MAX_CATALOG_SONGS = 500;
+
+export default function WishlistView() {
+  const { user, shows } = useApp();
+
+  const [artist, setArtist] = useState(null); // { name, mbid, disambiguation }
+
+  const [catalogSongs, setCatalogSongs] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
+
+  const [wishlistMap, setWishlistMap] = useState({}); // { [normalizedKey]: { title, addedAt } }
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [pendingKeys, setPendingKeys] = useState(() => new Set());
+
+  const musicRef = useRef(null);
+
+  // ── Songs I've Seen — computed entirely from the user's own Firestore shows ──
+  const seenSongs = useMemo(() => {
+    if (!artist) return [];
+    const target = artist.name.trim().toLowerCase();
+    const counts = {};
+    (shows || [])
+      .filter(s => (s.artist || '').trim().toLowerCase() === target)
+      .forEach(s => (s.setlist || []).forEach(song => {
+        const name = song.name || song.song || song.title || '';
+        if (!name) return;
+        counts[name] = (counts[name] || 0) + 1;
+      }));
+    return Object.entries(counts)
+      .map(([title, count]) => ({ title, count }))
+      .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
+  }, [shows, artist]);
+
+  const seenNormalizedSet = useMemo(
+    () => new Set(seenSongs.map(s => normalizeSongTitle(s.title))),
+    [seenSongs]
+  );
+
+  const catalogNormalizedSet = useMemo(
+    () => new Set(catalogSongs.map(s => normalizeSongTitle(s.name))),
+    [catalogSongs]
+  );
+
+  const catalogRemaining = useMemo(
+    () => catalogSongs.filter(s => !seenNormalizedSet.has(normalizeSongTitle(s.name))),
+    [catalogSongs, seenNormalizedSet]
+  );
+
+  const wishlistEntries = useMemo(
+    () => Object.entries(wishlistMap)
+      .map(([key, v]) => ({ key, title: v.title, addedAt: v.addedAt }))
+      .sort((a, b) => a.title.localeCompare(b.title)),
+    [wishlistMap]
+  );
+
+  // ── Load catalog (Apple Music, no user sign-in needed) ──────────────
+  useEffect(() => {
+    if (!artist) return;
+    let cancelled = false;
+
+    (async () => {
+      setCatalogLoading(true);
+      setCatalogError('');
+      setCatalogSongs([]);
+      try {
+        const appleMusic = await import('@/lib/appleMusic');
+        if (!musicRef.current) {
+          await appleMusic.loadMusicKit();
+          const tokenRes = await fetch(apiUrl('/.netlify/functions/apple-music-token'));
+          if (!tokenRes.ok) throw new Error('Failed to get Apple Music developer token');
+          const { token } = await tokenRes.json();
+          musicRef.current = await appleMusic.configureMusicKitCatalog(token);
+        }
+        const music = musicRef.current;
+
+        const artistMatches = await appleMusic.searchCatalogArtists(music, artist.name);
+        if (cancelled) return;
+        if (artistMatches.length === 0) {
+          setCatalogError('No catalog match found on Apple Music for this artist.');
+          return;
+        }
+        const exact = artistMatches.find(
+          a => a.name.trim().toLowerCase() === artist.name.trim().toLowerCase()
+        );
+        const bestMatch = exact || artistMatches[0];
+
+        const songs = await appleMusic.getArtistCatalogSongs(music, bestMatch.id, { maxSongs: MAX_CATALOG_SONGS });
+        if (cancelled) return;
+        setCatalogSongs(songs);
+      } catch (err) {
+        if (!cancelled) setCatalogError(err.message || 'Failed to load catalog.');
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [artist]);
+
+  // ── Load this user's existing wishlist for the selected artist ──────
+  useEffect(() => {
+    if (!artist || !user) return;
+    let cancelled = false;
+    (async () => {
+      setWishlistLoading(true);
+      try {
+        const data = await loadWishlist(user.uid, artistKeyFor(artist));
+        if (!cancelled) setWishlistMap(data?.songs || {});
+      } catch (err) {
+        console.error('Failed to load wishlist:', err);
+      } finally {
+        if (!cancelled) setWishlistLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [artist, user]);
+
+  const toggleSong = useCallback(async (songTitle) => {
+    if (!user || !artist) return;
+    const key = normalizeSongTitle(songTitle);
+    if (!key || pendingKeys.has(key)) return;
+
+    const alreadyWishlisted = !!wishlistMap[key];
+
+    setPendingKeys(prev => new Set(prev).add(key));
+    setWishlistMap(prev => {
+      const next = { ...prev };
+      if (alreadyWishlisted) {
+        delete next[key];
+      } else {
+        next[key] = { title: songTitle, addedAt: new Date().toISOString() };
+      }
+      return next;
+    });
+
+    try {
+      if (alreadyWishlisted) {
+        await removeWishlistSong(user.uid, artist, songTitle);
+      } else {
+        await addWishlistSong(user.uid, artist, songTitle);
+      }
+    } catch (err) {
+      console.error('Failed to update wishlist:', err);
+      // Revert optimistic update on failure
+      setWishlistMap(prev => {
+        const next = { ...prev };
+        if (alreadyWishlisted) {
+          next[key] = { title: songTitle, addedAt: new Date().toISOString() };
+        } else {
+          delete next[key];
+        }
+        return next;
+      });
+    } finally {
+      setPendingKeys(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, [user, artist, wishlistMap, pendingKeys]);
+
+  // ── Empty state: no artist selected yet ──────────────────────────────
+  if (!artist) {
+    return (
+      <Card padding="lg">
+        <div className="max-w-lg mx-auto text-center">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand-subtle text-brand flex items-center justify-center">
+            <Heart size={26} strokeWidth={1.8} />
+          </div>
+          <h2 className="text-lg font-bold text-primary mb-1.5">Pick an artist to get started</h2>
+          <p className="text-sm text-secondary mb-6">
+            Search for an artist to see the songs you've caught live and build a wishlist of the ones you haven't.
+          </p>
+          <div className="flex justify-center">
+            <ArtistPicker onSelect={setArtist} />
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Selected artist header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs font-semibold text-secondary uppercase tracking-wide">Artist</div>
+          <div className="text-xl font-bold text-primary">{artist.name}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setArtist(null)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-secondary hover:text-primary bg-hover rounded-xl transition-colors"
+        >
+          <SearchIcon size={15} strokeWidth={2.2} />
+          Change artist
+        </button>
+      </div>
+
+      {/* Two-column: Songs I've Seen | Wishlist */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Card padding="md">
+          <div className="flex items-center gap-2 mb-4">
+            <Music size={17} className="text-brand" strokeWidth={2.2} />
+            <h3 className="font-bold text-primary">Songs I've Seen</h3>
+            <Badge tone="green" size="sm">{seenSongs.length}</Badge>
+          </div>
+          {seenSongs.length === 0 ? (
+            <p className="text-sm text-secondary py-6 text-center">
+              No logged shows for {artist.name} yet — songs you've seen live will show up here.
+            </p>
+          ) : (
+            <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
+              {seenSongs.map((s) => {
+                const notInCatalog = !catalogLoading && catalogSongs.length > 0 && !catalogNormalizedSet.has(normalizeSongTitle(s.title));
+                return (
+                  <li
+                    key={s.title}
+                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover"
+                  >
+                    <span className="text-sm text-primary min-w-0 truncate">
+                      {s.title}
+                      {notInCatalog && (
+                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                          not in official catalog
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs font-bold text-brand flex-shrink-0">{s.count}×</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+
+        <Card padding="md">
+          <div className="flex items-center gap-2 mb-4">
+            <Heart size={17} className="text-amber" strokeWidth={2.2} />
+            <h3 className="font-bold text-primary">Wishlist</h3>
+            <Badge tone="amber" size="sm">{wishlistEntries.length}</Badge>
+          </div>
+          {wishlistLoading ? (
+            <div className="py-6"><Spinner size="sm" label="Loading your wishlist…" /></div>
+          ) : wishlistEntries.length === 0 ? (
+            <p className="text-sm text-secondary py-6 text-center">
+              Check songs below to add them to your wishlist.
+            </p>
+          ) : (
+            <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
+              {wishlistEntries.map((s) => (
+                <li key={s.key} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover">
+                  <span className="text-sm text-primary min-w-0 truncate">{s.title}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleSong(s.title)}
+                    className="text-xs font-semibold text-muted hover:text-danger flex-shrink-0 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      {/* Catalog — remaining songs not yet seen live */}
+      <Card padding="md">
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="font-bold text-primary">Full Catalog — Songs You Haven't Seen</h3>
+          {catalogLoading && <Spinner size="sm" />}
+        </div>
+
+        {catalogError ? (
+          <EmptyState
+            icon={AlertCircle}
+            title="Couldn't load catalog"
+            body={catalogError}
+            action={
+              <button
+                type="button"
+                onClick={() => setArtist({ ...artist })}
+                className="flex items-center gap-2 px-4 py-2 bg-hover rounded-xl text-sm font-semibold text-primary hover:bg-active/20 transition-colors"
+              >
+                <RefreshCw size={14} strokeWidth={2.2} /> Try again
+              </button>
+            }
+          />
+        ) : catalogLoading ? (
+          <div className="py-10"><Spinner size="md" label="Loading catalog from Apple Music…" /></div>
+        ) : catalogRemaining.length === 0 ? (
+          <p className="text-sm text-secondary py-6 text-center">
+            {catalogSongs.length === 0
+              ? 'No catalog data available for this artist.'
+              : "You've seen everything in this artist's official catalog live. Nice."}
+          </p>
+        ) : (
+          <ul className="space-y-1 max-h-[32rem] overflow-y-auto pr-1" role="list">
+            {catalogRemaining.map((song) => {
+              const key = normalizeSongTitle(song.name);
+              const checked = !!wishlistMap[key];
+              const pending = pendingKeys.has(key);
+              return (
+                <li key={song.id}>
+                  <label
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+                      checked ? 'bg-amber-subtle border border-amber/30' : 'bg-hover border border-transparent hover:border-subtle'
+                    } ${pending ? 'opacity-60' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={pending}
+                      onChange={() => toggleSong(song.name)}
+                      className="sr-only"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
+                        checked ? 'bg-amber border-amber' : 'border-active'
+                      }`}
+                    >
+                      {checked && <Check className="w-3.5 h-3.5 text-white" />}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="text-sm text-primary block truncate">{song.name}</span>
+                      {song.album && <span className="text-xs text-muted block truncate">{song.album}</span>}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+    </div>
+  );
+}

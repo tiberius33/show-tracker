@@ -18,7 +18,7 @@ import { usePathname } from 'next/navigation';
 import {
   Search, List, Camera, BarChart3, UserPlus, Users, Ticket,
   TrendingUp, ScrollText, Send, MessageSquare, Shield, Coffee,
-  LogOut, User, X, HelpCircle,
+  LogOut, User, X, HelpCircle, Heart,
 } from 'lucide-react';
 import Pick from '../brand/Pick';
 import Wordmark from '../brand/Wordmark';
@@ -45,6 +45,7 @@ export default function Sidebar({
     ...(isGuest ? [] : [
       { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
       { id: 'friends', label: 'Friends', icon: UserPlus, href: '/friends', badge: pendingNotificationCount },
+      { id: 'wishlist', label: 'Wishlist', icon: Heart, href: '/wishlist' },
     ]),
     { id: 'upcoming', label: 'Upcoming', icon: Ticket, href: '/upcoming', badge: upcomingShowsBadgeCount, beta: true },
     { id: 'roadmap', label: 'Roadmap', icon: TrendingUp, href: '/roadmap' },
