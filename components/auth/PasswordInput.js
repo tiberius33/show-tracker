@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { Input } from '@/components/ui';
 
 export default function PasswordInput({
   value,
@@ -28,25 +29,24 @@ export default function PasswordInput({
 
   return (
     <div>
-      <div className="relative">
-        <input
-          type={visible ? 'text' : 'password'}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-3 pr-12 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
-          required={required}
-          disabled={disabled}
-        />
-        <button
-          type="button"
-          onClick={() => setVisible(!visible)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-primary transition-colors"
-          tabIndex={-1}
-        >
-          {visible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-        </button>
-      </div>
+      <Input
+        type={visible ? 'text' : 'password'}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        disabled={disabled}
+        rightElement={
+          <button
+            type="button"
+            onClick={() => setVisible(!visible)}
+            className="text-muted hover:text-primary transition-colors p-1"
+            tabIndex={-1}
+          >
+            {visible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        }
+      />
 
       {showStrength && value && (
         <div className="mt-2">

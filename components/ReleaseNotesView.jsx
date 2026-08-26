@@ -6,6 +6,22 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '4.1.0',
+      date: 'August 26, 2026',
+      title: 'Site-Wide Design Consistency Pass',
+      changes: [
+        'Every page now matches the Shows page\'s look, feel, and interaction patterns — same fonts, spacing, cards, buttons, tabs, and empty/loading states throughout',
+        'Stats, Top Artists, and Top Venues now share one underline-style tab component (matching Shows\' Timeline/By Artist tabs) instead of a separate pill-style nav',
+        'Search, Scan/Import, Community, Feedback, Roadmap, Invite, and How to Use pages now use the shared page header, card, button, and input components instead of one-off styling',
+        'Fixed several buttons that rendered dark text on a colored background (Search, Scan/Import, Feedback, Invite, and the sign-in/sign-up forms) — all primary actions now render consistently',
+        'Removed duplicate page titles that were appearing twice on Search and Upcoming Shows',
+        'Sign-in and sign-up forms now use the same input, button, and password-visibility styling as the rest of the app',
+        'How to Use page rebuilt in the app\'s light theme — it previously used an unrelated dark theme left over from an old design',
+        'Friends, Wishlist, and Profile pages now use the shared empty-state, modal, and stat-figure components',
+        'The Tabs component gained support for route-backed sub-navigation and notification badges, so pages needing either no longer roll their own',
+      ]
+    },
+    {
       version: '4.0.3',
       date: 'August 26, 2026',
       title: 'Manual Setlist Additions & Fewer Interruptions',

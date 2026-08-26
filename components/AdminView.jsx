@@ -12,6 +12,7 @@ import { formatDate, parseDate, artistColor, avgSongRating, parseCSV, parseImpor
 import { ROADMAP_CATEGORIES, IMPORT_FIELDS } from '@/lib/constants';
 import { apiUrl } from '@/lib/api';
 import AdminPopups from '@/components/AdminPopups';
+import { PageHeader, Button } from '@/components/ui';
 
 export default
 function AdminView() {
@@ -1339,15 +1340,19 @@ function AdminView() {
       ) : (
         <>
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold text-primary">Admin Portal</h2>
-            <button
-              onClick={() => { loadUsers(); loadGuestSessions(); loadAllInvites(); loadRoadmapData(); }}
-              className="px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
-            >
-              Refresh
-            </button>
-          </div>
+          <PageHeader
+            eyebrow="Admin"
+            title="Admin Portal"
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { loadUsers(); loadGuestSessions(); loadAllInvites(); loadRoadmapData(); }}
+              >
+                Refresh
+              </Button>
+            }
+          />
 
           {/* Tab Navigation */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

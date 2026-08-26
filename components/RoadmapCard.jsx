@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { ChevronUp, RefreshCw } from 'lucide-react';
+import { ChevronUp } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 import { ROADMAP_CATEGORIES } from '@/lib/constants';
 import Tip from '@/components/ui/Tip';
+import { Card, Button } from '@/components/ui';
 
 function RoadmapCard({ item, hasVoted, isTopThree, onVote, voting, isLoggedIn }) {
   return (
-    <div className={`bg-hover backdrop-blur-xl rounded-2xl border ${isTopThree ? 'border-brand/40' : 'border-subtle'} p-4 relative transition-all hover:bg-hover`}>
+    <Card padding="none" className={`p-4 relative ${isTopThree ? 'border-brand/40' : ''}`}>
       {isTopThree && (
         <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 bg-brand-subtle text-brand rounded-full border border-brand/30 whitespace-nowrap">
           Most Requested
@@ -34,25 +35,22 @@ function RoadmapCard({ item, hasVoted, isTopThree, onVote, voting, isLoggedIn })
       </div>
       <div className="mt-3">
         <Tip text={hasVoted ? 'Remove your vote' : (isLoggedIn ? 'Vote for this feature' : 'Sign in to vote')}>
-          <button
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={voting}
             onClick={() => onVote(item)}
             disabled={voting}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
-              hasVoted
-                ? 'bg-brand-subtle text-brand border border-brand/40'
-                : 'bg-hover text-secondary hover:bg-hover border border-subtle hover:border-active'
-            }`}
+            className={hasVoted
+              ? 'bg-brand-subtle text-brand border border-brand/40'
+              : 'text-secondary border border-subtle hover:border-active'}
           >
-            {voting ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <ChevronUp className={`w-4 h-4 ${hasVoted ? 'text-brand' : ''}`} />
-            )}
+            {!voting && <ChevronUp className={`w-4 h-4 ${hasVoted ? 'text-brand' : ''}`} />}
             <span>{item.voteCount || 0}</span>
-          </button>
+          </Button>
         </Tip>
       </div>
-    </div>
+    </Card>
   );
 }
 

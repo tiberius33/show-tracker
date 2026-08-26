@@ -10,6 +10,7 @@ import { nativeGoogleSignIn } from '@/lib/native-auth';
 import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
+import { Input, Button } from '@/components/ui';
 
 export default function SignupForm({ onSuccess, onSwitchToLogin }) {
   const [displayName, setDisplayName] = useState('');
@@ -109,22 +110,20 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
       <AuthDivider />
 
       <form onSubmit={handleEmailSignup} className="space-y-4">
-        <input
+        <Input
           type="text"
           placeholder="Your name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required
           disabled={loading}
         />
 
-        <input
+        <Input
           type="email"
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required
           disabled={loading}
         />
@@ -148,13 +147,9 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
           <p className="text-danger text-sm">{error}</p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
-        >
+        <Button type="submit" variant="primary" full loading={loading}>
           {loading ? 'Creating account...' : 'Create Account'}
-        </button>
+        </Button>
       </form>
 
       <p className="text-center text-secondary mt-6">

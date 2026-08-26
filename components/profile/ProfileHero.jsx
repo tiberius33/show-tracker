@@ -6,6 +6,7 @@ import React from 'react';
 import Avatar from '../ui/Avatar';
 import Button from '../ui/Button';
 import StatFigure from '../ui/StatFigure';
+import Card from '../ui/Card';
 
 export default function ProfileHero({
   name,
@@ -16,13 +17,16 @@ export default function ProfileHero({
   actions,          // React node — usually two <Button>s
 }) {
   return (
-    <section className="bg-surface border border-subtle rounded-3xl p-6 md:p-10 grid grid-cols-[auto_1fr] md:grid-cols-[140px_1fr_auto] gap-6 md:gap-8 items-center mb-6">
+    <Card
+      padding="none"
+      className="p-6 md:p-10 grid grid-cols-[auto_1fr] md:grid-cols-[140px_1fr_auto] gap-6 md:gap-8 items-center mb-6"
+    >
       <div className="col-span-2 md:col-span-1">
         <Avatar name={name} size={140} className="mx-auto md:mx-0" />
       </div>
       <div className="col-span-2 md:col-span-1">
-        <h1 className="text-[28px] md:text-[36px] font-extrabold tracking-[-0.025em] m-0">{name}</h1>
-        <p className="text-[15px] text-secondary mt-1 mb-4">
+        <h1 className="text-[32px] md:text-[40px] leading-[1.05] font-extrabold tracking-[-0.025em] text-primary m-0">{name}</h1>
+        <p className="text-[15px] text-secondary mt-2 mb-4">
           {handle && <>@{handle.replace(/^@/, '')}</>}
           {location && <> · {location}</>}
           {memberSince && <> · Member since {memberSince}</>}
@@ -38,6 +42,6 @@ export default function ProfileHero({
           {actions}
         </div>
       )}
-    </section>
+    </Card>
   );
 }

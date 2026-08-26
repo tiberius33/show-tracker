@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, Send, RefreshCw, TrendingUp } from 'lucide-react';
+import { Check, Send, TrendingUp } from 'lucide-react';
 import { collection, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Card, Button, Tag, Textarea } from '@/components/ui';
 
 function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
   const [feedbackType, setFeedbackType] = useState('general'); // 'feature' | 'bug' | 'general'
@@ -88,7 +89,7 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
   if (submitted) {
     return (
       <div className="max-w-xl mx-auto">
-        <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-8 text-center">
+        <Card padding="lg" className="text-center">
           <div className="w-12 h-12 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-6 h-6 text-brand" />
           </div>
@@ -96,20 +97,21 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
           <p className="text-secondary mb-6">
             Your feedback has been added to our review queue. Check the roadmap to see what's coming!
           </p>
-          <button
+          <Button
+            variant="primary"
+            icon={TrendingUp}
             onClick={() => onNavigate && onNavigate('roadmap')}
-            className="flex items-center gap-2 mx-auto mb-4 px-5 py-2.5 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium transition-all shadow-lg shadow-amber/20"
+            className="mx-auto mb-4"
           >
-            <TrendingUp className="w-4 h-4" />
             View Roadmap
-          </button>
+          </Button>
           <button
             onClick={() => { setSubmitted(false); setMessage(''); setFeedbackType('general'); setCategory('other'); }}
             className="text-muted hover:text-primary text-sm transition-colors"
           >
             Send more feedback
           </button>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -134,36 +136,26 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
         </div>
       )}
 
-      <div className="flex items-start justify-between mb-2">
-        <h1 className="text-xl md:text-2xl font-bold text-primary">Send Feedback</h1>
+      <div className="flex items-center justify-end mb-4">
         <button
           onClick={() => onNavigate && onNavigate('roadmap')}
-          className="flex items-center gap-1 text-xs text-muted hover:text-primary transition-colors mt-1"
+          className="flex items-center gap-1 text-xs text-muted hover:text-primary transition-colors"
         >
           <TrendingUp className="w-3 h-3" />
           View Roadmap
         </button>
       </div>
-      <p className="text-secondary mb-8">We'd love to hear your thoughts, suggestions, or bug reports.</p>
 
-      <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 space-y-5">
+      <Card padding="md" className="space-y-5">
 
         {/* Feedback type selector */}
         <div>
           <label className="block text-sm font-medium text-secondary mb-2">Type</label>
           <div className="flex flex-wrap gap-2">
             {FEEDBACK_TYPES.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setFeedbackType(t.id)}
-                className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
-                  feedbackType === t.id
-                    ? 'bg-brand-subtle text-brand border-brand/30'
-                    : 'bg-hover text-secondary border-subtle hover:bg-hover'
-                }`}
-              >
+              <Tag key={t.id} selected={feedbackType === t.id} onClick={() => setFeedbackType(t.id)}>
                 {t.label}
-              </button>
+              </Tag>
             ))}
           </div>
         </div>
@@ -174,53 +166,42 @@ function FeedbackView({ user, onNavigate, unreadNotifications, onMarkRead }) {
             <label className="block text-sm font-medium text-secondary mb-2">Category</label>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setCategory(c.id)}
-                  className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
-                    category === c.id
-                      ? 'bg-amber-subtle text-amber border-amber/30'
-                      : 'bg-hover text-secondary border-subtle hover:bg-hover'
-                  }`}
-                >
+                <Tag key={c.id} selected={category === c.id} onClick={() => setCategory(c.id)}>
                   {c.label}
-                </button>
+                </Tag>
               ))}
             </div>
           </div>
         )}
 
         {/* Message textarea */}
-        <div>
-          <label className="block text-sm font-medium text-secondary mb-2">
-            {feedbackType === 'feature' ? 'Describe your idea' : feedbackType === 'bug' ? 'What went wrong?' : 'Your Feedback'}
-          </label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={
-              feedbackType === 'feature' ? "What feature would make MySetlists better for you?" :
-              feedbackType === 'bug' ? "What happened? What were you trying to do?" :
-              "Tell us what you think..."
-            }
-            rows={6}
-            className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted resize-none"
-          />
-        </div>
+        <Textarea
+          label={feedbackType === 'feature' ? 'Describe your idea' : feedbackType === 'bug' ? 'What went wrong?' : 'Your Feedback'}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={
+            feedbackType === 'feature' ? "What feature would make MySetlists better for you?" :
+            feedbackType === 'bug' ? "What happened? What were you trying to do?" :
+            "Tell us what you think..."
+          }
+          rows={6}
+        />
 
         {submitError && (
           <p className="text-danger text-sm">{submitError}</p>
         )}
 
-        <button
+        <Button
+          variant="primary"
+          full
+          icon={submitting ? undefined : Send}
+          loading={submitting}
           onClick={handleSubmit}
           disabled={!message.trim() || submitting}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20"
         >
-          {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {submitting ? 'Sending...' : 'Send Feedback'}
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { useApp } from '@/context/AppContext';
 import ProfileView from '@/components/profile/ProfileView';
 import ProfileHero from '@/components/profile/ProfileHero';
 import AchievementCard from '@/components/profile/AchievementCard';
-import { SectionHeader } from '@/components/ui';
+import { SectionHeader, Card } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 
 export default function ProfilePage() {
@@ -78,10 +78,13 @@ export default function ProfilePage() {
           <SectionHeader title="Recent shows" className="mb-4" />
           <div className="space-y-2 mb-8">
             {recentShows.map((s) => (
-              <button
+              <Card
                 key={s.id}
+                as="button"
+                padding="none"
+                interactive
                 onClick={() => { setSelectedShow(s); router.push('/shows'); }}
-                className="w-full flex items-center gap-4 bg-surface border border-subtle rounded-xl px-4 py-3 text-left hover:border-active transition-colors group"
+                className="w-full flex items-center gap-4 px-4 py-3 text-left"
               >
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-primary truncate">{s.artist}</div>
@@ -93,7 +96,7 @@ export default function ProfilePage() {
                 {s.rating && (
                   <div className="text-amber font-bold text-sm">★ {s.rating}</div>
                 )}
-              </button>
+              </Card>
             ))}
           </div>
         </>

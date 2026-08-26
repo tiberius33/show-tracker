@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Music, Calendar, MapPin, Check, Users, ChevronLeft, User, Send, Mail, UserPlus, UserCheck, UserX, Tag, RefreshCw, X, Clock } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
-import { Button, Card, Badge } from '@/components/ui';
+import { Button, Card, Badge, Tabs, EmptyState, Modal } from '@/components/ui';
 import Input from '@/components/ui/Input';
 import Tip from '@/components/ui/Tip';
 import FriendCard from '@/components/friends/FriendCard';
@@ -157,44 +157,27 @@ function FriendsView({
   return (
     <div>
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {[
-          { id: 'friends', label: `All`, count: friends.length, badge: 0 },
+      <Tabs
+        value={activeTab}
+        onChange={setActiveTab}
+        className="mb-6"
+        tabs={[
+          { id: 'friends', label: 'All', count: friends.length },
           { id: 'requests', label: 'Requests', count: requestCount, badge: requestCount },
-          { id: 'find', label: 'Find Friends', count: null, badge: 0 },
+          { id: 'find', label: 'Find Friends' },
           { id: 'invites', label: 'Invites', count: inviteList.length + (sentPendingEmailTags || []).length, badge: inviteList.length + (sentPendingEmailTags || []).length },
-        ].map(tab => (
-          <Button
-            key={tab.id}
-            size="sm"
-            variant="ghost"
-            onClick={() => setActiveTab(tab.id)}
-            className={`relative ${activeTab === tab.id ? 'bg-brand-subtle text-brand border border-brand/30' : 'text-secondary border border-subtle'}`}
-          >
-            {tab.label}
-            {tab.count !== null && (
-              <span className={`ml-1.5 text-[11px] font-bold ${activeTab === tab.id ? 'text-brand' : 'text-muted'}`}>
-                {tab.count}
-              </span>
-            )}
-            {tab.badge > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-danger text-on-dark text-[10px] font-bold rounded-full px-1">
-                {tab.badge}
-              </span>
-            )}
-          </Button>
-        ))}
-      </div>
+        ]}
+      />
 
       {/* My Friends Tab — card grid */}
       {activeTab === 'friends' && (
         <div>
           {friends.length === 0 ? (
-            <div className="text-center py-16">
-              <Users className="w-12 h-12 text-muted mx-auto mb-4" />
-              <p className="text-primary font-semibold mb-1">No friends yet</p>
-              <p className="text-muted text-sm">Search by email or add from the Community leaderboard!</p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No friends yet"
+              body="Search by email or add from the Community leaderboard!"
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {friends.map(friend => {
@@ -592,36 +575,40 @@ function FriendsView({
         </div>
       )}
       {/* Bulk Accept Confirmation Modal */}
-      {bulkConfirm && (
-        <div className="fixed inset-0 bg-sidebar/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !bulkProcessing && setBulkConfirm(null)}>
-          <div className="bg-surface border border-subtle rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-primary mb-2">Accept Shows</h3>
-            <p className="text-secondary text-sm mb-6">
-              {bulkConfirm.type === 'all'
-                ? `Accept all ${totalPendingItems} pending show${totalPendingItems !== 1 ? 's' : ''}? They'll be added to your collection.`
-                : `Accept all ${(friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)} pending show${((friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)) !== 1 ? 's' : ''} from ${bulkConfirm.friendName}?`
-              }
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="ghost"
-                onClick={() => setBulkConfirm(null)}
-                disabled={bulkProcessing}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleBulkConfirm}
-                disabled={bulkProcessing}
-                loading={bulkProcessing}
-              >
-                {bulkProcessing ? 'Accepting...' : 'Accept All'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={!!bulkConfirm}
+        onClose={() => !bulkProcessing && setBulkConfirm(null)}
+        title="Accept Shows"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => setBulkConfirm(null)}
+              disabled={bulkProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleBulkConfirm}
+              disabled={bulkProcessing}
+              loading={bulkProcessing}
+            >
+              {bulkProcessing ? 'Accepting...' : 'Accept All'}
+            </Button>
+          </>
+        }
+      >
+        {bulkConfirm && (
+          <p className="text-secondary text-sm">
+            {bulkConfirm.type === 'all'
+              ? `Accept all ${totalPendingItems} pending show${totalPendingItems !== 1 ? 's' : ''}? They'll be added to your collection.`
+              : `Accept all ${(friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)} pending show${((friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)) !== 1 ? 's' : ''} from ${bulkConfirm.friendName}?`
+            }
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }

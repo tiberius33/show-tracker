@@ -6,6 +6,7 @@ import { collection, doc, getDoc, onSnapshot, query, where, runTransaction, serv
 import { db } from '@/lib/firebase';
 import { ROADMAP_COLUMNS } from '@/lib/constants';
 import RoadmapCard from '@/components/RoadmapCard';
+import { SpinnerBlock } from '@/components/ui';
 
 function RoadmapView({ user }) {
   const [items, setItems] = useState([]);
@@ -82,11 +83,6 @@ function RoadmapView({ user }) {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">What's Coming to MySetlists</h1>
-        <p className="text-secondary">Vote on features you want most -- the more votes, the higher it goes.</p>
-      </div>
-
       {/* Sign-in prompt banner (for guests who click vote) */}
       {signInPrompt && (
         <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 bg-brand-subtle border border-brand/30 rounded-2xl">
@@ -98,7 +94,7 @@ function RoadmapView({ user }) {
       )}
 
       {loading ? (
-        <div className="text-center py-16 text-muted">Loading roadmap...</div>
+        <SpinnerBlock label="Loading roadmap..." />
       ) : (
         <div className="flex flex-col gap-6 md:grid md:grid-cols-3 md:gap-6">
           {ROADMAP_COLUMNS.map(col => {
@@ -127,7 +123,7 @@ function RoadmapView({ user }) {
                     />
                   ))}
                   {colItems.length === 0 && (
-                    <p className="text-primary/25 text-sm py-4">Nothing here yet</p>
+                    <p className="text-muted text-sm py-4">Nothing here yet</p>
                   )}
                 </div>
               </div>
