@@ -30,7 +30,8 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
   const [editingMemoryText, setEditingMemoryText] = useState('');
   const [showPlaylistTip, setShowPlaylistTip] = useState(false);
   const [showPlayCounts, setShowPlayCounts] = useState(() => {
-    return storage.get(STORAGE_KEYS.SHOW_PLAY_COUNTS) === 'true';
+    const stored = storage.get(STORAGE_KEYS.SHOW_PLAY_COUNTS);
+    return stored === null ? true : stored === 'true';
   });
   const [songHistoryTarget, setSongHistoryTarget] = useState(null);
   const scrollableRef = useRef(null);

@@ -144,7 +144,7 @@ export default function ShowDetailView({
 }) {
   const router = useRouter();
   const { setSelectedShow } = useApp();
-  const [showPlayCounts, setShowPlayCounts] = useState(false);
+  const [showPlayCounts, setShowPlayCounts] = useState(true);
   const [songHistorySong, setSongHistorySong] = useState(null);
   const [toast, setToast] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -286,36 +286,37 @@ export default function ShowDetailView({
           </p>
         )}
 
-        {/* Show rating */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm text-secondary">Show rating:</span>
-          <select
-            value={show.rating || ''}
-            onChange={e => onUpdateRating?.(show.id, Number(e.target.value) || 0)}
-            className="border border-subtle rounded-lg px-2 py-1 text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
-          >
-            <option value="">—</option>
-            {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-          {(show.rating || 0) > 0 && (
-            <span className="text-sm font-semibold text-brand">{show.rating}/10</span>
-          )}
-        </div>
+        {/* Show + venue ratings */}
+        <div className="flex items-center gap-x-6 gap-y-2 flex-wrap mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-secondary">Show rating:</span>
+            <select
+              value={show.rating || ''}
+              onChange={e => onUpdateRating?.(show.id, Number(e.target.value) || 0)}
+              className="border border-subtle rounded-lg px-2 py-1 text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
+            >
+              <option value="">—</option>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            {(show.rating || 0) > 0 && (
+              <span className="text-sm font-semibold text-brand">{show.rating}/10</span>
+            )}
+          </div>
 
-        {/* Venue rating */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-sm text-secondary">Venue rating:</span>
-          <select
-            value={show.venueRating || ''}
-            onChange={e => onUpdateVenueRating?.(show.id, Number(e.target.value) || 0)}
-            className="border border-subtle rounded-lg px-2 py-1 text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
-          >
-            <option value="">—</option>
-            {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-          {(show.venueRating || 0) > 0 && (
-            <span className="text-sm font-semibold text-amber-500">{show.venueRating}/10</span>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-secondary">Venue rating:</span>
+            <select
+              value={show.venueRating || ''}
+              onChange={e => onUpdateVenueRating?.(show.id, Number(e.target.value) || 0)}
+              className="border border-subtle rounded-lg px-2 py-1 text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
+            >
+              <option value="">—</option>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            {(show.venueRating || 0) > 0 && (
+              <span className="text-sm font-semibold text-amber-500">{show.venueRating}/10</span>
+            )}
+          </div>
         </div>
 
         {/* Show note */}
