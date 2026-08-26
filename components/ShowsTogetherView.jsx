@@ -5,13 +5,19 @@ import { Music, Calendar, MapPin, ChevronLeft, ChevronDown, MessageSquare, User,
 import { formatDate, parseDate, artistColor } from '@/lib/utils';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
+import SongHistoryModal from '@/components/SongHistoryModal';
+import { useRouter } from 'next/navigation';
+import { useApp } from '@/context/AppContext';
 
 function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onTagFriends, onRateVenue, currentUserUid, confirmedSuggestions, normalizeShowKey, sharedComments, commentsLoading, memoriesShow, onOpenMemories, onAddComment, onEditComment, onDeleteComment, allShows }) {
+  const router = useRouter();
+  const { setSelectedShow: setGlobalSelectedShow } = useApp();
   const [sharedShows, setSharedShows] = useState(null); // null = loading
   const [error, setError] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
   const [playlistShow, setPlaylistShow] = useState(null);
   const [expandedShowId, setExpandedShowId] = useState(null);
+  const [songHistory, setSongHistory] = useState(null); // { songName, artistName }
 
   useEffect(() => {
     let cancelled = false;
@@ -190,7 +196,12 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                                       <span className="text-primary/25 font-mono text-xs mt-0.5 w-5 text-right flex-shrink-0">{i + 1}.</span>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="text-sm text-primary">{song.name}</span>
+                                          <button
+                                            onClick={() => setSongHistory({ songName: song.name, artistName: show.artist })}
+                                            className="text-sm text-primary hover:text-brand hover:underline transition-colors text-left"
+                                          >
+                                            {song.name}
+                                          </button>
                                           {song.cover && <span className="text-xs text-brand">({song.cover})</span>}
                                           {/* Your rating */}
                                           {song.rating && (
@@ -290,6 +301,16 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
         <PlaylistCreatorModal
           show={playlistShow}
           onClose={() => setPlaylistShow(null)}
+        />
+      )}
+
+      {songHistory && (
+        <SongHistoryModal
+          songName={songHistory.songName}
+          artistName={songHistory.artistName}
+          allShows={allShows}
+          onClose={() => setSongHistory(null)}
+          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows'); }}
         />
       )}
     </div>

@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useApp } from '@/context/AppContext';
 import { parseDate } from '@/lib/utils';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
+import StreamingLinks from '@/components/StreamingLinks';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
   Trash2, X, Tag, MessageSquare, ArrowLeft,
@@ -139,6 +142,8 @@ export default function ShowDetailView({
   allShows = [],
   user,
 }) {
+  const router = useRouter();
+  const { setSelectedShow } = useApp();
   const [showPlayCounts, setShowPlayCounts] = useState(false);
   const [songHistorySong, setSongHistorySong] = useState(null);
   const [toast, setToast] = useState(false);
@@ -186,7 +191,7 @@ export default function ShowDetailView({
   const isFavorite      = isArtistFavorite?.(show.artist) || false;
 
   const handleShare = async () => {
-    try { await navigator.clipboard.writeText(`https://mysetlists.net/show/${show.id}`); } catch {}
+    try { await navigator.clipboard.writeText(`https://mysetlists.net/shows/${show.id}`); } catch {}
     setToast(true);
     setTimeout(() => setToast(false), 2000);
   };
@@ -425,6 +430,8 @@ export default function ShowDetailView({
           ) : (
             <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
           )}
+
+          <StreamingLinks show={show} />
         </section>
 
         <aside className="space-y-3 lg:sticky lg:top-6">
@@ -485,7 +492,10 @@ export default function ShowDetailView({
           artistName={show.artist}
           allShows={allShows}
           onClose={() => setSongHistorySong(null)}
-          onViewShow={() => setSongHistorySong(null)}
+          onViewShow={(targetShow) => {
+            setSongHistorySong(null);
+            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows'); }
+          }}
         />
       )}
 

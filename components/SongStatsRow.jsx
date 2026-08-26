@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, Calendar, MapPin, MessageSquare } from 'lucide-react';
+import { ChevronDown, Calendar, MapPin, MessageSquare, ExternalLink } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import RatingSelect from '@/components/ui/RatingSelect';
 
-function SongStatsRow({ song, index, onRateSong }) {
+function SongStatsRow({ song, index, onRateSong, onViewShow }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -63,11 +63,20 @@ function SongStatsRow({ song, index, onRateSong }) {
                         </div>
                       )}
                     </div>
-                    <div className="flex-shrink-0 ml-2">
+                    <div className="flex-shrink-0 ml-2 flex items-center gap-2">
                       <RatingSelect
                         value={performance.rating}
                         onChange={(r) => onRateSong(performance.showId, performance.songId, r)}
                       />
+                      {onViewShow && (
+                        <button
+                          onClick={() => onViewShow(performance.showId)}
+                          className="flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-light transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          View Show
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

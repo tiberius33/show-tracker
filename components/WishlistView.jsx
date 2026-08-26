@@ -28,9 +28,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Music, Heart, Search as SearchIcon, Star, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, EmptyState, Spinner, Badge } from '@/components/ui';
 import ArtistPicker from '@/components/wishlist/ArtistPicker';
+import SongHistoryModal from '@/components/SongHistoryModal';
 import { useApp } from '@/context/AppContext';
 import { apiUrl } from '@/lib/api';
 import { normalizeSongTitle } from '@/lib/utils';
@@ -95,9 +97,11 @@ function setCachedCatalog(mbid, data) {
 }
 
 export default function WishlistView() {
-  const { user, shows, setToast } = useApp();
+  const router = useRouter();
+  const { user, shows, setToast, setSelectedShow: setGlobalSelectedShow } = useApp();
 
   const [artist, setArtist] = useState(null); // { name, mbid, disambiguation }
+  const [songHistory, setSongHistory] = useState(null); // song title
 
   const [catalogSongs, setCatalogSongs] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
@@ -339,19 +343,21 @@ export default function WishlistView() {
               {seenSongs.map((s) => {
                 const notInCatalog = !catalogLoading && catalogSongs.length > 0 && !catalogNormalizedSet.has(normalizeSongTitle(s.title));
                 return (
-                  <li
-                    key={s.title}
-                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover"
-                  >
-                    <span className="text-sm text-primary min-w-0 truncate">
-                      {s.title}
-                      {notInCatalog && (
-                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                          no setlist.fm record
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-xs font-bold text-brand flex-shrink-0">{s.count}×</span>
+                  <li key={s.title}>
+                    <button
+                      onClick={() => setSongHistory(s.title)}
+                      className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover text-left transition-colors"
+                    >
+                      <span className="text-sm text-primary min-w-0 truncate hover:text-brand hover:underline transition-colors">
+                        {s.title}
+                        {notInCatalog && (
+                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                            no setlist.fm record
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs font-bold text-brand flex-shrink-0">{s.count}×</span>
+                    </button>
                   </li>
                 );
               })}
@@ -437,6 +443,16 @@ export default function WishlistView() {
           </ul>
         )}
       </Card>
+
+      {songHistory && (
+        <SongHistoryModal
+          songName={songHistory}
+          artistName={artist.name}
+          allShows={shows}
+          onClose={() => setSongHistory(null)}
+          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows'); }}
+        />
+      )}
     </div>
   );
 }

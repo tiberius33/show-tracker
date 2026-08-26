@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useApp } from '@/context/AppContext';
 import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic, Heart, Hash } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
@@ -13,6 +15,8 @@ import SongHistoryModal from '@/components/SongHistoryModal';
 import StreamingLinks from '@/components/StreamingLinks';
 
 function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext, isReturningUser }) {
+  const router = useRouter();
+  const { setSelectedShow } = useApp();
   const [songName, setSongName] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
@@ -624,8 +628,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
           onClose={() => setSongHistoryTarget(null)}
           onViewShow={(targetShow) => {
             setSongHistoryTarget(null);
-            // If the target show is the current show, just close the modal
-            // Otherwise, we'd need a way to navigate - for now just close
+            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows'); }
           }}
         />
       )}

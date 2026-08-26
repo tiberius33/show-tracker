@@ -28,7 +28,7 @@ export default function ShowCard({ show, onClick, onDelete }) {
       tabIndex={0}
       onClick={onClick}
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick?.()}
-      className="group relative bg-white border-2 border-gray-200 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-400 hover:shadow-lg transition-all duration-200"
+      className="group relative bg-surface border-2 border-subtle rounded-xl overflow-hidden cursor-pointer hover:border-brand hover:shadow-theme-lg transition-all duration-200"
     >
       {/* Artist image banner */}
       {hasImage && (
@@ -39,12 +39,12 @@ export default function ShowCard({ show, onClick, onDelete }) {
             className="w-full h-full object-cover object-top"
             onError={() => setImgError(true)}
           />
-          {/* Subtle bottom fade so image blends into white card body */}
-          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent" />
+          {/* Subtle bottom fade so image blends into card body */}
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-surface to-transparent" />
 
           {/* Rating badge overlaid on image */}
           {typeof rating === 'number' && (
-            <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 bg-gray-900/80 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-sm font-semibold">
+            <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 bg-black/70 backdrop-blur-sm text-on-dark px-2.5 py-1 rounded-md text-sm font-semibold">
               <Star className="w-3.5 h-3.5 fill-current" strokeWidth={0} />
               {rating.toFixed(1)}
             </span>
@@ -58,10 +58,10 @@ export default function ShowCard({ show, onClick, onDelete }) {
         {!hasImage && (
           <div className="flex items-start justify-between mb-3">
             {displayDate && (
-              <span className="text-sm font-semibold text-orange-600">{displayDate}</span>
+              <span className="text-sm font-semibold text-amber">{displayDate}</span>
             )}
             {typeof rating === 'number' && (
-              <span className="inline-flex items-center gap-1 bg-gray-900 text-white px-2.5 py-1 rounded-md text-sm font-semibold">
+              <span className="inline-flex items-center gap-1 bg-elevated text-primary px-2.5 py-1 rounded-md text-sm font-semibold">
                 <Star className="w-3.5 h-3.5 fill-current" strokeWidth={0} />
                 {rating.toFixed(1)}
               </span>
@@ -71,20 +71,20 @@ export default function ShowCard({ show, onClick, onDelete }) {
 
         {/* Date below image */}
         {hasImage && displayDate && (
-          <p className="text-sm font-semibold text-orange-600 mb-2">{displayDate}</p>
+          <p className="text-sm font-semibold text-amber mb-2">{displayDate}</p>
         )}
 
         {/* Artist name */}
-        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{artist}</h3>
+        <h3 className="text-xl font-bold text-primary mb-2 line-clamp-2">{artist}</h3>
 
         {/* Venue */}
         {venue && (
-          <p className="text-sm text-gray-600 line-clamp-1">{venue}</p>
+          <p className="text-sm text-secondary line-clamp-1">{venue}</p>
         )}
 
         {/* City */}
         {city && (
-          <p className="text-sm text-gray-500">{city}</p>
+          <p className="text-sm text-muted">{city}</p>
         )}
 
         {/* Tags */}
@@ -93,7 +93,7 @@ export default function ShowCard({ show, onClick, onDelete }) {
             {tags.map((t, i) => (
               <span
                 key={i}
-                className="text-[11px] font-bold tracking-wide uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"
+                className="text-[11px] font-bold tracking-wide uppercase bg-hover text-secondary px-2 py-0.5 rounded-full"
               >
                 {t.label}
               </span>
@@ -103,9 +103,9 @@ export default function ShowCard({ show, onClick, onDelete }) {
 
         {/* Friend tags */}
         {taggedFriends.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-gray-200">
-            <Users className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-subtle">
+            <Users className="w-4 h-4 text-muted" />
+            <span className="text-xs text-muted">
               {taggedFriends.length} friend{taggedFriends.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -117,7 +117,7 @@ export default function ShowCard({ show, onClick, onDelete }) {
         <button
           onClick={e => { e.stopPropagation(); onDelete(); }}
           onKeyDown={e => e.stopPropagation()}
-          className="absolute top-2.5 left-2.5 p-1.5 rounded-lg bg-black/40 text-white hover:text-red-400 hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-all"
+          className="absolute top-2.5 left-2.5 p-1.5 rounded-lg bg-black/40 text-on-dark hover:text-danger hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-all"
           title="Delete show"
           aria-label="Delete show"
         >

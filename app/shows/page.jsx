@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { formatDate } from '@/lib/utils';
 import ShowForm from '@/components/ShowForm';
-import SetlistEditor from '@/components/SetlistEditor';
 import TagFriendsModal from '@/components/TagFriendsModal';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
@@ -28,23 +27,17 @@ export default function ShowsPage() {
     searchTerm, setSearchTerm,
     filterYear, setFilterYear, filterDate, setFilterDate, availableYears,
     sortBy, setSortBy,
-    addShow, addSongToShow, updateSongRating, updateSongComment,
-    deleteSong, updateShowRating, updateShowComment, batchRateUnrated, deleteShow, updateShowData, backfillArtistImages,
+    addShow, updateShowRating, updateShowComment, deleteShow, updateShowData, backfillArtistImages,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
-    tagFriendsShow, setTagFriendsShow, setVenueRatingShow,
-    friends, friendAnnotationsForShow,
+    tagFriendsShow, setTagFriendsShow,
+    friends,
     pendingNotificationCount, pendingFriendRequests, pendingShowTags,
     setFriendsInitialTab, navigateTo,
     summaryStats, userRank, statsTab, setStatsTab,
 setlistScanning, setlistScanProgress, scanForMissingSetlists,
     sortedFilteredShows, artistGroups, importedIds,
-    myConfirmedSuggestions, normalizeShowKey,
-    memoriesShow, sharedComments, commentsLoading,
-    openMemories, addSharedComment, editSharedComment, deleteSharedComment,
     pendingTagsForReview, acceptPendingEmailTag, declinePendingEmailTag,
     toggleFavoriteArtist, isArtistFavorite,
-    commentContext, setCommentContext,
-    isReturningUser,
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
@@ -542,43 +535,6 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
               </table>
             </Card>
           )}
-
-          {/* SetlistEditor modal */}
-          {selectedShow && (() => {
-            const confirmedSuggestion = user && !guestMode
-              ? myConfirmedSuggestions.find(s => s.showKey === normalizeShowKey(selectedShow))
-              : null;
-            return (
-              <SetlistEditor
-                show={selectedShow}
-                allShows={shows}
-                onAddSong={(song) => addSongToShow(selectedShow.id, song)}
-                onRateSong={(songId, rating) => updateSongRating(selectedShow.id, songId, rating)}
-                onCommentSong={(songId, comment) => updateSongComment(selectedShow.id, songId, comment)}
-                onDeleteSong={(songId) => deleteSong(selectedShow.id, songId)}
-                onRateShow={(rating) => updateShowRating(selectedShow.id, rating)}
-                onCommentShow={(comment) => updateShowComment(selectedShow.id, comment)}
-                onBatchRate={(rating) => batchRateUnrated(selectedShow.id, rating)}
-                onClose={() => { setSelectedShow(null); setCommentContext(null); }}
-                onCreatePlaylist={(show) => setPlaylistShow(show)}
-                onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
-                onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
-                onToggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
-                isArtistFavorite={isArtistFavorite}
-                confirmedSuggestion={confirmedSuggestion || null}
-                sharedComments={memoriesShow?.suggestion?.id === confirmedSuggestion?.id ? sharedComments : []}
-                commentsLoading={commentsLoading}
-                onOpenMemories={confirmedSuggestion ? () => openMemories(confirmedSuggestion) : null}
-                onAddComment={confirmedSuggestion ? (text) => addSharedComment(confirmedSuggestion.id, text, confirmedSuggestion) : null}
-                onEditComment={confirmedSuggestion ? (cid, txt) => editSharedComment(confirmedSuggestion.id, cid, txt) : null}
-                onDeleteComment={confirmedSuggestion ? (cid) => deleteSharedComment(confirmedSuggestion.id, cid) : null}
-                currentUserUid={user?.uid}
-                friendAnnotations={friendAnnotationsForShow}
-                commentContext={commentContext}
-                isReturningUser={isReturningUser}
-              />
-            );
-          })()}
 
           {/* Tag friends modal */}
           {tagFriendsShow && (

@@ -11,9 +11,9 @@ import TopList from '@/components/stats/TopList';
 export default function StatsPage() {
   const {
     shows, getSongStats, getArtistStats, getVenueStats, getTopRatedShows,
-    updateSongRating, updateSongComment, addSongToShow, deleteSong,
-    updateShowRating, updateShowComment, batchRateUnrated, deleteShow,
-    user, guestMode, setTagFriendsShow, setVenueRatingShow, statsTab,
+    updateSongRating,
+    updateShowRating, updateShowComment, updateShowData, deleteShow,
+    user, friends, guestMode, setTagFriendsShow, setVenueRatingShow, statsTab,
     getVenueRatings, normalizeVenueKey, computeVenueAggregate,
     toggleFavoriteArtist, isArtistFavorite,
   } = useApp();
@@ -157,12 +157,9 @@ export default function StatsPage() {
         venueStats={getVenueStats()}
         topRatedShows={getTopRatedShows()}
         onRateSong={updateSongRating}
-        onCommentSong={updateSongComment}
-        onAddSong={addSongToShow}
-        onDeleteSong={deleteSong}
         onRateShow={updateShowRating}
         onCommentShow={updateShowComment}
-        onBatchRate={batchRateUnrated}
+        onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
         onDeleteShow={deleteShow}
         initialTab={statsTab}
         onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
@@ -172,6 +169,8 @@ export default function StatsPage() {
         fetchVenueRatings={getVenueRatings}
         normalizeVenueKey={normalizeVenueKey}
         computeVenueAggregate={computeVenueAggregate}
+        friends={friends}
+        user={user}
       />
     </>
   );

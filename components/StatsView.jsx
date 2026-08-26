@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare, Heart, X, Trash2 } from 'lucide-react';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
+import ShowDetailView from '@/components/shows/ShowDetailView';
 import { formatDate, parseDate, artistColor, avgSongRating } from '@/lib/utils';
 import { Button, Card, Badge } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
-import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onCommentSong, onAddSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onDeleteShow, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onRateShow, onCommentShow, onUpdateVenueRating, onDeleteShow, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate, friends, user }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -162,6 +162,36 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
   const selectClass = "px-3 py-2.5 bg-hover border border-subtle rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer";
 
+  // Render the same full-page ShowDetailView used on /shows, in place of the
+  // stats tabs, so a show looks identical no matter where it was clicked.
+  if (selectedShow) {
+    return (
+      <>
+        <ShowDetailView
+          show={selectedShow}
+          friends={friends}
+          onClose={() => setSelectedShow(null)}
+          onUpdateRating={onRateShow}
+          onUpdateVenueRating={onUpdateVenueRating}
+          onUpdateComment={onCommentShow}
+          onTagFriends={onTagFriends}
+          onCreatePlaylist={(show) => setPlaylistShow(show)}
+          onDeleteShow={onDeleteShow}
+          toggleFavoriteArtist={onToggleFavoriteArtist}
+          isArtistFavorite={isArtistFavorite}
+          allShows={shows}
+          user={user}
+        />
+        {playlistShow && (
+          <PlaylistCreatorModal
+            show={playlistShow}
+            onClose={() => setPlaylistShow(null)}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -237,7 +267,13 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {filteredSongStats.map((song, i) => (
-                    <SongStatsRow key={song.name} song={song} index={i} onRateSong={onRateSong} />
+                    <SongStatsRow
+                      key={song.name}
+                      song={song}
+                      index={i}
+                      onRateSong={onRateSong}
+                      onViewShow={(showId) => setSelectedShow(shows.find(s => s.id === showId))}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -298,7 +334,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                             padding="none"
                             interactive
                             className="p-4"
-                            onDoubleClick={() => setSelectedShow(show)}
+                            onClick={() => setSelectedShow(show)}
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
@@ -436,49 +472,23 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                           {expandedYear === `${venue.name}-${year}` && (
                             <div className="bg-hover">
                               {yearShows.map((show) => (
-                                <div key={show.id}>
-                                  {/* Show Header */}
-                                  <button
-                                    onClick={() => setExpandedShow(expandedShow === show.id ? null : show.id)}
-                                    className="w-full flex items-center justify-between px-8 py-2 hover:bg-hover transition-colors"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <ChevronDown className={`w-3 h-3 text-muted transition-transform ${expandedShow === show.id ? 'rotate-180' : ''}`} />
-                                      <span className="text-secondary">{formatDate(show.date)}</span>
-                                      <span className="text-muted">-</span>
-                                      <span style={{ color: artistColor(show.artist) }}>{show.artist}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {show.rating && (
-                                        <span className="text-brand text-sm font-medium">{show.rating}/10</span>
-                                      )}
-                                      <span className="text-muted text-sm">{show.setlist.length} songs</span>
-                                    </div>
-                                  </button>
-
-                                  {/* Expanded Setlist */}
-                                  {expandedShow === show.id && (
-                                    <div className="bg-hover px-10 py-3 border-t border-subtle">
-                                      {show.tour && (
-                                        <div className="text-brand text-sm font-medium mb-2">{show.tour}</div>
-                                      )}
-                                      <div className="space-y-1">
-                                        {show.setlist.map((song, idx) => (
-                                          <div key={song.id || idx} className="flex items-center gap-2 text-sm">
-                                            {song.setBreak && (
-                                              <div className="text-brand font-semibold text-xs mt-2 mb-1 w-full">{song.setBreak}</div>
-                                            )}
-                                            <span className="text-muted w-6">{idx + 1}.</span>
-                                            <span className="text-secondary">{song.name}</span>
-                                            {song.rating && (
-                                              <span className="text-brand text-xs">({song.rating}/10)</span>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
+                                <button
+                                  key={show.id}
+                                  onClick={() => setSelectedShow(show)}
+                                  className="w-full flex items-center justify-between px-8 py-2 hover:bg-hover transition-colors text-left"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-secondary">{formatDate(show.date)}</span>
+                                    <span className="text-muted">-</span>
+                                    <span style={{ color: artistColor(show.artist) }}>{show.artist}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {show.rating && (
+                                      <span className="text-brand text-sm font-medium">{show.rating}/10</span>
+                                    )}
+                                    <span className="text-muted text-sm">{show.setlist.length} songs</span>
+                                  </div>
+                                </button>
                               ))}
                             </div>
                           )}
@@ -668,33 +678,6 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
             </Card>
           )}
         </div>
-      )}
-
-      {selectedShow && (
-        <SetlistEditor
-          show={selectedShow}
-          allShows={shows}
-          onAddSong={(song) => onAddSong(selectedShow.id, song)}
-          onRateSong={(songId, rating) => onRateSong(selectedShow.id, songId, rating)}
-          onCommentSong={(songId, comment) => onCommentSong(selectedShow.id, songId, comment)}
-          onDeleteSong={(songId) => onDeleteSong(selectedShow.id, songId)}
-          onRateShow={(rating) => onRateShow(selectedShow.id, rating)}
-          onCommentShow={(comment) => onCommentShow(selectedShow.id, comment)}
-          onBatchRate={(rating) => onBatchRate(selectedShow.id, rating)}
-          onClose={() => setSelectedShow(null)}
-          onCreatePlaylist={(show) => setPlaylistShow(show)}
-          onTagFriends={onTagFriends}
-          onRateVenue={onRateVenue}
-          onToggleFavoriteArtist={onToggleFavoriteArtist}
-          isArtistFavorite={isArtistFavorite}
-        />
-      )}
-
-      {playlistShow && (
-        <PlaylistCreatorModal
-          show={playlistShow}
-          onClose={() => setPlaylistShow(null)}
-        />
       )}
 
       {onDeleteShow && (
