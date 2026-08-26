@@ -6,7 +6,7 @@ import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import ShowDetailView from '@/components/shows/ShowDetailView';
 import ShowCard from '@/components/shows/ShowCard';
 import { formatDate, parseDate, artistColor } from '@/lib/utils';
-import { Button, Card, Badge } from '@/components/ui';
+import { Button, Card, Badge, Tabs, SectionHeader } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
@@ -161,7 +161,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
       .sort((a, b) => b.count - a.count);
   }, [shows, songStats, filterArtist, filterVenue, filterYear, hasFilters]);
 
-  const selectClass = "px-3 py-2.5 bg-hover border border-subtle rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer";
+  const selectClass = "px-3 py-2.5 bg-surface border border-subtle rounded-xl text-sm font-medium text-secondary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer";
 
   // Render the same full-page ShowDetailView used on /shows, in place of the
   // stats tabs, so a show looks identical no matter where it was clicked.
@@ -195,33 +195,22 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {[
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        className="mb-4"
+        tabs={[
           { id: 'years', label: 'Years', icon: Calendar },
           { id: 'songs', label: 'Songs', icon: Music },
           { id: 'artists', label: 'Artists', icon: Users },
           { id: 'venues', label: 'Venues', icon: Building2 },
           { id: 'top', label: 'Top Shows', icon: Star },
-        ].map(({ id, label, icon: Icon }) => (
-          <Button
-            key={id}
-            size="sm"
-            variant="ghost"
-            icon={Icon}
-            onClick={() => setTab(id)}
-            className={tab === id
-              ? 'bg-gradient-to-r from-brand to-amber text-on-dark shadow-lg shadow-brand/20 rounded-full'
-              : 'border border-subtle text-secondary rounded-full'
-            }
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
+        ]}
+      />
 
       {tab === 'songs' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-primary">Song Statistics</h2>
+          <SectionHeader title="Song Statistics" className="mb-4" />
 
           <Card padding="sm" className="mb-4">
             <div className="flex items-center gap-3 flex-wrap">
@@ -266,7 +255,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                     <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Avg Rating</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-subtle">
                   {filteredSongStats.map((song, i) => (
                     <SongStatsRow
                       key={song.name}
@@ -285,7 +274,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'artists' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-primary">Artist Statistics</h2>
+          <SectionHeader title="Artist Statistics" className="mb-4" />
           {artistStats.length === 0 ? (
             <p className="text-center text-muted py-8 font-medium">No shows tracked yet</p>
           ) : (
@@ -375,7 +364,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'venues' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-primary">Venue Statistics</h2>
+          <SectionHeader title="Venue Statistics" className="mb-4" />
           {/* Top Rated Venues section */}
           {(() => {
             const topRated = venueDetails
@@ -506,7 +495,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'years' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-primary">Shows by Year</h2>
+          <SectionHeader title="Shows by Year" className="mb-4" />
           {uniqueYears.length === 0 ? (
             <p className="text-center text-muted py-8 font-medium">No shows tracked yet</p>
           ) : (
@@ -519,7 +508,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                     <th className="text-center px-4 py-4 text-xs font-semibold text-secondary uppercase tracking-wide">Avg Rating</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-subtle">
                   {uniqueYears.map((year) => {
                     const yearShows = showsByYear[year] || [];
                     const ratedShows = yearShows.filter(s => s.rating);
@@ -581,7 +570,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
 
       {tab === 'top' && (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-primary">Top Rated Shows</h2>
+          <SectionHeader title="Top Rated Shows" className="mb-4" />
           {topRatedShows.length === 0 ? (
             <p className="text-center text-muted py-8 font-medium">No rated shows yet</p>
           ) : (
@@ -597,7 +586,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                     {onDeleteShow && <th className="px-2 py-3 w-10" />}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-subtle">
                   {topRatedShows.map((show, i) => (
                     <tr
                       key={show.id}
@@ -622,7 +611,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                         <td className="px-2 py-3 text-center">
                           <button
                             onClick={(e) => { e.stopPropagation(); setShowToDelete(show); }}
-                            className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all"
+                            className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all"
                             title="Delete show"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

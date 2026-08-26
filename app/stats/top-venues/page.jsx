@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { PageHeader, SectionHeader, Tag } from '@/components/ui';
+import { Building2 } from 'lucide-react';
+import { PageHeader, SectionHeader, Tag, Card, EmptyState } from '@/components/ui';
 import TopList from '@/components/stats/TopList';
 import StatsSubNav from '@/components/stats/StatsSubNav';
 import { useStatsPeriod } from '@/lib/useStatsPeriod';
@@ -41,12 +42,12 @@ export default function TopVenuesPage() {
       </div>
 
       {topVenues.length > 0 ? (
-        <section className="bg-surface border border-subtle rounded-2xl p-7 md:p-8">
+        <Card padding="lg">
           <SectionHeader title="Top venues" />
           <TopList items={topVenues} />
-        </section>
+        </Card>
       ) : (
-        <p className="text-center text-muted py-8 font-medium">No shows tracked yet</p>
+        <EmptyState icon={Building2} title="No shows tracked yet" body="Add some shows to see your top venues." />
       )}
     </>
   );

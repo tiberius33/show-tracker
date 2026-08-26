@@ -1,6 +1,7 @@
 'use client';
 
 import InviteView from '@/components/InviteView';
+import { PageHeader } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 
 export default function InvitePage() {
@@ -9,10 +10,17 @@ export default function InvitePage() {
   if (guestMode) return null;
 
   return (
-    <InviteView
-      currentUserUid={user?.uid}
-      currentUser={user}
-      onSendInvite={sendInvite}
-    />
+    <>
+      <PageHeader
+        eyebrow="Invite"
+        title="Invite Friends"
+        subtitle="Share mysetlists.net with your concert-going friends."
+      />
+      <InviteView
+        currentUserUid={user?.uid}
+        currentUser={user}
+        onSendInvite={sendInvite}
+      />
+    </>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, Send, RefreshCw } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
+import { Card, Button, Input } from '@/components/ui';
 
 function InviteView({ currentUserUid, currentUser, onSendInvite }) {
   const [email, setEmail] = useState('');
@@ -27,29 +28,26 @@ function InviteView({ currentUserUid, currentUser, onSendInvite }) {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">Invite Friends</h1>
-      <p className="text-secondary mb-8">Share mysetlists.net with your concert-going friends.</p>
-
-      <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6">
-        <label className="block text-sm font-medium text-secondary mb-2">
-          Friend's Email Address
-        </label>
-        <input
+      <Card padding="md">
+        <Input
+          label="Friend's Email Address"
           type="email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); setSendStatus(null); }}
           onKeyDown={(e) => { if (e.key === 'Enter') handleInvite(); }}
           placeholder="friend@example.com"
-          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted mb-4"
+          containerClassName="mb-4"
         />
-        <button
+        <Button
+          variant="primary"
+          full
+          icon={sending ? undefined : Send}
+          loading={sending}
           onClick={handleInvite}
           disabled={!email.trim() || sending}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20"
         >
-          {sending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {sending ? 'Sending...' : 'Send Invitation'}
-        </button>
+        </Button>
 
         {sendStatus === 'success' && (
           <div className="mt-3 flex items-center gap-2 text-brand text-sm font-medium">
@@ -64,29 +62,29 @@ function InviteView({ currentUserUid, currentUser, onSendInvite }) {
               : sendStatus}
           </div>
         )}
-      </div>
+      </Card>
 
-      <div className="mt-8 p-4 bg-hover rounded-xl border border-subtle">
+      <Card padding="sm" className="mt-8">
         <h3 className="text-sm font-medium text-secondary mb-2">Or share this link:</h3>
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             readOnly
             value={inviteUrl}
-            className="flex-1 px-3 py-2 bg-hover border border-subtle rounded-lg text-sm text-secondary"
+            containerClassName="flex-1"
           />
-          <button
+          <Button
+            variant="secondary"
             onClick={() => {
               navigator.clipboard.writeText(inviteUrl);
               setCopyLabel('Copied!');
               setTimeout(() => setCopyLabel('Copy'), 2000);
             }}
-            className="px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-lg text-sm font-medium transition-colors"
           >
             {copyLabel}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

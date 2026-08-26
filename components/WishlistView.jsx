@@ -292,18 +292,14 @@ export default function WishlistView() {
   if (!artist) {
     return (
       <Card padding="lg">
-        <div className="max-w-lg mx-auto text-center">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand-subtle text-brand flex items-center justify-center">
-            <Heart size={26} strokeWidth={1.8} />
-          </div>
-          <h2 className="text-lg font-bold text-primary mb-1.5">Pick an artist to get started</h2>
-          <p className="text-sm text-secondary mb-6">
-            Search for an artist to see the songs you've caught live and build a wishlist of the ones you haven't.
-          </p>
-          <div className="flex justify-center">
-            <ArtistPicker onSelect={setArtist} />
-          </div>
-        </div>
+        <EmptyState
+          icon={Heart}
+          tone="brand"
+          title="Pick an artist to get started"
+          body="Search for an artist to see the songs you've caught live and build a wishlist of the ones you haven't."
+          action={<ArtistPicker onSelect={setArtist} />}
+          className="py-0"
+        />
       </Card>
     );
   }

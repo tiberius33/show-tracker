@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Search, X, ChevronDown, ChevronLeft, ChevronRight, Check, Download, Plus, Users } from 'lucide-react';
 import Tip from '@/components/ui/Tip';
+import { Card, Button, Input, EmptyState } from '@/components/ui';
 import { apiUrl } from '@/lib/api';
 
 function SearchView({ onImport, importedIds, onAddManually }) {
@@ -222,73 +223,69 @@ function SearchView({ onImport, importedIds, onAddManually }) {
 
   return (
     <div>
-      <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">Search Shows</h1>
-      <p className="text-secondary mb-8">Find and import setlists from Setlist.fm</p>
-
       {/* Search Mode Toggle */}
       <div className="flex gap-2 mb-4">
-        <button
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={Search}
           onClick={() => { setSearchMode('setlist'); setArtistGroups([]); setError(''); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-            searchMode === 'setlist'
-              ? 'bg-brand text-white shadow-lg shadow-brand/20'
-              : 'bg-hover text-secondary hover:text-primary border border-subtle'
-          }`}
+          className={searchMode === 'setlist'
+            ? 'bg-brand-subtle text-brand border border-brand/30'
+            : 'text-secondary border border-subtle'}
         >
-          <Search className="w-4 h-4" />
           Search by Show
-        </button>
-        <button
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={Users}
           onClick={() => { setSearchMode('artist'); setResults([]); setSelectedArtist(null); setShowArtistPicker(false); setError(''); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-            searchMode === 'artist'
-              ? 'bg-brand text-white shadow-lg shadow-brand/20'
-              : 'bg-hover text-secondary hover:text-primary border border-subtle'
-          }`}
+          className={searchMode === 'artist'
+            ? 'bg-brand-subtle text-brand border border-brand/30'
+            : 'text-secondary border border-subtle'}
         >
-          <Users className="w-4 h-4" />
           Search by Artist
-        </button>
+        </Button>
       </div>
 
       {/* Search Form */}
-      <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
+      <Card padding="md" className="mb-6">
         {searchMode === 'artist' ? (
           <>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-secondary mb-2">Artist / Performer Name</label>
-              <input
-                type="text"
-                placeholder="e.g., Grahame Lesh"
-                value={artistName}
-                onChange={(e) => setArtistName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchByArtist()}
-                className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
-              />
-              <p className="text-xs text-muted mt-2">Find all shows featuring this artist across different bands and projects</p>
-            </div>
-            <button
+            <Input
+              label="Artist / Performer Name"
+              type="text"
+              placeholder="e.g., Grahame Lesh"
+              value={artistName}
+              onChange={(e) => setArtistName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && searchByArtist()}
+              hint="Find all shows featuring this artist across different bands and projects"
+              containerClassName="mb-4"
+            />
+            <Button
+              variant="primary"
+              full
+              icon={Users}
               onClick={searchByArtist}
               disabled={isSearching || !artistName.trim()}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-brand/20"
+              loading={isSearching}
             >
-              <Users className="w-4 h-4" />
               {isSearching ? 'Searching...' : 'Find Artist Shows'}
-            </button>
+            </Button>
           </>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-secondary mb-2">Artist Name *</label>
-                <input
+                <Input
+                  label="Artist Name *"
                   type="text"
                   placeholder="e.g., Radiohead"
                   value={artistName}
                   onChange={(e) => setArtistName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchArtists()}
                   disabled={selectedArtist !== null}
-                  className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted disabled:opacity-50"
                 />
                 {selectedArtist && (
                   <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-brand-subtle border border-brand/30 rounded-lg">
@@ -309,55 +306,48 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                   </div>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary mb-2">Year</label>
-                <input
-                  type="text"
-                  placeholder="e.g., 2024"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
-                  className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary mb-2">Venue</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Madison Square Garden"
-                  value={venueName}
-                  onChange={(e) => setVenueName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
-                  className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary mb-2">City</label>
-                <input
-                  type="text"
-                  placeholder="e.g., New York"
-                  value={cityName}
-                  onChange={(e) => setCityName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (selectedArtist ? searchSetlists(1) : searchArtists())}
-                  className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
-                />
-              </div>
+              <Input
+                label="Year"
+                type="text"
+                placeholder="e.g., 2024"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
+              />
+              <Input
+                label="Venue"
+                type="text"
+                placeholder="e.g., Madison Square Garden"
+                value={venueName}
+                onChange={(e) => setVenueName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
+              />
+              <Input
+                label="City"
+                type="text"
+                placeholder="e.g., New York"
+                value={cityName}
+                onChange={(e) => setCityName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (selectedArtist ? searchSetlists(1) : searchArtists())}
+              />
             </div>
-            <button
+            <Button
+              variant="primary"
+              full
+              icon={Search}
               onClick={() => selectedArtist ? searchSetlists(1) : searchArtists()}
               disabled={isSearching || !artistName.trim()}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-brand/20"
+              loading={isSearching}
             >
-              <Search className="w-4 h-4" />
               {isSearching ? 'Searching...' : (selectedArtist ? 'Search Setlists' : 'Search Artists')}
-            </button>
+            </Button>
           </>
         )}
-      </div>
+      </Card>
 
       {/* Artist Picker */}
       {showArtistPicker && artistOptions.length > 0 && (
-        <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
+        <Card padding="md" className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-primary">Select Artist</h2>
@@ -378,7 +368,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
               <button
                 key={artist.mbid || artist.name}
                 onClick={() => selectArtist(artist)}
-                className="w-full text-left p-4 bg-hover hover:bg-hover border border-subtle hover:border-brand/30 rounded-xl transition-all group"
+                className="w-full text-left p-4 bg-surface hover:bg-hover border border-subtle hover:border-brand/30 rounded-xl transition-all group"
               >
                 <div className="font-medium text-primary group-hover:text-brand transition-colors">
                   {artist.name}
@@ -392,7 +382,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
               </button>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Error Message */}
@@ -400,13 +390,15 @@ function SearchView({ onImport, importedIds, onAddManually }) {
         <div className="bg-danger/10 border border-danger/20 rounded-xl p-4 mb-6">
           <p className="text-danger text-sm">{error}</p>
           {onAddManually && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Plus}
               onClick={onAddManually}
-              className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-hover hover:bg-hover text-primary rounded-xl font-medium transition-all border border-subtle text-sm"
+              className="mt-3"
             >
-              <Plus className="w-4 h-4" />
               Add Manually
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -418,7 +410,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
           {artistGroups.map((group, groupIdx) => {
             const isGroupExpanded = expandedArtistGroup === groupIdx;
             return (
-              <div key={group.artist.mbid || groupIdx} className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl overflow-hidden">
+              <Card key={group.artist.mbid || groupIdx} padding="none" className="overflow-hidden">
                 <button
                   onClick={() => setExpandedArtistGroup(isGroupExpanded ? null : groupIdx)}
                   className="w-full text-left p-5 flex items-center justify-between hover:bg-hover transition-colors"
@@ -434,7 +426,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                 </button>
 
                 {isGroupExpanded && (
-                  <div className="border-t border-subtle divide-y divide-white/5">
+                  <div className="border-t border-subtle divide-y divide-subtle">
                     {group.setlists.map((setlist) => {
                       const songCount = setlist.sets?.set?.reduce((acc, s) => acc + (s.song?.length || 0), 0) || 0;
                       const isExpanded = expandedSetlist === setlist.id;
@@ -479,21 +471,16 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                                 </div>
                               )}
                             </div>
-                            <button
+                            <Button
+                              size="sm"
+                              variant={isImported(setlist.id) ? 'ghost' : 'secondary'}
+                              icon={isImported(setlist.id) ? Check : Download}
                               onClick={() => importSetlist(setlist)}
                               disabled={isImported(setlist.id)}
-                              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                isImported(setlist.id)
-                                  ? 'bg-brand-subtle text-brand cursor-default'
-                                  : 'bg-hover hover:bg-hover text-primary border border-subtle'
-                              }`}
+                              className={`flex-shrink-0 ${isImported(setlist.id) ? 'bg-brand-subtle text-brand cursor-default' : ''}`}
                             >
-                              {isImported(setlist.id) ? (
-                                <><Check className="w-4 h-4" />Added</>
-                              ) : (
-                                <><Download className="w-4 h-4" />Add Show</>
-                              )}
-                            </button>
+                              {isImported(setlist.id) ? 'Added' : 'Add Show'}
+                            </Button>
                           </div>
                         </div>
                       );
@@ -515,7 +502,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                     )}
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -534,11 +521,12 @@ function SearchView({ onImport, importedIds, onAddManually }) {
             const isExpanded = expandedSetlist === setlist.id;
 
             return (
-              <div
+              <Card
                 key={setlist.id}
-                className="bg-hover border border-subtle rounded-xl overflow-hidden transition-all"
+                padding="none"
+                className="overflow-hidden"
               >
-                <div className="p-4 hover:bg-hover">
+                <div className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-primary">{setlist.artist.name}</div>
@@ -559,33 +547,22 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                         </button>
                       )}
                     </div>
-                    <button
+                    <Button
+                      size="sm"
+                      variant={isImported(setlist.id) ? 'ghost' : 'secondary'}
+                      icon={isImported(setlist.id) ? Check : Download}
                       onClick={() => importSetlist(setlist)}
                       disabled={isImported(setlist.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        isImported(setlist.id)
-                          ? 'bg-brand-subtle text-brand cursor-default'
-                          : 'bg-hover hover:bg-hover text-primary'
-                      }`}
+                      className={isImported(setlist.id) ? 'bg-brand-subtle text-brand cursor-default' : ''}
                     >
-                      {isImported(setlist.id) ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Added
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-4 h-4" />
-                          Add Show
-                        </>
-                      )}
-                    </button>
+                      {isImported(setlist.id) ? 'Added' : 'Add Show'}
+                    </Button>
                   </div>
                 </div>
 
                 {/* Expandable Setlist */}
                 {isExpanded && setlist.sets?.set && (
-                  <div className="border-t border-subtle bg-hover p-4">
+                  <div className="border-t border-subtle bg-base p-4">
                     <div className="space-y-1 max-h-64 overflow-y-auto">
                       {setlist.sets.set.map((set, setIdx) => (
                         <div key={setIdx}>
@@ -618,30 +595,34 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
 
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => searchSetlists(page - 1)}
                 disabled={page === 1 || isSearching}
-                className="p-2 rounded-lg bg-hover hover:bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="!px-2"
               >
-                <ChevronLeft className="w-5 h-5 text-primary" />
-              </button>
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
               <span className="text-sm text-secondary px-4">
                 Page {page} of {totalPages}
               </span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => searchSetlists(page + 1)}
                 disabled={page === totalPages || isSearching}
-                className="p-2 rounded-lg bg-hover hover:bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="!px-2"
               >
-                <ChevronRight className="w-5 h-5 text-primary" />
-              </button>
+                <ChevronRight className="w-5 h-5" />
+              </Button>
             </div>
           )}
         </div>
@@ -649,14 +630,13 @@ function SearchView({ onImport, importedIds, onAddManually }) {
 
       {/* Empty State */}
       {!isSearching && results.length === 0 && artistGroups.length === 0 && !error && !showArtistPicker && (
-        <div className="text-center py-16">
-          <Search className="w-12 h-12 text-muted mx-auto mb-4" />
-          <p className="text-muted">
-            {searchMode === 'artist'
-              ? 'Enter a performer name to find their shows across all bands and projects'
-              : 'Enter an artist name to search for setlists'}
-          </p>
-        </div>
+        <EmptyState
+          icon={Search}
+          title={searchMode === 'artist' ? 'Find an artist' : 'Find a show'}
+          body={searchMode === 'artist'
+            ? 'Enter a performer name to find their shows across all bands and projects'
+            : 'Enter an artist name to search for setlists'}
+        />
       )}
     </div>
   );

@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Ticket, AlertTriangle, Music } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, Music } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { artistColor } from '@/lib/utils';
 import { TICKET_CACHE_TTL } from '@/lib/constants';
 import UpcomingShows from '@/components/UpcomingShows';
+import { Button, EmptyState } from '@/components/ui';
 
 function UpcomingShowsView({ shows, onCountLoaded }) {
   const [selectedArtist, setSelectedArtist] = useState(null);
@@ -108,17 +109,6 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
   // --- Band list view ---
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-gradient-to-br from-brand/20 to-amber/20 rounded-xl flex items-center justify-center border border-brand/20">
-          <Ticket className="w-5 h-5 text-brand" />
-        </div>
-        <h1 className="text-2xl font-bold text-primary">Upcoming Shows</h1>
-        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-subtle text-brand border border-brand/20">
-          Beta
-        </span>
-      </div>
-
       <div className="flex items-start gap-3 px-4 py-3 mb-6 bg-brand-subtle border border-brand/20 rounded-xl">
         <AlertTriangle className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
         <p className="text-sm text-brand/80">
@@ -128,36 +118,35 @@ function UpcomingShowsView({ shows, onCountLoaded }) {
 
       {/* Empty state */}
       {(artistData.length === 0 || (cacheChecked && visibleArtists.length === 0)) && (
-        <div className="text-center py-16">
-          <Music className="w-12 h-12 text-muted mx-auto mb-4" />
-          <p className="text-secondary mb-4">
-            {artistData.length === 0
-              ? 'Add some shows first to see upcoming tours'
-              : 'No upcoming events found for your artists right now'}
-          </p>
-        </div>
+        <EmptyState
+          icon={Music}
+          title={artistData.length === 0 ? 'No tracked artists yet' : 'Nothing upcoming right now'}
+          body={artistData.length === 0
+            ? 'Add some shows first to see upcoming tours'
+            : 'No upcoming events found for your artists right now'}
+        />
       )}
 
       {/* Sort toggle + list */}
       {visibleArtists.length > 0 && (
         <>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-muted text-sm">Sort by:</span>
+            <span className="text-secondary text-sm font-medium">Sort:</span>
             {[
               { key: 'count', label: 'Most Seen' },
               { key: 'alpha', label: 'A\u2013Z' },
             ].map(({ key, label }) => (
-              <button
+              <Button
                 key={key}
+                size="sm"
+                variant="ghost"
                 onClick={() => setSortBy(key)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                  sortBy === key
-                    ? 'bg-brand-subtle text-brand border-brand/30'
-                    : 'bg-hover text-secondary border-subtle hover:text-primary hover:bg-hover'
-                }`}
+                className={sortBy === key
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'text-secondary border border-subtle'}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
 

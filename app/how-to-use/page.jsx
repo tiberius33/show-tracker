@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Camera, BarChart3, Users, Music, Star, ChevronDown, ChevronUp, Ticket, Upload, Tag, BookOpen } from 'lucide-react';
+import { Search, BarChart3, Users, Music, Star, ChevronDown, ChevronUp, Ticket } from 'lucide-react';
+import { PageHeader, Card, SectionHeader } from '@/components/ui';
 
 const sections = [
   {
@@ -132,44 +133,44 @@ const faqs = [
 function Section({ section }) {
   const Icon = section.icon;
   return (
-    <div className="bg-sidebar border border-[rgba(255,255,255,0.08)] rounded-2xl p-6">
+    <Card padding="md">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-xl bg-[rgba(75,200,106,0.15)]">
-          <Icon className="w-5 h-5 text-[var(--green-primary)]" />
+        <div className="w-10 h-10 rounded-xl bg-brand-subtle flex items-center justify-center flex-shrink-0">
+          <Icon className="w-5 h-5 text-brand" />
         </div>
         <div>
-          <h2 className="text-on-dark font-semibold text-base">{section.title}</h2>
-          <p className="text-on-dark-muted text-xs mt-0.5">{section.description}</p>
+          <h2 className="text-primary font-semibold text-base">{section.title}</h2>
+          <p className="text-secondary text-xs mt-0.5">{section.description}</p>
         </div>
       </div>
       <div className="space-y-4">
         {section.steps.map((step) => (
           <div key={step.heading}>
-            <h3 className="text-[var(--green-primary)] text-sm font-semibold mb-1">{step.heading}</h3>
-            <p className="text-on-dark-muted text-sm leading-relaxed">{step.body}</p>
+            <h3 className="text-brand text-sm font-semibold mb-1">{step.heading}</h3>
+            <p className="text-secondary text-sm leading-relaxed">{step.body}</p>
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
 function FaqItem({ faq }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-[rgba(255,255,255,0.08)] last:border-0">
+    <div className="border-b border-subtle last:border-0">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between gap-4 py-4 text-left"
       >
-        <span className="text-on-dark text-sm font-medium">{faq.q}</span>
+        <span className="text-primary text-sm font-medium">{faq.q}</span>
         {open
-          ? <ChevronUp className="w-4 h-4 text-on-dark-muted flex-shrink-0" />
-          : <ChevronDown className="w-4 h-4 text-on-dark-muted flex-shrink-0" />
+          ? <ChevronUp className="w-4 h-4 text-muted flex-shrink-0" />
+          : <ChevronDown className="w-4 h-4 text-muted flex-shrink-0" />
         }
       </button>
       {open && (
-        <p className="text-on-dark-muted text-sm leading-relaxed pb-4">{faq.a}</p>
+        <p className="text-secondary text-sm leading-relaxed pb-4">{faq.a}</p>
       )}
     </div>
   );
@@ -177,16 +178,12 @@ function FaqItem({ faq }) {
 
 export default function HowToUsePage() {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <BookOpen className="w-6 h-6 text-[var(--green-primary)]" />
-          <h1 className="text-on-dark text-2xl font-bold">How to Use MySetlists</h1>
-        </div>
-        <p className="text-on-dark-muted text-sm">
-          Everything you need to track your concert history, rate setlists, and share shows with friends.
-        </p>
-      </div>
+    <div className="max-w-3xl mx-auto">
+      <PageHeader
+        eyebrow="Help"
+        title="How to Use MySetlists"
+        subtitle="Everything you need to track your concert history, rate setlists, and share shows with friends."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 mb-10">
         {sections.map((section) => (
@@ -194,25 +191,25 @@ export default function HowToUsePage() {
         ))}
       </div>
 
-      <div className="bg-sidebar border border-[rgba(255,255,255,0.08)] rounded-2xl p-6 mb-8">
-        <h2 className="text-on-dark font-semibold text-base mb-4">Frequently Asked Questions</h2>
+      <Card padding="md" className="mb-8">
+        <SectionHeader title="Frequently Asked Questions" />
         <div>
           {faqs.map((faq) => (
             <FaqItem key={faq.q} faq={faq} />
           ))}
         </div>
-      </div>
+      </Card>
 
-      <div className="bg-[rgba(75,200,106,0.08)] border border-[rgba(75,200,106,0.2)] rounded-2xl p-6 text-center">
-        <p className="text-on-dark text-sm font-medium mb-1">Still have questions?</p>
-        <p className="text-on-dark-muted text-sm">
+      <Card padding="md" className="bg-brand-subtle border-brand/20 text-center">
+        <p className="text-primary text-sm font-medium mb-1">Still have questions?</p>
+        <p className="text-secondary text-sm">
           Use the{' '}
-          <a href="/feedback" className="text-[var(--green-primary)] hover:underline font-medium">
+          <a href="/feedback" className="text-brand hover:underline font-medium">
             Feedback
           </a>{' '}
           link in the sidebar to send us a message.
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

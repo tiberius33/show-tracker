@@ -12,6 +12,7 @@ import { nativeGoogleSignIn } from '@/lib/native-auth';
 import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
+import { Input, Button } from '@/components/ui';
 
 export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPassword }) {
   const [email, setEmail] = useState('');
@@ -82,12 +83,11 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
       <AuthDivider />
 
       <form onSubmit={handleEmailLogin} className="space-y-4">
-        <input
+        <Input
           type="email"
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted"
           required
           disabled={loading}
         />
@@ -123,13 +123,9 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
           <p className="text-danger text-sm">{error}</p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber disabled:opacity-50 text-primary rounded-xl font-medium transition-all shadow-lg shadow-brand/20"
-        >
+        <Button type="submit" variant="primary" full loading={loading}>
           {loading ? 'Signing in...' : 'Sign In'}
-        </button>
+        </Button>
       </form>
 
       <p className="text-center text-secondary mt-6">

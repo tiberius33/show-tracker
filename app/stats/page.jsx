@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { parseDate } from '@/lib/utils';
 import StatsView from '@/components/StatsView';
-import { PageHeader, StatTile, SectionHeader, Tag } from '@/components/ui';
+import { PageHeader, StatTile, SectionHeader, Tag, Card } from '@/components/ui';
 import YearHeatmap from '@/components/stats/YearHeatmap';
 import StatsSubNav from '@/components/stats/StatsSubNav';
 import { useStatsPeriod } from '@/lib/useStatsPeriod';
@@ -106,7 +106,7 @@ export default function StatsPage() {
             <StatTile value={uniqueArtists} label="Artists" />
           </div>
 
-          <section className="bg-surface border border-subtle rounded-2xl p-7 md:p-8 mb-5">
+          <Card padding="lg" className="mb-5">
             <SectionHeader
               title="Show frequency"
               subtitle={period === 'all-time' ? 'All time · shows per month' : `${period} · shows per month`}
@@ -115,7 +115,7 @@ export default function StatsPage() {
               counts={monthlyCounts}
               year={period === 'all-time' ? null : period}
             />
-          </section>
+          </Card>
         </>
       )}
     </>

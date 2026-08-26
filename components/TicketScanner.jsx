@@ -5,6 +5,7 @@ import { Camera, X, RefreshCw, Search, Check, Download, Plus, ChevronDown } from
 import { resizeImageForUpload } from '@/lib/utils';
 import { apiUrl } from '@/lib/api';
 import { isNativePlatform } from '@/lib/native-auth';
+import { Card, Button } from '@/components/ui';
 
 function TicketScanner({ onImport, importedIds, existingShows }) {
   const [files, setFiles] = useState([]);
@@ -262,23 +263,19 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
     <div>
       {/* Upload Area */}
       {extractedShows.length === 0 && (
-        <div className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 mb-6">
+        <Card padding="md" className="mb-6">
           <div className="flex flex-col items-center justify-center py-8">
             <Camera className="w-12 h-12 text-muted mb-4" />
             <p className="text-secondary mb-4 text-center">
               Upload photos of your concert ticket stubs or digital tickets
             </p>
             {isNativePlatform() ? (
-              <button
-                onClick={handleNativeCamera}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-amber/20"
-              >
-                <Camera className="w-4 h-4" />
+              <Button variant="primary" icon={Camera} onClick={handleNativeCamera}>
                 {files.length > 0 ? 'Add More Photos' : 'Take Photo or Choose'}
-              </button>
+              </Button>
             ) : (
-              <label className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber to-amber hover:from-amber hover:to-amber text-primary rounded-xl font-medium cursor-pointer transition-all shadow-lg shadow-amber/20">
-                <Camera className="w-4 h-4" />
+              <label className="inline-flex items-center justify-center gap-2 text-[15px] font-bold px-[18px] py-2.5 rounded-full cursor-pointer whitespace-nowrap select-none transition-all duration-150 bg-brand text-white hover:bg-[#42b75f] shadow-[0_1px_2px_rgba(75,200,106,0.25)] hover:shadow-[0_4px_12px_rgba(75,200,106,0.3)] hover:-translate-y-0.5 active:translate-y-0">
+                <Camera size={16} strokeWidth={2.4} />
                 {files.length > 0 ? 'Add More Images' : 'Select Images'}
                 <input
                   type="file"
@@ -306,43 +303,34 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                       onClick={() => removeImage(i)}
                       className="absolute top-1 right-1 p-1 bg-sidebar/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X className="w-4 h-4 text-primary" />
+                      <X className="w-4 h-4 text-on-dark" />
                     </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-sidebar/50 text-secondary text-xs px-2 py-1 rounded-b-xl truncate">
+                    <div className="absolute bottom-0 left-0 right-0 bg-sidebar/50 text-on-dark-muted text-xs px-2 py-1 rounded-b-xl truncate">
                       {preview.name}
                     </div>
                   </div>
                 ))}
               </div>
               <div className="flex items-center gap-3 mt-4">
-                <button
+                <Button
+                  variant="primary"
+                  full
+                  icon={analyzing ? undefined : Search}
+                  loading={analyzing}
                   onClick={analyzeTickets}
                   disabled={analyzing}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand to-amber hover:from-brand hover:to-amber text-primary rounded-xl font-medium transition-all disabled:opacity-50 shadow-lg shadow-brand/20"
                 >
-                  {analyzing ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Analyzing {files.length} ticket{files.length !== 1 ? 's' : ''}...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-4 h-4" />
-                      Analyze {files.length} Ticket{files.length !== 1 ? 's' : ''}
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={reset}
-                  disabled={analyzing}
-                  className="px-4 py-3 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors disabled:opacity-50"
-                >
+                  {analyzing
+                    ? `Analyzing ${files.length} ticket${files.length !== 1 ? 's' : ''}...`
+                    : `Analyze ${files.length} Ticket${files.length !== 1 ? 's' : ''}`}
+                </Button>
+                <Button variant="secondary" onClick={reset} disabled={analyzing}>
                   Clear
-                </button>
+                </Button>
               </div>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Error */}
@@ -359,19 +347,15 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
             <h2 className="text-lg font-semibold text-primary">
               Found {extractedShows.length} show{extractedShows.length !== 1 ? 's' : ''} from tickets
             </h2>
-            <button
-              onClick={reset}
-              className="flex items-center gap-2 px-3 py-2 bg-hover hover:bg-hover text-secondary rounded-xl text-sm font-medium transition-colors"
-            >
-              <Camera className="w-4 h-4" />
+            <Button variant="secondary" size="sm" icon={Camera} onClick={reset}>
               Scan More
-            </button>
+            </Button>
           </div>
 
           {extractedShows.map((show, showIdx) => (
-            <div key={showIdx} className="bg-hover backdrop-blur-xl rounded-2xl border border-subtle overflow-hidden">
+            <Card key={showIdx} padding="none" className="overflow-hidden">
               {/* Extracted show header */}
-              <div className="p-4 border-b border-subtle bg-hover">
+              <div className="p-4 border-b border-subtle bg-base">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-semibold text-primary">{show.artist || 'Unknown Artist'}</div>
@@ -406,13 +390,9 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                 {!show.searching && show.noResults && !show.imported && (
                   <div className="text-center py-4">
                     <p className="text-muted text-sm mb-3">No setlists found on setlist.fm</p>
-                    <button
-                      onClick={() => importManually(showIdx)}
-                      className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-primary rounded-xl text-sm font-medium transition-all mx-auto"
-                    >
-                      <Plus className="w-4 h-4" />
+                    <Button variant="secondary" size="sm" icon={Plus} onClick={() => importManually(showIdx)}>
                       Add Without Setlist
-                    </button>
+                    </Button>
                   </div>
                 )}
 
@@ -425,8 +405,8 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                       const alreadyAdded = isAlreadyImported(setlist.id);
 
                       return (
-                        <div key={setlist.id} className="bg-hover border border-subtle rounded-xl overflow-hidden">
-                          <div className="p-3 hover:bg-hover">
+                        <div key={setlist.id} className="bg-surface border border-subtle rounded-xl overflow-hidden">
+                          <div className="p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-primary">{setlist.artist.name}</div>
@@ -447,22 +427,21 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                                   </button>
                                 )}
                               </div>
-                              <button
+                              <Button
+                                size="sm"
+                                variant={alreadyAdded ? 'ghost' : 'secondary'}
+                                icon={alreadyAdded ? Check : Download}
                                 onClick={() => !alreadyAdded && importSetlist(showIdx, setlist)}
                                 disabled={alreadyAdded}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                  alreadyAdded
-                                    ? 'bg-brand-subtle text-brand cursor-default'
-                                    : 'bg-hover hover:bg-hover text-primary'
-                                }`}
+                                className={alreadyAdded ? 'bg-brand-subtle text-brand cursor-default' : ''}
                               >
-                                {alreadyAdded ? <><Check className="w-3 h-3" /> Added</> : <><Download className="w-3 h-3" /> Add</>}
-                              </button>
+                                {alreadyAdded ? 'Added' : 'Add'}
+                              </Button>
                             </div>
                           </div>
 
                           {isExpanded && setlist.sets?.set && (
-                            <div className="border-t border-subtle bg-hover p-3">
+                            <div className="border-t border-subtle bg-base p-3">
                               <div className="space-y-1 max-h-48 overflow-y-auto">
                                 {setlist.sets.set.map((set, setIdx) => (
                                   <div key={setIdx}>
@@ -490,7 +469,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

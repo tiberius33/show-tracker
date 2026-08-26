@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Users, Eye, Heart, Info, Sparkles } from 'lucide-react';
-import { Button, Card, Badge, Input } from '@/components/ui';
+import { Button, Card, Badge, Input, Spinner, Modal } from '@/components/ui';
 import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
@@ -594,7 +594,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                   <select
                     value={filterFriend}
                     onChange={(e) => { setFilterFriend(e.target.value); setFriendCommentsPage(1); }}
-                    className="bg-hover border border-subtle rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/50"
+                    className="px-3 py-2.5 bg-surface border border-subtle rounded-xl text-sm font-medium text-secondary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer"
                   >
                     <option value="">All friends</option>
                     {uniqueCommenters.map(name => (
@@ -606,8 +606,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
               {friendCommentsLoading ? (
                 <div className="text-center py-8">
-                  <div className="w-8 h-8 border-2 border-brand/30 border-t-brand rounded-full animate-spin mx-auto mb-3" />
-                  <p className="text-muted text-sm">Loading friend comments...</p>
+                  <Spinner size="lg" label="Loading friend comments..." className="flex-col" />
                 </div>
               ) : filteredFriendComments.length === 0 ? (
                 <div className="text-center py-8">
@@ -690,9 +689,9 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
       </Card>
 
       {/* Delete Account */}
-      <Card padding="md" className="border-red-500/20">
+      <Card padding="md" className="border-danger/20">
         <h3 className="text-lg font-semibold text-primary mb-2 flex items-center gap-2">
-          <Trash2 className="w-5 h-5 text-red-500" />
+          <Trash2 className="w-5 h-5 text-danger" />
           Delete Account
         </h3>
         <p className="text-secondary text-sm mb-4">
@@ -708,53 +707,57 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
       </Card>
 
       {/* Delete Account Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card padding="md" className="max-w-md w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-primary mb-2">Delete your account?</h3>
-            <p className="text-secondary text-sm mb-4">
-              This will permanently delete your account, all your shows, friend connections, tags, and any other data. This cannot be undone.
-            </p>
-            <p className="text-secondary text-sm mb-4">
-              Type your email address <strong className="text-primary">{user?.email}</strong> to confirm:
-            </p>
-            <Input
-              type="email"
-              value={deleteConfirmEmail}
-              onChange={(e) => setDeleteConfirmEmail(e.target.value)}
-              placeholder="Enter your email to confirm"
-              disabled={deleteLoading}
-              className="mb-4"
-            />
-            {deleteError && (
-              <p className="text-red-500 text-sm mb-4">{deleteError}</p>
-            )}
-            <div className="flex gap-3">
-              <Button
-                variant="danger"
-                icon={Trash2}
-                full
-                onClick={handleDeleteAccount}
-                disabled={deleteLoading || !deleteConfirmEmail}
-                loading={deleteLoading}
-              >
-                {deleteLoading ? 'Deleting...' : 'Permanently Delete'}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteConfirmEmail('');
-                  setDeleteError('');
-                }}
-                disabled={deleteLoading}
-              >
-                Cancel
-              </Button>
-            </div>
-          </Card>
+      <Modal
+        open={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteConfirmEmail('');
+          setDeleteError('');
+        }}
+        title="Delete your account?"
+        size="sm"
+      >
+        <p className="text-secondary text-sm mb-4">
+          This will permanently delete your account, all your shows, friend connections, tags, and any other data. This cannot be undone.
+        </p>
+        <p className="text-secondary text-sm mb-4">
+          Type your email address <strong className="text-primary">{user?.email}</strong> to confirm:
+        </p>
+        <Input
+          type="email"
+          value={deleteConfirmEmail}
+          onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+          placeholder="Enter your email to confirm"
+          disabled={deleteLoading}
+          className="mb-4"
+        />
+        {deleteError && (
+          <p className="text-danger text-sm mb-4">{deleteError}</p>
+        )}
+        <div className="flex gap-3">
+          <Button
+            variant="danger"
+            icon={Trash2}
+            full
+            onClick={handleDeleteAccount}
+            disabled={deleteLoading || !deleteConfirmEmail}
+            loading={deleteLoading}
+          >
+            {deleteLoading ? 'Deleting...' : 'Permanently Delete'}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setShowDeleteModal(false);
+              setDeleteConfirmEmail('');
+              setDeleteError('');
+            }}
+            disabled={deleteLoading}
+          >
+            Cancel
+          </Button>
         </div>
-      )}
+      </Modal>
 
       {/* Tour Info Modal */}
       {tourInfoArtist && (
