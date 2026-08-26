@@ -2014,9 +2014,10 @@ export function AppProvider({ children }) {
       if (show.id === showId) {
         return {
           ...show,
-          setlist: [...show.setlist, {
+          setlist: [...(show.setlist || []), {
             id: Date.now().toString(),
             ...songData,
+            manuallyAdded: true,
             rating: null,
           }],
         };

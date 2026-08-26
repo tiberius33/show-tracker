@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '4.0.3',
+      date: 'August 26, 2026',
+      title: 'Manual Setlist Additions & Fewer Interruptions',
+      changes: [
+        'New: Add a song setlist.fm missed directly from a show\'s detail page — it\'s saved to your show and counts toward play counts, song history, and stats just like any other song',
+        'Manually-added songs are marked "added by you" in the setlist so it\'s clear they aren\'t part of setlist.fm\'s own record',
+        'Removed: The "What\'s New" modal and the one-time announcement popup no longer appear after signing in',
+        'Changed: Stat boxes on the Shows page (Shows, Artists, Venues, Avg Rating) are now sized to match the Profile page for a more consistent look',
+      ]
+    },
+    {
       version: '4.0.2',
       date: 'August 26, 2026',
       title: 'Show Detail Polish — Play Counts & Inline Ratings',

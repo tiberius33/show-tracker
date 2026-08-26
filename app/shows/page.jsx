@@ -6,10 +6,9 @@ import { formatDate } from '@/lib/utils';
 import ShowForm from '@/components/ShowForm';
 import TagFriendsModal from '@/components/TagFriendsModal';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
-import WhatsNewModal, { shouldShowWhatsNew } from '@/components/WhatsNewModal';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
-import { Button, Card, SearchField, PageHeader, StatTile } from '@/components/ui';
+import { Button, Card, SearchField, PageHeader, StatFigure } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
@@ -28,6 +27,7 @@ export default function ShowsPage() {
     filterYear, setFilterYear, filterDate, setFilterDate, availableYears,
     sortBy, setSortBy,
     addShow, updateShowRating, updateShowComment, deleteShow, updateShowData, backfillArtistImages,
+    addSongToShow,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow,
     friends,
@@ -40,7 +40,6 @@ export default function ShowsPage() {
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
-  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showToDelete, setShowToDelete] = useState(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
@@ -69,14 +68,6 @@ export default function ShowsPage() {
     const selected = shows.filter(s => selectedShowIds.has(s.id));
     if (selected.length > 0) setBulkTagShows(selected);
   };
-
-  // Show "What's New" modal for returning users who have shows (not first-time users)
-  useEffect(() => {
-    if (!isLoading && user && shows.length > 0 && shouldShowWhatsNew()) {
-      const timer = setTimeout(() => setShowWhatsNew(true), 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, user, shows.length]);
 
   // Backfill artist images for existing shows — runs once after shows load, non-blocking
   useEffect(() => {
@@ -109,6 +100,7 @@ export default function ShowsPage() {
           onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
           onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
           onDeleteShow={deleteShow}
+          onAddSong={!guestMode ? addSongToShow : undefined}
           toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
           isArtistFavorite={isArtistFavorite}
           allShows={shows}
@@ -236,10 +228,10 @@ export default function ShowsPage() {
 
           {shows.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
-              <StatTile value={shows.length} label="Shows" />
-              <StatTile value={summaryStats.uniqueArtists} label="Artists" />
-              <StatTile value={summaryStats.uniqueVenues} label="Venues" />
-              <StatTile value={summaryStats.avgRating || '--'} unit="★" label="Avg rating" tone="brand" />
+              <Card padding="sm"><StatFigure value={shows.length} label="Shows" /></Card>
+              <Card padding="sm"><StatFigure value={summaryStats.uniqueArtists} label="Artists" /></Card>
+              <Card padding="sm"><StatFigure value={summaryStats.uniqueVenues} label="Venues" /></Card>
+              <Card padding="sm"><StatFigure value={summaryStats.avgRating ? `${summaryStats.avgRating}★` : '--'} label="Avg Rating" /></Card>
             </div>
           )}
 
@@ -522,14 +514,6 @@ export default function ShowsPage() {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* What's New modal */}
-          {showWhatsNew && (
-            <WhatsNewModal
-              onClose={() => setShowWhatsNew(false)}
-              navigateTo={navigateTo}
-            />
           )}
 
           {/* Delete show confirmation modal */}

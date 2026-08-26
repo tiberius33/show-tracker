@@ -5,6 +5,7 @@
 import React from 'react';
 import Avatar from '../ui/Avatar';
 import Button from '../ui/Button';
+import StatFigure from '../ui/StatFigure';
 
 export default function ProfileHero({
   name,
@@ -28,10 +29,7 @@ export default function ProfileHero({
         </p>
         <div className="flex flex-wrap gap-x-7 gap-y-3">
           {stats.map((s) => (
-            <div key={s.label}>
-              <div className="text-[22px] font-extrabold tracking-[-0.02em]">{s.value}</div>
-              <div className="text-[11px] text-muted font-semibold tracking-[0.08em] uppercase">{s.label}</div>
-            </div>
+            <StatFigure key={s.label} value={s.value} label={s.label} />
           ))}
         </div>
       </div>
