@@ -60,6 +60,11 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                         bust-out{t.bustoutNote ? ` · ${t.bustoutNote}` : ''}
                       </span>
                     )}
+                    {t.manual && (
+                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-secondary bg-hover px-1.5 py-0.5 rounded">
+                        added by you
+                      </span>
+                    )}
                     {showPlayCounts && playCounts[t.title] > 0 && (
                       <button
                         onClick={() => onSongClick?.(t.title)}

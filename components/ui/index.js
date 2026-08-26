@@ -17,6 +17,7 @@ export { default as EmptyState }    from './EmptyState';
 export { default as PageHeader }    from './PageHeader';
 export { default as SectionHeader } from './SectionHeader';
 export { default as StatTile }      from './StatTile';
+export { default as StatFigure }    from './StatFigure';
 export { default as Tabs }          from './Tabs';
 export { default as SearchField }   from './SearchField';
 export { default as RatingStars }   from './RatingStars';

@@ -10,7 +10,6 @@ import Footer from '@/components/Footer';
 import AuthModal from '@/components/auth/AuthModal';
 import LandingPage from '@/components/LandingPage';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
-import PopupQueue from '@/components/PopupQueue';
 import { extractFirstName } from '@/lib/utils';
 import { initCapacitorPlugins } from '@/lib/capacitor';
 import { Music, Check, Sparkles } from 'lucide-react';
@@ -27,7 +26,7 @@ export default function AppProviderWrapper({ children }) {
 function AppShell({ children }) {
   const {
     user, authLoading, guestMode, authModal, setAuthModal,
-    isAdmin, shows,
+    isAdmin,
     sidebarOpen, setSidebarOpen,
     toast, setToast,
     venueRatingShow, setVenueRatingShow,
@@ -37,7 +36,7 @@ function AppShell({ children }) {
     pendingNotificationCount, upcomingShowsBadgeCount,
     friends, handleLogout,
     enterGuestMode, exitGuestMode, communityStats,
-    handleAuthSuccess, isReturningUser,
+    handleAuthSuccess,
   } = useApp();
 
   // Initialize Capacitor native plugins on mount
@@ -220,15 +219,6 @@ function AppShell({ children }) {
       </div>
 
       <Footer />
-
-      {/* Popup Queue — one-time announcements */}
-      {(user || guestMode) && (
-        <PopupQueue
-          isAdmin={isAdmin}
-          showCount={shows?.length || 0}
-          isReturningUser={isReturningUser}
-        />
-      )}
 
       {/* PWA Install Prompt */}
       <InstallPrompt />

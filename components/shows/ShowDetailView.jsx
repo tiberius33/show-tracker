@@ -11,7 +11,7 @@ import EntityInfoPanel from '@/components/EntityInfoPanel';
 import StreamingLinks from '@/components/StreamingLinks';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
-  Trash2, X, Tag, MessageSquare, ArrowLeft,
+  Trash2, X, Tag, MessageSquare, ArrowLeft, Plus,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 
@@ -73,6 +73,7 @@ function buildSets(setlist = []) {
       bustoutNote: song.bustoutNote || null,
       duration: song.duration || null,
       tape: song.tape || false,
+      manual: !!song.manuallyAdded,
     })),
   }));
 }
@@ -137,6 +138,7 @@ export default function ShowDetailView({
   onTagFriends,
   onCreatePlaylist,
   onDeleteShow,
+  onAddSong,
   toggleFavoriteArtist,
   isArtistFavorite,
   allShows = [],
@@ -150,6 +152,7 @@ export default function ShowDetailView({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [newSongName, setNewSongName] = useState('');
 
   const artistShowCount = useMemo(
     () => allShows.filter(s => s.artist === show?.artist).length,
@@ -199,6 +202,13 @@ export default function ShowDetailView({
   const saveNote = () => {
     onUpdateComment?.(show.id, noteText.trim());
     setEditingNote(false);
+  };
+
+  const handleAddSong = (e) => {
+    e.preventDefault();
+    if (!newSongName.trim()) return;
+    onAddSong?.(show.id, { name: newSongName.trim() });
+    setNewSongName('');
   };
 
   return (
@@ -430,6 +440,21 @@ export default function ShowDetailView({
             />
           ) : (
             <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
+          )}
+
+          {onAddSong && (
+            <form onSubmit={handleAddSong} className="flex gap-2 mt-4">
+              <input
+                type="text"
+                value={newSongName}
+                onChange={e => setNewSongName(e.target.value)}
+                placeholder="Add a song setlist.fm missed..."
+                className="flex-1 px-3 py-2 border border-subtle rounded-lg text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder-muted"
+              />
+              <Button variant="secondary" type="submit" icon={Plus} disabled={!newSongName.trim()}>
+                Add song
+              </Button>
+            </form>
           )}
 
           <StreamingLinks show={show} />
