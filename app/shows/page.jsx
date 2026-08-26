@@ -14,7 +14,7 @@ import ShowCard from '@/components/shows/ShowCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import {
-  Search, Camera, RefreshCw, X, Upload, Music,
+  Search, Camera, X, Upload,
   Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
 
@@ -34,7 +34,6 @@ export default function ShowsPage() {
     pendingNotificationCount, pendingFriendRequests, pendingShowTags,
     setFriendsInitialTab, navigateTo,
     summaryStats, userRank, statsTab, setStatsTab,
-setlistScanning, setlistScanProgress, scanForMissingSetlists,
     sortedFilteredShows, artistGroups, importedIds,
     pendingTagsForReview, acceptPendingEmailTag, declinePendingEmailTag,
     toggleFavoriteArtist, isArtistFavorite,
@@ -269,30 +268,6 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
             </div>
           )}
 
-          {/* Find Missing Setlists banner */}
-          {!guestMode && !setlistScanning && shows.length > 0 && shows.some(s => !s.setlist || s.setlist.length === 0) && (
-            <div className="bg-amber-subtle border border-amber/20 rounded-2xl p-4 mb-6 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <Music className="w-5 h-5 text-amber flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-primary text-sm font-medium">
-                    {shows.filter(s => !s.setlist || s.setlist.length === 0).length} show{shows.filter(s => !s.setlist || s.setlist.length === 0).length !== 1 ? 's' : ''} missing setlists
-                  </p>
-                  <p className="text-muted text-xs">Auto-fetch setlists from Setlist.fm</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={RefreshCw}
-                onClick={scanForMissingSetlists}
-                className="bg-amber hover:bg-amber/90 text-on-dark whitespace-nowrap shadow-sm"
-              >
-                Find Setlists
-              </Button>
-            </div>
-          )}
-
           {shows.length > 0 && !guestMode && friends.length > 0 && (
             <div className="flex justify-end mb-4">
               <Button
@@ -303,26 +278,6 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
               >
                 {selectionMode ? 'Done selecting' : 'Select shows'}
               </Button>
-            </div>
-          )}
-
-          {/* Setlist scanning progress */}
-          {setlistScanning && (
-            <div className="bg-amber-subtle border border-amber/30 rounded-2xl p-4 mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <RefreshCw className="w-5 h-5 text-amber animate-spin" />
-                <span className="text-primary font-medium">Scanning for setlists...</span>
-                <span className="text-secondary text-sm ml-auto">{setlistScanProgress.current} / {setlistScanProgress.total}</span>
-              </div>
-              <div className="w-full bg-hover rounded-full h-2">
-                <div
-                  className="bg-amber h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${setlistScanProgress.total > 0 ? (setlistScanProgress.current / setlistScanProgress.total) * 100 : 0}%` }}
-                />
-              </div>
-              {setlistScanProgress.found > 0 && (
-                <p className="text-amber text-sm mt-2">{setlistScanProgress.found} setlist{setlistScanProgress.found !== 1 ? 's' : ''} found so far</p>
-              )}
             </div>
           )}
 
@@ -472,34 +427,17 @@ setlistScanning, setlistScanProgress, scanForMissingSetlists,
             />
           )}
 
-          {/* Timeline: card grid */}
+          {/* Timeline: show list */}
           {showsTab === 'timeline' && sortedFilteredShows.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
-              {sortedFilteredShows.map(show => {
-                // Map real show data to the ShowCard shape
-                const tags = [];
-                if (show.notes?.toLowerCase().includes('halloween')) tags.push({ label: 'HALLOWEEN', tone: 'amber' });
-                if (show.setlist?.some(s => s.tags?.includes('debut'))) tags.push({ label: 'DEBUT', tone: 'brand' });
-                if (show.setlist?.some(s => s.tags?.includes('bustout'))) tags.push({ label: 'BUST-OUT', tone: 'amber' });
-
-                return (
-                  <ShowCard
-                    key={show.id}
-                    show={{
-                      id: show.id,
-                      artist: show.artist,
-                      venue: show.venue,
-                      city: show.city,
-                      date: show.date,
-                      rating: show.rating,
-                      tags,
-                      artistImage: show.artistImage || null,
-                    }}
-                    onClick={() => setSelectedShow(show)}
-                    onDelete={() => setShowToDelete(show)}
-                  />
-                );
-              })}
+            <div className="space-y-3 mb-8">
+              {sortedFilteredShows.map(show => (
+                <ShowCard
+                  key={show.id}
+                  show={show}
+                  onClick={() => setSelectedShow(show)}
+                  onDelete={() => setShowToDelete(show)}
+                />
+              ))}
             </div>
           )}
 

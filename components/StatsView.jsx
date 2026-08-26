@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, MessageSquare, Heart, X, Trash2 } from 'lucide-react';
+import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, Heart, X, Trash2 } from 'lucide-react';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import ShowDetailView from '@/components/shows/ShowDetailView';
-import { formatDate, parseDate, artistColor, avgSongRating } from '@/lib/utils';
+import ShowCard from '@/components/shows/ShowCard';
+import { formatDate, parseDate, artistColor } from '@/lib/utils';
 import { Button, Card, Badge } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
@@ -556,56 +557,13 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                               <div className="py-4 pl-6 border-l-2 border-brand/50 ml-2 mb-2">
                                 <div className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">Shows in {year}</div>
                                 <div className="space-y-3">
-                                  {yearShows.map((show) => {
-                                    const songAvg = avgSongRating(show.setlist);
-                                    return (
-                                      <Card
-                                        key={show.id}
-                                        padding="none"
-                                        interactive
-                                        className="flex items-start justify-between p-4"
-                                        onClick={(e) => { e.stopPropagation(); setSelectedShow(show); }}
-                                      >
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-semibold" style={{ color: artistColor(show.artist) }}>
-                                              {show.artist}
-                                            </span>
-                                            {show.tour && (
-                                              <span className="text-xs text-brand font-medium">
-                                                {show.tour}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="flex items-center gap-2 text-sm mt-1 text-secondary">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            {formatDate(show.date)}
-                                          </div>
-                                          <div className="flex items-center gap-2 text-sm mt-1 text-secondary">
-                                            <MapPin className="w-3.5 h-3.5" />
-                                            {show.venue}{show.city ? `, ${show.city}` : ''}
-                                          </div>
-                                          <div className="flex items-center gap-4 mt-2 text-xs text-muted">
-                                            <span>{show.setlist.length} songs</span>
-                                            {songAvg && <span>Avg song rating: {songAvg}/10</span>}
-                                          </div>
-                                          {show.comment && (
-                                            <div className="flex items-start gap-1.5 mt-2 text-sm text-secondary italic">
-                                              <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                                              {show.comment}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="flex-shrink-0 ml-4">
-                                          {show.rating ? (
-                                            <Badge tone="navy" size="sm">{show.rating}/10</Badge>
-                                          ) : (
-                                            <span className="text-muted text-sm">Not rated</span>
-                                          )}
-                                        </div>
-                                      </Card>
-                                    );
-                                  })}
+                                  {yearShows.map((show) => (
+                                    <ShowCard
+                                      key={show.id}
+                                      show={show}
+                                      onClick={() => setSelectedShow(show)}
+                                    />
+                                  ))}
                                 </div>
                               </div>
                             </td>

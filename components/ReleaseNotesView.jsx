@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '4.0.1',
+      date: 'August 26, 2026',
+      title: 'Shows Page Cleanup — Consistent Show Cards',
+      changes: [
+        'Removed: "Auto-fetch setlists from Setlist.fm" banner and scan progress bar from the Shows page — setlist scanning is still available to admins from the Admin panel',
+        'Changed: Show cards on the Shows page now match the Stats page — tour name, song count, and average song rating are shown for every show, not just artist/venue/date/rating',
+        'Shows page and Stats page now share one show card component, so a show looks identical everywhere it appears',
+      ]
+    },
+    {
       version: '4.0.0',
       date: 'August 26, 2026',
       title: 'Stats Page Redesign — Detailed Breakdown Front and Center',
