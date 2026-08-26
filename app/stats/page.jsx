@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { parseDate } from '@/lib/utils';
 import StatsView from '@/components/StatsView';
 import { PageHeader, StatTile, SectionHeader, Tag } from '@/components/ui';
 import YearHeatmap from '@/components/stats/YearHeatmap';
-import TopList from '@/components/stats/TopList';
+import StatsSubNav from '@/components/stats/StatsSubNav';
+import { useStatsPeriod } from '@/lib/useStatsPeriod';
 
 export default function StatsPage() {
   const {
@@ -18,24 +19,7 @@ export default function StatsPage() {
     toggleFavoriteArtist, isArtistFavorite,
   } = useApp();
 
-  const availableYears = useMemo(() => {
-    const years = new Set();
-    shows.forEach(s => {
-      const d = parseDate(s.date);
-      if (d.getFullYear() > 1970) years.add(d.getFullYear());
-    });
-    return [...years].sort((a, b) => b - a);
-  }, [shows]);
-
-  const [period, setPeriod] = useState(() => availableYears[0] ? String(availableYears[0]) : 'all-time');
-
-  const periodShows = useMemo(() => {
-    if (period === 'all-time') return shows;
-    return shows.filter(s => {
-      const d = parseDate(s.date);
-      return d.getFullYear() === Number(period);
-    });
-  }, [shows, period]);
+  const { period, setPeriod, periodShows, periodLabels } = useStatsPeriod();
 
   const monthlyCounts = useMemo(() => {
     const counts = Array(12).fill(0);
@@ -62,29 +46,6 @@ export default function StatsPage() {
     new Set(periodShows.map(s => s.venue)).size,
   [periodShows]);
 
-  const topArtists = useMemo(() => {
-    const map = {};
-    periodShows.forEach(s => { map[s.artist] = (map[s.artist] || 0) + 1; });
-    return Object.entries(map)
-      .map(([name, count]) => ({ name, count, meta: `${count} show${count !== 1 ? 's' : ''}` }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
-  }, [periodShows]);
-
-  const topVenues = useMemo(() => {
-    const map = {};
-    periodShows.forEach(s => {
-      const key = s.venue + (s.city ? `, ${s.city}` : '');
-      map[key] = (map[key] || 0) + 1;
-    });
-    return Object.entries(map)
-      .map(([name, count]) => ({ name, count, meta: `${count} show${count !== 1 ? 's' : ''}` }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
-  }, [periodShows]);
-
-  const periodLabels = [...availableYears.map(String), 'all-time'];
-
   return (
     <>
       {/* Header — no actions prop so the title always gets full width */}
@@ -96,8 +57,34 @@ export default function StatsPage() {
           : 'Add some shows to start seeing your stats'}
       />
 
-      {/* Period selector — scrollable strip, never crowds the title */}
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-6 scrollbar-none">
+      <StatsSubNav active="overview" />
+
+      <SectionHeader title="Detailed breakdown" className="mb-4" />
+      <StatsView
+        shows={shows}
+        songStats={getSongStats()}
+        artistStats={getArtistStats()}
+        venueStats={getVenueStats()}
+        topRatedShows={getTopRatedShows()}
+        onRateSong={updateSongRating}
+        onRateShow={updateShowRating}
+        onCommentShow={updateShowComment}
+        onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
+        onDeleteShow={deleteShow}
+        initialTab={statsTab}
+        onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
+        onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
+        onToggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
+        isArtistFavorite={isArtistFavorite}
+        fetchVenueRatings={getVenueRatings}
+        normalizeVenueKey={normalizeVenueKey}
+        computeVenueAggregate={computeVenueAggregate}
+        friends={friends}
+        user={user}
+      />
+
+      {/* Period selector — scrollable strip */}
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-6 mt-10 scrollbar-none">
         {periodLabels.map((p) => (
           <Tag
             key={p}
@@ -129,49 +116,8 @@ export default function StatsPage() {
               year={period === 'all-time' ? null : period}
             />
           </section>
-
-          {(topArtists.length > 0 || topVenues.length > 0) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-              {topArtists.length > 0 && (
-                <section className="bg-surface border border-subtle rounded-2xl p-7 md:p-8">
-                  <SectionHeader title="Top artists" />
-                  <TopList items={topArtists} />
-                </section>
-              )}
-              {topVenues.length > 0 && (
-                <section className="bg-surface border border-subtle rounded-2xl p-7 md:p-8">
-                  <SectionHeader title="Top venues" />
-                  <TopList items={topVenues} />
-                </section>
-              )}
-            </div>
-          )}
         </>
       )}
-
-      <SectionHeader title="Detailed breakdown" className="mb-4" />
-      <StatsView
-        shows={shows}
-        songStats={getSongStats()}
-        artistStats={getArtistStats()}
-        venueStats={getVenueStats()}
-        topRatedShows={getTopRatedShows()}
-        onRateSong={updateSongRating}
-        onRateShow={updateShowRating}
-        onCommentShow={updateShowComment}
-        onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
-        onDeleteShow={deleteShow}
-        initialTab={statsTab}
-        onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
-        onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
-        onToggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
-        isArtistFavorite={isArtistFavorite}
-        fetchVenueRatings={getVenueRatings}
-        normalizeVenueKey={normalizeVenueKey}
-        computeVenueAggregate={computeVenueAggregate}
-        friends={friends}
-        user={user}
-      />
     </>
   );
 }

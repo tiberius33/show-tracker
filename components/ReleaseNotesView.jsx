@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '4.0.0',
+      date: 'August 26, 2026',
+      title: 'Stats Page Redesign — Detailed Breakdown Front and Center',
+      changes: [
+        'Changed: The detailed breakdown (Years, Songs, Artists, Venues, Top Shows) is now the default view on Stats — no more scrolling to the bottom to find it',
+        'New: Top Artists and Top Venues moved to their own pages, linked from a new sub-nav at the top of Stats',
+        'Same data, same year filters — just relocated so the page loads with your full breakdown front and center',
+      ]
+    },
+    {
       version: '3.20.0',
       date: 'August 15, 2026',
       title: 'Wishlist — Songs You Want to See Live',
