@@ -18,8 +18,7 @@ function FriendsView({
   onBulkAcceptAll, onBulkAcceptFromFriend,
   // Show interaction handlers for ShowsTogetherView
   onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate,
-  onTagFriends, onRateVenue, confirmedSuggestions, normalizeShowKey,
-  sharedComments, commentsLoading, memoriesShow, onOpenMemories, onAddComment, onEditComment, onDeleteComment,
+  onTagFriends, onRateVenue,
   allShows
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'friends');
@@ -139,16 +138,6 @@ function FriendsView({
         onBatchRate={onBatchRate}
         onTagFriends={onTagFriends}
         onRateVenue={onRateVenue}
-        currentUserUid={user?.uid}
-        confirmedSuggestions={confirmedSuggestions}
-        normalizeShowKey={normalizeShowKey}
-        sharedComments={sharedComments}
-        commentsLoading={commentsLoading}
-        memoriesShow={memoriesShow}
-        onOpenMemories={onOpenMemories}
-        onAddComment={onAddComment}
-        onEditComment={onEditComment}
-        onDeleteComment={onDeleteComment}
         allShows={allShows}
       />
     );

@@ -12,8 +12,8 @@ import { formatDate } from '@/lib/utils';
 
 export default function ProfilePage() {
   const {
-    user, guestMode, shows, userRank, myConfirmedSuggestions, friends,
-    setSelectedShow, setCommentContext, favoriteArtists, toggleFavoriteArtist,
+    user, guestMode, shows, userRank, friends,
+    setSelectedShow, favoriteArtists, toggleFavoriteArtist,
   } = useApp();
   const router = useRouter();
 
@@ -108,12 +108,10 @@ export default function ProfilePage() {
         shows={shows}
         userRank={userRank}
         onProfileUpdate={() => {}}
-        onViewShow={(show, commentData) => {
+        onViewShow={(show) => {
           setSelectedShow(show);
-          if (commentData) setCommentContext(commentData);
           router.push('/shows');
         }}
-        confirmedSuggestions={myConfirmedSuggestions}
         friends={friends}
         favoriteArtists={favoriteArtists}
         onToggleFavoriteArtist={toggleFavoriteArtist}

@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '4.1.1',
+      date: 'August 26, 2026',
+      title: 'Setlist Sections, Tagged Friends on Cards & Comments Removed',
+      changes: [
+        'New: Setlists now group songs into their actual Set 1 / Set 2 / Encore sections on the show detail page, matching how setlist.fm presents them, instead of one flat list',
+        'New: Songs you add yourself (via "Add a song setlist.fm missed") can now be assigned to a specific set or encore instead of always landing at the end',
+        'New: Show cards on Shows and Stats now display any friends tagged as attending with you — "with [Friend]" or "with N friends" — using the same tagging data as the Friends "Together" count',
+        'Fixed: A show/venue name mismatch meant tagged friends never actually showed up in the "Friends Who Were There" panel on the show detail page — now fixed',
+        'Removed: The friend-to-friend "Shared Memories" comment feature on shared shows, including comment display on Profile, in the setlist editor, and in Shows Together — existing comments are kept in the database but are no longer created, shown, or editable',
+        'Your own personal show and song notes are unaffected — those still work exactly as before',
+      ]
+    },
+    {
       version: '4.1.0',
       date: 'August 26, 2026',
       title: 'Site-Wide Design Consistency Pass',

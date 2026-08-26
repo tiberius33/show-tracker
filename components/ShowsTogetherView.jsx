@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Music, Calendar, MapPin, ChevronLeft, ChevronDown, MessageSquare, User, RefreshCw, Eye } from 'lucide-react';
+import { Music, Calendar, MapPin, ChevronLeft, ChevronDown, MessageSquare, RefreshCw, Eye } from 'lucide-react';
 import { formatDate, parseDate, artistColor } from '@/lib/utils';
+import { attachSetBoundaryLabels } from '@/lib/setlistGrouping';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 
-function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onTagFriends, onRateVenue, currentUserUid, confirmedSuggestions, normalizeShowKey, sharedComments, commentsLoading, memoriesShow, onOpenMemories, onAddComment, onEditComment, onDeleteComment, allShows }) {
+function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onTagFriends, onRateVenue, allShows }) {
   const router = useRouter();
   const { setSelectedShow: setGlobalSelectedShow } = useApp();
   const [sharedShows, setSharedShows] = useState(null); // null = loading
@@ -41,13 +42,13 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
     return artist ? { artist, count } : null;
   })() : null;
 
-  // Build a map of friend song comments/ratings keyed by normalized song name
+  // Build a map of friend song ratings keyed by normalized song name
   const getFriendSongMap = (friendShow) => {
     if (!friendShow?.setlist) return {};
     const map = {};
     friendShow.setlist.forEach(s => {
       const key = (s.name || '').trim().toLowerCase();
-      if (key) map[key] = { rating: s.rating, comment: s.comment, name: s.name };
+      if (key) map[key] = { rating: s.rating, name: s.name };
     });
     return map;
   };
@@ -94,7 +95,6 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                 const friendShow = show.friendShow;
                 const isExpanded = expandedShowId === show.id;
                 const friendSongMap = isExpanded ? getFriendSongMap(friendShow) : {};
-                const friendHasComments = friendShow?.comment || friendShow?.setlist?.some(s => s.comment);
                 const friendHasRatings = friendShow?.rating || friendShow?.setlist?.some(s => s.rating);
 
                 return (
@@ -126,8 +126,8 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                             </span>
                           )}
                           {/* Indicators */}
-                          {(friendHasComments || friendHasRatings) && (
-                            <span className="w-2 h-2 rounded-full bg-amber flex-shrink-0" title={`${friend.name} has notes on this show`} />
+                          {friendHasRatings && (
+                            <span className="w-2 h-2 rounded-full bg-amber flex-shrink-0" title={`${friend.name} has rated this show`} />
                           )}
                           <ChevronDown className={`w-4 h-4 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
@@ -137,21 +137,6 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                     {/* Expanded show detail */}
                     {isExpanded && (
                       <div className="border-t border-subtle">
-                        {/* Friend's show comment */}
-                        {friendShow?.comment && (
-                          <div className="px-4 py-3 bg-amber-subtle border-b border-amber/10">
-                            <div className="flex items-start gap-2">
-                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber to-amber flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <User className="w-3 h-3 text-primary" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <span className="text-xs font-semibold text-amber">{friend.name}</span>
-                                <p className="text-sm text-secondary italic mt-0.5">{friendShow.comment}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
                         {/* Your show comment */}
                         {show.comment && (
                           <div className="px-4 py-3 bg-brand/5 border-b border-brand/10">
@@ -182,14 +167,14 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                               Setlist ({show.setlist.length} songs)
                             </div>
                             <div className="space-y-1.5">
-                              {show.setlist.map((song, i) => {
+                              {attachSetBoundaryLabels(show.setlist).map((song, i) => {
                                 const songKey = (song.name || '').trim().toLowerCase();
                                 const friendSong = friendSongMap[songKey];
                                 return (
                                   <React.Fragment key={song.id || i}>
-                                    {song.setBreak && (
+                                    {song._setLabel && (
                                       <div className="text-brand font-semibold text-xs pt-2 pb-1 border-t border-subtle mt-2">
-                                        {song.setBreak}
+                                        {song._setLabel}
                                       </div>
                                     )}
                                     <div className="flex items-start gap-2 py-1 group">
@@ -216,24 +201,6 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                                             </span>
                                           )}
                                         </div>
-                                        {/* Your song comment */}
-                                        {song.comment && (
-                                          <div className="flex items-start gap-1.5 mt-1">
-                                            <MessageSquare className="w-3 h-3 text-brand mt-0.5 flex-shrink-0" />
-                                            <span className="text-xs text-secondary italic">{song.comment}</span>
-                                          </div>
-                                        )}
-                                        {/* Friend's song comment */}
-                                        {friendSong?.comment && (
-                                          <div className="flex items-start gap-1.5 mt-1">
-                                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-amber to-amber flex items-center justify-center flex-shrink-0">
-                                              <User className="w-2 h-2 text-primary" />
-                                            </div>
-                                            <span className="text-xs text-amber/80 italic">
-                                              <span className="font-semibold not-italic text-amber">{friend.name.split(' ')[0]}:</span> {friendSong.comment}
-                                            </span>
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   </React.Fragment>
@@ -265,9 +232,6 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
 
       {/* SetlistEditor modal for selected show */}
       {selectedShow && (() => {
-        const confirmedSuggestion = confirmedSuggestions && normalizeShowKey
-          ? confirmedSuggestions.find(s => s.showKey === normalizeShowKey(selectedShow))
-          : null;
         const friendShow = selectedShow.friendShow;
         return (
           <SetlistEditor
@@ -283,14 +247,6 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
             onClose={() => setSelectedShow(null)}
             onTagFriends={onTagFriends}
             onRateVenue={onRateVenue}
-            confirmedSuggestion={confirmedSuggestion || null}
-            sharedComments={memoriesShow?.suggestion?.id === confirmedSuggestion?.id ? sharedComments : []}
-            commentsLoading={commentsLoading}
-            onOpenMemories={confirmedSuggestion ? () => onOpenMemories(confirmedSuggestion) : null}
-            onAddComment={confirmedSuggestion ? (text) => onAddComment(confirmedSuggestion.id, text, confirmedSuggestion) : null}
-            onEditComment={confirmedSuggestion ? (cid, txt) => onEditComment(confirmedSuggestion.id, cid, txt) : null}
-            onDeleteComment={confirmedSuggestion ? (cid) => onDeleteComment(confirmedSuggestion.id, cid) : null}
-            currentUserUid={currentUserUid}
             friendAnnotations={friendShow ? { friendName: friend.name, friendShow } : null}
             onCreatePlaylist={(show) => setPlaylistShow(show)}
           />

@@ -5,6 +5,7 @@ import { Camera, X, RefreshCw, Search, Check, Download, Plus, ChevronDown } from
 import { resizeImageForUpload } from '@/lib/utils';
 import { apiUrl } from '@/lib/api';
 import { isNativePlatform } from '@/lib/native-auth';
+import { extractSongsFromSetlist } from '@/lib/setlistParser';
 import { Card, Button } from '@/components/ui';
 
 function TicketScanner({ onImport, importedIds, existingShows }) {
@@ -191,25 +192,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
   };
 
   const importSetlist = (showIdx, setlist) => {
-    const songs = [];
-    let setIndex = 0;
-    if (setlist.sets && setlist.sets.set) {
-      setlist.sets.set.forEach(set => {
-        if (set.song) {
-          set.song.forEach(song => {
-            songs.push({
-              id: Date.now().toString() + Math.random(),
-              name: song.name,
-              cover: song.cover ? `${song.cover.name} cover` : null,
-              setBreak: setIndex > 0 && set.song.indexOf(song) === 0
-                ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
-                : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
-            });
-          });
-        }
-        setIndex++;
-      });
-    }
+    const songs = extractSongsFromSetlist(setlist);
 
     onImport({
       artist: setlist.artist.name,

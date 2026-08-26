@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { parseDate } from '@/lib/utils';
+import { groupSongsBySet, getSetLabels } from '@/lib/setlistGrouping';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import SongHistoryModal from '@/components/SongHistoryModal';
@@ -23,49 +24,10 @@ function formatShowDate(dateStr) {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
-function setBreakToLabel(setBreak) {
-  if (!setBreak) return null;
-  if (setBreak === 'Main Set') return 'Set I';
-  if (setBreak === 'Encore') return 'Encore';
-  if (setBreak === 'Encore 2') return 'Encore II';
-  const m = setBreak.match(/^Set (\d+)$/);
-  if (m) {
-    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
-    return `Set ${ROMAN[parseInt(m[1]) - 1] || m[1]}`;
-  }
-  return setBreak;
-}
-
 function buildSets(setlist = []) {
-  if (!setlist.length) return [];
-  const groups = {};
-  const order = [];
-  const hasSetField = setlist.some(s => s.set);
-
-  if (hasSetField) {
-    setlist.forEach(song => {
-      const key = song.set || 'Set I';
-      if (!groups[key]) { groups[key] = []; order.push(key); }
-      groups[key].push(song);
-    });
-  } else {
-    let currentLabel = 'Set I';
-    setlist.forEach(song => {
-      if (song.setBreak) currentLabel = setBreakToLabel(song.setBreak) || currentLabel;
-      if (!groups[currentLabel]) { groups[currentLabel] = []; order.push(currentLabel); }
-      groups[currentLabel].push(song);
-    });
-  }
-
-  const ORDER = ['Set I', 'Set II', 'Set III', 'Encore', 'Encore II'];
-  const keys = [
-    ...ORDER.filter(k => groups[k]),
-    ...order.filter(k => !ORDER.includes(k) && groups[k]),
-  ];
-
-  return keys.map(label => ({
+  return groupSongsBySet(setlist).map(({ label, songs }) => ({
     label,
-    tracks: groups[label].map(song => ({
+    tracks: songs.map(song => ({
       title: song.song || song.name || song.title || '',
       cover: song.cover || null,
       debut: !!(song.debut || song.tags?.includes('debut')),
@@ -153,6 +115,7 @@ export default function ShowDetailView({
   const [editingNote, setEditingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [newSongName, setNewSongName] = useState('');
+  const [newSongSet, setNewSongSet] = useState('');
 
   const artistShowCount = useMemo(
     () => allShows.filter(s => s.artist === show?.artist).length,
@@ -185,13 +148,14 @@ export default function ShowDetailView({
 
   if (!show) return null;
 
-  const sets       = buildSets(show.setlist);
-  const totalSongs = show.setlist?.length || 0;
-  const debuts     = (show.setlist || []).filter(s => s.debut || s.tags?.includes('debut')).length;
-  const bustouts   = (show.setlist || []).filter(s => s.bustout || s.tags?.includes('bustout'));
-  const taggedFriendIds = new Set(show.taggedFriends || []);
-  const taggedFriends   = friends.filter(f => taggedFriendIds.has(f.friendUid));
-  const isFavorite      = isArtistFavorite?.(show.artist) || false;
+  const sets              = buildSets(show.setlist);
+  const existingSetLabels = getSetLabels(show.setlist);
+  const totalSongs        = show.setlist?.length || 0;
+  const debuts            = (show.setlist || []).filter(s => s.debut || s.tags?.includes('debut')).length;
+  const bustouts          = (show.setlist || []).filter(s => s.bustout || s.tags?.includes('bustout'));
+  const taggedFriendIds   = new Set(show.taggedFriendUids || []);
+  const taggedFriends     = friends.filter(f => taggedFriendIds.has(f.friendUid));
+  const isFavorite        = isArtistFavorite?.(show.artist) || false;
 
   const handleShare = async () => {
     try { await navigator.clipboard.writeText(`https://mysetlists.net/shows/${show.id}`); } catch {}
@@ -207,7 +171,8 @@ export default function ShowDetailView({
   const handleAddSong = (e) => {
     e.preventDefault();
     if (!newSongName.trim()) return;
-    onAddSong?.(show.id, { name: newSongName.trim() });
+    const set = newSongSet || existingSetLabels[existingSetLabels.length - 1] || 'Set I';
+    onAddSong?.(show.id, { name: newSongName.trim(), set });
     setNewSongName('');
   };
 
@@ -451,6 +416,17 @@ export default function ShowDetailView({
                 placeholder="Add a song setlist.fm missed..."
                 className="flex-1 px-3 py-2 border border-subtle rounded-lg text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder-muted"
               />
+              {existingSetLabels.length > 1 && (
+                <select
+                  value={newSongSet || existingSetLabels[existingSetLabels.length - 1]}
+                  onChange={e => setNewSongSet(e.target.value)}
+                  className="border border-subtle rounded-lg px-2 py-2 text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
+                >
+                  {existingSetLabels.map(label => (
+                    <option key={label} value={label}>{label}</option>
+                  ))}
+                </select>
+              )}
               <Button variant="secondary" type="submit" icon={Plus} disabled={!newSongName.trim()}>
                 Add song
               </Button>

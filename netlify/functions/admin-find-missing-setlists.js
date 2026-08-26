@@ -125,29 +125,37 @@ function findDateMatch(setlists, targetDate) {
   }) || null;
 }
 
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const toRoman = (n) => ROMAN[n - 1] || String(n);
+
+// Counts regular sets and encores separately so labels come out right even
+// when a show has multiple regular sets before its encore(s).
 function extractSongs(match) {
   const songs = [];
-  let setIndex = 0;
+  let regularSetCount = 0;
+  let encoreCount = 0;
   if (match.sets && match.sets.set) {
     match.sets.set.forEach((set) => {
+      let setLabel;
+      if (set.encore) {
+        encoreCount++;
+        setLabel = encoreCount === 1 ? 'Encore' : `Encore ${toRoman(encoreCount)}`;
+      } else {
+        regularSetCount++;
+        setLabel = `Set ${toRoman(regularSetCount)}`;
+      }
+
       if (set.song) {
-        set.song.forEach((song, songIdx) => {
+        set.song.forEach((song) => {
           songs.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
             name: song.name.trim(),
-            cover: song.cover ? `${song.cover.name} cover` : null,
-            setBreak:
-              setIndex > 0 && songIdx === 0
-                ? set.encore
-                  ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}`
-                  : `Set ${setIndex + 1}`
-                : setIndex === 0 && songIdx === 0
-                  ? 'Main Set'
-                  : null,
+            set: setLabel,
+            cover: song.cover ? song.cover.name : null,
+            tape: song.tape || false,
           });
         });
       }
-      setIndex++;
     });
   }
   return songs;

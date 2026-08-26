@@ -14,6 +14,7 @@ import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
 import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
+import { extractSongsFromSetlist } from '@/lib/setlistParser';
 import {
   inviteEmail,
   friendJoinedEmail,
@@ -22,7 +23,6 @@ import {
   showTagNotification,
   bulkShowTagNotification,
   suggestionNudgeEmail,
-  sharedMemoryEmail,
 } from '@/lib/emailTemplates';
 
 // ── Helper: send email only if recipient hasn't opted out ────────────────
@@ -196,7 +196,6 @@ export function AppProvider({ children }) {
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedShow, setSelectedShow] = useState(null);
-  const [commentContext, setCommentContext] = useState(null); // { type: 'song'|'show', songName, songId }
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -304,16 +303,8 @@ export function AppProvider({ children }) {
   // Pending email tags sent by this user (to non-members)
   const [sentPendingEmailTags, setSentPendingEmailTags] = useState([]);
 
-  // Shared Memories
-  const [memoriesShow, setMemoriesShow] = useState(null);
-  const [sharedComments, setSharedComments] = useState([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-
   // Favorite artists
   const [favoriteArtists, setFavoriteArtists] = useState([]);
-
-  // Friend annotations for the currently selected show (main view)
-  const [friendAnnotationsForShow, setFriendAnnotationsForShow] = useState(null);
 
   // In-app notifications
   const [unreadNotifications, setUnreadNotifications] = useState([]);
@@ -1082,28 +1073,7 @@ export function AppProvider({ children }) {
       return null;
     };
 
-    const extractSongs = (match) => {
-      const songs = [];
-      let setIndex = 0;
-      if (match.sets && match.sets.set) {
-        match.sets.set.forEach(set => {
-          if (set.song) {
-            set.song.forEach(song => {
-              songs.push({
-                id: Date.now().toString() + Math.random(),
-                name: song.name,
-                cover: song.cover ? `${song.cover.name} cover` : null,
-                setBreak: setIndex > 0 && set.song.indexOf(song) === 0
-                  ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
-                  : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null),
-              });
-            });
-          }
-          setIndex++;
-        });
-      }
-      return songs;
-    };
+    const extractSongs = extractSongsFromSetlist;
 
     for (let i = 0; i < showsWithoutSetlists.length; i++) {
       const show = showsWithoutSetlists[i];
@@ -1470,74 +1440,6 @@ export function AppProvider({ children }) {
       .map(s => ({ ...s, friendShow: theirMap[key(s)] }));
   }, [user]);
 
-  // === FRIEND ANNOTATIONS FOR SHOW VIEW ===
-  const fetchFriendAnnotations = useCallback(async (show) => {
-    if (!user || !show || guestMode) { setFriendAnnotationsForShow(null); return; }
-    try {
-      // Case 1: I was tagged in this show
-      if (show.taggedByUid) {
-        const friendUid = show.taggedByUid;
-        const friendName = show.taggedBy || 'Friend';
-        const snap = await getDocs(collection(db, 'users', friendUid, 'shows'));
-        const norm = v => (v || '').trim().toLowerCase();
-        const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
-        const showKey = key(show);
-        const friendShow = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(s => key(s) === showKey);
-        if (friendShow) {
-          setFriendAnnotationsForShow({ friendName, friendShow });
-          return;
-        }
-      }
-
-      // Case 2: I tagged friends in this show
-      if (show.taggedFriendUids && show.taggedFriendUids.length > 0) {
-        const norm = v => (v || '').trim().toLowerCase();
-        const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
-        const showKey = key(show);
-        for (const friendUid of show.taggedFriendUids) {
-          const friend = friends.find(f => f.friendUid === friendUid);
-          if (!friend) continue;
-          const snap = await getDocs(collection(db, 'users', friendUid, 'shows'));
-          const friendShow = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(s => key(s) === showKey);
-          if (friendShow && (friendShow.comment || friendShow.rating || friendShow.setlist?.some(s => s.comment || s.rating))) {
-            setFriendAnnotationsForShow({ friendName: friend.name || friend.displayName || 'Friend', friendShow });
-            return;
-          }
-        }
-      }
-
-      // Case 3: No tagging link — check all friends for a matching show with notes
-      if (friends.length > 0) {
-        const norm = v => (v || '').trim().toLowerCase();
-        const key = s => s.setlistfmId || `${norm(s.artist)}|${norm(s.venue)}|${norm(s.date)}`;
-        const showKey = key(show);
-        for (const friend of friends) {
-          const snap = await getDocs(collection(db, 'users', friend.friendUid, 'shows'));
-          const friendShow = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(s => key(s) === showKey);
-          if (friendShow && (friendShow.comment || friendShow.rating || friendShow.setlist?.some(s => s.comment || s.rating))) {
-            setFriendAnnotationsForShow({ friendName: friend.name || friend.displayName || 'Friend', friendShow });
-            return;
-          }
-        }
-      }
-
-      setFriendAnnotationsForShow(null);
-    } catch (e) {
-      console.error('Failed to fetch friend annotations:', e);
-      setFriendAnnotationsForShow(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, guestMode, friends]);
-
-  // Fetch friend annotations whenever a show is selected in the main view
-  useEffect(() => {
-    if (selectedShow && activeView === 'shows') {
-      fetchFriendAnnotations(selectedShow);
-    } else {
-      setFriendAnnotationsForShow(null);
-    }
-  }, [selectedShow, activeView, fetchFriendAnnotations]);
-
   // === SHOW SUGGESTIONS ===
 
   const normalizeShowKey = (show) => {
@@ -1675,89 +1577,6 @@ export function AppProvider({ children }) {
     } catch (e) {
       console.error('Failed to respond to suggestion:', e);
     }
-  };
-
-  // === SHARED MEMORIES ===
-
-  const loadSharedComments = async (suggestionId) => {
-    setCommentsLoading(true);
-    try {
-      const snap = await getDocs(collection(db, 'showSuggestions', suggestionId, 'comments'));
-      const comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      comments.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-      setSharedComments(comments);
-    } catch (e) {
-      console.error('Failed to load shared comments:', e);
-    }
-    setCommentsLoading(false);
-  };
-
-  const openMemories = async (suggestion) => {
-    const show = shows.find(s => normalizeShowKey(s) === suggestion.showKey) ||
-                 { artist: suggestion.showData.artist, venue: suggestion.showData.venue, date: suggestion.showData.date };
-    setMemoriesShow({ suggestion, show });
-    await loadSharedComments(suggestion.id);
-    try {
-      await updateDoc(doc(db, 'showSuggestions', suggestion.id), {
-        [`lastViewedAt.${user.uid}`]: serverTimestamp(),
-      });
-    } catch (e) { /* non-critical */ }
-  };
-
-  const addSharedComment = async (suggestionId, text, suggestion) => {
-    if (!user || !text.trim()) return;
-    try {
-      const commentRef = await addDoc(collection(db, 'showSuggestions', suggestionId, 'comments'), {
-        authorUid: user.uid,
-        authorName: user.displayName || 'Someone',
-        text: text.trim().slice(0, 500),
-        createdAt: serverTimestamp(),
-        editedAt: null,
-      });
-      setSharedComments(prev => [...prev, {
-        id: commentRef.id,
-        authorUid: user.uid,
-        authorName: user.displayName || 'Someone',
-        text: text.trim().slice(0, 500),
-        createdAt: { seconds: Date.now() / 1000 },
-        editedAt: null,
-      }]);
-      // Email the other participant if they haven't been notified recently
-      const otherUid = suggestion.participants.find(uid => uid !== user.uid);
-      const otherLastViewed = suggestion.lastViewedAt?.[otherUid];
-      const shouldEmail = !otherLastViewed;
-      if (shouldEmail) {
-        const friendData = friends.find(f => f.friendUid === otherUid);
-        if (friendData?.friendEmail) {
-          const { artist, date } = suggestion.showData;
-          const email = sharedMemoryEmail({
-            commenterName: user.displayName || 'A friend',
-            artist, date,
-            uid: otherUid,
-          });
-          await sendEmailIfAllowed(otherUid, { to: friendData.friendEmail, ...email });
-        }
-      }
-    } catch (e) {
-      console.error('Failed to add comment:', e);
-    }
-  };
-
-  const editSharedComment = async (suggestionId, commentId, newText) => {
-    try {
-      await updateDoc(doc(db, 'showSuggestions', suggestionId, 'comments', commentId), {
-        text: newText.trim().slice(0, 500),
-        editedAt: serverTimestamp(),
-      });
-      setSharedComments(prev => prev.map(c => c.id === commentId ? { ...c, text: newText.trim(), editedAt: { seconds: Date.now() / 1000 } } : c));
-    } catch (e) { console.error('Failed to edit comment:', e); }
-  };
-
-  const deleteSharedComment = async (suggestionId, commentId) => {
-    try {
-      await deleteDoc(doc(db, 'showSuggestions', suggestionId, 'comments', commentId));
-      setSharedComments(prev => prev.filter(c => c.id !== commentId));
-    } catch (e) { console.error('Failed to delete comment:', e); }
   };
 
   // ── Show tag accept / decline ───────────────────────────────────────
@@ -2392,8 +2211,6 @@ export function AppProvider({ children }) {
     setShowForm,
     selectedShow,
     setSelectedShow,
-    commentContext,
-    setCommentContext,
     searchTerm,
     setSearchTerm,
     filterYear,
@@ -2494,21 +2311,6 @@ export function AppProvider({ children }) {
     respondToSuggestion,
     normalizeShowKey,
 
-    // Shared memories
-    memoriesShow,
-    setMemoriesShow,
-    sharedComments,
-    setSharedComments,
-    commentsLoading,
-    openMemories,
-    addSharedComment,
-    editSharedComment,
-    deleteSharedComment,
-
-    // Friend annotations
-    friendAnnotationsForShow,
-    fetchFriendAnnotations,
-
     // Shows together
     getShowsTogether,
 
@@ -2540,7 +2342,6 @@ export function AppProvider({ children }) {
     // Toast
     toast,
     setToast,
-
 
     // Favorite artists
     favoriteArtists,
