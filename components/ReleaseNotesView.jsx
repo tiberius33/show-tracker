@@ -6,6 +6,15 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '4.0.2',
+      date: 'August 26, 2026',
+      title: 'Show Detail Polish — Play Counts & Inline Ratings',
+      changes: [
+        'Changed: "Show play counts" on the show detail page now defaults to on for anyone who hasn\'t set a preference — turn it off from the toggle if you\'d rather not see it',
+        'Changed: Show rating and venue rating now display on the same line on the show detail page instead of stacked, wrapping gracefully on narrow screens',
+      ]
+    },
+    {
       version: '4.0.1',
       date: 'August 26, 2026',
       title: 'Shows Page Cleanup — Consistent Show Cards',
