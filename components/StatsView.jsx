@@ -10,7 +10,7 @@ import { Button, Card, Badge, Tabs, SectionHeader } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onRateShow, onCommentShow, onUpdateVenueRating, onDeleteShow, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate, friends, user }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onRateShow, onCommentShow, onUpdateVenueRating, onDeleteShow, onAddSong, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate, friends, user }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -178,6 +178,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           onTagFriends={onTagFriends}
           onCreatePlaylist={(show) => setPlaylistShow(show)}
           onDeleteShow={onDeleteShow}
+          onAddSong={onAddSong}
           toggleFavoriteArtist={onToggleFavoriteArtist}
           isArtistFavorite={isArtistFavorite}
           allShows={shows}

@@ -14,6 +14,7 @@ export default function StatsPage() {
     shows, getSongStats, getArtistStats, getVenueStats, getTopRatedShows,
     updateSongRating,
     updateShowRating, updateShowComment, updateShowData, deleteShow,
+    addSongToShow,
     user, friends, guestMode, setTagFriendsShow, setVenueRatingShow, statsTab,
     getVenueRatings, normalizeVenueKey, computeVenueAggregate,
     toggleFavoriteArtist, isArtistFavorite,
@@ -71,6 +72,7 @@ export default function StatsPage() {
         onCommentShow={updateShowComment}
         onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
         onDeleteShow={deleteShow}
+        onAddSong={!guestMode ? addSongToShow : undefined}
         initialTab={statsTab}
         onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
         onRateVenue={user && !guestMode ? (show) => setVenueRatingShow(show) : undefined}
