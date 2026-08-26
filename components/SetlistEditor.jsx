@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
-import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, Users, ChevronDown, Send, ListMusic, Heart, Hash } from 'lucide-react';
+import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, ListMusic, Heart, Hash } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { attachSetBoundaryLabels, getSetLabels } from '@/lib/setlistGrouping';
 import { Button, Card } from '@/components/ui';
 import RatingSelect from '@/components/ui/RatingSelect';
 import Tip from '@/components/ui/Tip';
@@ -14,27 +15,23 @@ import EntityInfoPanel from '@/components/EntityInfoPanel';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import StreamingLinks from '@/components/StreamingLinks';
 
-function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, confirmedSuggestion, sharedComments, commentsLoading, onOpenMemories, onAddComment, onEditComment, onDeleteComment, currentUserUid, friendAnnotations, commentContext, isReturningUser }) {
+function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, friendAnnotations, isReturningUser }) {
   const router = useRouter();
   const { setSelectedShow } = useApp();
   const [songName, setSongName] = useState('');
+  const [songSet, setSongSet] = useState('');
   const [batchRating, setBatchRating] = useState(5);
   const [editingComment, setEditingComment] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [editingShowComment, setEditingShowComment] = useState(false);
   const [showCommentText, setShowCommentText] = useState(show.comment || '');
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [memoriesOpen, setMemoriesOpen] = useState(false);
-  const [newMemoryText, setNewMemoryText] = useState('');
-  const [editingMemoryId, setEditingMemoryId] = useState(null);
-  const [editingMemoryText, setEditingMemoryText] = useState('');
   const [showPlaylistTip, setShowPlaylistTip] = useState(false);
   const [showPlayCounts, setShowPlayCounts] = useState(() => {
     const stored = storage.get(STORAGE_KEYS.SHOW_PLAY_COUNTS);
     return stored === null ? true : stored === 'true';
   });
   const [songHistoryTarget, setSongHistoryTarget] = useState(null);
-  const scrollableRef = useRef(null);
 
   // Pre-compute play counts for all songs in setlist
   const songPlayCounts = useMemo(() => {
@@ -73,31 +70,6 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
     }
   }, [show.setlist, onCreatePlaylist, isReturningUser]);
 
-  // Scroll to comment when opened from Profile > Comments
-  useEffect(() => {
-    if (!commentContext) return;
-    const timer = setTimeout(() => {
-      const container = scrollableRef.current;
-      if (!container) return;
-
-      let target = null;
-      if (commentContext.type === 'song' && commentContext.songName) {
-        // Find the song element by data attribute
-        target = container.querySelector(`[data-song-name="${CSS.escape(commentContext.songName)}"]`);
-      } else if (commentContext.type === 'show') {
-        // Scroll to show comment/notes section at the top
-        target = container.querySelector('[data-show-comment]');
-      }
-
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        target.classList.add('highlight-comment');
-        setTimeout(() => target.classList.remove('highlight-comment'), 2500);
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [commentContext]);
-
   const dismissPlaylistTip = () => {
     setShowPlaylistTip(false);
     storage.set(STORAGE_KEYS.PLAYLIST_TOOLTIP_SEEN, '1');
@@ -132,10 +104,13 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
     }
   };
 
+  const existingSetLabels = getSetLabels(show.setlist);
+
   const handleAddSong = (e) => {
     e.preventDefault();
     if (songName.trim()) {
-      onAddSong({ name: songName.trim() });
+      const set = songSet || existingSetLabels[existingSetLabels.length - 1] || 'Set I';
+      onAddSong({ name: songName.trim(), set });
       setSongName('');
     }
   };
@@ -153,13 +128,13 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
 
   const unratedCount = show.setlist.filter(s => !s.rating).length;
 
-  // Build friend song annotations map if available
+  // Build friend song rating map if available
   const friendSongMap = useMemo(() => {
     if (!friendAnnotations?.friendShow?.setlist) return {};
     const map = {};
     friendAnnotations.friendShow.setlist.forEach(s => {
       const key = (s.name || '').trim().toLowerCase();
-      if (key) map[key] = { rating: s.rating, comment: s.comment, name: s.name };
+      if (key) map[key] = { rating: s.rating, name: s.name };
     });
     return map;
   }, [friendAnnotations]);
@@ -272,7 +247,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
         </div>
 
         {/* Scrollable content area with show info + setlist */}
-        <div className="flex-1 overflow-y-auto" ref={scrollableRef}>
+        <div className="flex-1 overflow-y-auto">
           {/* Show details */}
           <div className="px-4 py-3 md:px-6 md:py-4 border-b border-subtle bg-surface">
             <p className="text-secondary text-sm">
@@ -286,7 +261,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
               <RatingSelect value={show.rating} onChange={onRateShow} label="Show rating:" />
             </div>
             {!editingShowComment && (
-              <div className="mt-2" data-show-comment>
+              <div className="mt-2">
                 {show.comment ? (
                   <div
                     className="text-sm text-secondary italic bg-hover p-2.5 rounded-lg border border-subtle cursor-pointer hover:bg-hover transition-colors"
@@ -328,8 +303,8 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
               </div>
             )}
 
-            {/* Friend's show-level annotation */}
-            {friendAnnotations && (friendAnnotations.friendShow?.comment || friendAnnotations.friendShow?.rating) && (
+            {/* Friend's show-level rating */}
+            {friendAnnotations?.friendShow?.rating && (
               <div className="mt-3 bg-amber-subtle border border-amber/20 rounded-xl p-3">
                 <div className="flex items-start gap-2">
                   <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber to-amber flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -338,15 +313,10 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold text-amber">{friendAnnotations.friendName}</span>
-                      {friendAnnotations.friendShow?.rating && (
-                        <span className="text-[10px] bg-amber-subtle text-amber px-1.5 py-0.5 rounded-full font-semibold">
-                          Rated {friendAnnotations.friendShow.rating}/10
-                        </span>
-                      )}
+                      <span className="text-[10px] bg-amber-subtle text-amber px-1.5 py-0.5 rounded-full font-semibold">
+                        Rated {friendAnnotations.friendShow.rating}/10
+                      </span>
                     </div>
-                    {friendAnnotations.friendShow?.comment && (
-                      <p className="text-sm text-secondary italic mt-1">{friendAnnotations.friendShow.comment}</p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -367,6 +337,17 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                 onChange={(e) => setSongName(e.target.value)}
                 className="flex-1 px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted text-sm"
               />
+              {existingSetLabels.length > 1 && (
+                <select
+                  value={songSet || existingSetLabels[existingSetLabels.length - 1]}
+                  onChange={(e) => setSongSet(e.target.value)}
+                  className="px-3 py-2.5 bg-hover border border-subtle rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer"
+                >
+                  {existingSetLabels.map(label => (
+                    <option key={label} value={label}>{label}</option>
+                  ))}
+                </select>
+              )}
               <Button variant="primary" type="submit" icon={Plus} />
             </form>
 
@@ -384,14 +365,14 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
             <p className="text-center text-muted py-8 font-medium">No songs in setlist</p>
           ) : (
             <div className="space-y-3">
-              {show.setlist.map((song, index) => (
+              {attachSetBoundaryLabels(show.setlist).map((song, index) => (
                 <React.Fragment key={song.id}>
-                  {song.setBreak && (
+                  {song._setLabel && (
                     <div className="text-brand font-semibold text-sm pt-3 pb-1 border-t border-subtle mt-3">
-                      {song.setBreak}
+                      {song._setLabel}
                     </div>
                   )}
-                  <Card variant="inset" padding="none" className="group p-4 hover:border-active transition-colors" data-song-name={song.name}>
+                  <Card variant="inset" padding="none" className="group p-4 hover:border-active transition-colors">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-start gap-3 flex-1">
                         <span className="text-muted font-mono text-sm mt-1">{index + 1}.</span>
@@ -463,10 +444,10 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                         <Button variant="ghost" size="sm" onClick={() => setEditingComment(null)}>Cancel</Button>
                       </div>
                     )}
-                    {/* Friend's song annotation */}
+                    {/* Friend's song rating */}
                     {(() => {
                       const fSong = friendSongMap[(song.name || '').trim().toLowerCase()];
-                      if (!fSong || (!fSong.rating && !fSong.comment)) return null;
+                      if (!fSong?.rating) return null;
                       return (
                         <div className="ml-8 mt-2 bg-amber-subtle border border-amber/15 rounded-lg p-2.5">
                           <div className="flex items-start gap-2">
@@ -476,15 +457,10 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-[11px] font-semibold text-amber">{friendAnnotations.friendName}</span>
-                                {fSong.rating && (
-                                  <span className="text-[10px] bg-amber-subtle text-amber px-1.5 py-0.5 rounded-full font-semibold">
-                                    {fSong.rating}/10
-                                  </span>
-                                )}
+                                <span className="text-[10px] bg-amber-subtle text-amber px-1.5 py-0.5 rounded-full font-semibold">
+                                  {fSong.rating}/10
+                                </span>
                               </div>
-                              {fSong.comment && (
-                                <p className="text-xs text-secondary italic mt-0.5">{fSong.comment}</p>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -498,124 +474,6 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
           <UpcomingShows artistName={show.artist} />
 
           <StreamingLinks show={show} />
-
-          {/* Shared Memories (confirmed show together) */}
-          {confirmedSuggestion && (() => {
-            const otherUid = confirmedSuggestion.participants?.find(p => p !== currentUserUid);
-            const otherName = otherUid ? confirmedSuggestion.names?.[otherUid] : 'A friend';
-            return (
-              <div className="mt-4 border-t border-amber/20 pt-4">
-                {/* Attendance chip */}
-                <button
-                  onClick={() => {
-                    if (!memoriesOpen && onOpenMemories) onOpenMemories();
-                    setMemoriesOpen(prev => !prev);
-                  }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/15 border border-amber/30 text-amber text-sm font-medium hover:bg-brand/25 transition-colors mb-3"
-                >
-                  <Users className="w-4 h-4" />
-                  You and {otherName} were both here
-                  <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${memoriesOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {memoriesOpen && (
-                  <div className="bg-brand/5 rounded-2xl border border-amber/15 p-4">
-                    <h4 className="text-sm font-semibold text-amber mb-3">Shared Memories</h4>
-
-                    {commentsLoading ? (
-                      <p className="text-sm text-muted py-4 text-center">Loading...</p>
-                    ) : (
-                      <>
-                        {sharedComments.length === 0 && (
-                          <p className="text-sm text-muted mb-3 text-center py-2">No memories yet — add the first one!</p>
-                        )}
-                        <div className="space-y-3 mb-3">
-                          {sharedComments.map(c => {
-                            const isOwn = c.authorUid === currentUserUid;
-                            return (
-                              <div key={c.id} className={`rounded-xl p-3 ${isOwn ? 'bg-amber-subtle ml-4' : 'bg-hover mr-4'}`}>
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-xs font-semibold text-secondary">{c.authorName}</span>
-                                  <span className="text-xs text-muted">
-                                    {c.editedAt ? 'edited' : c.createdAt?.toDate ? new Date(c.createdAt.toDate()).toLocaleDateString() : ''}
-                                  </span>
-                                </div>
-                                {editingMemoryId === c.id ? (
-                                  <div className="flex gap-2 mt-1">
-                                    <input
-                                      type="text"
-                                      value={editingMemoryText}
-                                      onChange={e => setEditingMemoryText(e.target.value)}
-                                      maxLength={500}
-                                      className="flex-1 px-2 py-1 bg-hover border border-subtle rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-amber/50"
-                                      onKeyDown={e => {
-                                        if (e.key === 'Enter' && editingMemoryText.trim()) {
-                                          onEditComment && onEditComment(c.id, editingMemoryText.trim());
-                                          setEditingMemoryId(null);
-                                        }
-                                        if (e.key === 'Escape') setEditingMemoryId(null);
-                                      }}
-                                      autoFocus
-                                    />
-                                    <Button variant="primary" size="sm" onClick={() => { onEditComment && onEditComment(c.id, editingMemoryText.trim()); setEditingMemoryId(null); }}>Save</Button>
-                                    <Button variant="ghost" size="sm" onClick={() => setEditingMemoryId(null)}>Cancel</Button>
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-secondary mt-0.5">{c.text}</p>
-                                )}
-                                {isOwn && editingMemoryId !== c.id && (
-                                  <div className="flex gap-2 mt-2">
-                                    <button
-                                      onClick={() => { setEditingMemoryId(c.id); setEditingMemoryText(c.text); }}
-                                      className="text-xs text-muted hover:text-primary transition-colors"
-                                    >Edit</button>
-                                    <button
-                                      onClick={() => onDeleteComment && onDeleteComment(c.id)}
-                                      className="text-xs text-muted hover:text-danger transition-colors"
-                                    >Delete</button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* New comment input */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Share a memory..."
-                            value={newMemoryText}
-                            onChange={e => setNewMemoryText(e.target.value)}
-                            maxLength={500}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter' && newMemoryText.trim()) {
-                                onAddComment && onAddComment(newMemoryText.trim());
-                                setNewMemoryText('');
-                              }
-                            }}
-                            className="flex-1 px-3 py-2 bg-hover border border-subtle rounded-xl text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-amber/50"
-                          />
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            icon={Send}
-                            disabled={!newMemoryText.trim()}
-                            onClick={() => {
-                              if (newMemoryText.trim()) {
-                                onAddComment && onAddComment(newMemoryText.trim());
-                                setNewMemoryText('');
-                              }
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
           </div>
         </div>
       </div>

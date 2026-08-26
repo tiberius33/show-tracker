@@ -6,6 +6,7 @@ import { formatDate, parseCSV, parseImportDate, autoDetectMapping, resizeImageFo
 import { IMPORT_FIELDS } from '@/lib/constants';
 import Tip from '@/components/ui/Tip';
 import { apiUrl } from '@/lib/api';
+import { extractSongsFromSetlist } from '@/lib/setlistParser';
 
 function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [step, setStep] = useState('upload');
@@ -273,25 +274,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
 
       if (!match) return null;
 
-      const songs = [];
-      let setIndex = 0;
-      if (match.sets && match.sets.set) {
-        match.sets.set.forEach(set => {
-          if (set.song) {
-            set.song.forEach(song => {
-              songs.push({
-                id: Date.now().toString() + Math.random(),
-                name: song.name,
-                cover: song.cover ? `${song.cover.name} cover` : null,
-                setBreak: setIndex > 0 && set.song.indexOf(song) === 0
-                  ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
-                  : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
-              });
-            });
-          }
-          setIndex++;
-        });
-      }
+      const songs = extractSongsFromSetlist(match);
 
       if (songs.length === 0) return null;
 

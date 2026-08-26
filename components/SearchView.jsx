@@ -5,6 +5,7 @@ import { Search, X, ChevronDown, ChevronLeft, ChevronRight, Check, Download, Plu
 import Tip from '@/components/ui/Tip';
 import { Card, Button, Input, EmptyState } from '@/components/ui';
 import { apiUrl } from '@/lib/api';
+import { extractSongsFromSetlist } from '@/lib/setlistParser';
 
 function SearchView({ onImport, importedIds, onAddManually }) {
   const [artistName, setArtistName] = useState('');
@@ -171,26 +172,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
   };
 
   const importSetlist = (setlist) => {
-    const songs = [];
-    let setIndex = 0;
-
-    if (setlist.sets && setlist.sets.set) {
-      setlist.sets.set.forEach(set => {
-        if (set.song) {
-          set.song.forEach(song => {
-            songs.push({
-              id: Date.now().toString() + Math.random(),
-              name: song.name,
-              cover: song.cover ? `${song.cover.name} cover` : null,
-              setBreak: setIndex > 0 && set.song.indexOf(song) === 0
-                ? (set.encore ? `Encore${setIndex > 1 ? ` ${setIndex}` : ''}` : `Set ${setIndex + 1}`)
-                : (setIndex === 0 && set.song.indexOf(song) === 0 ? 'Main Set' : null)
-            });
-          });
-        }
-        setIndex++;
-      });
-    }
+    const songs = extractSongsFromSetlist(setlist);
 
     const showData = {
       artist: setlist.artist.name,

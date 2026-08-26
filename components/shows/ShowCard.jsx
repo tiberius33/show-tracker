@@ -1,16 +1,28 @@
 // components/shows/ShowCard.jsx
 //
-// Show summary card — artist, tour, date, venue, song count, and average
-// song rating. Shared between the Stats "Years" breakdown and the Shows
-// page timeline so a show renders identically wherever it's listed.
+// Show summary card — artist, tour, date, venue, song count, average song
+// rating, and any tagged friends. Shared between the Stats "Years" breakdown
+// and the Shows page timeline so a show renders identically wherever it's
+// listed.
 
 import React from 'react';
 import { Calendar, MapPin, MessageSquare, Trash2 } from 'lucide-react';
 import { formatDate, artistColor, avgSongRating } from '@/lib/utils';
 import { Card, Badge } from '@/components/ui';
 
-export default function ShowCard({ show, onClick, onDelete }) {
+function taggedFriendsLabel(taggedFriends) {
+  if (taggedFriends.length === 0) return null;
+  const firstName = (f) => (f.friendName || '').split(' ')[0] || 'a friend';
+  if (taggedFriends.length === 1) return `with ${firstName(taggedFriends[0])}`;
+  if (taggedFriends.length === 2) return `with ${firstName(taggedFriends[0])} and ${firstName(taggedFriends[1])}`;
+  return `with ${taggedFriends.length} friends`;
+}
+
+export default function ShowCard({ show, friends = [], onClick, onDelete }) {
   const songAvg = avgSongRating(show.setlist || []);
+  const taggedFriendIds = new Set(show.taggedFriendUids || []);
+  const taggedFriends = friends.filter(f => taggedFriendIds.has(f.friendUid));
+  const taggedLabel = taggedFriendsLabel(taggedFriends);
 
   return (
     <Card
@@ -38,9 +50,10 @@ export default function ShowCard({ show, onClick, onDelete }) {
           <MapPin className="w-3.5 h-3.5" />
           {show.venue}{show.city ? `, ${show.city}` : ''}
         </div>
-        <div className="flex items-center gap-4 mt-2 text-xs text-muted">
+        <div className="flex items-center gap-4 mt-2 text-xs text-muted flex-wrap">
           <span>{show.setlist?.length || 0} songs</span>
           {songAvg && <span>Avg song rating: {songAvg}/10</span>}
+          {taggedLabel && <span>{taggedLabel}</span>}
         </div>
         {show.comment && (
           <div className="flex items-start gap-1.5 mt-2 text-sm text-secondary italic">

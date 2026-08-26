@@ -19,9 +19,6 @@ export default function FriendsPage() {
     addSongToShow, updateSongRating, updateSongComment, deleteSong,
     updateShowRating, updateShowComment, batchRateUnrated,
     setTagFriendsShow, setVenueRatingShow,
-    myConfirmedSuggestions, normalizeShowKey,
-    sharedComments, commentsLoading, memoriesShow,
-    openMemories, addSharedComment, editSharedComment, deleteSharedComment,
   } = useApp();
 
   if (guestMode || !user) return null;
@@ -31,7 +28,7 @@ export default function FriendsPage() {
   // Rough count of shared shows this year across all friends
   const thisYear = new Date().getFullYear();
   const sharedThisYear = (shows || []).filter(s => {
-    if (!s.taggedFriends?.length) return false;
+    if (!s.taggedFriendUids?.length) return false;
     try { return new Date(s.date).getFullYear() === thisYear; } catch { return false; }
   }).length;
 
@@ -90,15 +87,6 @@ export default function FriendsPage() {
         onBatchRate={batchRateUnrated}
         onTagFriends={(show) => setTagFriendsShow(show)}
         onRateVenue={(show) => setVenueRatingShow(show)}
-        confirmedSuggestions={myConfirmedSuggestions}
-        normalizeShowKey={normalizeShowKey}
-        sharedComments={sharedComments}
-        commentsLoading={commentsLoading}
-        memoriesShow={memoriesShow}
-        onOpenMemories={openMemories}
-        onAddComment={addSharedComment}
-        onEditComment={editSharedComment}
-        onDeleteComment={deleteSharedComment}
         allShows={shows}
       />
     </>

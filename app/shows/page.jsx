@@ -426,6 +426,7 @@ export default function ShowsPage() {
                 <ShowCard
                   key={show.id}
                   show={show}
+                  friends={friends}
                   onClick={() => setSelectedShow(show)}
                   onDelete={() => setShowToDelete(show)}
                 />

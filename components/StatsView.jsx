@@ -550,6 +550,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                                     <ShowCard
                                       key={show.id}
                                       show={show}
+                                      friends={friends}
                                       onClick={() => setSelectedShow(show)}
                                     />
                                   ))}
