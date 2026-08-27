@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { parseDate } from '@/lib/utils';
-import { groupSongsBySet, getSetLabels } from '@/lib/setlistGrouping';
+import { groupSongsBySet, getSetLabels, getSetOptions, moveSongToSet, reorderSongWithinSet } from '@/lib/setlistGrouping';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import SongHistoryModal from '@/components/SongHistoryModal';
@@ -13,6 +13,7 @@ import StreamingLinks from '@/components/StreamingLinks';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
   Trash2, X, Tag, MessageSquare, ArrowLeft, Plus,
+  Pencil, Check, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 
@@ -75,6 +76,80 @@ function SidebarCard({ children, className = '' }) {
   );
 }
 
+// Owner-only editor for moving a song between sets/encore and reordering
+// within a set — operates directly on the raw `setlist` array (with stable
+// song.id) rather than the display-only `sets`/`tracks` shape from buildSets().
+function SetlistEditControls({ setlist, onMoveSet, onReorder }) {
+  const groups = groupSongsBySet(setlist);
+  const setOptions = getSetOptions(setlist);
+
+  return (
+    <div>
+      {groups.map(group => (
+        <section key={group.label} className="mb-2">
+          <div className="flex items-center gap-3 mt-6 mb-3 first:mt-0">
+            <hr className="flex-1 border-t border-subtle m-0" />
+            <span className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-muted">
+              {group.label}
+            </span>
+            <hr className="flex-1 border-t border-subtle m-0" />
+          </div>
+          <ol className="list-none p-0 m-0 space-y-1.5">
+            {group.songs.map((song, i) => (
+              <li
+                key={song.id}
+                className="grid grid-cols-[28px_1fr_auto] gap-3 items-center px-2.5 py-2 rounded-lg bg-hover"
+              >
+                <span className="font-mono text-xs text-muted font-bold text-right">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="text-[15px] font-medium text-primary leading-snug truncate">
+                  {song.song || song.name || song.title || ''}
+                  {song.manuallyAdded && (
+                    <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-secondary bg-surface px-1.5 py-0.5 rounded">
+                      added by you
+                    </span>
+                  )}
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onReorder(group.label, i, -1)}
+                    disabled={i === 0}
+                    aria-label={`Move ${song.name || song.song || 'song'} up`}
+                    className="p-2 rounded-lg text-muted hover:text-primary hover:bg-surface disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReorder(group.label, i, 1)}
+                    disabled={i === group.songs.length - 1}
+                    aria-label={`Move ${song.name || song.song || 'song'} down`}
+                    className="p-2 rounded-lg text-muted hover:text-primary hover:bg-surface disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  <select
+                    value={song.set || group.label}
+                    onChange={e => onMoveSet(song.id, e.target.value)}
+                    aria-label={`Move ${song.name || song.song || 'song'} to a different set`}
+                    className="border border-subtle rounded-lg px-2 py-2 text-xs text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
+                  >
+                    {setOptions.map(label => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 function StatRow({ label, value, tone }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
@@ -101,6 +176,7 @@ export default function ShowDetailView({
   onCreatePlaylist,
   onDeleteShow,
   onAddSong,
+  onReorderSetlist,
   toggleFavoriteArtist,
   isArtistFavorite,
   allShows = [],
@@ -116,6 +192,7 @@ export default function ShowDetailView({
   const [noteText, setNoteText] = useState('');
   const [newSongName, setNewSongName] = useState('');
   const [newSongSet, setNewSongSet] = useState('');
+  const [editMode, setEditMode] = useState(false);
 
   const artistShowCount = useMemo(
     () => allShows.filter(s => s.artist === show?.artist).length,
@@ -381,22 +458,41 @@ export default function ShowDetailView({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-10 items-start">
 
         <section>
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
             <h2 className="text-[22px] font-extrabold text-primary tracking-tight">Setlist</h2>
-            {totalSongs > 0 && (
-              <button
-                onClick={() => setShowPlayCounts(v => !v)}
-                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                  showPlayCounts ? 'bg-gray-700 text-white' : 'bg-gray-800 text-white'
-                }`}
-              >
-                <Hash className="w-3.5 h-3.5" />
-                {showPlayCounts ? 'Hide play counts' : 'Show play counts'}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {onReorderSetlist && totalSongs > 0 && (
+                <button
+                  onClick={() => setEditMode(v => !v)}
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                    editMode ? 'bg-brand text-[#2a2a4e]' : 'bg-gray-800 text-white'
+                  }`}
+                >
+                  {editMode ? <Check className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+                  {editMode ? 'Done editing' : 'Edit setlist'}
+                </button>
+              )}
+              {totalSongs > 0 && !editMode && (
+                <button
+                  onClick={() => setShowPlayCounts(v => !v)}
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                    showPlayCounts ? 'bg-gray-700 text-white' : 'bg-gray-800 text-white'
+                  }`}
+                >
+                  <Hash className="w-3.5 h-3.5" />
+                  {showPlayCounts ? 'Hide play counts' : 'Show play counts'}
+                </button>
+              )}
+            </div>
           </div>
 
-          {sets.length > 0 ? (
+          {editMode ? (
+            <SetlistEditControls
+              setlist={show.setlist || []}
+              onMoveSet={(songId, newLabel) => onReorderSetlist(show.id, moveSongToSet(show.setlist, songId, newLabel))}
+              onReorder={(setLabel, index, direction) => onReorderSetlist(show.id, reorderSongWithinSet(show.setlist, setLabel, index, direction))}
+            />
+          ) : sets.length > 0 ? (
             <SetlistView
               sets={sets}
               showPlayCounts={showPlayCounts}
@@ -416,17 +512,15 @@ export default function ShowDetailView({
                 placeholder="Add a song setlist.fm missed..."
                 className="flex-1 px-3 py-2 border border-subtle rounded-lg text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder-muted"
               />
-              {existingSetLabels.length > 1 && (
-                <select
-                  value={newSongSet || existingSetLabels[existingSetLabels.length - 1]}
-                  onChange={e => setNewSongSet(e.target.value)}
-                  className="border border-subtle rounded-lg px-2 py-2 text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
-                >
-                  {existingSetLabels.map(label => (
-                    <option key={label} value={label}>{label}</option>
-                  ))}
-                </select>
-              )}
+              <select
+                value={newSongSet || existingSetLabels[existingSetLabels.length - 1] || 'Set I'}
+                onChange={e => setNewSongSet(e.target.value)}
+                className="border border-subtle rounded-lg px-2 py-2 text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 cursor-pointer"
+              >
+                {getSetOptions(show.setlist).map(label => (
+                  <option key={label} value={label}>{label}</option>
+                ))}
+              </select>
               <Button variant="secondary" type="submit" icon={Plus} disabled={!newSongName.trim()}>
                 Add song
               </Button>

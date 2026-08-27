@@ -1919,6 +1919,19 @@ export function AppProvider({ children }) {
     await saveShow(updatedShow);
   };
 
+  // Persists a full setlist array after a set-editor move/reorder — used
+  // instead of addSongToShow/updateSongRating since the whole array (order
+  // and each song's `set` label) may have changed, not just one field.
+  const updateSetlistOrder = async (showId, newSetlist) => {
+    const updatedShows = shows.map(show =>
+      show.id === showId ? { ...show, setlist: newSetlist } : show
+    );
+    const updatedShow = updatedShows.find(s => s.id === showId);
+    setShows(updatedShows);
+    setSelectedShow(updatedShow);
+    await saveShow(updatedShow);
+  };
+
   // ── Stats helpers ───────────────────────────────────────────────────
   const getSongStats = () => {
     const songMap = {};
@@ -2368,6 +2381,7 @@ export function AppProvider({ children }) {
     updateSongComment,
     batchRateUnrated,
     deleteSong,
+    updateSetlistOrder,
 
     // Stats
     getSongStats,

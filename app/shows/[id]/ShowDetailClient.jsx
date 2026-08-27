@@ -19,6 +19,7 @@ export default function ShowDetailClient({ id }) {
     updateShowRating, updateShowData, updateShowComment,
     tagFriendsAtShow, tagFriendByEmail, tagFriendsShow, setTagFriendsShow,
     deleteShow, toggleFavoriteArtist, isArtistFavorite, addSongToShow,
+    updateSetlistOrder,
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
@@ -49,6 +50,7 @@ export default function ShowDetailClient({ id }) {
         onCreatePlaylist={!guestMode ? (s) => setPlaylistShow(s) : undefined}
         onDeleteShow={deleteShow}
         onAddSong={!guestMode ? addSongToShow : undefined}
+        onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}
         toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
         isArtistFavorite={isArtistFavorite}
         allShows={shows}

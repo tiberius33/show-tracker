@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.1.0',
+      date: 'August 26, 2026',
+      title: 'Encore Songs & Full Setlist Editing',
+      changes: [
+        'New: "Add a song setlist.fm missed" now offers Encore as a set option — including a specific encore (Encore, Encore II, etc.) when a show has more than one, and you can start a new Encore section on a show that setlist.fm recorded as a single set',
+        'New: "Edit setlist" on any show you logged lets you move a song between Set 1, Set 2, and Encore, and reorder songs within a set — works for setlist.fm songs and songs you added yourself',
+        'Moving or reordering a song is a personal edit layered on top of the imported setlist — it never gets sent back to setlist.fm and is never overwritten if that show\'s setlist is auto-populated again',
+        'Song count, play counts, and stats are unaffected by which set a song sits in or its order within a set',
+        'Edit setlist is only available to you on your own shows, and works with touch on mobile',
+      ]
+    },
+    {
       version: '5.0.0',
       date: 'August 26, 2026',
       title: 'Concert Venue Theme — Gold & Purple Redesign',
