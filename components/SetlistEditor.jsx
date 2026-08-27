@@ -6,7 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { X, Star, Tag, Share2, Check, Plus, MessageSquare, User, ListMusic, Heart, Hash } from 'lucide-react';
 import { formatDate, artistColor } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
-import { attachSetBoundaryLabels, getSetLabels } from '@/lib/setlistGrouping';
+import { attachSetBoundaryLabels, getSetLabels, getSetOptions } from '@/lib/setlistGrouping';
 import { Button, Card } from '@/components/ui';
 import RatingSelect from '@/components/ui/RatingSelect';
 import Tip from '@/components/ui/Tip';
@@ -337,17 +337,15 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                 onChange={(e) => setSongName(e.target.value)}
                 className="flex-1 px-4 py-2.5 bg-hover border border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 text-primary placeholder-muted text-sm"
               />
-              {existingSetLabels.length > 1 && (
-                <select
-                  value={songSet || existingSetLabels[existingSetLabels.length - 1]}
-                  onChange={(e) => setSongSet(e.target.value)}
-                  className="px-3 py-2.5 bg-hover border border-subtle rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer"
-                >
-                  {existingSetLabels.map(label => (
-                    <option key={label} value={label}>{label}</option>
-                  ))}
-                </select>
-              )}
+              <select
+                value={songSet || existingSetLabels[existingSetLabels.length - 1] || 'Set I'}
+                onChange={(e) => setSongSet(e.target.value)}
+                className="px-3 py-2.5 bg-hover border border-subtle rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/50 cursor-pointer"
+              >
+                {getSetOptions(show.setlist).map(label => (
+                  <option key={label} value={label}>{label}</option>
+                ))}
+              </select>
               <Button variant="primary" type="submit" icon={Plus} />
             </form>
 
