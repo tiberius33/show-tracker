@@ -61,7 +61,7 @@ export default function AdminRoadmapCard({ item, onStatusChange, onPublish, onDi
             <button
               onClick={handleSaveEdit}
               disabled={!editTitle.trim() || localSaving}
-              className="px-3 py-1.5 bg-brand hover:bg-brand text-on-dark rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+              className="px-3 py-1.5 bg-brand hover:bg-brand text-[#2a2a4e] rounded-lg text-xs font-medium transition-all disabled:opacity-50"
             >
               {localSaving ? 'Saving...' : 'Save'}
             </button>

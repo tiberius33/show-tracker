@@ -26,6 +26,7 @@ module.exports = {
           light: 'var(--amber-light)',
           subtle: 'var(--amber-subtle)',
         },
+        accent: 'var(--accent-purple)',
         primary: 'var(--text-primary)',
         secondary: 'var(--text-secondary)',
         muted: 'var(--text-muted)',

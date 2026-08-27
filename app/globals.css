@@ -2,38 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── MySetlists Light Brand Theme ────────────────── */
+/* ── MySetlists Concert Venue Theme ────────────────── */
 :root {
   /* Core brand */
-  --green-primary: #4bc86a;
-  --green-light: #7dd99a;
-  --green-subtle: #edf8f1;
-  --amber: #f5a623;
-  --amber-light: #fbbf5a;
-  --amber-subtle: #fef8ee;
+  --green-primary: #ffd700;
+  --green-light: #ffe45c;
+  --green-subtle: rgba(255, 215, 0, 0.12);
+  --amber: #ffb700;
+  --amber-light: #ffc94d;
+  --amber-subtle: rgba(255, 183, 0, 0.12);
+  --accent-purple: #d946ef;
   /* Backgrounds */
-  --bg-base: #f4f6f9;
-  --bg-surface: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-hover: #edf0f5;
-  --bg-sidebar: #1e2538;
+  --bg-base: #2a2a4e;
+  --bg-surface: #1f1f3a;
+  --bg-elevated: #1f1f3a;
+  --bg-hover: #35355e;
+  --bg-sidebar: #1f1f3a;
   /* Text */
-  --text-primary: #1a1d2e;
-  --text-secondary: #5a6280;
-  --text-muted: #9ea8c4;
-  --text-on-dark: #ffffff;
-  --text-on-dark-muted: #8891ab;
+  --text-primary: #f5f5f5;
+  --text-secondary: #b0b0b0;
+  --text-muted: #82829c;
+  --text-on-dark: #f5f5f5;
+  --text-on-dark-muted: #b0b0b0;
   /* Borders */
-  --border-subtle: #e8ecf3;
-  --border-active: #c8d0e0;
+  --border-subtle: rgba(255, 215, 0, 0.15);
+  --border-active: rgba(255, 215, 0, 0.4);
   /* Semantic */
   --success: #4bc86a;
   --danger: #e05555;
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(30,37,56,0.08);
-  --shadow-md: 0 4px 12px rgba(30,37,56,0.10);
-  --shadow-lg: 0 8px 24px rgba(30,37,56,0.12);
-  --shadow-xl: 0 20px 48px rgba(30,37,56,0.14);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.30);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.40);
+  --shadow-xl: 0 20px 48px rgba(0,0,0,0.45);
 }
 
 /* Hide scrollbar for horizontal scroll containers */

@@ -177,7 +177,7 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={() => { onCreateAccount?.(); onClose?.(); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-brand text-white font-bold text-[14px] hover:bg-[#42b75f] transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-brand text-[#2a2a4e] font-bold text-[14px] hover:bg-[#e6c200] transition-colors"
               >
                 <User size={16} strokeWidth={2.4} />
                 Create account

@@ -34,7 +34,7 @@ export default function Tag({
       className={[
         'inline-flex items-center gap-1.5 text-[13px] font-semibold rounded-full border px-3 py-1 transition-colors',
         selected
-          ? 'bg-brand-subtle border-brand text-[#2a8a47]'
+          ? 'bg-brand-subtle border-brand text-brand'
           : 'bg-surface border-subtle text-secondary hover:border-active hover:text-primary',
         interactive && 'cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
         className,

@@ -257,7 +257,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                 {files.length > 0 ? 'Add More Photos' : 'Take Photo or Choose'}
               </Button>
             ) : (
-              <label className="inline-flex items-center justify-center gap-2 text-[15px] font-bold px-[18px] py-2.5 rounded-full cursor-pointer whitespace-nowrap select-none transition-all duration-150 bg-brand text-white hover:bg-[#42b75f] shadow-[0_1px_2px_rgba(75,200,106,0.25)] hover:shadow-[0_4px_12px_rgba(75,200,106,0.3)] hover:-translate-y-0.5 active:translate-y-0">
+              <label className="inline-flex items-center justify-center gap-2 text-[15px] font-bold px-[18px] py-2.5 rounded-full cursor-pointer whitespace-nowrap select-none transition-all duration-150 bg-brand text-[#2a2a4e] hover:bg-[#e6c200] shadow-[0_1px_2px_rgba(255,215,0,0.25)] hover:shadow-[0_4px_12px_rgba(255,215,0,0.3)] hover:-translate-y-0.5 active:translate-y-0">
                 <Camera size={16} strokeWidth={2.4} />
                 {files.length > 0 ? 'Add More Images' : 'Select Images'}
                 <input

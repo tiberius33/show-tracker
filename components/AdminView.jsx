@@ -2166,7 +2166,7 @@ function AdminView() {
                 <button
                   onClick={createRoadmapItem}
                   disabled={!newItemTitle.trim() || savingItem}
-                  className="px-4 py-2 bg-brand hover:bg-brand text-on-dark rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-brand hover:bg-brand text-[#2a2a4e] rounded-xl text-sm font-medium transition-all disabled:opacity-50"
                 >
                   {savingItem ? 'Creating...' : 'Create Draft'}
                 </button>
@@ -2625,7 +2625,7 @@ function AdminView() {
                           <button
                             key={f}
                             onClick={() => setMissingSetlistsFilter(f)}
-                            className={`px-3 py-1.5 transition-colors capitalize ${missingSetlistsFilter === f ? 'bg-brand text-on-dark' : 'text-secondary hover:text-primary'}`}
+                            className={`px-3 py-1.5 transition-colors capitalize ${missingSetlistsFilter === f ? 'bg-brand text-[#2a2a4e]' : 'text-secondary hover:text-primary'}`}
                           >
                             {f === 'all' ? `All (${missingSetlistsResults.results.length})` :
                              f === 'matched' ? `Matched (${missingSetlistsResults.results.filter(r => r.matchSource !== 'none').length})` :
