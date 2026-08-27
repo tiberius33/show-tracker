@@ -19,8 +19,8 @@ import { Loader2 } from 'lucide-react';
 
 const VARIANTS = {
   primary:
-    'bg-brand text-white hover:bg-[#42b75f] shadow-[0_1px_2px_rgba(75,200,106,0.25)] ' +
-    'hover:shadow-[0_4px_12px_rgba(75,200,106,0.3)] hover:-translate-y-0.5 active:translate-y-0 ' +
+    'bg-brand text-[#2a2a4e] hover:bg-[#e6c200] shadow-[0_1px_2px_rgba(255,215,0,0.25)] ' +
+    'hover:shadow-[0_4px_12px_rgba(255,215,0,0.3)] hover:-translate-y-0.5 active:translate-y-0 ' +
     'focus-visible:ring-brand/40',
   secondary:
     'bg-surface text-primary border border-subtle hover:border-active hover:-translate-y-0.5 ' +

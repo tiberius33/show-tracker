@@ -8,8 +8,11 @@ function ReleaseNotesView() {
     {
       version: '5.0.0',
       date: 'August 26, 2026',
-      title: 'Add Song Fix on Stats Page',
+      title: 'Concert Venue Theme — Gold & Purple Redesign',
       changes: [
+        'New: Site-wide "concert venue" color palette — dark navy backgrounds with stage-gold and amber accents, plus a bright purple highlight for a third layer of contrast',
+        'Every screen uses the same token-based theme, so the new palette applies consistently across Shows, Stats, Profile, Admin, and the logged-out landing page',
+        'Buttons, badges, tags, and the year-in-review heatmap were re-checked for text contrast against the new brighter accent colors',
         'Fixed: "Add a song setlist.fm missed" is now available on shows opened from the Stats page (Years and Top Shows) — it was previously wired up only on the Shows page',
       ]
     },

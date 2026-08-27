@@ -8,7 +8,7 @@ import Card from '../ui/Card';
 const TONES = {
   amber:  'text-amber',
   green:  'text-brand',
-  purple: 'text-[#a78bfa]',
+  purple: 'text-accent',
   blue:   'text-[#60a5fa]',
   red:    'text-danger',
 };

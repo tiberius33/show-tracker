@@ -51,7 +51,7 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                       </span>
                     )}
                     {t.debut && (
-                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2a8a47] bg-brand-subtle px-1.5 py-0.5 rounded">
+                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-brand bg-brand-subtle px-1.5 py-0.5 rounded">
                         debut
                       </span>
                     )}

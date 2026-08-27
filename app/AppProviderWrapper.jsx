@@ -238,7 +238,7 @@ function AppShell({ children }) {
 
       {/* Global toast notification */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 bg-brand text-on-dark rounded-2xl shadow-lg shadow-brand/40 font-medium text-sm animate-fade-in">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 bg-brand text-[#2a2a4e] rounded-2xl shadow-lg shadow-brand/40 font-medium text-sm animate-fade-in">
           {toast}
         </div>
       )}

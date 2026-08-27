@@ -20,10 +20,10 @@ function level(n, max) {
 
 const LEVEL_CLS = {
   0: 'bg-hover text-muted',
-  1: 'bg-brand-subtle text-[#2a8a47]',
-  2: 'bg-brand-light text-white',
-  3: 'bg-brand text-white',
-  4: 'bg-[#225732] text-white',
+  1: 'bg-brand-subtle text-brand',
+  2: 'bg-brand-light text-[#2a2a4e]',
+  3: 'bg-brand text-[#2a2a4e]',
+  4: 'bg-[#8a6d00] text-[#f5f5f5]',
 };
 
 export default function YearHeatmap({ counts = [], year, className = '' }) {

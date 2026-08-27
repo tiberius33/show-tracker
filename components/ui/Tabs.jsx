@@ -50,7 +50,7 @@ export default function Tabs({ tabs, value, onChange, className = '' }) {
               <span
                 className={[
                   'text-[11px] font-bold px-1.5 py-0.5 rounded-md',
-                  active ? 'bg-brand-subtle text-[#2a8a47]' : 'bg-hover text-muted',
+                  active ? 'bg-brand-subtle text-brand' : 'bg-hover text-muted',
                 ].join(' ')}
               >
                 {t.count}

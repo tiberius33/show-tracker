@@ -307,7 +307,7 @@ export default function ShowDetailView({
               className="flex-1 px-3 py-2 border border-subtle rounded-lg text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 resize-none"
             />
             <div className="flex flex-col gap-1">
-              <button onClick={saveNote} className="px-3 py-1.5 bg-brand text-on-dark rounded-lg text-xs font-medium">
+              <button onClick={saveNote} className="px-3 py-1.5 bg-brand text-[#2a2a4e] rounded-lg text-xs font-medium">
                 Save
               </button>
               <button onClick={() => setEditingNote(false)} className="px-3 py-1.5 bg-hover text-secondary rounded-lg text-xs font-medium">

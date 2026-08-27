@@ -64,7 +64,7 @@ export default function ArtistPicker({ onSelect }) {
           type="button"
           onClick={search}
           disabled={isSearching || !query.trim()}
-          className="px-5 py-2.5 bg-brand text-white rounded-xl font-semibold text-sm hover:bg-[#42b75f] transition-colors disabled:opacity-50 flex-shrink-0"
+          className="px-5 py-2.5 bg-brand text-[#2a2a4e] rounded-xl font-semibold text-sm hover:bg-[#e6c200] transition-colors disabled:opacity-50 flex-shrink-0"
         >
           {isSearching ? <Spinner size="sm" /> : 'Search'}
         </button>
