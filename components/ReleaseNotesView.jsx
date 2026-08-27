@@ -6,6 +6,14 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.0.0',
+      date: 'August 26, 2026',
+      title: 'Add Song Fix on Stats Page',
+      changes: [
+        'Fixed: "Add a song setlist.fm missed" is now available on shows opened from the Stats page (Years and Top Shows) — it was previously wired up only on the Shows page',
+      ]
+    },
+    {
       version: '4.1.1',
       date: 'August 26, 2026',
       title: 'Setlist Sections, Tagged Friends on Cards & Comments Removed',
