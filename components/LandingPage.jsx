@@ -5,6 +5,7 @@ import { Play } from 'lucide-react';
 import Pick from './brand/Pick';
 import { Button, Card, Badge } from './ui';
 import './LandingPage.css';
+import packageJson from '../package.json';
 
 function PickSimple({ size = 20 }) {
   return (
@@ -437,7 +438,7 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
         </div>
         <div className="lp-footer-bottom">
           <span>© 2026 MySetlists.net · Built by fans, for fans</span>
-          <span>v4.2.0</span>
+          <span>v{packageJson.version}</span>
         </div>
       </footer>
 
