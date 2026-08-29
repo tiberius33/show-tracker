@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, ExternalLink } from 'lucide-react';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { logEvent } from 'firebase/analytics';
-import { db, analytics } from '@/lib/firebase';
+import { db, getFirebaseAnalytics } from '@/lib/firebase';
 import { mergeTicketEvents, formatTicketDate } from '@/lib/utils';
 import { TICKET_CACHE_TTL } from '@/lib/constants';
 import { apiUrl } from '@/lib/api';
@@ -104,9 +103,13 @@ function UpcomingShows({ artistName }) {
     return () => { cancelled = true; };
   }, [artistName]);
 
-  function handleTicketClick(platform) {
+  async function handleTicketClick(platform) {
     try {
-      logEvent(analytics, `ticket_click_${platform}`, { artist: artistName });
+      const [analytics, { logEvent }] = await Promise.all([
+        getFirebaseAnalytics(),
+        import('firebase/analytics'),
+      ]);
+      if (analytics) logEvent(analytics, `ticket_click_${platform}`, { artist: artistName });
     } catch (_) {}
   }
 

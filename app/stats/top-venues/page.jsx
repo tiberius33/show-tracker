@@ -49,7 +49,7 @@ export default function TopVenuesPage() {
           <SectionHeader title="Top venues" />
           <TopList
             items={topVenues}
-            onItemClick={(it) => router.push(`/shows?venue=${encodeURIComponent(it.venue)}`)}
+            onItemClick={(it) => router.push(`/shows/?venue=${encodeURIComponent(it.venue)}`)}
           />
         </Card>
       ) : (

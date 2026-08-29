@@ -30,7 +30,7 @@ export default function ShowDetailClient({ id }) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <p className="text-lg text-primary mb-4">Show not found.</p>
-        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/shows')}>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/shows/')}>
           Back to shows
         </Button>
       </div>
@@ -42,7 +42,7 @@ export default function ShowDetailClient({ id }) {
       <ShowDetailView
         show={show}
         friends={friends}
-        onClose={() => router.push('/shows')}
+        onClose={() => router.push('/shows/')}
         onUpdateRating={updateShowRating}
         onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
         onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
