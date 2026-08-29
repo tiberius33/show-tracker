@@ -36,7 +36,7 @@ import SongHistoryModal from '@/components/SongHistoryModal';
 import { useApp } from '@/context/AppContext';
 import { apiUrl } from '@/lib/api';
 import { normalizeSongTitle } from '@/lib/utils';
-import { artistKeyFor, loadWishlist, addWishlistSong, removeWishlistSong } from '@/lib/wishlist';
+import { artistKeyFor, loadWishlist, addWishlistSong, removeWishlistSong, listWishlistedArtists } from '@/lib/wishlist';
 
 const ERROR_FLASH_MS = 5000;
 
@@ -109,6 +109,10 @@ export default function WishlistView() {
 
   const [wishlistMap, setWishlistMap] = useState({}); // { [normalizedKey]: { title, addedAt } } — single source of truth for "is this song starred", read by both the catalog list and the Wishlist column
   const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // ── Wishlist hub — every artist the user has starred at least one song for ──
+  const [wishlistedArtists, setWishlistedArtists] = useState([]);
+  const [wishlistedArtistsLoading, setWishlistedArtistsLoading] = useState(false);
   const [pendingKeys, setPendingKeys] = useState(() => new Set());
   const [errorKeys, setErrorKeys] = useState(() => new Set());
   const errorTimers = useRef({});
@@ -216,6 +220,26 @@ export default function WishlistView() {
     return () => { cancelled = true; };
   }, [artist, user]);
 
+  // Only needed on the picker/hub screen — skip while an artist is open, and
+  // refetch every time the user lands back here (e.g. via "Change artist")
+  // so a brand-new artist's first starred song shows up right away.
+  useEffect(() => {
+    if (!user || artist) return;
+    let cancelled = false;
+    (async () => {
+      setWishlistedArtistsLoading(true);
+      try {
+        const list = await listWishlistedArtists(user.uid);
+        if (!cancelled) setWishlistedArtists(list);
+      } catch (err) {
+        console.error('Failed to load wishlisted artists:', err);
+      } finally {
+        if (!cancelled) setWishlistedArtistsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, artist]);
+
   const flashError = useCallback((key) => {
     setErrorKeys(prev => new Set(prev).add(key));
     clearTimeout(errorTimers.current[key]);
@@ -288,19 +312,45 @@ export default function WishlistView() {
     }
   }, [user, artist, wishlistMap, pendingKeys, flashError, setToast]);
 
-  // ── Empty state: no artist selected yet ──────────────────────────────
+  // ── No artist selected yet: wishlist hub (if any) + the artist picker ──
   if (!artist) {
+    const hasWishlists = wishlistedArtists.length > 0;
     return (
-      <Card padding="lg">
-        <EmptyState
-          icon={Heart}
-          tone="brand"
-          title="Pick an artist to get started"
-          body="Search for an artist to see the songs you've caught live and build a wishlist of the ones you haven't."
-          action={<ArtistPicker onSelect={setArtist} />}
-          className="py-0"
-        />
-      </Card>
+      <div className="space-y-6">
+        {!wishlistedArtistsLoading && hasWishlists && (
+          <Card padding="md">
+            <div className="flex items-center gap-2 mb-4">
+              <Heart size={17} className="text-amber" strokeWidth={2.2} />
+              <h3 className="font-bold text-primary">Your Wishlists</h3>
+              <Badge tone="amber" size="sm">{wishlistedArtists.length}</Badge>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {wishlistedArtists.map((a) => (
+                <button
+                  key={a.artistKey}
+                  type="button"
+                  onClick={() => setArtist({ name: a.artistName, mbid: a.artistMbid })}
+                  className="flex flex-col items-start gap-1 px-4 py-3 rounded-xl bg-hover border border-transparent hover:border-amber/40 text-left transition-colors"
+                >
+                  <span className="font-semibold text-primary truncate w-full">{a.artistName}</span>
+                  <span className="text-xs text-muted">{a.songCount} song{a.songCount !== 1 ? 's' : ''}</span>
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        <Card padding="lg">
+          <EmptyState
+            icon={Heart}
+            tone="brand"
+            title={hasWishlists ? 'Start a wishlist for another artist' : 'Pick an artist to get started'}
+            body="Search for an artist to see the songs you've caught live and build a wishlist of the ones you haven't."
+            action={<ArtistPicker onSelect={setArtist} />}
+            className="py-0"
+          />
+        </Card>
+      </div>
     );
   }
 
