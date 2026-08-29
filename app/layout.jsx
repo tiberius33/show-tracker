@@ -1,6 +1,17 @@
 import { Suspense } from 'react';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import AppProviderWrapper from './AppProviderWrapper';
+
+// Self-hosted via next/font: downloaded at build time and served from our
+// own origin, so there's no render-blocking request to fonts.googleapis.com
+// (previously a <link rel="stylesheet"> in <head> plus two preconnects).
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+});
 
 export const metadata = {
   title: {
@@ -42,12 +53,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
-      </head>
-      <body>
+      <body className={plusJakartaSans.className}>
         <Suspense fallback={
           <div className="min-h-screen flex items-center justify-center bg-base">
             <div className="text-muted font-medium">Loading...</div>

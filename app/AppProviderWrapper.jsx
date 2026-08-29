@@ -1,19 +1,29 @@
 'use client';
 
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { AppProvider, useApp } from '@/context/AppContext';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileHeader from '@/components/layout/MobileHeader';
-import VenueRatingModal from '@/components/VenueRatingModal';
 import InstallPrompt from '@/components/InstallPrompt';
 import Footer from '@/components/Footer';
-import AuthModal from '@/components/auth/AuthModal';
-import LandingPage from '@/components/LandingPage';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import { extractFirstName } from '@/lib/utils';
 import { initCapacitorPlugins } from '@/lib/capacitor';
 import { registerServiceWorker } from '@/lib/service-worker';
 import { Music, Check, Sparkles } from 'lucide-react';
+
+// Code-split: each of these only renders behind a runtime condition (logged
+// out, a modal opened, a venue being rated) that's never known at build time
+// for a fully client-rendered static export — every signed-in page was
+// shipping LandingPage's ~450 lines + 23KB of CSS, AuthModal, and
+// VenueRatingModal whether or not it ever used them. `ssr: false` is safe
+// here specifically because authLoading starts `true`, so the statically
+// exported HTML never contained real LandingPage markup to begin with —
+// there's nothing pre-rendered to lose.
+const LandingPage = dynamic(() => import('@/components/LandingPage'), { ssr: false });
+const AuthModal = dynamic(() => import('@/components/auth/AuthModal'), { ssr: false });
+const VenueRatingModal = dynamic(() => import('@/components/VenueRatingModal'), { ssr: false });
 
 export default function AppProviderWrapper({ children }) {
   return (
