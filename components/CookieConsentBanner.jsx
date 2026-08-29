@@ -23,10 +23,17 @@ export default function CookieConsentBanner() {
     setVisible(false);
   };
 
-  if (!visible) return null;
-
+  // Stay mounted at all times and animate with `transform` instead of
+  // conditionally rendering the node. A freshly-inserted fixed-position
+  // element still counts toward Cumulative Layout Shift the first time it
+  // appears — transform/opacity changes on an already-mounted element don't.
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+    <div
+      className={`fixed bottom-0 left-0 right-0 z-50 p-4 transition-transform duration-300 ${
+        visible ? 'translate-y-0' : 'translate-y-full pointer-events-none'
+      }`}
+      aria-hidden={!visible}
+    >
       <div className="max-w-2xl mx-auto bg-elevated/95 backdrop-blur-xl border border-subtle rounded-2xl p-5 shadow-2xl">
         <p className="text-sm text-secondary mb-4">
           We use cookies to keep you signed in and improve your experience. See our{' '}

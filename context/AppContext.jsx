@@ -7,7 +7,7 @@ import {
   collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc,
   serverTimestamp, onSnapshot, query, where, addDoc, writeBatch,
 } from 'firebase/firestore';
-import { auth, db, googleProvider } from '@/lib/firebase';
+import { auth, db, googleProvider, browserPopupRedirectResolver } from '@/lib/firebase';
 import { formatDate, parseDate, extractFirstName } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
@@ -815,7 +815,7 @@ export function AppProvider({ children }) {
   // ── Auth handlers ───────────────────────────────────────────────────
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
     } catch (error) {
       console.error('Login failed:', error);
       if (error.code !== 'auth/popup-closed-by-user') {
