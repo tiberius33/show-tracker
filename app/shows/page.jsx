@@ -28,7 +28,7 @@ export default function ShowsPage() {
     searchTerm, setSearchTerm,
     filterYear, setFilterYear, filterDate, setFilterDate, availableYears,
     sortBy, setSortBy,
-    addShow, updateShowRating, updateShowComment, deleteShow, updateShowData, backfillArtistImages,
+    addShow, updateShowRating, updateShowComment, deleteShow, updateShowData, backfillArtistImages, backfillShowPostersQuick, lookupShowPosterDeep,
     addSongToShow, updateSetlistOrder,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow,
@@ -107,6 +107,19 @@ export default function ShowsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
+  // Backfill quick (Ticketmaster/SeatGeek) poster lookups for existing shows —
+  // runs once after shows load, non-blocking. The deep (AI) lookup steps are
+  // manual-trigger only and are never part of this background backfill.
+  useEffect(() => {
+    if (isLoading || !shows.length) return;
+    const hasMissing = shows.some(s => !s.posterCheckedQuick);
+    if (hasMissing) {
+      const timer = setTimeout(() => backfillShowPostersQuick(), 4000);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
   if (isLoading) {
     return <ShowsListSkeleton />;
   }
@@ -132,6 +145,7 @@ export default function ShowsPage() {
           isArtistFavorite={isArtistFavorite}
           allShows={shows}
           user={user}
+          onLookupPosterDeep={!guestMode ? lookupShowPosterDeep : undefined}
         />
         {tagFriendsShow && (
           <TagFriendsModal

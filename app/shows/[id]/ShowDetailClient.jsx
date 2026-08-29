@@ -19,7 +19,7 @@ export default function ShowDetailClient({ id }) {
     updateShowRating, updateShowData, updateShowComment,
     tagFriendsAtShow, tagFriendByEmail, tagFriendsShow, setTagFriendsShow,
     deleteShow, toggleFavoriteArtist, isArtistFavorite, addSongToShow,
-    updateSetlistOrder,
+    updateSetlistOrder, lookupShowPosterDeep,
   } = useApp();
 
   const [playlistShow, setPlaylistShow] = useState(null);
@@ -55,6 +55,7 @@ export default function ShowDetailClient({ id }) {
         isArtistFavorite={isArtistFavorite}
         allShows={shows}
         user={user}
+        onLookupPosterDeep={!guestMode ? lookupShowPosterDeep : undefined}
       />
       {tagFriendsShow && (
         <TagFriendsModal
