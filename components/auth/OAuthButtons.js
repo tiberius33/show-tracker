@@ -15,7 +15,7 @@ const providers = [
   {
     id: 'google',
     name: 'Google',
-    icon: <GoogleIcon />,
+    Icon: GoogleIcon,
   },
 ];
 
@@ -29,10 +29,10 @@ export default function OAuthButtons({ onProviderClick, disabled = false, action
           key={provider.id}
           variant="secondary"
           full
+          icon={provider.Icon}
           onClick={() => onProviderClick(provider.id)}
           disabled={disabled}
         >
-          {provider.icon}
           {actionText} with {provider.name}
         </Button>
       ))}

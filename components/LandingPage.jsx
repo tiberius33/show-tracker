@@ -30,10 +30,10 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             </div>
           </div>
           <div className="lp-nav-links">
-            <a>Browse</a>
-            <a>Artists</a>
-            <a>Venues</a>
-            <a>Stats</a>
+            <Link href="/shows">Browse</Link>
+            <Link href="/stats/top-artists">Artists</Link>
+            <Link href="/stats/top-venues">Venues</Link>
+            <Link href="/stats">Stats</Link>
           </div>
           <div className="lp-nav-right">
             <Button variant="ghost" size="sm" onClick={onSignIn}>Log in</Button>
@@ -248,31 +248,25 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
                     <PickSimple size={20} />
                     <div className="lp-wm"><span className="lp-my">my</span><span className="lp-set">setlists</span></div>
                   </div>
-                  <div className="lp-app-sb-sec">Library</div>
                   <div className="lp-app-sb-item lp-active">
-                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 19 22 12 17 5 22 7 14 2 9 9 9 12 2" /></svg>
-                    My shows <span className="lp-ct">87</span>
+                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><line x1="8" x2="21" y1="6" y2="6" /><line x1="8" x2="21" y1="12" y2="12" /><line x1="8" x2="21" y1="18" y2="18" /><line x1="3" x2="3.01" y1="6" y2="6" /><line x1="3" x2="3.01" y1="12" y2="12" /><line x1="3" x2="3.01" y1="18" y2="18" /></svg>
+                    My Shows <span className="lp-ct">87</span>
                   </div>
                   <div className="lp-app-sb-item">
-                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87M4 21v-2a4 4 0 0 1 3-3.87M16 3.13a4 4 0 0 1 0 7.75M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" /></svg>
+                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
                     Wishlist <span className="lp-ct">12</span>
                   </div>
                   <div className="lp-app-sb-item">
-                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></svg>
                     Upcoming <span className="lp-ct">4</span>
                   </div>
-                  <div className="lp-app-sb-sec">Discover</div>
                   <div className="lp-app-sb-item">
-                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                    Artists
-                  </div>
-                  <div className="lp-app-sb-item">
-                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /></svg>
-                    Venues
-                  </div>
-                  <div className="lp-app-sb-item">
-                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l3-3 4 4 5-6" /></svg>
+                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>
                     Stats
+                  </div>
+                  <div className="lp-app-sb-item">
+                    <svg className="lp-ico lp-ico-sm" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                    Profile
                   </div>
                 </div>
                 <div className="lp-app-main">
@@ -418,16 +412,16 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
           </div>
           <div className="lp-footer-col">
             <h4>Product</h4>
-            <a>Browse shows</a>
-            <a>Artists</a>
-            <a>Venues</a>
-            <a>Stats</a>
+            <Link href="/shows">Browse shows</Link>
+            <Link href="/stats/top-artists">Artists</Link>
+            <Link href="/stats/top-venues">Venues</Link>
+            <Link href="/stats">Stats</Link>
           </div>
           <div className="lp-footer-col">
             <h4>Resources</h4>
-            <a>How to use</a>
+            <Link href="/how-to-use">How to use</Link>
             <a href="https://buymeacoffee.com/phillipd" target="_blank" rel="noopener noreferrer">Support this project</a>
-            <a>Community</a>
+            <Link href="/community">Community</Link>
           </div>
           <div className="lp-footer-col">
             <h4>Company</h4>

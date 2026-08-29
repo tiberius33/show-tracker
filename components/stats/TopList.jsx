@@ -10,16 +10,21 @@
 //   ]} />
 
 import React from 'react';
+import { ChevronRight } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
-export default function TopList({ items = [], max, className = '' }) {
+export default function TopList({ items = [], max, className = '', onItemClick }) {
   const cap = max ?? (items[0]?.count || 1);
   return (
     <ul className={`list-none p-0 m-0 ${className}`}>
       {items.map((it, i) => (
         <li
           key={it.id || it.name}
-          className="grid grid-cols-[24px_48px_1fr_auto] items-center gap-3.5 py-3 border-b border-subtle last:border-0"
+          onClick={onItemClick ? () => onItemClick(it) : undefined}
+          className={[
+            'group grid items-center gap-3.5 py-3 border-b border-subtle last:border-0',
+            onItemClick ? 'grid-cols-[24px_48px_1fr_auto_auto] cursor-pointer -mx-2 px-2 rounded-lg transition-colors hover:bg-hover' : 'grid-cols-[24px_48px_1fr_auto]',
+          ].join(' ')}
         >
           <span className={`font-mono text-xs font-extrabold ${i === 0 ? 'text-amber' : 'text-muted'}`}>
             #{i + 1}
@@ -36,6 +41,9 @@ export default function TopList({ items = [], max, className = '' }) {
             </div>
           </div>
           <div className="font-mono font-extrabold text-[16px] text-primary">{it.count}</div>
+          {onItemClick && (
+            <ChevronRight className="w-4 h-4 text-muted group-hover:text-secondary group-hover:translate-x-0.5 transition-all" />
+          )}
         </li>
       ))}
     </ul>

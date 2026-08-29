@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Users } from 'lucide-react';
 import { PageHeader, SectionHeader, Tag, Card, EmptyState } from '@/components/ui';
 import TopList from '@/components/stats/TopList';
@@ -8,6 +9,7 @@ import StatsSubNav from '@/components/stats/StatsSubNav';
 import { useStatsPeriod } from '@/lib/useStatsPeriod';
 
 export default function TopArtistsPage() {
+  const router = useRouter();
   const { period, setPeriod, periodShows, periodLabels } = useStatsPeriod();
 
   const topArtists = useMemo(() => {
@@ -41,7 +43,10 @@ export default function TopArtistsPage() {
       {topArtists.length > 0 ? (
         <Card padding="lg">
           <SectionHeader title="Top artists" />
-          <TopList items={topArtists} />
+          <TopList
+            items={topArtists}
+            onItemClick={(it) => router.push(`/shows?artist=${encodeURIComponent(it.name)}`)}
+          />
         </Card>
       ) : (
         <EmptyState icon={Users} title="No shows tracked yet" body="Add some shows to see your top artists." />
