@@ -5,7 +5,7 @@ import {
   updateProfile,
   signInWithPopup
 } from 'firebase/auth';
-import { auth, authProviders } from '@/lib/firebase';
+import { auth, authProviders, browserPopupRedirectResolver } from '@/lib/firebase';
 import { nativeGoogleSignIn } from '@/lib/native-auth';
 import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
@@ -82,7 +82,7 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
       // If native didn't handle it, use web popup
       if (!result) {
         const provider = authProviders[providerName];
-        await signInWithPopup(auth, provider);
+        await signInWithPopup(auth, provider, browserPopupRedirectResolver);
       }
 
       onSuccess?.();
