@@ -16,6 +16,18 @@ const REDDIT_USER_AGENT = 'MySetlistsApp/1.0 (show-tracker poster lookup; contac
 const PAGE_FETCH_TIMEOUT_MS = 8000;
 const MAX_PAGE_BYTES = 500 * 1024;
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
+const POSTER_LOOKBACK_YEARS = 5;
+
+// Artist name (lowercase) → dedicated subreddit slug.
+const ARTIST_SUBREDDITS = {
+  'goose': 'GoosetheBand',
+  'phish': 'phish',
+  'grateful dead': 'gratefuldead',
+  'dead & company': 'deadandcompany',
+  'dead and company': 'deadandcompany',
+  'widespread panic': 'widespreadpanic',
+  'billy strings': 'billystrings',
+};
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -25,6 +37,15 @@ function normalizeDate(date) {
   const ddmmyyyy = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
   if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
   return date;
+}
+
+// Returns false for shows older than POSTER_LOOKBACK_YEARS — poster art is
+// almost never findable for distant-past shows, so skip them cheaply.
+function isRecentEnough(date) {
+  if (!date) return false;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - POSTER_LOOKBACK_YEARS);
+  return new Date(date) >= cutoff;
 }
 
 function httpsGetJson(url, headers = {}) {
@@ -256,8 +277,14 @@ function extractRedditImageCandidates(post) {
 }
 
 async function searchReddit(show) {
-  const query = `${show.artist} ${show.venue || ''} setlist`.trim();
-  const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=relevance&limit=10`;
+  const normalizedArtist = show.artist.trim().toLowerCase();
+  const subreddit = ARTIST_SUBREDDITS[normalizedArtist];
+  const query = subreddit
+    ? `${show.venue || ''} setlist ${show.date || ''}`.trim()
+    : `${show.artist} ${show.venue || ''} setlist`.trim();
+  const url = subreddit
+    ? `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=relevance&limit=10&restrict_sr=1`
+    : `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=relevance&limit=10`;
 
   let body;
   try {
@@ -268,10 +295,12 @@ async function searchReddit(show) {
   }
 
   const posts = body?.data?.children || [];
-  const normalizedArtist = show.artist.trim().toLowerCase();
-  const relevant = posts
-    .filter((p) => (p.data?.title || '').toLowerCase().includes(normalizedArtist))
-    .slice(0, 6);
+  // For subreddit-scoped searches every post is already about the right artist;
+  // for global searches filter by artist name in the title.
+  const relevant = (subreddit
+    ? posts
+    : posts.filter((p) => (p.data?.title || '').toLowerCase().includes(normalizedArtist))
+  ).slice(0, 6);
   if (!relevant.length) return null;
 
   const candidates = [];
@@ -364,6 +393,9 @@ exports.handler = async function (event) {
   const date = normalizeDate(event.queryStringParameters?.date);
   if (!artist || !date) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'artist and date are required' }) };
+  }
+  if (!isRecentEnough(date)) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ found: false }) };
   }
 
   const show = { artist, venue, date, tour };
