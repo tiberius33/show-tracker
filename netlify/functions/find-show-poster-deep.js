@@ -19,6 +19,14 @@ const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+// Accepts DD-MM-YYYY or YYYY-MM-DD, always returns YYYY-MM-DD.
+function normalizeDate(date) {
+  if (!date) return date;
+  const ddmmyyyy = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+  return date;
+}
+
 function httpsGetJson(url, headers = {}) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { Accept: 'application/json', ...headers } }, (res) => {
@@ -352,7 +360,8 @@ exports.handler = async function (event) {
     return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { artist, venue, date, tour } = event.queryStringParameters || {};
+  const { artist, venue, tour } = event.queryStringParameters || {};
+  const date = normalizeDate(event.queryStringParameters?.date);
   if (!artist || !date) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'artist and date are required' }) };
   }
