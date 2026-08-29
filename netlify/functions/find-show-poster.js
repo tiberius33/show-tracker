@@ -39,6 +39,13 @@ function normalizeDate(date) {
   return date;
 }
 
+function isRecentEnough(date) {
+  if (!date) return false;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 5);
+  return new Date(date) >= cutoff;
+}
+
 function venuesMatch(a, b) {
   if (!a || !b) return false;
   const na = normalize(a);
@@ -145,6 +152,9 @@ exports.handler = async function (event) {
   const date = normalizeDate(event.queryStringParameters?.date);
   if (!artist || !date) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'artist and date are required' }) };
+  }
+  if (!isRecentEnough(date)) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ found: false }) };
   }
 
   try {
