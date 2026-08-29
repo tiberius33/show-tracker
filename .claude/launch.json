@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "show-tracker-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "out", "-l", "4100"],
+      "port": 4100
     }
   ]
 }

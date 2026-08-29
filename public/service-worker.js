@@ -1,10 +1,11 @@
-const CACHE_NAME = 'mysetlists-v2';
+const CACHE_NAME = 'mysetlists-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
-  '/icon-192.png'
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 // Install event - cache static assets
