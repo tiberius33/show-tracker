@@ -15,11 +15,11 @@ export default function Pick({ size = 32, className = '' }) {
       role="img"
       aria-label="MySetlists"
     >
-      {/* Pick body — green gradient */}
+      {/* Pick body — brand gold gradient, matches --green-primary / --green-light */}
       <defs>
         <linearGradient id="mys-pick-g" x1="20" y1="4" x2="20" y2="36" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7dd99a" />
-          <stop offset="1" stopColor="#4bc86a" />
+          <stop stopColor="var(--green-light, #ffe45c)" />
+          <stop offset="1" stopColor="var(--green-primary, #ffd700)" />
         </linearGradient>
       </defs>
       <path
