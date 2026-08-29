@@ -12,6 +12,7 @@ import LandingPage from '@/components/LandingPage';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import { extractFirstName } from '@/lib/utils';
 import { initCapacitorPlugins } from '@/lib/capacitor';
+import { registerServiceWorker } from '@/lib/service-worker';
 import { Music, Check, Sparkles } from 'lucide-react';
 
 export default function AppProviderWrapper({ children }) {
@@ -39,9 +40,10 @@ function AppShell({ children }) {
     handleAuthSuccess,
   } = useApp();
 
-  // Initialize Capacitor native plugins on mount
+  // Initialize Capacitor native plugins and the offline service worker on mount
   useEffect(() => {
     initCapacitorPlugins();
+    registerServiceWorker();
   }, []);
 
   // Show loading state while auth initializes
