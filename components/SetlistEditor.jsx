@@ -485,7 +485,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
           onClose={() => setSongHistoryTarget(null)}
           onViewShow={(targetShow) => {
             setSongHistoryTarget(null);
-            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows'); }
+            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows/'); }
           }}
         />
       )}

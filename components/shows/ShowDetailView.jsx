@@ -590,7 +590,7 @@ export default function ShowDetailView({
           onClose={() => setSongHistorySong(null)}
           onViewShow={(targetShow) => {
             setSongHistorySong(null);
-            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows'); }
+            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows/'); }
           }}
         />
       )}

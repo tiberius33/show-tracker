@@ -496,7 +496,7 @@ export default function WishlistView() {
           artistName={artist.name}
           allShows={shows}
           onClose={() => setSongHistory(null)}
-          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows'); }}
+          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows/'); }}
         />
       )}
     </div>

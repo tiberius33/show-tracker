@@ -88,8 +88,24 @@ async function updateUserProfile(user, shows = []) {
 }
 
 // ── Helper: rebuild community-wide leaderboard stats ────────────────────
+// This scans every user profile and, per profile, reads that user's entire
+// shows subcollection — an N+1 read pattern that gets more expensive as the
+// user base grows. It's triggered on every page load plus every add/delete
+// show, for every user, but the leaderboard it produces only needs to be
+// roughly fresh — so skip the rebuild unless the cached stats are stale.
+const COMMUNITY_STATS_MAX_AGE_MS = 60 * 60 * 1000;
+
 async function updateCommunityStats() {
   try {
+    const statsRef = doc(db, 'communityStats', 'global');
+    const existingStats = await getDoc(statsRef);
+    if (existingStats.exists()) {
+      const updatedAtMs = existingStats.data().updatedAt?.toMillis?.();
+      if (updatedAtMs && Date.now() - updatedAtMs < COMMUNITY_STATS_MAX_AGE_MS) {
+        return;
+      }
+    }
+
     const profilesSnapshot = await getDocs(collection(db, 'userProfiles'));
     const profiles = profilesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -163,7 +179,6 @@ async function updateCommunityStats() {
       .sort((a, b) => b.showCount - a.showCount)
       .slice(0, 5);
 
-    const statsRef = doc(db, 'communityStats', 'global');
     await setDoc(statsRef, {
       updatedAt: serverTimestamp(),
       totalUsers: profiles.length,
@@ -224,7 +239,7 @@ export function AppProvider({ children }) {
   // navigateTo pushes a new route instead of setting ?view= query params.
   const navigateTo = (view) => {
     setActiveView(view);
-    router.push('/' + view);
+    router.push('/' + view + '/');
   };
 
   // Capture invite referral from URL param (?ref=uid) and persist in storage

@@ -59,7 +59,7 @@ export default function ProfilePage() {
           <Button
             variant="secondary"
             icon={Users}
-            onClick={() => router.push('/friends')}
+            onClick={() => router.push('/friends/')}
             className="relative"
           >
             Friends
@@ -99,7 +99,7 @@ export default function ProfilePage() {
                 as="button"
                 padding="none"
                 interactive
-                onClick={() => { setSelectedShow(s); router.push('/shows'); }}
+                onClick={() => { setSelectedShow(s); router.push('/shows/'); }}
                 className="w-full flex items-center gap-4 px-4 py-3 text-left"
               >
                 <div className="min-w-0 flex-1">
@@ -126,7 +126,7 @@ export default function ProfilePage() {
         onProfileUpdate={() => {}}
         onViewShow={(show) => {
           setSelectedShow(show);
-          router.push('/shows');
+          router.push('/shows/');
         }}
         friends={friends}
         favoriteArtists={favoriteArtists}

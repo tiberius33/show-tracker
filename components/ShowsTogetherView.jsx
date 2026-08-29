@@ -266,7 +266,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
           artistName={songHistory.artistName}
           allShows={allShows}
           onClose={() => setSongHistory(null)}
-          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows'); }}
+          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows/'); }}
         />
       )}
     </div>
