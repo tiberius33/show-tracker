@@ -31,6 +31,14 @@ function normalize(s) {
   return (s || '').trim().toLowerCase();
 }
 
+// Accepts DD-MM-YYYY or YYYY-MM-DD, always returns YYYY-MM-DD.
+function normalizeDate(date) {
+  if (!date) return date;
+  const ddmmyyyy = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+  return date;
+}
+
 function venuesMatch(a, b) {
   if (!a || !b) return false;
   const na = normalize(a);
@@ -133,7 +141,8 @@ exports.handler = async function (event) {
     return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { artist, venue, date, city } = event.queryStringParameters || {};
+  const { artist, venue, city } = event.queryStringParameters || {};
+  const date = normalizeDate(event.queryStringParameters?.date);
   if (!artist || !date) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'artist and date are required' }) };
   }
