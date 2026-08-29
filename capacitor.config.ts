@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
 
   ios: {
     scheme: 'mysetlists',
-    backgroundColor: '#f4f6f9',
+    backgroundColor: '#1f1f3a',
   },
 
   server: {
@@ -31,7 +31,7 @@ const config: CapacitorConfig = {
     },
     SplashScreen: {
       launchAutoHide: true,
-      backgroundColor: '#f4f6f9',
+      backgroundColor: '#1f1f3a',
       androidSplashResourceName: 'splash',
       showSpinner: false,
     },

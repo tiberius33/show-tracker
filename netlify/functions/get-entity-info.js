@@ -7,6 +7,25 @@ const CORS_HEADERS = {
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// Known cases where a direct title match resolves to something else entirely
+// (not even a disambiguation page — Wikipedia just has an unrelated primary
+// topic at that title) and the general search-based fallback below, while it
+// should catch these too, is worth pinning down explicitly. Keys are
+// lowercased artist names.
+const ARTIST_TITLE_OVERRIDES = {
+  goose: 'Goose (American band)', // direct title match otherwise lands on the bird
+};
+
+// Wikipedia's short description (Wikidata-derived) is a reliable, cheap
+// signal for "is this actually a musical act" — real band/artist pages
+// consistently say things like "American rock band" or "British singer",
+// while a same-titled non-band page won't mention any of this vocabulary.
+const MUSICAL_ACT_DESCRIPTION_RE = /\b(band|musician|singer|rapper|songwriter|duo|trio|quartet|group|orchestra|ensemble|composer|dj|producer|rock|pop|jazz|folk|metal|hip.?hop)\b/i;
+
+function looksLikeMusicalAct(description) {
+  return !!description && MUSICAL_ACT_DESCRIPTION_RE.test(description);
+}
+
 // --- Firebase Admin (lazy init, graceful degradation if env vars missing) ---
 
 function getDb() {
@@ -49,6 +68,59 @@ function httpsGet(url) {
       });
     }).on('error', reject);
   });
+}
+
+// --- Wikipedia lookups ---
+
+async function fetchSummary(title) {
+  const encodedTitle = encodeURIComponent(title.trim().replace(/\s+/g, '_'));
+  const { statusCode, body } = await httpsGet(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`);
+  return { statusCode, body, title };
+}
+
+// Full-text search, used only as a fallback when the direct title match is
+// wrong or ambiguous — returns candidate page titles ranked by relevance.
+async function searchWikipedia(term) {
+  const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=5&srsearch=${encodeURIComponent(term)}`;
+  try {
+    const { statusCode, body } = await httpsGet(url);
+    if (statusCode !== 200) return [];
+    return (body?.query?.search || []).map((r) => r.title);
+  } catch {
+    return [];
+  }
+}
+
+// Resolves an artist name to the summary of its actual musical-act page.
+// Direct title matches work for the vast majority of artists, but a name
+// that collides with a more common word or topic (Goose the jam band vs.
+// Goose the bird; Kiss the band vs. the act of kissing; Rush's disambiguation
+// page) needs a second pass: search Wikipedia and pick the first result
+// whose short description actually reads like a musical act.
+async function resolveArtistSummary(name) {
+  const overrideTitle = ARTIST_TITLE_OVERRIDES[name.trim().toLowerCase()];
+  const direct = await fetchSummary(overrideTitle || name);
+
+  if (overrideTitle) return direct;
+
+  const isDisambiguation = direct.statusCode === 200 && direct.body?.type === 'disambiguation';
+  const isMissing = direct.statusCode === 404;
+  const isWrongTopic = direct.statusCode === 200 && !isDisambiguation && !looksLikeMusicalAct(direct.body?.description);
+
+  if (!isDisambiguation && !isMissing && !isWrongTopic) return direct;
+
+  const candidates = await searchWikipedia(`${name} band`);
+  for (const candidateTitle of candidates) {
+    if (candidateTitle.toLowerCase() === name.trim().toLowerCase()) continue; // already tried above
+    const candidate = await fetchSummary(candidateTitle);
+    if (candidate.statusCode === 200 && candidate.body?.type !== 'disambiguation' && looksLikeMusicalAct(candidate.body?.description)) {
+      return candidate;
+    }
+  }
+
+  // No better candidate found — fall back to the original direct match
+  // (still surfaces *something*, e.g. for genuinely obscure/unmatched artists).
+  return direct;
 }
 
 // --- Handler ---
@@ -120,11 +192,13 @@ exports.handler = async function (event) {
       }
     }
 
-    // Build Wikipedia URL: replace spaces with underscores
-    const wikiTitle = encodeURIComponent(name.trim().replace(/\s+/g, '_'));
-    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${wikiTitle}`;
-
-    const { statusCode, body } = await httpsGet(wikiUrl);
+    // Artists get the collision-aware resolver (a same-titled non-band page
+    // or disambiguation page triggers a search-based second pass); venues
+    // keep the plain direct title match.
+    const { statusCode, body, title: resolvedTitle } = type === 'artist'
+      ? await resolveArtistSummary(name)
+      : await fetchSummary(name);
+    const wikiTitle = encodeURIComponent(resolvedTitle.trim().replace(/\s+/g, '_'));
 
     // No Wikipedia article found
     if (statusCode === 404) {
@@ -144,7 +218,8 @@ exports.handler = async function (event) {
       };
     }
 
-    // Handle disambiguation pages
+    // Handle disambiguation pages (still possible if the artist fallback
+    // above found nothing better than the original ambiguous match)
     if (body.type === 'disambiguation') {
       const disambiguation = { found: false, disambiguation: true, name, type: type || 'entity' };
       return {

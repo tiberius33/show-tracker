@@ -13,7 +13,7 @@ export default function Wordmark({ size = 18, inverse = false, showTld = false, 
       aria-label="MySetlists"
     >
       <span className={prefix}>my</span>
-      <span className="text-[#f5a623]">setlists</span>
+      <span className="text-amber">setlists</span>
       {showTld && <span className={`${muted} font-bold`} style={{ fontSize: size * 0.75 }}>.net</span>}
     </span>
   );

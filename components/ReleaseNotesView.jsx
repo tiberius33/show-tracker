@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.2.0',
+      date: 'August 29, 2026',
+      title: 'Simpler Navigation, Refreshed Logo & a Wishlist Home Base',
+      changes: [
+        'Changed: Sidebar reorganized around the 7 places you actually go — My Shows, Wishlist, Upcoming, Artists, Venues, Stats, and Profile',
+        'Friends moved off the sidebar and onto your Profile page — look for the Friends button up top; every existing link into Friends still works',
+        '"Scan / Import" is no longer a separate sidebar entry, but it\'s still right there on the My Shows page',
+        'New: The Wishlist page now shows a card for every artist you\'ve already started a wishlist for, so you can jump straight back in instead of searching for them again — the artist search is still there for starting a new one',
+        'Refreshed the MySetlists logo (header, favicon, and app icons) so it matches the gold-on-navy Concert Venue theme instead of an old green palette',
+        'Fixed: The artist info panel for Goose now links to the band\'s actual Wikipedia page — it was previously landing on the article about the bird',
+      ]
+    },
+    {
       version: '5.1.0',
       date: 'August 26, 2026',
       title: 'Encore Songs & Full Setlist Editing',
