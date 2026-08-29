@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { formatDate } from '@/lib/utils';
 import ShowForm from '@/components/ShowForm';
@@ -14,7 +16,7 @@ import ShowDetailView from '@/components/shows/ShowDetailView';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import {
   Search, Camera, X, Upload,
-  Bell, ChevronRight, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
+  Bell, ChevronRight, ChevronLeft, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
 
 export default function ShowsPage() {
@@ -45,6 +47,30 @@ export default function ShowsPage() {
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
   const [showsTab, setShowsTab] = useState('timeline'); // 'timeline' | 'artist'
   const [bulkTagShows, setBulkTagShows] = useState(null); // array of shows for bulk tag modal
+
+  // Arriving from a Top Artists / Top Venues row: seed the filter from the
+  // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
+  const searchParams = useSearchParams();
+  const [filterLabel, setFilterLabel] = useState(null); // { type: 'artist'|'venue', name }
+
+  useEffect(() => {
+    const artist = searchParams.get('artist');
+    const venue = searchParams.get('venue');
+    if (artist) {
+      setSearchTerm(artist);
+      setFilterLabel({ type: 'artist', name: artist });
+    } else if (venue) {
+      setSearchTerm(venue);
+      setFilterLabel({ type: 'venue', name: venue });
+    }
+    if (artist || venue) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('artist');
+      url.searchParams.delete('venue');
+      window.history.replaceState({}, '', url.toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleSelectShow = (showId) => {
     setSelectedShowIds(prev => {
@@ -188,12 +214,25 @@ export default function ShowsPage() {
 
       {(!pendingTagsForReview || pendingTagsForReview.length === 0) && (
         <>
+          {filterLabel && (
+            <Link
+              href={filterLabel.type === 'artist' ? '/stats/top-artists' : '/stats/top-venues'}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-primary mb-3"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back to {filterLabel.type === 'artist' ? 'Top Artists' : 'Top Venues'}
+            </Link>
+          )}
           <PageHeader
-            eyebrow="Library"
-            title="My Shows"
-            subtitle={shows.length > 0
-              ? `${shows.length} shows · ${summaryStats.uniqueArtists} artists · ${summaryStats.uniqueVenues} venues`
-              : 'Your concert journey starts here'}
+            eyebrow={filterLabel ? (filterLabel.type === 'artist' ? 'Top Artists' : 'Top Venues') : 'Library'}
+            title={filterLabel
+              ? (filterLabel.type === 'artist' ? `Your shows seeing ${filterLabel.name}` : `Your shows at ${filterLabel.name}`)
+              : 'My Shows'}
+            subtitle={filterLabel
+              ? `${sortedFilteredShows.length} show${sortedFilteredShows.length !== 1 ? 's' : ''}`
+              : (shows.length > 0
+                ? `${shows.length} shows · ${summaryStats.uniqueArtists} artists · ${summaryStats.uniqueVenues} venues`
+                : 'Your concert journey starts here')}
             actions={
               <>
                 <Button variant="secondary" icon={Camera} onClick={() => navigateTo('scan-import')}>Scan / Import</Button>
@@ -315,7 +354,7 @@ export default function ShowsPage() {
                   variant="ghost"
                   size="sm"
                   icon={X}
-                  onClick={() => { setFilterYear(''); setFilterDate(''); setSearchTerm(''); }}
+                  onClick={() => { setFilterYear(''); setFilterDate(''); setSearchTerm(''); setFilterLabel(null); }}
                   className="text-danger hover:bg-danger/10"
                 >
                   Clear

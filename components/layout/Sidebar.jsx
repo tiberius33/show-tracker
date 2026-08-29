@@ -17,19 +17,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Search, List, BarChart3, Ticket, Send, Shield, Coffee,
-  LogOut, User, X, Heart, Music, MapPin,
+  LogOut, User, X, Heart, ScrollText, HelpCircle,
 } from 'lucide-react';
 import Pick from '../brand/Pick';
 import Wordmark from '../brand/Wordmark';
 import Badge from '../ui/Badge';
 
-// Figures out which nav item should be highlighted. Artists/Venues live
-// under /stats/* but need their own highlight distinct from Stats itself,
-// so this can't just compare the first path segment.
 function getActiveId(pathname) {
   if (!pathname || pathname === '/') return 'shows';
-  if (pathname.startsWith('/stats/top-artists')) return 'artists';
-  if (pathname.startsWith('/stats/top-venues')) return 'venues';
   return pathname.replace(/^\//, '').split('/')[0] || 'shows';
 }
 
@@ -53,8 +48,6 @@ export default function Sidebar({
       { id: 'wishlist', label: 'Wishlist', icon: Heart, href: '/wishlist' },
     ]),
     { id: 'upcoming', label: 'Upcoming', icon: Ticket, href: '/upcoming', badge: upcomingShowsBadgeCount, beta: true },
-    { id: 'artists', label: 'Artists', icon: Music, href: '/stats/top-artists' },
-    { id: 'venues', label: 'Venues', icon: MapPin, href: '/stats/top-venues' },
     { id: 'stats', label: 'Stats', icon: BarChart3, href: '/stats' },
     ...(isGuest ? [] : [
       { id: 'profile', label: 'Profile', icon: User, href: '/profile', badge: pendingNotificationCount },
@@ -192,6 +185,24 @@ export default function Sidebar({
             </>
           )}
           {isAdmin && navItem('admin', '/admin', Shield, 'Admin', { tone: 'danger' })}
+          <div className="flex items-center gap-1 px-1 py-0.5">
+            <Link
+              href="/release-notes"
+              onClick={onClose}
+              className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-on-dark-muted/70 hover:bg-white/[0.06] hover:text-on-dark-muted transition-colors"
+            >
+              <ScrollText size={12} strokeWidth={2} />
+              <span className="font-medium">Release Notes</span>
+            </Link>
+            <Link
+              href="/how-to-use"
+              onClick={onClose}
+              className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-on-dark-muted/70 hover:bg-white/[0.06] hover:text-on-dark-muted transition-colors"
+            >
+              <HelpCircle size={12} strokeWidth={2} />
+              <span className="font-medium">How to Use</span>
+            </Link>
+          </div>
           <a
             href="https://buymeacoffee.com/phillipd"
             target="_blank"
