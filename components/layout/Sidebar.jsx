@@ -16,13 +16,22 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Search, List, Camera, BarChart3, UserPlus, Users, Ticket,
-  TrendingUp, ScrollText, Send, MessageSquare, Shield, Coffee,
-  LogOut, User, X, HelpCircle, Heart,
+  Search, List, BarChart3, Ticket, Send, Shield, Coffee,
+  LogOut, User, X, Heart, Music, MapPin,
 } from 'lucide-react';
 import Pick from '../brand/Pick';
 import Wordmark from '../brand/Wordmark';
 import Badge from '../ui/Badge';
+
+// Figures out which nav item should be highlighted. Artists/Venues live
+// under /stats/* but need their own highlight distinct from Stats itself,
+// so this can't just compare the first path segment.
+function getActiveId(pathname) {
+  if (!pathname || pathname === '/') return 'shows';
+  if (pathname.startsWith('/stats/top-artists')) return 'artists';
+  if (pathname.startsWith('/stats/top-venues')) return 'venues';
+  return pathname.replace(/^\//, '').split('/')[0] || 'shows';
+}
 
 export default function Sidebar({
   isAdmin,
@@ -36,30 +45,26 @@ export default function Sidebar({
   upcomingShowsBadgeCount = 0,
 }) {
   const pathname = usePathname() || '';
-  const segment = pathname.replace(/^\//, '').split('/')[0] || 'shows';
+  const segment = getActiveId(pathname);
 
   const primary = [
-    { id: 'shows', label: 'Shows', icon: List, href: '/' },
-    { id: 'scan-import', label: 'Scan / Import', icon: Camera, href: '/scan-import' },
-    { id: 'stats', label: 'Stats', icon: BarChart3, href: '/stats' },
+    { id: 'shows', label: 'My Shows', icon: List, href: '/' },
     ...(isGuest ? [] : [
-      { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
-      { id: 'friends', label: 'Friends', icon: UserPlus, href: '/friends', badge: pendingNotificationCount },
       { id: 'wishlist', label: 'Wishlist', icon: Heart, href: '/wishlist' },
     ]),
     { id: 'upcoming', label: 'Upcoming', icon: Ticket, href: '/upcoming', badge: upcomingShowsBadgeCount, beta: true },
-    { id: 'roadmap', label: 'Roadmap', icon: TrendingUp, href: '/roadmap' },
-    { id: 'release-notes', label: 'Release Notes', icon: ScrollText, href: '/release-notes' },
-    { id: 'how-to-use', label: 'How to Use', icon: HelpCircle, href: '/how-to-use' },
+    { id: 'artists', label: 'Artists', icon: Music, href: '/stats/top-artists' },
+    { id: 'venues', label: 'Venues', icon: MapPin, href: '/stats/top-venues' },
+    { id: 'stats', label: 'Stats', icon: BarChart3, href: '/stats' },
+    ...(isGuest ? [] : [
+      { id: 'profile', label: 'Profile', icon: User, href: '/profile', badge: pendingNotificationCount },
+    ]),
   ];
 
-  const secondary = [
-    ...(isGuest ? [] : [{ id: 'invite', label: 'Invite', icon: Send, href: '/invite' }]),
-    { id: 'feedback', label: 'Feedback', icon: MessageSquare, href: '/feedback' },
-  ];
+  const secondary = isGuest ? [] : [{ id: 'invite', label: 'Invite', icon: Send, href: '/invite' }];
 
   const navItem = (id, href, Icon, label, { badge, beta, tone = 'default' } = {}) => {
-    const active = segment === id || (id === 'shows' && !segment);
+    const active = segment === id;
     const toneCls =
       tone === 'danger'
         ? (active ? 'text-danger' : 'text-on-dark-muted hover:text-on-dark')
@@ -161,9 +166,11 @@ export default function Sidebar({
         </nav>
 
         {/* Pinned secondary */}
-        <div className="px-3 py-2 space-y-0.5 border-t border-white/[0.08]">
-          {secondary.map((it) => navItem(it.id, it.href, it.icon, it.label, { badge: it.badge }))}
-        </div>
+        {secondary.length > 0 && (
+          <div className="px-3 py-2 space-y-0.5 border-t border-white/[0.08]">
+            {secondary.map((it) => navItem(it.id, it.href, it.icon, it.label, { badge: it.badge }))}
+          </div>
+        )}
 
         {/* Account & utilities */}
         <div className="px-3 py-3 border-t border-white/[0.08] space-y-1">
