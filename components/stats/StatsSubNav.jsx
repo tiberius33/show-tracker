@@ -9,6 +9,7 @@ const TABS = [
   { id: 'overview', label: 'Overview', href: '/stats' },
   { id: 'top-artists', label: 'Top Artists', href: '/stats/top-artists' },
   { id: 'top-venues', label: 'Top Venues', href: '/stats/top-venues' },
+  { id: 'songs', label: 'Songs', href: '/stats/songs' },
 ];
 
 export default function StatsSubNav({ active }) {

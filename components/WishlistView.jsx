@@ -28,15 +28,15 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Music, Heart, Search as SearchIcon, Star, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, EmptyState, Spinner, Badge } from '@/components/ui';
 import ArtistPicker from '@/components/wishlist/ArtistPicker';
-import SongHistoryModal from '@/components/SongHistoryModal';
 import { useApp } from '@/context/AppContext';
 import { apiUrl } from '@/lib/api';
 import { normalizeSongTitle } from '@/lib/utils';
 import { artistKeyFor, loadWishlist, addWishlistSong, removeWishlistSong, listWishlistedArtists } from '@/lib/wishlist';
+import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
 
 const ERROR_FLASH_MS = 5000;
 
@@ -97,11 +97,9 @@ function setCachedCatalog(mbid, data) {
 }
 
 export default function WishlistView() {
-  const router = useRouter();
-  const { user, shows, setToast, setSelectedShow: setGlobalSelectedShow } = useApp();
+  const { user, shows, setToast } = useApp();
 
   const [artist, setArtist] = useState(null); // { name, mbid, disambiguation }
-  const [songHistory, setSongHistory] = useState(null); // song title
 
   const [catalogSongs, setCatalogSongs] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
@@ -388,11 +386,14 @@ export default function WishlistView() {
             <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
               {seenSongs.map((s) => {
                 const notInCatalog = !catalogLoading && catalogSongs.length > 0 && !catalogNormalizedSet.has(normalizeSongTitle(s.title));
+                const songSlug = songSlugFromTitle(s.title);
+                const href = songSlug ? `/songs/?artist=${artistSlugFromName(artist.name)}&song=${songSlug}` : null;
+                const RowTag = href ? Link : 'div';
                 return (
                   <li key={s.title}>
-                    <button
-                      onClick={() => setSongHistory(s.title)}
-                      className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover text-left transition-colors"
+                    <RowTag
+                      {...(href ? { href } : {})}
+                      className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                     >
                       <span className="text-sm text-primary min-w-0 truncate hover:text-brand hover:underline transition-colors">
                         {s.title}
@@ -403,7 +404,7 @@ export default function WishlistView() {
                         )}
                       </span>
                       <span className="text-xs font-bold text-brand flex-shrink-0">{s.count}×</span>
-                    </button>
+                    </RowTag>
                   </li>
                 );
               })}
@@ -489,16 +490,6 @@ export default function WishlistView() {
           </ul>
         )}
       </Card>
-
-      {songHistory && (
-        <SongHistoryModal
-          songName={songHistory}
-          artistName={artist.name}
-          allShows={shows}
-          onClose={() => setSongHistory(null)}
-          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows/'); }}
-        />
-      )}
     </div>
   );
 }

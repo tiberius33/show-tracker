@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.3.0',
+      date: 'August 30, 2026',
+      title: 'Song Pages & Personal Gap Tracking',
+      changes: [
+        'New: Every song you\'ve logged now has its own page — times seen, first/last seen, and your current personal gap ("You haven\'t seen this in 14 shows — 2 years, 3 months since Dick\'s, 9/2/2023")',
+        'New: A song page lists every time you\'ve seen it in reverse-chronological order with venue, set, and segue context, plus a by-year breakdown, where it tends to land in the set (opener, set closer, encore), and your best-rated versions',
+        'New: Song titles in a setlist are now links to that song\'s page — click straight through from any show\'s setlist',
+        '"Songs I\'ve Seen" on the Wishlist page now links to each song\'s page too',
+        'New: /stats/songs lists every song you\'ve seen for a chosen artist, sortable by times seen or current gap',
+        'Personal gap is scoped to your own logged shows for now — a global "the band hasn\'t played this in 213 shows" gap is a planned follow-up',
+        'Fixed: Two spellings of the same song (e.g. "Ashes//Dust" vs. "Ashes // Dust") now merge into one entry everywhere song titles are matched, including the Wishlist',
+      ]
+    },
+    {
       version: '5.2.1',
       date: 'August 30, 2026',
       title: 'Year-Scoped Top Venues & Top Artists Drill-Down',
