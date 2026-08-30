@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.5.0',
+      date: 'August 30, 2026',
+      title: 'Archival Audio — Listen to the Actual Night',
+      changes: [
+        'New: Show pages for taper-friendly artists now check Relisten (which aggregates the Internet Archive\'s Live Music Archive and phish.in) for a real recording of that exact night, and link straight to it when one exists',
+        'Multiple recordings of the same night are all listed with their source, taper, and transfer credit — jam fans care which board it came from',
+        'Nothing shows up on the roughly 9 in 10 shows with no known recording — no empty panel, no "not found" message, just nothing',
+        'Opens the recording on Relisten or the Internet Archive, never re-hosted or played from mysetlists.net — attribution to the taper and transferrer is always shown',
+        'Not yet built: a "shows I can listen to" filter and an audio badge on the show card — both need a batch/cached lookup across a whole shows list rather than one show at a time, flagging as a follow-up rather than half-building it',
+      ]
+    },
+    {
       version: '5.4.0',
       date: 'August 30, 2026',
       title: 'Runs & Tours',
