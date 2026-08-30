@@ -1,12 +1,13 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Eye, Heart, Info, Sparkles } from 'lucide-react';
+import { User, Mail, Calendar, Music, MapPin, Star, Trophy, Edit2, Save, X, Camera, Trash2, MailX, LogOut, MessageSquare, Eye, Heart, Info, Sparkles, Globe, Lock } from 'lucide-react';
 import { Button, Card, Badge, Input, Modal } from '@/components/ui';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { apiUrl } from '@/lib/api';
-import { artistColor } from '@/lib/utils';
+import { artistColor, parseDate } from '@/lib/utils';
+import { claimHandle, handleFormatError, normalizeHandle } from '@/lib/handles';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
 import TourInfoModal from '@/components/TourInfoModal';
 import ArtistAIChat from '@/components/ArtistAIChat';
@@ -22,6 +23,15 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
   // Email opt-out state
   const [emailOptOut, setEmailOptOut] = useState(false);
   const [emailOptOutLoading, setEmailOptOutLoading] = useState(false);
+
+  // Public profile state — off by default for every user, always.
+  const [handle, setHandle] = useState(null);
+  const [publicProfile, setPublicProfile] = useState(false);
+  const [handleInput, setHandleInput] = useState('');
+  const [handleSaving, setHandleSaving] = useState(false);
+  const [handleError, setHandleError] = useState('');
+  const [publicToggleLoading, setPublicToggleLoading] = useState(false);
+  const [showPublicPreview, setShowPublicPreview] = useState(false);
 
   // Account deletion state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -49,6 +59,8 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
             setMemberSince(profile.data().createdAt.toDate());
           }
           setEmailOptOut(profile.data().emailOptOut || false);
+          setHandle(profile.data().handle || null);
+          setPublicProfile(profile.data().publicProfile || false);
         }
       };
       loadProfile();
@@ -155,6 +167,40 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
     }
   };
 
+  const handleClaimHandle = async () => {
+    if (!user?.uid) return;
+    const formatError = handleFormatError(handleInput);
+    if (formatError) {
+      setHandleError(formatError);
+      return;
+    }
+    setHandleSaving(true);
+    setHandleError('');
+    try {
+      await claimHandle(user.uid, handleInput);
+      setHandle(normalizeHandle(handleInput));
+      setHandleInput('');
+    } catch (err) {
+      setHandleError(err.message || 'Failed to claim handle. Please try again.');
+    } finally {
+      setHandleSaving(false);
+    }
+  };
+
+  const handlePublicProfileToggle = async () => {
+    if (!user?.uid || !handle) return;
+    setPublicToggleLoading(true);
+    const newValue = !publicProfile;
+    try {
+      await updateDoc(doc(db, 'userProfiles', user.uid), { publicProfile: newValue });
+      setPublicProfile(newValue);
+    } catch (err) {
+      console.error('Failed to update public profile setting:', err);
+    } finally {
+      setPublicToggleLoading(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!user?.uid) return;
     if (deleteConfirmEmail.toLowerCase() !== (user.email || '').toLowerCase()) {
@@ -214,6 +260,22 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
   }, [favoriteArtists, shows]);
 
   const paginatedMyComments = myComments.slice(0, myCommentsPage * COMMENTS_PER_PAGE);
+
+  // Exactly the fields the live public page will show — shows/artists/venues
+  // counts, years active, and a recent-shows list — computed here so the
+  // "preview as strangers would see it" is honest, not decorative. Notes,
+  // photos, wishlists, and friend lists never enter this computation.
+  const publicPreview = useMemo(() => {
+    const years = new Set(shows.map(s => (s.date || '').slice(0, 4)).filter(Boolean));
+    const sorted = shows.slice().sort((a, b) => parseDate(b.date) - parseDate(a.date));
+    return {
+      showCount: shows.length,
+      artistCount: new Set(shows.map(s => s.artist)).size,
+      venueCount: new Set(shows.map(s => s.venue)).size,
+      yearsActive: years.size,
+      recentShows: sorted.slice(0, 5),
+    };
+  }, [shows]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -477,6 +539,98 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
       {/* Notification Settings */}
       <NotificationSettings userId={user?.uid} />
+
+      {/* Public Profile — off by default for every user. */}
+      <Card padding="md">
+        <h3 className="text-lg font-semibold text-primary mb-2 flex items-center gap-2">
+          {publicProfile ? <Globe className="w-5 h-5 text-brand" /> : <Lock className="w-5 h-5 text-brand" />}
+          Public Profile
+        </h3>
+        <p className="text-secondary text-sm mb-4">
+          {publicProfile
+            ? 'Your profile is public. Anyone with the link below can see the shows, dates, venues, artists, and setlists you\'ve logged, and your own ratings.'
+            : 'Off by default. Turning this on makes a page at mysetlists.net/u/'.concat(handle || '{handle}', ' visible to anyone, showing the shows, dates, venues, artists, setlists, and your own ratings you\'ve logged. Your notes, photos, venue notes, home location, email, wishlist, and friend list are never made public, no matter what.')}
+        </p>
+
+        {!handle ? (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={handleInput}
+                onChange={(e) => setHandleInput(e.target.value.toLowerCase())}
+                placeholder="pick-a-handle"
+                disabled={handleSaving}
+                className="flex-1"
+              />
+              <Button variant="secondary" onClick={handleClaimHandle} disabled={handleSaving || !handleInput.trim()} loading={handleSaving}>
+                Claim
+              </Button>
+            </div>
+            {handleError && <p className="text-danger text-sm">{handleError}</p>}
+            <p className="text-muted text-xs">
+              3-20 characters, lowercase letters/numbers/underscores only. This cannot be changed once set, so choose carefully.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-secondary">Your page:</span>
+                <span className="font-mono text-primary">mysetlists.net/u/{handle}</span>
+              </div>
+              <Button variant="ghost" size="sm" icon={Eye} onClick={() => setShowPublicPreview(true)}>
+                Preview
+              </Button>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={publicProfile}
+                onChange={handlePublicProfileToggle}
+                disabled={publicToggleLoading}
+                className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+                Make my profile public
+              </span>
+            </label>
+            {publicToggleLoading && <p className="text-muted text-xs">Saving...</p>}
+          </div>
+        )}
+      </Card>
+
+      {/* Public Profile Preview Modal — exactly what the fields above claim: shows,
+          artists, venues, years active, and a recent-shows list. Never notes,
+          photos, wishlists, or friend lists. */}
+      <Modal open={showPublicPreview} onClose={() => setShowPublicPreview(false)} title="Preview — what strangers would see" size="md">
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold text-primary">{user?.displayName || 'Anonymous'}</h2>
+            <p className="text-sm text-muted font-mono">mysetlists.net/u/{handle}</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card padding="sm"><div className="text-xl font-bold text-primary">{publicPreview.showCount}</div><div className="text-xs text-muted">Shows</div></Card>
+            <Card padding="sm"><div className="text-xl font-bold text-primary">{publicPreview.artistCount}</div><div className="text-xs text-muted">Artists</div></Card>
+            <Card padding="sm"><div className="text-xl font-bold text-primary">{publicPreview.venueCount}</div><div className="text-xs text-muted">Venues</div></Card>
+            <Card padding="sm"><div className="text-xl font-bold text-primary">{publicPreview.yearsActive}</div><div className="text-xs text-muted">Years</div></Card>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-primary mb-2">Recent shows</h3>
+            <div className="space-y-1.5">
+              {publicPreview.recentShows.map(s => (
+                <div key={s.id} className="text-sm text-secondary">
+                  <span className="text-primary font-medium">{s.artist}</span> — {formatShowDate(s.date)} · {s.venue}
+                </div>
+              ))}
+              {publicPreview.recentShows.length === 0 && <p className="text-sm text-muted">No shows logged yet.</p>}
+            </div>
+          </div>
+          <p className="text-xs text-muted border-t border-subtle pt-3">
+            This preview shows exactly what the public page includes — shows, dates, venues, artists, setlists, and your own ratings. It never includes notes, photos, venue notes, your home location, wishlist, or friend list.
+          </p>
+        </div>
+      </Modal>
 
       {/* Email Preferences */}
       <Card padding="md">

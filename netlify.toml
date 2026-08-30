@@ -53,6 +53,51 @@
   to = "/.netlify/functions/unsubscribe"
   status = 200
 
+# Public, indexable pages — server-rendered HTML from Netlify Functions, not
+# the SPA shell, so crawlers see real content without executing JavaScript.
+# Order matters: the more specific /u/:handle/shows/:showId rules are listed
+# before the plain /u/:handle rules purely for readability — Netlify's
+# :param placeholders only match a single path segment, so a request with
+# an extra /shows/:showId segment could never match the shorter pattern
+# regardless of order. All of these must stay above the final catch-all.
+[[redirects]]
+  from = "/u/:handle/shows/:showId"
+  to = "/.netlify/functions/public-show?handle=:handle&showId=:showId"
+  status = 200
+
+[[redirects]]
+  from = "/u/:handle/shows/:showId/"
+  to = "/.netlify/functions/public-show?handle=:handle&showId=:showId"
+  status = 200
+
+[[redirects]]
+  from = "/u/:handle"
+  to = "/.netlify/functions/public-profile?handle=:handle"
+  status = 200
+
+[[redirects]]
+  from = "/u/:handle/"
+  to = "/.netlify/functions/public-profile?handle=:handle"
+  status = 200
+
+[[redirects]]
+  from = "/shared/:id"
+  to = "/.netlify/functions/public-shared?id=:id"
+  status = 200
+
+[[redirects]]
+  from = "/shared/:id/"
+  to = "/.netlify/functions/public-shared?id=:id"
+  status = 200
+
+# Replaces the old static public/sitemap.xml (6 fixed URLs) with a
+# generated one that also lists every opted-in public profile.
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
+  status = 200
+  force = true
+
 # Catch-all SPA fallback — lets Next.js handle dynamic routes like /shows/[id]/
 # that are not pre-generated at build time (Firebase data is runtime-only).
 # Must be last so API rules above take priority.

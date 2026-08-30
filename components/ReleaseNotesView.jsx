@@ -6,6 +6,21 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.6.0',
+      date: 'August 30, 2026',
+      title: 'Public Profiles',
+      changes: [
+        'New: an optional public profile at mysetlists.net/u/your-handle — off by default for every account, always. Turning it on shares only the shows, dates, venues, artists, setlists, and your own ratings you\'ve logged',
+        'A preview shows exactly what a stranger would see before you turn it on, and turning it off takes the pages down again',
+        'Never made public, no matter what: notes, photos, venue notes, your home location, email, wishlist, and friend list',
+        'A friend tagged on one of your shows is only named on your public page if that friend has independently made their own profile public too — their attendance is their own data to share, not yours',
+        'Handles are permanent once claimed — pick carefully',
+        'Resurrected /shared collection links as real, indexable pages (they quietly stopped working after a past rebuild) instead of a client-side fetch that search engines never actually saw',
+        'A generated sitemap.xml now lists every public profile automatically, replacing the old fixed 6-page version',
+        'Not yet built: rate limiting on the public routes and public artist/venue/song directory pages spanning multiple users — both flagged as follow-ups rather than half-built here',
+      ]
+    },
+    {
       version: '5.5.0',
       date: 'August 30, 2026',
       title: 'Archival Audio — Listen to the Actual Night',

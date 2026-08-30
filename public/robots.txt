@@ -6,6 +6,7 @@ Allow: /privacy
 Allow: /terms
 Allow: /cookies
 Allow: /shared/
+Allow: /u/
 Disallow: /admin
 Disallow: /.netlify/
 
