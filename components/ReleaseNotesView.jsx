@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.4.0',
+      date: 'August 30, 2026',
+      title: 'Runs & Tours',
+      changes: [
+        'New: Two or more consecutive nights at the same venue by the same artist now show up as a "run" — a dedicated page with a night-by-night breakdown, a combined setlist showing which nights each song landed on, and a call-out when a run had zero repeats across every night',
+        'New: A show that\'s part of a run now says so on its own page ("Night 2 of 3 — view the full run") and on its card in My Shows',
+        'New: Tours — shows sharing a setlist.fm tour name now link to a tour page listing every stop you caught, in order, with venues and ratings',
+        'New: /stats/runs lists every run you\'ve logged, newest first',
+        'Runs require a real gap of no more than one day between nights at a fuzzy-matched venue name, so a sponsor-name change mid-run (or a run spanning New Year\'s Eve) doesn\'t split it into two — but a single show never counts as a run',
+        'If a run has a night with no setlist logged yet, the no-repeat call-out is left undetermined rather than guessing',
+        'Not yet built: multi-venue tour legs and festival grouping (both need different rules than a single-venue run), and a shareable run recap card — flagging both as known gaps rather than half-building them',
+      ]
+    },
+    {
       version: '5.3.1',
       date: 'August 30, 2026',
       title: 'Song Identity Cleanup',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
@@ -13,6 +13,8 @@ import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatFigure } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
+import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
+import { tourKeyFor } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import {
   Search, Camera, X, Upload,
@@ -47,6 +49,26 @@ export default function ShowsPage() {
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
   const [showsTab, setShowsTab] = useState('timeline'); // 'timeline' | 'artist'
   const [bulkTagShows, setBulkTagShows] = useState(null); // array of shows for bulk tag modal
+
+  // Lightweight badges on each ShowCard for a run ("Night 2 of 3") or a
+  // linkable tour name — kept as a shallow lookup by showId so ShowCard
+  // itself stays a plain presentational component.
+  const runIndex = useRunIndex();
+  const tourIndex = useTourIndex();
+  const runInfoByShowId = useMemo(() => {
+    const map = new Map();
+    Object.values(runIndex).forEach(run => {
+      run.nights.forEach((night, i) => {
+        map.set(night.showId, { runKey: run.key, nightNumber: i + 1, nightCount: run.nightCount });
+      });
+    });
+    return map;
+  }, [runIndex]);
+  const tourHrefFor = (show) => {
+    if (!show.tour) return null;
+    const key = tourKeyFor(show.artist, show.tour);
+    return key && tourIndex[key] ? `/tours/?tour=${encodeURIComponent(key)}` : null;
+  };
 
   // Arriving from a Top Artists / Top Venues row: seed the filter from the
   // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
@@ -474,6 +496,8 @@ export default function ShowsPage() {
                   friends={friends}
                   onClick={() => setSelectedShow(show)}
                   onDelete={() => setShowToDelete(show)}
+                  runInfo={runInfoByShowId.get(show.id) || null}
+                  tourHref={tourHrefFor(show)}
                 />
               ))}
             </div>
