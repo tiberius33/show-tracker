@@ -79,7 +79,7 @@ function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEma
             </Card>
           ) : (
             <Card variant="inset" padding="none" className="rounded-xl p-3">
-              <div className="font-medium" style={{ color: '#f59e0b' }}>{show.artist}</div>
+              <div className="font-medium text-brand">{show.artist}</div>
               <div className="flex items-center gap-2 text-sm text-secondary mt-1">
                 <Calendar className="w-3.5 h-3.5" />
                 <span>{formatDate(show.date)}</span>

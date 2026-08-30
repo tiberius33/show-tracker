@@ -132,7 +132,7 @@ function PerformanceRow({ perf, onOpen }) {
           )}
         </div>
         {perf.rating > 0 && (
-          <div className="flex items-center gap-1 text-sm font-semibold text-amber-500 flex-shrink-0">
+          <div className="flex items-center gap-1 text-sm font-semibold text-amber flex-shrink-0">
             <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
             {perf.rating}/10
           </div>
@@ -245,7 +245,7 @@ export default function SongDetailView({ song }) {
                       className="w-full flex items-center justify-between gap-2 px-1 py-1.5 rounded-lg hover:bg-hover hover:text-brand transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 text-left"
                     >
                       <span className="text-sm text-primary truncate">{formatDate(p.date)} · {p.venue}</span>
-                      <span className="text-sm font-bold text-amber-500 flex-shrink-0">{p.rating}/10</span>
+                      <span className="text-sm font-bold text-amber flex-shrink-0">{p.rating}/10</span>
                     </button>
                   </li>
                 ))}

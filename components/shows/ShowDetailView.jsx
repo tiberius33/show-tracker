@@ -156,7 +156,7 @@ function StatRow({ label, value, tone }) {
     <div className="flex items-baseline justify-between gap-2">
       <dt className="text-[13px] text-secondary shrink-0">{label}</dt>
       <dd className={`text-[13px] font-bold text-right ${
-        tone === 'brand' ? 'text-brand' : tone === 'amber' ? 'text-amber-500' : 'text-primary'
+        tone === 'brand' ? 'text-brand' : tone === 'amber' ? 'text-amber' : 'text-primary'
       }`}>
         {value}
       </dd>
@@ -287,7 +287,7 @@ export default function ShowDetailView({
         {/* Artist name + action icons */}
         <div className="flex items-start justify-between gap-4 pb-4 mb-4 border-b border-subtle">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <h1 className="text-2xl font-bold text-amber-500">{show.artist}</h1>
+            <h1 className="text-2xl font-bold text-amber">{show.artist}</h1>
             {show.url && (
               <a
                 href={show.url}
@@ -357,7 +357,7 @@ export default function ShowDetailView({
         {runForThisShow && (
           <Link
             href={`/runs/?run=${encodeURIComponent(runForThisShow.runKey)}`}
-            className="inline-block text-sm font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg mb-3 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            className="inline-block text-sm font-semibold text-amber bg-amber-subtle px-2.5 py-1 rounded-lg mb-3 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           >
             Night {runForThisShow.nightNumber} of {runForThisShow.nightCount} — view the full run
           </Link>
@@ -391,7 +391,7 @@ export default function ShowDetailView({
               {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
             {(show.venueRating || 0) > 0 && (
-              <span className="text-sm font-semibold text-amber-500">{show.venueRating}/10</span>
+              <span className="text-sm font-semibold text-amber">{show.venueRating}/10</span>
             )}
           </div>
         </div>
@@ -469,7 +469,7 @@ export default function ShowDetailView({
                       <span className="font-semibold text-primary">{[show.city, show.state].filter(Boolean).join(', ')}</span>
                     </div>
                   )}
-                  <a href={`/shows?venue=${encodeURIComponent(show.venue)}`} className="text-xs text-amber-500 hover:underline block">
+                  <a href={`/shows?venue=${encodeURIComponent(show.venue)}`} className="text-xs text-amber hover:underline block">
                     All shows at this venue →
                   </a>
                 </div>
@@ -490,7 +490,7 @@ export default function ShowDetailView({
                 <button
                   onClick={() => setEditMode(v => !v)}
                   className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                    editMode ? 'bg-brand text-[#2a2a4e]' : 'bg-gray-800 text-white'
+                    editMode ? 'bg-brand text-[#2a2a4e]' : 'bg-hover text-primary'
                   }`}
                 >
                   {editMode ? <Check className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
@@ -501,7 +501,7 @@ export default function ShowDetailView({
                 <button
                   onClick={() => setShowPlayCounts(v => !v)}
                   className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                    showPlayCounts ? 'bg-gray-700 text-white' : 'bg-gray-800 text-white'
+                    showPlayCounts ? 'bg-elevated text-primary' : 'bg-hover text-primary'
                   }`}
                 >
                   <Hash className="w-3.5 h-3.5" />
@@ -603,7 +603,7 @@ export default function ShowDetailView({
 
       {/* Share toast */}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50 bg-emerald-400 text-black font-medium text-sm px-4 py-2 rounded-lg shadow-lg pointer-events-none">
+        <div className="fixed bottom-4 right-4 z-50 bg-success text-white font-medium text-sm px-4 py-2 rounded-lg shadow-lg pointer-events-none">
           Link copied to clipboard!
         </div>
       )}

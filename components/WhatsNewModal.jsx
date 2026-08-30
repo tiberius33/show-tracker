@@ -81,7 +81,7 @@ function WhatsNewModal({ onClose, navigateTo }) {
       <Card
         variant="elevated"
         padding="none"
-        className={`w-full max-w-md overflow-hidden shadow-2xl transition-all duration-200 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+        className={`w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -101,7 +101,7 @@ function WhatsNewModal({ onClose, navigateTo }) {
         </div>
 
         {/* Feature list */}
-        <div className="px-4 py-3 max-h-[60vh] overflow-y-auto">
+        <div className="px-4 py-3 flex-1 overflow-y-auto">
           <div className="space-y-2">
             {FEATURES.map((feature, i) => {
               const Icon = feature.icon;

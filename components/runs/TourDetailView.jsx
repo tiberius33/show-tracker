@@ -75,7 +75,7 @@ export default function TourDetailView({ tour }) {
                   </div>
                 </div>
                 {stop.rating > 0 && (
-                  <div className="flex items-center gap-1 text-sm font-semibold text-amber-500 flex-shrink-0">
+                  <div className="flex items-center gap-1 text-sm font-semibold text-amber flex-shrink-0">
                     <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
                     {stop.rating}/10
                   </div>

@@ -88,7 +88,7 @@ export default function RunDetailView({ run }) {
       </div>
 
       {/* ── Repeats readout — the heart of the page ────────────────────── */}
-      <Card padding="md" className={`mb-6 ${run.noRepeat === true ? 'border-amber-500/40 bg-amber-500/5' : ''}`}>
+      <Card padding="md" className={`mb-6 ${run.noRepeat === true ? 'border-amber/40 bg-amber/5' : ''}`}>
         {run.hasIncompleteData ? (
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-5 h-5 text-muted flex-shrink-0 mt-0.5" />
@@ -98,7 +98,7 @@ export default function RunDetailView({ run }) {
           </div>
         ) : run.noRepeat ? (
           <div className="flex items-start gap-2.5">
-            <PartyPopper className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <PartyPopper className="w-5 h-5 text-amber flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-base font-bold text-primary">No repeats across {run.nightCount} nights!</p>
               <p className="text-sm text-secondary mt-0.5">Every one of the {run.uniqueSongs} songs played was played exactly once.</p>
@@ -140,7 +140,7 @@ export default function RunDetailView({ run }) {
                   )}
                 </button>
                 {night.rating > 0 && (
-                  <div className="flex items-center gap-1 text-sm font-semibold text-amber-500 flex-shrink-0">
+                  <div className="flex items-center gap-1 text-sm font-semibold text-amber flex-shrink-0">
                     <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
                     {night.rating}/10
                   </div>
