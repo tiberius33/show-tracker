@@ -45,7 +45,7 @@ export default function TopArtistsPage() {
           <SectionHeader title="Top artists" />
           <TopList
             items={topArtists}
-            onItemClick={(it) => router.push(`/shows/?artist=${encodeURIComponent(it.name)}`)}
+            onItemClick={(it) => router.push(`/shows/?artist=${encodeURIComponent(it.name)}${period !== 'all-time' ? `&year=${period}` : ''}`)}
           />
         </Card>
       ) : (

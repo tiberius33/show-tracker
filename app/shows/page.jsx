@@ -56,6 +56,7 @@ export default function ShowsPage() {
   useEffect(() => {
     const artist = searchParams.get('artist');
     const venue = searchParams.get('venue');
+    const year = searchParams.get('year');
     if (artist) {
       setSearchTerm(artist);
       setFilterLabel({ type: 'artist', name: artist });
@@ -63,10 +64,12 @@ export default function ShowsPage() {
       setSearchTerm(venue);
       setFilterLabel({ type: 'venue', name: venue });
     }
-    if (artist || venue) {
+    if (year) setFilterYear(year);
+    if (artist || venue || year) {
       const url = new URL(window.location.href);
       url.searchParams.delete('artist');
       url.searchParams.delete('venue');
+      url.searchParams.delete('year');
       window.history.replaceState({}, '', url.toString());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -226,7 +229,9 @@ export default function ShowsPage() {
           <PageHeader
             eyebrow={filterLabel ? (filterLabel.type === 'artist' ? 'Top Artists' : 'Top Venues') : 'Library'}
             title={filterLabel
-              ? (filterLabel.type === 'artist' ? `Your shows seeing ${filterLabel.name}` : `Your shows at ${filterLabel.name}`)
+              ? (filterLabel.type === 'artist'
+                  ? `Your${filterYear ? ` ${filterYear}` : ''} shows seeing ${filterLabel.name}`
+                  : `Your${filterYear ? ` ${filterYear}` : ''} shows at ${filterLabel.name}`)
               : 'My Shows'}
             subtitle={filterLabel
               ? `${sortedFilteredShows.length} show${sortedFilteredShows.length !== 1 ? 's' : ''}`

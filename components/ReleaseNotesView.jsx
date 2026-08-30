@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.2.1',
+      date: 'August 30, 2026',
+      title: 'Year-Scoped Top Venues & Top Artists Drill-Down',
+      changes: [
+        'Fixed: Clicking a venue or artist on Top Venues / Top Artists now filters My Shows to that year by default, instead of showing all-time shows',
+        'New: The year filter on the resulting My Shows view can be changed or set to "All Years" without losing the venue/artist filter',
+        'The "Your shows at [Venue]" / "Your shows seeing [Artist]" header now includes the year (e.g. "Your 2026 shows at Red Rocks Amphitheatre") and updates live as you change the year',
+      ]
+    },
+    {
       version: '5.2.0',
       date: 'August 29, 2026',
       title: 'Simpler Navigation, Refreshed Logo & a Wishlist Home Base',
