@@ -3,16 +3,17 @@
 import React, { useMemo } from 'react';
 import { X, Star, MapPin, MessageSquare, Calendar, Music, ExternalLink } from 'lucide-react';
 import { Button, Card, Badge } from '@/components/ui';
-import { formatDate } from '@/lib/utils';
+import { formatDate, normalizeSongTitle } from '@/lib/utils';
 
 function SongHistoryModal({ songName, artistName, allShows, onClose, onViewShow }) {
   const performances = useMemo(() => {
+    const targetTitle = normalizeSongTitle(songName);
     const results = [];
     allShows
       .filter(show => show.artist === artistName)
       .forEach(show => {
         const matchingSong = (show.setlist || []).find(s =>
-          s.name.trim().toLowerCase() === songName.trim().toLowerCase()
+          normalizeSongTitle(s.name) === targetTitle
         );
         if (matchingSong) {
           results.push({

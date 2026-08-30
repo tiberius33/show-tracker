@@ -120,19 +120,28 @@ export default function WishlistView() {
   }, []);
 
   // ── Songs I've Seen — computed entirely from the user's own Firestore shows ──
+  // Keyed by normalizeSongTitle so two spellings of one song (e.g.
+  // "Ashes//Dust" vs "Ashes // Dust") collapse into a single row with a
+  // combined count, matching how song pages and the catalog match already work.
   const seenSongs = useMemo(() => {
     if (!artist) return [];
     const target = artist.name.trim().toLowerCase();
-    const counts = {};
+    const counts = {}; // normalizedKey -> { count, spellings: { rawName: count } }
     (shows || [])
       .filter(s => (s.artist || '').trim().toLowerCase() === target)
       .forEach(s => (s.setlist || []).forEach(song => {
         const name = song.name || song.song || song.title || '';
         if (!name) return;
-        counts[name] = (counts[name] || 0) + 1;
+        const key = normalizeSongTitle(name) || name;
+        if (!counts[key]) counts[key] = { count: 0, spellings: {} };
+        counts[key].count++;
+        counts[key].spellings[name] = (counts[key].spellings[name] || 0) + 1;
       }));
-    return Object.entries(counts)
-      .map(([title, count]) => ({ title, count }))
+    return Object.values(counts)
+      .map(data => ({
+        title: Object.entries(data.spellings).sort((a, b) => b[1] - a[1])[0][0],
+        count: data.count,
+      }))
       .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
   }, [shows, artist]);
 

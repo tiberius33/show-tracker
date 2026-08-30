@@ -5,7 +5,7 @@ import { Calendar, Music, Users, Building2, Star, ChevronDown, MapPin, Heart, X,
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import ShowDetailView from '@/components/shows/ShowDetailView';
 import ShowCard from '@/components/shows/ShowCard';
-import { formatDate, parseDate, artistColor } from '@/lib/utils';
+import { formatDate, parseDate, artistColor, normalizeSongTitle } from '@/lib/utils';
 import { Button, Card, Badge, Tabs, SectionHeader } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
@@ -133,12 +133,15 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         if (d.getFullYear() !== Number(filterYear)) return;
       }
       show.setlist.forEach(song => {
-        if (!songMap[song.name]) {
-          songMap[song.name] = { count: 0, ratings: [], shows: [] };
+        const key = normalizeSongTitle(song.name) || song.name;
+        if (!songMap[key]) {
+          songMap[key] = { count: 0, ratings: [], shows: [], spellings: {} };
         }
-        songMap[song.name].count++;
-        if (song.rating) songMap[song.name].ratings.push(song.rating);
-        songMap[song.name].shows.push({
+        const entry = songMap[key];
+        entry.count++;
+        entry.spellings[song.name] = (entry.spellings[song.name] || 0) + 1;
+        if (song.rating) entry.ratings.push(song.rating);
+        entry.shows.push({
           showId: show.id,
           songId: song.id,
           date: show.date,
@@ -150,9 +153,9 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
         });
       });
     });
-    return Object.entries(songMap)
-      .map(([name, data]) => ({
-        name,
+    return Object.values(songMap)
+      .map(data => ({
+        name: Object.entries(data.spellings).sort((a, b) => b[1] - a[1])[0][0],
         count: data.count,
         avgRating: data.ratings.length ?
           (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : null,
