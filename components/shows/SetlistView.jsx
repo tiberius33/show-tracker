@@ -60,7 +60,7 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                       </button>
                     )}
                     {t.cover && (
-                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                         {t.cover} cover
                       </span>
                     )}
@@ -83,14 +83,14 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                       getSongHref?.(t.title) ? (
                         <Link
                           href={getSongHref(t.title)}
-                          className="ml-2 inline-block text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
+                          className="ml-2 inline-block text-[10px] font-bold text-success hover:text-success/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
                         >
                           Seen {playCounts[t.title]}×
                         </Link>
                       ) : (
                         <button
                           onClick={() => onSongClick?.(t.title)}
-                          className="ml-2 inline-block text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                          className="ml-2 inline-block text-[10px] font-bold text-success hover:text-success/80 transition-colors"
                         >
                           Seen {playCounts[t.title]}×
                         </button>

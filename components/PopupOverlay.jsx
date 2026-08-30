@@ -6,10 +6,10 @@ import { X, Info, AlertTriangle, Sparkles, Megaphone, ExternalLink } from 'lucid
 const VARIANT_CONFIG = {
   info: {
     icon: Info,
-    iconBg: 'bg-blue-50',
-    iconColor: 'text-blue-500',
-    accentBorder: 'border-blue-200',
-    buttonBg: 'bg-blue-500 hover:bg-blue-600',
+    iconBg: 'bg-accent/10',
+    iconColor: 'text-accent',
+    accentBorder: 'border-accent/30',
+    buttonBg: 'bg-accent hover:bg-accent/90',
   },
   warning: {
     icon: AlertTriangle,

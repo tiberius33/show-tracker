@@ -79,7 +79,7 @@ export default function ArtistPicker({ onSelect }) {
             <button
               type="button"
               onClick={() => setOptions([])}
-              className="text-muted hover:text-primary p-1"
+              className="text-muted hover:text-primary p-2.5 -m-1 flex items-center justify-center"
               aria-label="Dismiss results"
             >
               <X className="w-4 h-4" />

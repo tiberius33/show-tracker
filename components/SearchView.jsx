@@ -280,7 +280,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                     <Tip text="Clear selection">
                       <button
                         onClick={clearArtistSelection}
-                        className="text-secondary hover:text-primary p-1"
+                        className="text-secondary hover:text-primary p-2 -m-1 flex items-center justify-center"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -340,7 +340,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                 setShowArtistPicker(false);
                 setArtistOptions([]);
               }}
-              className="text-secondary hover:text-primary p-1"
+              className="text-secondary hover:text-primary p-2.5 -m-1 flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>

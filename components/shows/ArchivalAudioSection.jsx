@@ -52,7 +52,7 @@ function RecordingRow({ recording, selected, onSelect }) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-primary">{sourceLabel}</span>
           {recording.avgRating != null && (
-            <span className="flex items-center gap-0.5 text-xs font-semibold text-amber-500">
+            <span className="flex items-center gap-0.5 text-xs font-semibold text-amber">
               <Star className="w-3 h-3 fill-current" /> {recording.avgRating}
               {recording.numReviews > 0 && <span className="text-muted font-normal">({recording.numReviews})</span>}
             </span>

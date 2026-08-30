@@ -62,7 +62,7 @@ export default function ShowCard({ show, friends = [], onClick, onDelete, runInf
             <Link
               href={`/runs/?run=${encodeURIComponent(runInfo.runKey)}`}
               onClick={(e) => e.stopPropagation()}
-              className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              className="text-[11px] font-semibold text-amber bg-amber-subtle px-1.5 py-0.5 rounded hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               Night {runInfo.nightNumber} of {runInfo.nightCount}
             </Link>
@@ -100,7 +100,7 @@ export default function ShowCard({ show, friends = [], onClick, onDelete, runInf
         <button
           onClick={e => { e.stopPropagation(); onDelete(); }}
           onKeyDown={e => e.stopPropagation()}
-          className="absolute top-2.5 right-2.5 p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all"
+          className="absolute top-2.5 right-2.5 p-2.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
           title="Delete show"
           aria-label="Delete show"
         >
