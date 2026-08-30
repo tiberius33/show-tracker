@@ -8,7 +8,7 @@ import {
   serverTimestamp, onSnapshot, query, where, addDoc, writeBatch,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, browserPopupRedirectResolver } from '@/lib/firebase';
-import { formatDate, parseDate, extractFirstName } from '@/lib/utils';
+import { formatDate, parseDate, extractFirstName, normalizeSongTitle } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
@@ -129,7 +129,7 @@ async function updateCommunityStats() {
 
           const setlist = show.setlist || [];
           for (const song of setlist) {
-            const songKey = song.name.toLowerCase().trim();
+            const songKey = normalizeSongTitle(song.name) || song.name.toLowerCase().trim();
             if (!allSongs[songKey]) {
               allSongs[songKey] = { songName: song.name, users: new Set(), artists: new Set(), ratings: [] };
             }
@@ -1948,16 +1948,23 @@ export function AppProvider({ children }) {
   };
 
   // ── Stats helpers ───────────────────────────────────────────────────
+  // Keyed by normalizeSongTitle (the same normalizer song pages and the
+  // Wishlist use) rather than raw song.name, so two spellings of one song
+  // (e.g. "Ashes//Dust" vs "Ashes // Dust") merge into a single row here
+  // too. The displayed name is the most-common raw spelling seen.
   const getSongStats = () => {
     const songMap = {};
     shows.forEach(show => {
       show.setlist.forEach(song => {
-        if (!songMap[song.name]) {
-          songMap[song.name] = { count: 0, ratings: [], shows: [] };
+        const key = normalizeSongTitle(song.name) || song.name;
+        if (!songMap[key]) {
+          songMap[key] = { count: 0, ratings: [], shows: [], spellings: {} };
         }
-        songMap[song.name].count++;
-        if (song.rating) songMap[song.name].ratings.push(song.rating);
-        songMap[song.name].shows.push({
+        const entry = songMap[key];
+        entry.count++;
+        entry.spellings[song.name] = (entry.spellings[song.name] || 0) + 1;
+        if (song.rating) entry.ratings.push(song.rating);
+        entry.shows.push({
           showId: show.id,
           songId: song.id,
           date: show.date,
@@ -1969,9 +1976,9 @@ export function AppProvider({ children }) {
         });
       });
     });
-    return Object.entries(songMap)
-      .map(([name, data]) => ({
-        name,
+    return Object.values(songMap)
+      .map(data => ({
+        name: Object.entries(data.spellings).sort((a, b) => b[1] - a[1])[0][0],
         count: data.count,
         avgRating: data.ratings.length ?
           (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : null,

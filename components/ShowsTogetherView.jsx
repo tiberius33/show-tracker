@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Music, Calendar, MapPin, ChevronLeft, ChevronDown, MessageSquare, RefreshCw, Eye } from 'lucide-react';
-import { formatDate, parseDate, artistColor } from '@/lib/utils';
+import { formatDate, parseDate, artistColor, normalizeSongTitle } from '@/lib/utils';
 import { attachSetBoundaryLabels } from '@/lib/setlistGrouping';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
@@ -47,7 +47,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
     if (!friendShow?.setlist) return {};
     const map = {};
     friendShow.setlist.forEach(s => {
-      const key = (s.name || '').trim().toLowerCase();
+      const key = normalizeSongTitle(s.name);
       if (key) map[key] = { rating: s.rating, name: s.name };
     });
     return map;
@@ -168,7 +168,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
                             </div>
                             <div className="space-y-1.5">
                               {attachSetBoundaryLabels(show.setlist).map((song, i) => {
-                                const songKey = (song.name || '').trim().toLowerCase();
+                                const songKey = normalizeSongTitle(song.name);
                                 const friendSong = friendSongMap[songKey];
                                 return (
                                   <React.Fragment key={song.id || i}>

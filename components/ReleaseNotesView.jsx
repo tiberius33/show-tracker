@@ -6,6 +6,15 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.3.1',
+      date: 'August 30, 2026',
+      title: 'Song Identity Cleanup',
+      changes: [
+        'Fixed: Two spellings of the same song now merge everywhere song titles are counted, not just on song pages and the Wishlist — this includes the "Songs" tab on the main Stats page, the shared-collection summary text, the community leaderboard, and the song-history popup used in friend comparisons and the setlist editor',
+        'Added test coverage for personal gap tracking, verifying the math at each edge case: seeing a song at your most recent show, seeing it only once ever, and seeing it at the very first show you logged for that artist',
+      ]
+    },
+    {
       version: '5.3.0',
       date: 'August 30, 2026',
       title: 'Song Pages & Personal Gap Tracking',
