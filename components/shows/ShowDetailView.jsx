@@ -13,7 +13,7 @@ import StreamingLinks from '@/components/StreamingLinks';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
   Trash2, X, Tag, MessageSquare, ArrowLeft, Plus,
-  Pencil, Check, ChevronUp, ChevronDown, ImageIcon, ExternalLink,
+  Pencil, Check, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 
@@ -181,7 +181,6 @@ export default function ShowDetailView({
   isArtistFavorite,
   allShows = [],
   user,
-  onLookupPosterDeep,
 }) {
   const router = useRouter();
   const { setSelectedShow } = useApp();
@@ -194,7 +193,6 @@ export default function ShowDetailView({
   const [newSongName, setNewSongName] = useState('');
   const [newSongSet, setNewSongSet] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const [posterLookupLoading, setPosterLookupLoading] = useState(false);
 
   const artistShowCount = useMemo(
     () => allShows.filter(s => s.artist === show?.artist).length,
@@ -253,16 +251,6 @@ export default function ShowDetailView({
     const set = newSongSet || existingSetLabels[existingSetLabels.length - 1] || 'Set I';
     onAddSong?.(show.id, { name: newSongName.trim(), set });
     setNewSongName('');
-  };
-
-  const handleFindPoster = async () => {
-    if (!onLookupPosterDeep || posterLookupLoading) return;
-    setPosterLookupLoading(true);
-    try {
-      await onLookupPosterDeep(show.id);
-    } finally {
-      setPosterLookupLoading(false);
-    }
   };
 
   return (
@@ -349,40 +337,6 @@ export default function ShowDetailView({
             Tour: {show.tourName || show.tour}
           </p>
         )}
-
-        {/* Poster art */}
-        {show.posterUrl ? (
-          <div className="flex items-center gap-3 mb-4">
-            <img
-              src={show.posterUrl}
-              alt={`${show.artist} poster`}
-              className="w-16 h-16 rounded-xl object-cover border border-subtle flex-shrink-0"
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
-            {show.posterSourceUrl && (
-              <a
-                href={show.posterSourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-muted hover:text-secondary transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Source
-              </a>
-            )}
-          </div>
-        ) : onLookupPosterDeep && !show.posterCheckedDeep ? (
-          <button
-            onClick={handleFindPoster}
-            disabled={posterLookupLoading}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-hover text-secondary hover:text-primary transition-colors mb-4 disabled:opacity-60"
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            {posterLookupLoading ? 'Looking for poster art…' : 'Look for poster art'}
-          </button>
-        ) : !show.posterUrl && show.posterCheckedDeep ? (
-          <p className="text-xs text-muted mb-4">No poster art found for this show.</p>
-        ) : null}
 
         {/* Show + venue ratings */}
         <div className="flex items-center gap-x-6 gap-y-2 flex-wrap mb-4">

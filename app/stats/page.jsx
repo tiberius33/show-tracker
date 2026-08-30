@@ -17,7 +17,7 @@ export default function StatsPage() {
     addSongToShow, updateSetlistOrder,
     user, friends, guestMode, setTagFriendsShow, setVenueRatingShow, statsTab,
     getVenueRatings, normalizeVenueKey, computeVenueAggregate,
-    toggleFavoriteArtist, isArtistFavorite, lookupShowPosterDeep,
+    toggleFavoriteArtist, isArtistFavorite,
   } = useApp();
 
   const { period, setPeriod, periodShows, periodLabels } = useStatsPeriod();
@@ -84,7 +84,6 @@ export default function StatsPage() {
         computeVenueAggregate={computeVenueAggregate}
         friends={friends}
         user={user}
-        onLookupPosterDeep={!guestMode ? lookupShowPosterDeep : undefined}
       />
 
       {/* Period selector — scrollable strip */}

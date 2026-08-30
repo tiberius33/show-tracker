@@ -13,7 +13,6 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
 import { fetchArtistImage } from '@/lib/artistImage';
-import { fetchShowPosterQuick, fetchShowPosterDeep } from '@/lib/posterLookup';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
 import {
@@ -968,20 +967,6 @@ export function AppProvider({ children }) {
         });
       }).catch(() => {});
 
-      // Quick poster lookup (Ticketmaster/SeatGeek) in background for guest mode.
-      // Cheap step only — the deep (band site/Reddit + AI) steps are manual-trigger only.
-      fetchShowPosterQuick(newShow).then(result => {
-        setShows(prev => {
-          const updated = prev.map(s => s.id === showId ? {
-            ...s,
-            posterCheckedQuick: true,
-            ...(result.found ? { posterUrl: result.posterUrl, posterSource: result.posterSource, posterSourceUrl: result.posterSourceUrl || null } : {}),
-          } : s);
-          saveGuestShows(updated);
-          return updated;
-        });
-      }).catch(() => {});
-
       return showId;
     }
 
@@ -1012,17 +997,6 @@ export function AppProvider({ children }) {
         if (!imageUrl) return;
         updateDoc(showRef, { artistImage: imageUrl }).catch(() => {});
         setShows(prev => prev.map(s => s.id === showId ? { ...s, artistImage: imageUrl } : s));
-      }).catch(() => {});
-
-      // Quick poster lookup (Ticketmaster/SeatGeek) in background — non-blocking.
-      // Cheap step only; the deep (band site/Reddit + AI) steps are manual-trigger only.
-      fetchShowPosterQuick(newShow).then(result => {
-        const updates = {
-          posterCheckedQuick: true,
-          ...(result.found ? { posterUrl: result.posterUrl, posterSource: result.posterSource, posterSourceUrl: result.posterSourceUrl || null } : {}),
-        };
-        updateDoc(showRef, updates).catch(() => {});
-        setShows(prev => prev.map(s => s.id === showId ? { ...s, ...updates } : s));
       }).catch(() => {});
 
       return showId;
@@ -1078,75 +1052,6 @@ export function AppProvider({ children }) {
       // Rate limit: MusicBrainz allows ~1 req/sec; our function makes 2 calls per artist
       await new Promise(resolve => setTimeout(resolve, 2500));
     }
-  };
-
-  // Backfill the quick (Ticketmaster/SeatGeek) poster lookup for existing shows
-  // that haven't been checked yet. Cheap step only — mirrors backfillArtistImages.
-  // Runs in the background; caller can fire-and-forget.
-  const backfillShowPostersQuick = async () => {
-    const missing = shows.filter(s => !s.posterCheckedQuick);
-    if (!missing.length) return;
-
-    for (const show of missing) {
-      try {
-        const result = await fetchShowPosterQuick(show);
-        const updates = {
-          posterCheckedQuick: true,
-          ...(result.found ? { posterUrl: result.posterUrl, posterSource: result.posterSource, posterSourceUrl: result.posterSourceUrl || null } : {}),
-        };
-        if (guestMode) {
-          setShows(prev => {
-            const updated = prev.map(s => s.id === show.id ? { ...s, ...updates } : s);
-            saveGuestShows(updated);
-            return updated;
-          });
-        } else if (user) {
-          const showRef = doc(db, 'users', user.uid, 'shows', show.id);
-          updateDoc(showRef, updates).catch(() => {});
-          setShows(prev => prev.map(s => s.id === show.id ? { ...s, ...updates } : s));
-        }
-      } catch {
-        // skip this show and continue
-      }
-      // Be gentle with Ticketmaster/SeatGeek — small delay between shows
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    }
-  };
-
-  // Deep poster lookup (band website + Reddit, both backed by a Claude judgment
-  // call) for a single show. Manual-trigger only — never called automatically,
-  // since this step costs real tokens per call. Returns the result so the
-  // caller can react (e.g. show "no poster found").
-  const lookupShowPosterDeep = async (showId) => {
-    const show = shows.find(s => s.id === showId);
-    if (!show) return { found: false };
-
-    const result = await fetchShowPosterDeep(show);
-    const updates = {
-      posterCheckedDeep: true,
-      ...(result.found ? { posterUrl: result.posterUrl, posterSource: result.posterSource, posterSourceUrl: result.posterSourceUrl || null } : {}),
-    };
-
-    if (guestMode) {
-      setShows(prev => {
-        const updated = prev.map(s => s.id === showId ? { ...s, ...updates } : s);
-        saveGuestShows(updated);
-        return updated;
-      });
-    } else if (user) {
-      try {
-        const showRef = doc(db, 'users', user.uid, 'shows', showId);
-        await updateDoc(showRef, updates);
-        setShows(prev => prev.map(s => s.id === showId ? { ...s, ...updates } : s));
-      } catch (error) {
-        console.error('Failed to save poster lookup result:', error);
-      }
-    }
-    if (selectedShow?.id === showId) {
-      setSelectedShow(prev => prev ? { ...prev, ...updates } : prev);
-    }
-
-    return result;
   };
 
   // ── Setlist scanning ────────────────────────────────────────────────
@@ -2484,8 +2389,6 @@ export function AppProvider({ children }) {
     updateShowData,
     deleteShow,
     backfillArtistImages,
-    backfillShowPostersQuick,
-    lookupShowPosterDeep,
     updateShowRating,
     updateShowComment,
     addSongToShow,

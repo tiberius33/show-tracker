@@ -6,18 +6,6 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '5.3.0',
-      date: 'August 29, 2026',
-      title: 'Concert Poster Art on Show Cards',
-      changes: [
-        'New: Shows now display concert poster or tour artwork when it can be found — shown as a small thumbnail on every show card, wherever it appears (Shows, Stats)',
-        'Poster art is best-effort, not guaranteed for every show — a cheap automatic check against Ticketmaster/SeatGeek runs quietly in the background for every show',
-        'New: "Look for poster art" button on a show\'s detail page digs deeper — checking the band\'s official website and Reddit setlist threads, using AI to judge whether a candidate image is actually poster art',
-        'Shows with no poster found render exactly as before — no broken-image icon, no layout shift',
-        'Once a show has been checked, the result is saved so repeat visits never re-trigger the same lookup',
-      ]
-    },
-    {
       version: '5.2.0',
       date: 'August 29, 2026',
       title: 'Simpler Navigation, Refreshed Logo & a Wishlist Home Base',
