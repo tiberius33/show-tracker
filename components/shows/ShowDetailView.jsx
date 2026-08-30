@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useApp } from '@/context/AppContext';
 import { parseDate } from '@/lib/utils';
 import { groupSongsBySet, getSetLabels, getSetOptions, moveSongToSet, reorderSongWithinSet } from '@/lib/setlistGrouping';
+import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
-import SongHistoryModal from '@/components/SongHistoryModal';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 import StreamingLinks from '@/components/StreamingLinks';
 import {
@@ -182,10 +180,7 @@ export default function ShowDetailView({
   allShows = [],
   user,
 }) {
-  const router = useRouter();
-  const { setSelectedShow } = useApp();
   const [showPlayCounts, setShowPlayCounts] = useState(true);
-  const [songHistorySong, setSongHistorySong] = useState(null);
   const [toast, setToast] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
@@ -212,6 +207,12 @@ export default function ShowDetailView({
       }));
     return counts;
   }, [allShows, show?.artist]);
+  const artistSlug = show?.artist ? artistSlugFromName(show.artist) : null;
+  const getSongHref = (title) => {
+    if (!artistSlug) return null;
+    const songSlug = songSlugFromTitle(title);
+    return songSlug ? `/songs/?artist=${artistSlug}&song=${songSlug}` : null;
+  };
   const totalDuration = useMemo(() => {
     let secs = 0;
     (show?.setlist || []).forEach(s => {
@@ -497,7 +498,7 @@ export default function ShowDetailView({
               sets={sets}
               showPlayCounts={showPlayCounts}
               playCounts={playCounts}
-              onSongClick={setSongHistorySong}
+              getSongHref={getSongHref}
             />
           ) : (
             <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
@@ -580,19 +581,6 @@ export default function ShowDetailView({
         <div className="fixed bottom-4 right-4 z-50 bg-emerald-400 text-black font-medium text-sm px-4 py-2 rounded-lg shadow-lg pointer-events-none">
           Link copied to clipboard!
         </div>
-      )}
-
-      {songHistorySong && (
-        <SongHistoryModal
-          songName={songHistorySong}
-          artistName={show.artist}
-          allShows={allShows}
-          onClose={() => setSongHistorySong(null)}
-          onViewShow={(targetShow) => {
-            setSongHistorySong(null);
-            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows/'); }
-          }}
-        />
       )}
 
       <DeleteShowModal

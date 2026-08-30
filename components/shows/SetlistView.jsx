@@ -13,13 +13,18 @@
 //   ]} />
 
 import React from 'react';
+import Link from 'next/link';
 
 // Props:
 //   sets           – array of { label, tracks[] }
 //   showPlayCounts – boolean, display "Seen Nx" pill next to each song
 //   playCounts     – { [songTitle]: count } map
 //   onSongClick    – (title) => void, called when song title is clicked
-export default function SetlistView({ sets = [], showPlayCounts = false, playCounts = {}, onSongClick }) {
+//   getSongHref    – (title) => string | null, when provided the song title
+//                    (and its "Seen Nx" pill) render as a link to that href
+//                    instead of calling onSongClick — used to link straight
+//                    to a song's own page rather than opening a modal.
+export default function SetlistView({ sets = [], showPlayCounts = false, playCounts = {}, onSongClick, getSongHref }) {
   return (
     <div>
       {sets.map((set, si) => (
@@ -39,12 +44,21 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                     {String(ti + 1).padStart(2, '0')}
                   </span>
                   <span className="text-[15px] font-medium text-primary leading-snug">
-                    <button
-                      onClick={() => onSongClick?.(t.title)}
-                      className="hover:text-brand hover:underline transition-colors text-left"
-                    >
-                      {t.title}
-                    </button>
+                    {getSongHref?.(t.title) ? (
+                      <Link
+                        href={getSongHref(t.title)}
+                        className="hover:text-brand hover:underline transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
+                      >
+                        {t.title}
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => onSongClick?.(t.title)}
+                        className="hover:text-brand hover:underline transition-colors text-left"
+                      >
+                        {t.title}
+                      </button>
+                    )}
                     {t.cover && (
                       <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded">
                         {t.cover} cover
@@ -66,12 +80,21 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                       </span>
                     )}
                     {showPlayCounts && playCounts[t.title] > 0 && (
-                      <button
-                        onClick={() => onSongClick?.(t.title)}
-                        className="ml-2 inline-block text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
-                      >
-                        Seen {playCounts[t.title]}×
-                      </button>
+                      getSongHref?.(t.title) ? (
+                        <Link
+                          href={getSongHref(t.title)}
+                          className="ml-2 inline-block text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
+                        >
+                          Seen {playCounts[t.title]}×
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => onSongClick?.(t.title)}
+                          className="ml-2 inline-block text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                        >
+                          Seen {playCounts[t.title]}×
+                        </button>
+                      )
                     )}
                   </span>
                   {t.duration && (
