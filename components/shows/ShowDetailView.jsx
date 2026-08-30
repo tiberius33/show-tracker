@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { parseDate } from '@/lib/utils';
 import { groupSongsBySet, getSetLabels, getSetOptions, moveSongToSet, reorderSongWithinSet } from '@/lib/setlistGrouping';
 import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
+import { buildRunIndex } from '@/lib/runIndex';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
@@ -207,6 +209,18 @@ export default function ShowDetailView({
       }));
     return counts;
   }, [allShows, show?.artist]);
+  // Reuses lib/runIndex.js's pure builder directly off the `allShows` prop
+  // (which every caller already passes as the full context `shows` array)
+  // rather than the useRunIndex hook, since this component takes shows as a
+  // prop, not via useApp().
+  const runForThisShow = useMemo(() => {
+    if (!show?.id) return null;
+    const index = buildRunIndex(allShows);
+    const run = Object.values(index).find(r => r.nights.some(n => n.showId === show.id));
+    if (!run) return null;
+    const nightNumber = run.nights.findIndex(n => n.showId === show.id) + 1;
+    return { runKey: run.key, nightNumber, nightCount: run.nightCount };
+  }, [allShows, show?.id]);
   const artistSlug = show?.artist ? artistSlugFromName(show.artist) : null;
   const getSongHref = (title) => {
     if (!artistSlug) return null;
@@ -337,6 +351,15 @@ export default function ShowDetailView({
           <p className="text-sm font-medium text-brand mb-3">
             Tour: {show.tourName || show.tour}
           </p>
+        )}
+
+        {runForThisShow && (
+          <Link
+            href={`/runs/?run=${encodeURIComponent(runForThisShow.runKey)}`}
+            className="inline-block text-sm font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg mb-3 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          >
+            Night {runForThisShow.nightNumber} of {runForThisShow.nightCount} — view the full run
+          </Link>
         )}
 
         {/* Show + venue ratings */}

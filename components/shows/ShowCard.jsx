@@ -6,6 +6,7 @@
 // listed.
 
 import React from 'react';
+import Link from 'next/link';
 import { Calendar, MapPin, MessageSquare, Trash2 } from 'lucide-react';
 import { formatDate, artistColor, avgSongRating } from '@/lib/utils';
 import { Card, Badge } from '@/components/ui';
@@ -18,7 +19,13 @@ function taggedFriendsLabel(taggedFriends) {
   return `with ${taggedFriends.length} friends`;
 }
 
-export default function ShowCard({ show, friends = [], onClick, onDelete }) {
+// runInfo: { runKey, nightNumber, nightCount } | null — when this show is
+// part of a multi-night run, renders a small "Night N of M" badge linking
+// to the run page. tourHref: string | null — when the show carries a tour
+// name and it resolves to a real tour, renders that name as a link instead
+// of plain text. Both optional so existing callers (e.g. StatsView) are
+// unaffected.
+export default function ShowCard({ show, friends = [], onClick, onDelete, runInfo, tourHref }) {
   const songAvg = avgSongRating(show.setlist || []);
   const taggedFriendIds = new Set(show.taggedFriendUids || []);
   const taggedFriends = friends.filter(f => taggedFriendIds.has(f.friendUid));
@@ -37,9 +44,28 @@ export default function ShowCard({ show, friends = [], onClick, onDelete }) {
             {show.artist}
           </span>
           {show.tour && (
-            <span className="text-xs text-brand font-medium">
-              {show.tour}
-            </span>
+            tourHref ? (
+              <Link
+                href={tourHref}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-brand font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
+              >
+                {show.tour}
+              </Link>
+            ) : (
+              <span className="text-xs text-brand font-medium">
+                {show.tour}
+              </span>
+            )
+          )}
+          {runInfo && (
+            <Link
+              href={`/runs/?run=${encodeURIComponent(runInfo.runKey)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
+              Night {runInfo.nightNumber} of {runInfo.nightCount}
+            </Link>
           )}
         </div>
         <div className="flex items-center gap-2 text-sm mt-1 text-secondary">
