@@ -1843,6 +1843,19 @@ export function AppProvider({ children }) {
     await saveShow(updatedShows.find(s => s.id === showId));
   };
 
+  // Remembers which archival recording (a Relisten source uuid) the user
+  // picked for this show, so returning to the show doesn't reset the choice.
+  const updateArchivalAudioPick = async (showId, recordingId) => {
+    const updatedShows = shows.map(show =>
+      show.id === showId ? { ...show, archivalAudioPick: recordingId } : show
+    );
+    setShows(updatedShows);
+    if (selectedShow?.id === showId) {
+      setSelectedShow(updatedShows.find(s => s.id === showId));
+    }
+    await saveShow(updatedShows.find(s => s.id === showId));
+  };
+
   const addSongToShow = async (showId, songData) => {
     const updatedShows = shows.map(show => {
       if (show.id === showId) {
@@ -2398,6 +2411,7 @@ export function AppProvider({ children }) {
     backfillArtistImages,
     updateShowRating,
     updateShowComment,
+    updateArchivalAudioPick,
     addSongToShow,
     updateSongRating,
     updateSongComment,

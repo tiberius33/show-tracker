@@ -10,6 +10,7 @@ import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 import StreamingLinks from '@/components/StreamingLinks';
+import ArchivalAudioSection from './ArchivalAudioSection';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
   Trash2, X, Tag, MessageSquare, ArrowLeft, Plus,
@@ -552,6 +553,7 @@ export default function ShowDetailView({
           )}
 
           <StreamingLinks show={show} />
+          <ArchivalAudioSection show={show} />
         </section>
 
         <aside className="space-y-3 lg:sticky lg:top-6">
