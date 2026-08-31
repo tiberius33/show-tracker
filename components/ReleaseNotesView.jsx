@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.16.1',
+      date: 'August 30, 2026',
+      title: 'Fixed: Stuck on an Old Version',
+      changes: [
+        'Fixed: some users were stuck seeing a version of the app from mid-August, missing everything shipped since — including several of today\'s releases. The offline service worker\'s cache identifier was never updated across a release, all the way back to when it was first added, so browsers had no way to tell a new version had shipped and kept serving the same cached copy indefinitely',
+        'Every release now stamps a fresh cache identifier automatically, so this can\'t silently happen again',
+        'If you\'re still seeing an old version after this update, force it once by clearing this site\'s data (Safari: Settings → Advanced → Website Data → mysetlists.net → Remove) or fully closing and reopening the app',
+      ]
+    },
+    {
       version: '5.16.0',
       date: 'August 30, 2026',
       title: 'Immediate Email Notifications',
