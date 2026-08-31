@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
-import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell } from 'lucide-react';
+import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell, AtSign } from 'lucide-react';
 import { Card, EmptyState, Spinner, Button } from '@/components/ui';
 import { db } from '@/lib/firebase';
 import { useApp } from '@/context/AppContext';
@@ -21,6 +21,7 @@ import { timeAgo } from '@/lib/utils';
 const ICONS = {
   comment_reply: MessageSquare,
   comment_like: Heart,
+  comment_mention: AtSign,
   photo_like: ImageIcon,
   roadmap_published: Megaphone,
 };
