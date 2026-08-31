@@ -108,6 +108,25 @@ service cloud.firestore {
             || request.auth.token.email == 'phillip.leonard@gmail.com');
     }
 
+    // Concert photos/videos — metadata doc for each upload (see
+    // lib/photos.js). Same shape as showComments: keyed by concertKey,
+    // any authenticated user can read/post, `likedBy` is the only
+    // toggle-your-own-uid update allowed, delete is uploader-or-admin.
+    // The actual file bytes live in Cloud Storage — see storage.rules for
+    // the size/content-type limits enforced there.
+    match /showPhotos/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uploadedBy == request.auth.uid;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy'])
+        && request.resource.data.likedBy.removeAll(resource.data.likedBy).hasOnly([request.auth.uid])
+        && resource.data.likedBy.removeAll(request.resource.data.likedBy).hasOnly([request.auth.uid]);
+      allow delete: if request.auth != null
+        && (resource.data.uploadedBy == request.auth.uid
+            || request.auth.token.email == 'phillip.leonard@gmail.com');
+    }
+
     // Ticket search cache
     match /ticketCache/{doc} {
       allow read, write: if request.auth != null;
