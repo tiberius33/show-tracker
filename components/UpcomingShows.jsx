@@ -7,6 +7,7 @@ import { db, getFirebaseAnalytics } from '@/lib/firebase';
 import { mergeTicketEvents, formatTicketDate } from '@/lib/utils';
 import { TICKET_CACHE_TTL } from '@/lib/constants';
 import { apiUrl } from '@/lib/api';
+import AddToBucketListButton from '@/components/bucketlist/AddToBucketListButton';
 
 function UpcomingShows({ artistName }) {
   const [loading, setLoading] = useState(true);
@@ -189,7 +190,18 @@ function UpcomingShows({ artistName }) {
                     <div className="text-xs text-muted mt-0.5">{priceLabel}</div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                  <AddToBucketListButton
+                    item={{
+                      artist: artistName,
+                      venue: event.venue,
+                      city: event.city,
+                      state: event.state,
+                      date: event.date,
+                      source: event.tmUrl ? 'ticketmaster' : 'seatgeek',
+                      ticketUrl: event.tmUrl || event.sgUrl || null,
+                    }}
+                  />
                   {event.tmUrl && (
                     <a
                       href={event.tmUrl}

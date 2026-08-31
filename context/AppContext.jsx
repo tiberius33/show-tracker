@@ -210,6 +210,9 @@ export function AppProvider({ children }) {
   const [statsTab, setStatsTab] = useState('years');
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  // Set by BucketListView's "Mark Attended" before navigating to /shows —
+  // read once by app/shows/page.jsx to prefill + open ShowForm, then cleared.
+  const [bucketListPrefill, setBucketListPrefill] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -2257,6 +2260,8 @@ export function AppProvider({ children }) {
     setShows,
     showForm,
     setShowForm,
+    bucketListPrefill,
+    setBucketListPrefill,
     selectedShow,
     setSelectedShow,
     searchTerm,

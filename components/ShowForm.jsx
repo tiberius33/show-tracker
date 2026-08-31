@@ -4,11 +4,11 @@ import React, { useState } from 'react';
 import { Tag, ChevronDown, Check } from 'lucide-react';
 import { Button, Card, Input, Badge } from '@/components/ui';
 
-function ShowForm({ onSubmit, onCancel, friends = [], onTagFriends }) {
+function ShowForm({ onSubmit, onCancel, friends = [], onTagFriends, initialData }) {
   const [formData, setFormData] = useState({
-    artist: '',
-    venue: '',
-    date: new Date().toISOString().split('T')[0]
+    artist: initialData?.artist || '',
+    venue: initialData?.venue || '',
+    date: initialData?.date || new Date().toISOString().split('T')[0]
   });
   const [tagOpen, setTagOpen] = useState(false);
   const [selectedTagFriends, setSelectedTagFriends] = useState(new Set());
