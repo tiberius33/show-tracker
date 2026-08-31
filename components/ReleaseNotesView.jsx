@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.17.0',
+      date: 'August 31, 2026',
+      title: 'Bulk Import Audit & Improvements',
+      changes: [
+        'Audited the bulk import flow end-to-end (CSV/Excel upload, column mapping, preview, setlist.fm auto-linking) and found the core flow already solid — preview-before-import and column mapping already existed',
+        'New: "Download CSV template" button on the upload screen with example data and all supported columns, so formatting your own file is less guesswork',
+        'Fixed: duplicate detection now also compares city, so seeing the same artist at the same venue on the same date in two different cities no longer falsely flags as a duplicate',
+        'Changed: possible duplicates are now unchecked by default in the import preview (with a per-row checkbox to include them anyway) instead of silently importing them alongside everything else',
+        'New: a "Retry Failed" button after import for any rows that failed to save, instead of having to redo the whole file',
+        'Fixed: uploading a file with no extension in its name (e.g. from some cloud exports) no longer crashes the import screen',
+      ]
+    },
+    {
       version: '5.16.2',
       date: 'August 30, 2026',
       title: 'Fixed: New Sidebar Items Never Actually Showing',

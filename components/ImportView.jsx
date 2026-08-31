@@ -26,6 +26,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [setlistsFound, setSetlistsFound] = useState(0);
   const [screenshotAnalyzing, setScreenshotAnalyzing] = useState(false);
   const [screenshotError, setScreenshotError] = useState(null);
+  const [failedRows, setFailedRows] = useState([]);
 
   const fields = IMPORT_FIELDS;
 
@@ -52,7 +53,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     setFileName(file.name);
     setParseError(null);
     setScreenshotError(null);
-    const ext = file.name.split('.').pop().toLowerCase();
+    const extMatch = file.name.match(/\.([^.]+)$/);
+    const ext = extMatch ? extMatch[1].toLowerCase() : '';
 
     if (ext === 'csv') {
       const text = await file.text();
@@ -147,7 +149,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
             rating: null,
             errors,
             isDuplicate,
-            skip: false,
+            skip: isDuplicate,
           });
         } catch (rowErr) {
           console.error('Error processing show:', show, rowErr);
@@ -210,7 +212,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       const isDuplicate = parsedDate && existingShows.some(show =>
         show.artist?.toLowerCase() === record.artist?.toLowerCase() &&
         show.venue?.toLowerCase() === record.venue?.toLowerCase() &&
-        show.date === parsedDate
+        show.date === parsedDate &&
+        (!record.city || !show.city || show.city.toLowerCase() === record.city.toLowerCase())
       );
 
       return {
@@ -219,7 +222,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
         rating,
         errors,
         isDuplicate,
-        skip: false,
+        skip: isDuplicate,
       };
     });
   }, [rawData, mapping, existingShows, fields]);
@@ -233,6 +236,22 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const validRows = previewRows.filter(r => r.errors.length === 0 && !r.skip);
   const errorRows = previewRows.filter(r => r.errors.length > 0);
   const duplicateRows = previewRows.filter(r => r.isDuplicate && r.errors.length === 0);
+
+  const toggleRowSkip = (index) => {
+    setPreviewRows(prev => prev.map((row, i) => i === index ? { ...row, skip: !row.skip } : row));
+  };
+
+  const downloadTemplate = () => {
+    const header = fields.map(f => f.label).join(',');
+    const example = '"The Strokes","Madison Square Garden","2024-06-15","New York","USA","9","Incredible energy","This Is It Tour"';
+    const blob = new Blob([`${header}\n${example}\n`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'show-import-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const fetchSetlistForShow = async ({ artist, date }) => {
     try {
@@ -289,8 +308,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     }
   };
 
-  const handleStartImport = async () => {
-    const toImport = validRows.filter(r => !r.skip);
+  const handleStartImport = async (rowsOverride) => {
+    const toImport = rowsOverride || validRows.filter(r => !r.skip);
     setImportTotal(toImport.length);
     setImportProgress(0);
     setSetlistFetchStep(null);
@@ -301,6 +320,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     let imported = 0;
     let failed = 0;
     const importedShows = [];
+    const newlyFailedRows = [];
 
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
@@ -323,12 +343,15 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
         }
       } catch (err) {
         failed++;
+        newlyFailedRows.push({ ...row, error: err.message || 'Import failed' });
       }
       setImportProgress(i + 1);
       if (i < toImport.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
+
+    setFailedRows(newlyFailedRows);
 
     if (importedShows.length > 0 && onUpdateShow) {
       setSetlistFetchStep('fetching');
@@ -358,12 +381,17 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       setSetlistFetchStep('complete');
     }
 
-    setImportResults({
-      imported,
+    setImportResults(prev => ({
+      imported: (rowsOverride ? prev.imported : 0) + imported,
       failed,
-      skipped: previewRows.length - toImport.length,
-    });
+      skipped: rowsOverride ? prev.skipped : previewRows.length - toImport.length,
+    }));
     setStep('complete');
+  };
+
+  const handleRetryFailed = () => {
+    if (failedRows.length === 0) return;
+    handleStartImport(failedRows);
   };
 
   const resetImport = () => {
@@ -383,6 +411,7 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     setSetlistsFound(0);
     setScreenshotAnalyzing(false);
     setScreenshotError(null);
+    setFailedRows([]);
   };
 
   return (
@@ -493,6 +522,13 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                 <span>Google Sheets: File &rarr; Download &rarr; CSV or Excel</span>
               </li>
             </ul>
+            <button
+              onClick={downloadTemplate}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-hover hover:bg-active border border-subtle rounded-lg text-secondary text-sm font-medium transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Download CSV template
+            </button>
           </div>
         </div>
       )}
@@ -618,6 +654,12 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
             )}
           </div>
 
+          {duplicateRows.length > 0 && (
+            <p className="text-muted text-xs mb-4">
+              Possible duplicates are unchecked by default. Use the "Import?" checkbox on a row to include it anyway.
+            </p>
+          )}
+
           <div className="overflow-x-auto mb-6 max-h-96 overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-elevated/95">
@@ -627,7 +669,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                   <th className="text-left px-3 py-2 text-secondary font-medium">Venue</th>
                   <th className="text-left px-3 py-2 text-secondary font-medium">Date</th>
                   <th className="text-left px-3 py-2 text-secondary font-medium">City</th>
-                  <th className="text-left px-3 py-2 text-secondary font-medium w-20">Status</th>
+                  <th className="text-left px-3 py-2 text-secondary font-medium w-24">Status</th>
+                  <th className="text-left px-3 py-2 text-secondary font-medium w-16">Import?</th>
                 </tr>
               </thead>
               <tbody>
@@ -663,6 +706,16 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
                         <span className="text-brand text-xs">
                           <Check className="w-4 h-4 inline" />
                         </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {row.errors.length === 0 && (
+                        <input
+                          type="checkbox"
+                          checked={!row.skip}
+                          onChange={() => toggleRowSkip(i)}
+                          className="w-4 h-4 accent-brand cursor-pointer"
+                        />
                       )}
                     </td>
                   </tr>
@@ -783,6 +836,15 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
             >
               View My Shows
             </button>
+            {failedRows.length > 0 && (
+              <button
+                onClick={handleRetryFailed}
+                className="px-5 py-2.5 bg-danger/10 hover:bg-danger/20 text-danger rounded-xl font-medium transition-colors inline-flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry {failedRows.length} Failed
+              </button>
+            )}
             <button
               onClick={resetImport}
               className="px-5 py-2.5 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors"
