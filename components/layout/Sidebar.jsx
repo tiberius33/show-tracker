@@ -18,6 +18,7 @@ import { usePathname } from 'next/navigation';
 import {
   Search, List, BarChart3, Ticket, Send, Shield, Coffee,
   LogOut, User, X, Heart, ScrollText, HelpCircle,
+  Activity, Bell, Bookmark, GalleryVertical,
 } from 'lucide-react';
 import Pick from '../brand/Pick';
 import Wordmark from '../brand/Wordmark';
@@ -38,6 +39,7 @@ export default function Sidebar({
   onCreateAccount,
   pendingNotificationCount = 0,
   upcomingShowsBadgeCount = 0,
+  unreadNotificationCount = 0,
 }) {
   const pathname = usePathname() || '';
   const segment = getActiveId(pathname);
@@ -51,6 +53,10 @@ export default function Sidebar({
     { id: 'stats', label: 'Stats', icon: BarChart3, href: '/stats' },
     ...(isGuest ? [] : [
       { id: 'profile', label: 'Profile', icon: User, href: '/profile', badge: pendingNotificationCount },
+      { id: 'activity', label: 'Activity', icon: Activity, href: '/activity' },
+      { id: 'notifications', label: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotificationCount },
+      { id: 'bucket-list', label: 'Bucket List', icon: Bookmark, href: '/bucket-list' },
+      { id: 'setlist-photos', label: 'Setlist Photos', icon: GalleryVertical, href: '/setlist-photos' },
     ]),
   ];
 
