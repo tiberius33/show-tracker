@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.16.2',
+      date: 'August 30, 2026',
+      title: 'Fixed: New Sidebar Items Never Actually Showing',
+      changes: [
+        'Fixed: today\'s new sidebar items (Activity, Notifications, Bucket List, Setlist Photos) were being added to a copy of the sidebar component that the app no longer actually uses — a leftover from before a sidebar redesign, never deleted, never imported anywhere. Every one of today\'s nav additions was going into dead code',
+        'Added the same four items to the sidebar component that\'s actually live, and deleted the unused duplicate so this can\'t happen again',
+        'No other changes — this only affects sidebar navigation, everything else shipped today already worked correctly',
+      ]
+    },
+    {
       version: '5.16.1',
       date: 'August 30, 2026',
       title: 'Fixed: Stuck on an Old Version',
