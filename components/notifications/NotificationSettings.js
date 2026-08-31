@@ -13,7 +13,8 @@ export default function NotificationSettings({ userId }) {
   const [preferences, setPreferences] = useState({
     showReminders: true,
     newFeatures: true,
-    communityUpdates: false
+    communityUpdates: false,
+    engagementNotifications: true,
   });
 
   useEffect(() => {
@@ -156,6 +157,26 @@ export default function NotificationSettings({ userId }) {
           </div>
         </div>
       )}
+
+      {/* In-app notifications (Notification Center + real-time badge) —
+          independent of browser push permission above, since these are
+          just Firestore records the app shows you, not OS notifications. */}
+      <div className="mt-5 pt-5 border-t border-subtle">
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={preferences.engagementNotifications}
+            onChange={(e) => handlePreferenceChange('engagementNotifications', e.target.checked)}
+            className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+          />
+          <div>
+            <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+              Replies & likes
+            </span>
+            <p className="text-secondary text-xs">Notify me when someone replies to my comment, or likes my comment or photo</p>
+          </div>
+        </label>
+      </div>
     </div>
   );
 }

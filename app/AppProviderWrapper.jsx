@@ -44,7 +44,7 @@ function AppShell({ children }) {
     showMigrationPrompt, handleMigrateData, handleSkipMigration, localShowsToMigrate,
     showGuestPrompt, setShowGuestPrompt, openAuthModal,
     showCelebration, welcomeState, setWelcomeState,
-    pendingNotificationCount, upcomingShowsBadgeCount,
+    pendingNotificationCount, upcomingShowsBadgeCount, unreadNotifications,
     friends, handleLogout,
     enterGuestMode, exitGuestMode, communityStats,
     handleAuthSuccess,
@@ -221,6 +221,7 @@ function AppShell({ children }) {
         onCreateAccount={() => openAuthModal('signup')}
         pendingNotificationCount={pendingNotificationCount}
         upcomingShowsBadgeCount={upcomingShowsBadgeCount}
+        unreadNotificationCount={unreadNotifications?.length || null}
       />
 
       {/* Main Content Area */}

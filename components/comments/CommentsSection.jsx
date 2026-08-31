@@ -13,6 +13,7 @@ import { MessageSquare, Heart, Trash2, CornerDownRight, Send } from 'lucide-reac
 import { Card, Avatar, Button, Textarea, Tabs, Spinner } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { subscribeComments, postComment, toggleCommentLike, deleteComment } from '@/lib/comments';
+import { createEngagementNotification } from '@/lib/notifications';
 import { timeAgo } from '@/lib/utils';
 
 const SORTS = [
@@ -173,8 +174,14 @@ export default function CommentsSection({ show }) {
   };
 
   const handleReply = async (parent, text) => {
+    const authorName = user.displayName || 'Anonymous';
     try {
-      await postComment(concertKey, user.uid, user.displayName || 'Anonymous', text, parent.id);
+      await postComment(concertKey, user.uid, authorName, text, parent.id);
+      createEngagementNotification(parent.authorUid, 'comment_reply', {
+        concertKey, artist: show.artist, venue: show.venue, date: show.date,
+        fromUid: user.uid, fromName: authorName,
+        message: `${authorName} replied to your comment on ${show.artist}`,
+      });
     } catch (err) {
       setToast?.("Couldn't post your reply. Please try again.");
     }
@@ -185,6 +192,14 @@ export default function CommentsSection({ show }) {
     const alreadyLiked = (comment.likedBy || []).includes(user.uid);
     try {
       await toggleCommentLike(comment.id, user.uid, alreadyLiked);
+      if (!alreadyLiked) {
+        const likerName = user.displayName || 'Anonymous';
+        createEngagementNotification(comment.authorUid, 'comment_like', {
+          concertKey, artist: show.artist, venue: show.venue, date: show.date,
+          fromUid: user.uid, fromName: likerName,
+          message: `${likerName} liked your comment on ${show.artist}`,
+        });
+      }
     } catch (err) {
       setToast?.("Couldn't update your like. Please try again.");
     }

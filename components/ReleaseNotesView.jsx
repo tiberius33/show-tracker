@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.11.0',
+      date: 'August 30, 2026',
+      title: 'Notifications',
+      changes: [
+        'New: a Notification Center — get notified when someone replies to your comment, or likes your comment or photo/video, with a real-time badge in the sidebar',
+        'Click a notification to jump straight to the show it\'s about',
+        '"Mark all as read" clears the badge in one tap',
+        'A new "Replies & likes" toggle on your Profile page lets you turn these off any time — on by default',
+        'Not yet built: notifying every attendee when a friend adds a show you also attended, and email digest options (immediate/daily/weekly) — both are real infrastructure projects on their own (the first needs a cross-user show lookup that doesn\'t exist yet; the second needs a scheduled email job), flagged as follow-ups rather than half-built here',
+      ]
+    },
+    {
       version: '5.10.0',
       date: 'August 30, 2026',
       title: 'Concert Photos & Videos',
