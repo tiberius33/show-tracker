@@ -9,17 +9,22 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Heart, Trash2, ChevronLeft, ChevronRight, Play, Plus } from 'lucide-react';
-import { Card, Avatar, Button, Modal, Spinner } from '@/components/ui';
+import { Card, Avatar, Button, Modal, Spinner, Tabs } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { togglePhotoLike, deletePhoto, extractYoutubeId } from '@/lib/photos';
 import { createEngagementNotification } from '@/lib/notifications';
 import { logActivity } from '@/lib/activityFeed';
 import { timeAgo } from '@/lib/utils';
 
-const LABEL_BY_CATEGORY = { poster: 'poster', setlist: 'setlist photo' };
 import UploadMediaModal from './UploadMediaModal';
+
+const LABEL_BY_CATEGORY = { poster: 'poster', setlist: 'setlist photo' };
+const SORTS = [
+  { id: 'newest', label: 'Newest' },
+  { id: 'liked', label: 'Most Liked' },
+];
 
 function Thumbnail({ item, onClick }) {
   if (item.type === 'youtube') {
@@ -166,6 +171,14 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
   const { user, isAdmin, guestMode, setToast } = useApp();
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [sort, setSort] = useState('newest');
+
+  // subscribePhotos already orders by createdAt desc — 'liked' is the
+  // only case that needs a client-side re-sort.
+  const sortedItems = useMemo(() => {
+    if (sort !== 'liked') return items;
+    return [...items].sort((a, b) => (b.likedBy?.length || 0) - (a.likedBy?.length || 0));
+  }, [items, sort]);
 
   const handleLike = async (item) => {
     if (!user) return;
@@ -203,11 +216,14 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
           <Icon size={18} className="text-brand" />
           {title} {items.length > 0 && <span className="text-muted font-normal text-sm">({items.length})</span>}
         </h3>
-        {user && !guestMode && (
-          <Button size="sm" variant="secondary" icon={Plus} onClick={() => setUploadOpen(true)}>
-            Add {category === 'photo' ? 'Photos' : title}
-          </Button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {items.length > 1 && <Tabs value={sort} onChange={setSort} tabs={SORTS} className="border-b-0" />}
+          {user && !guestMode && (
+            <Button size="sm" variant="secondary" icon={Plus} onClick={() => setUploadOpen(true)}>
+              Add {category === 'photo' ? 'Photos' : title}
+            </Button>
+          )}
+        </div>
       </div>
 
       {!user || guestMode ? (
@@ -218,7 +234,7 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
         <p className="text-sm text-muted text-center py-8">{emptyText}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {items.map((item, i) => (
+          {sortedItems.map((item, i) => (
             <Thumbnail key={item.id} item={item} onClick={() => setLightboxIndex(i)} />
           ))}
         </div>
@@ -226,7 +242,7 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
 
       {lightboxIndex !== null && (
         <Lightbox
-          items={items}
+          items={sortedItems}
           index={lightboxIndex}
           onIndexChange={setLightboxIndex}
           onClose={() => setLightboxIndex(null)}

@@ -4,9 +4,8 @@
 // setlist photos) — which tabs/file types it offers depends on
 // `category`: posters and setlist photos are images only (no video, no
 // YouTube tab), since a poster or a setlist isn't a video by definition.
-// One caption applies to the whole batch of files selected at once;
-// per-photo captions in a multi-file batch is a scope cut, noted in the
-// release notes rather than half-built here.
+// Each selected file gets its own caption field — a batch of 5 photos
+// from one night usually isn't 5 copies of the same caption.
 
 'use client';
 
@@ -23,17 +22,17 @@ export default function UploadMediaModal({
   const acceptTypes = allowedTypesFor(category).join(',');
 
   const [mode, setMode] = useState('file');
-  const [files, setFiles] = useState([]);
+  const [entries, setEntries] = useState([]); // [{ file, caption }]
   const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [caption, setCaption] = useState('');
+  const [youtubeCaption, setYoutubeCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ index: 0, total: 0, pct: 0 });
   const [validationError, setValidationError] = useState('');
 
   const reset = () => {
-    setFiles([]);
+    setEntries([]);
     setYoutubeUrl('');
-    setCaption('');
+    setYoutubeCaption('');
     setValidationError('');
     setProgress({ index: 0, total: 0, pct: 0 });
   };
@@ -54,24 +53,32 @@ export default function UploadMediaModal({
       const err = checkUploadAllowed(file, runningPhotos, category);
       if (err) {
         setValidationError(err);
-        setFiles([]);
+        setEntries([]);
         return;
       }
       runningPhotos = [...runningPhotos, { fileSize: file.size }];
     }
-    setFiles(selected);
+    setEntries(selected.map((file) => ({ file, caption: '' })));
+  };
+
+  const updateCaption = (index, caption) => {
+    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, caption } : e)));
+  };
+
+  const removeEntry = (index) => {
+    setEntries((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUploadFiles = async () => {
-    if (files.length === 0) return;
+    if (entries.length === 0) return;
     setUploading(true);
-    setProgress({ index: 0, total: files.length, pct: 0 });
+    setProgress({ index: 0, total: entries.length, pct: 0 });
     try {
-      for (let i = 0; i < files.length; i++) {
-        setProgress({ index: i + 1, total: files.length, pct: 0 });
+      for (let i = 0; i < entries.length; i++) {
+        setProgress({ index: i + 1, total: entries.length, pct: 0 });
         await uploadShowMedia({
-          file: files[i], concertKey, uid, uploaderName, caption, category, show,
-          onProgress: (pct) => setProgress({ index: i + 1, total: files.length, pct }),
+          file: entries[i].file, concertKey, uid, uploaderName, caption: entries[i].caption, category, show,
+          onProgress: (pct) => setProgress({ index: i + 1, total: entries.length, pct }),
         });
       }
       onUploaded?.();
@@ -90,7 +97,7 @@ export default function UploadMediaModal({
     if (!youtubeUrl.trim()) return;
     setUploading(true);
     try {
-      await addYoutubeLink({ url: youtubeUrl, concertKey, uid, uploaderName, caption, show });
+      await addYoutubeLink({ url: youtubeUrl, concertKey, uid, uploaderName, caption: youtubeCaption, show });
       onUploaded?.();
       reset();
       onClose();
@@ -120,7 +127,7 @@ export default function UploadMediaModal({
           <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-subtle rounded-xl py-8 cursor-pointer hover:border-brand/40 transition-colors">
             <Upload size={22} className="text-muted" />
             <span className="text-sm text-secondary">
-              {files.length > 0 ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : `Choose ${category === 'photo' ? 'images or MP4 videos' : 'images'}`}
+              {entries.length > 0 ? `${entries.length} file${entries.length !== 1 ? 's' : ''} selected` : `Choose ${category === 'photo' ? 'images or MP4 videos' : 'images'}`}
             </span>
             <span className="text-xs text-muted">10MB per file, 50MB per show</span>
             <input
@@ -133,16 +140,25 @@ export default function UploadMediaModal({
             />
           </label>
 
-          {files.length > 0 && (
-            <ul className="space-y-1">
-              {files.map((f, i) => (
-                <li key={i} className="flex items-center justify-between text-sm text-secondary bg-hover rounded-lg px-3 py-2">
-                  <span className="truncate">{f.name}</span>
+          {entries.length > 0 && (
+            <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {entries.map((entry, i) => (
+                <li key={i} className="flex items-start gap-2 bg-hover rounded-lg px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm text-secondary truncate mb-1">{entry.file.name}</div>
+                    <Textarea
+                      placeholder="Caption for this one (optional)"
+                      value={entry.caption}
+                      onChange={(e) => updateCaption(i, e.target.value)}
+                      rows={1}
+                      disabled={uploading}
+                    />
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
+                    onClick={() => removeEntry(i)}
                     disabled={uploading}
-                    className="text-muted hover:text-danger flex-shrink-0 ml-2"
+                    className="text-muted hover:text-danger flex-shrink-0 mt-1"
                   >
                     <XIcon size={14} />
                   </button>
@@ -152,14 +168,6 @@ export default function UploadMediaModal({
           )}
 
           {validationError && <p className="text-sm text-danger">{validationError}</p>}
-
-          <Textarea
-            placeholder="Add a caption (optional)"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={2}
-            disabled={uploading}
-          />
 
           {uploading && (
             <div>
@@ -176,8 +184,8 @@ export default function UploadMediaModal({
             </div>
           )}
 
-          <Button full loading={uploading} disabled={files.length === 0} onClick={handleUploadFiles}>
-            {uploading ? 'Uploading…' : `Upload ${files.length || ''}`.trim()}
+          <Button full loading={uploading} disabled={entries.length === 0} onClick={handleUploadFiles}>
+            {uploading ? 'Uploading…' : `Upload ${entries.length || ''}`.trim()}
           </Button>
         </div>
       ) : (
@@ -191,8 +199,8 @@ export default function UploadMediaModal({
           />
           <Textarea
             placeholder="Add a caption (optional)"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
+            value={youtubeCaption}
+            onChange={(e) => setYoutubeCaption(e.target.value)}
             rows={2}
             disabled={uploading}
           />
