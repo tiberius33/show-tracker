@@ -17,6 +17,7 @@ import {
   Pencil, Check, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
+import CommentsSection from '@/components/comments/CommentsSection';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -600,6 +601,8 @@ export default function ShowDetailView({
           )}
         </aside>
       </div>
+
+      <CommentsSection show={show} />
 
       {/* Share toast */}
       {toast && (
