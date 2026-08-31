@@ -3,9 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, List, Camera, BarChart3, UserPlus, Users, Ticket, Bookmark, Activity, TrendingUp, ScrollText, Send, MessageSquare, Shield, Coffee, LogOut, User, X, Menu, HelpCircle } from 'lucide-react';
+import { Search, List, Camera, BarChart3, UserPlus, Users, Ticket, Bookmark, Activity, Bell, TrendingUp, ScrollText, Send, MessageSquare, Shield, Coffee, LogOut, User, X, Menu, HelpCircle } from 'lucide-react';
 
-function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount, pendingNotificationCount, upcomingShowsBadgeCount }) {
+function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount, pendingNotificationCount, upcomingShowsBadgeCount, unreadNotificationCount }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -23,6 +23,7 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
       { id: 'profile', label: 'Profile', icon: User },
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
       { id: 'activity', label: 'Activity', icon: Activity },
+      { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotificationCount },
     ]),
     { id: 'upcoming', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
     ...(isGuest ? [] : [{ id: 'bucket-list', label: 'Bucket List', icon: Bookmark }]),

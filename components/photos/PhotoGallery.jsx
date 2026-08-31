@@ -14,6 +14,7 @@ import { Camera, Heart, Trash2, ChevronLeft, ChevronRight, Play, Plus } from 'lu
 import { Card, Avatar, Button, Modal, Spinner } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { subscribePhotos, togglePhotoLike, deletePhoto, extractYoutubeId } from '@/lib/photos';
+import { createEngagementNotification } from '@/lib/notifications';
 import { timeAgo } from '@/lib/utils';
 import UploadMediaModal from './UploadMediaModal';
 
@@ -172,6 +173,14 @@ export default function PhotoGallery({ show }) {
     const alreadyLiked = (item.likedBy || []).includes(user.uid);
     try {
       await togglePhotoLike(item.id, user.uid, alreadyLiked);
+      if (!alreadyLiked) {
+        const likerName = user.displayName || 'Anonymous';
+        createEngagementNotification(item.uploadedBy, 'photo_like', {
+          concertKey, artist: show.artist, venue: show.venue, date: show.date,
+          fromUid: user.uid, fromName: likerName,
+          message: `${likerName} liked your ${item.type === 'image' ? 'photo' : 'video'} from ${show.artist}`,
+        });
+      }
     } catch (err) {
       setToast?.("Couldn't update your like. Please try again.");
     }
