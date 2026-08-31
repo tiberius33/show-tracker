@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.18.0',
+      date: 'August 31, 2026',
+      title: 'Tours Tab & Richer Tour Stats',
+      changes: [
+        'New: a "Tours" tab on the Shows page listing every tour we\'ve detected from your setlist.fm imports, with expandable cards showing every stop you caught',
+        'Tour pages (and the new Tours tab) now show Venues and Countries counts alongside stop count, first stop, unique songs, and average rating',
+        'Tour detection itself already existed (grouped by artist + setlist.fm tour name) — this makes it browsable on its own instead of only reachable by clicking a tour badge on an individual show',
+      ]
+    },
+    {
       version: '5.17.0',
       date: 'August 31, 2026',
       title: 'Bulk Import Audit & Improvements',

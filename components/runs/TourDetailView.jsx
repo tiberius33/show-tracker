@@ -45,11 +45,13 @@ export default function TourDetailView({ tour }) {
           {tour.artistName}
         </Link>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6">
           <Card padding="sm"><StatFigure value={tour.stopCount} label="Stops You Caught" /></Card>
           <Card padding="sm">
             <StatFigure value={formatDate(tour.dateRange.start)} label="First Stop" />
           </Card>
+          <Card padding="sm"><StatFigure value={tour.venuesCount} label="Venues" /></Card>
+          <Card padding="sm"><StatFigure value={tour.countriesVisited} label="Countries" /></Card>
           <Card padding="sm"><StatFigure value={tour.uniqueSongs} label="Unique Songs" /></Card>
           <Card padding="sm">
             <StatFigure value={tour.avgRating != null ? tour.avgRating.toFixed(1) : '—'} label="Avg Rating" />
