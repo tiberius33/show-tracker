@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, Megaphone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, Megaphone, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import SetlistEditor from '@/components/SetlistEditor';
 import Tip from '@/components/ui/Tip';
@@ -1450,6 +1451,13 @@ function AdminView() {
               <Megaphone className="w-4 h-4" />
               Popups
             </button>
+            <Link
+              href="/admin/venue-verifications/"
+              className="shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-hover text-secondary hover:bg-hover border border-subtle"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Venue Verifications
+            </Link>
           </div>
 
           {/* Users Tab */}

@@ -22,5 +22,37 @@ service firebase.storage {
         && (request.auth.uid == uid
             || request.auth.token.email == 'phillip.leonard@gmail.com');
     }
+
+    // Venue verification proof documents (business license, tax ID, etc.)
+    // — see lib/venues.js. Path shape:
+    //   venueVerificationDocs/{venueSegment}/{uid}/{fileName}
+    // Only the applicant and the admin (who reviews applications) can read;
+    // write is limited to the applicant's own uid segment. No delete — kept
+    // as a permanent audit trail of what was submitted.
+    match /venueVerificationDocs/{venueSegment}/{uid}/{fileName} {
+      allow read: if request.auth != null
+        && (request.auth.uid == uid
+            || request.auth.token.email == 'phillip.leonard@gmail.com');
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+            || request.resource.contentType == 'application/pdf');
+    }
+
+    // Official venue photos — see lib/venues.js. Path shape:
+    //   venuePhotos/{venueSegment}/{uid}/{fileName}
+    // Anyone signed in can view; write/delete limited to the uploader
+    // (the verified venue owner) or the admin.
+    match /venuePhotos/{venueSegment}/{uid}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null
+        && (request.auth.uid == uid
+            || request.auth.token.email == 'phillip.leonard@gmail.com');
+    }
   }
 }

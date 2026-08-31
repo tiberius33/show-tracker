@@ -267,5 +267,88 @@ service cloud.firestore {
                     && resource.data.uid == request.auth.uid;
       allow delete: if false;
     }
+
+    // ── NEW: Venue verification (v5.23.0) ─────────────────────────────────────
+    // Venue is the first real venue entity — any authenticated user can read
+    // (venue pages/badges are shown everywhere), but only the verified owner
+    // (verifiedOwnerUid) or the admin account can edit it. isVerified/
+    // verifiedOwnerUid/verifiedDate are only ever set by the admin approval
+    // flow, enforced client-side (same trust model AdminView.jsx already
+    // uses for roadmap publishing) — a malicious update from a non-owner is
+    // blocked by the owner check below either way.
+    match /venues/{venueKey} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+                    && (resource.data.verifiedOwnerUid == request.auth.uid
+                        || request.auth.token.email == 'phillip.leonard@gmail.com');
+      allow delete: if false;
+    }
+
+    // Applications: applicant creates their own; only the applicant or the
+    // admin can read (documents may contain sensitive business info);
+    // status/reviewedDate/reviewerNotes/rejectionReason are only ever
+    // written by the admin approval flow.
+    match /venueVerificationApplications/{appId} {
+      allow create: if request.auth != null
+                    && request.resource.data.applicantUid == request.auth.uid;
+      allow read:   if request.auth != null
+                    && (resource.data.applicantUid == request.auth.uid
+                        || request.auth.token.email == 'phillip.leonard@gmail.com');
+      allow update: if request.auth != null
+                    && request.auth.token.email == 'phillip.leonard@gmail.com';
+      allow delete: if false;
+    }
+
+    // Official venue announcements — anyone can read, only the verified
+    // owner can post (enforced client-side via venue.verifiedOwnerUid; the
+    // Firestore rule can't cheaply look up the venue doc's owner here, so
+    // this mirrors the "app decides who deserves a write" precedent
+    // already used for notifications above).
+    match /venueAnnouncements/{docId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if false;
+      allow delete: if request.auth != null
+                    && request.auth.token.email == 'phillip.leonard@gmail.com';
+    }
+
+    // Official venue photos.
+    match /venuePhotos/{docId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.uploadedBy == request.auth.uid;
+      allow update: if false;
+      allow delete: if request.auth != null
+                    && (resource.data.uploadedBy == request.auth.uid
+                        || request.auth.token.email == 'phillip.leonard@gmail.com');
+    }
+
+    // User reports of fake/duplicate/inaccurate venues — reporter creates,
+    // only the admin reads/resolves.
+    match /venueReports/{docId} {
+      allow create: if request.auth != null
+                    && request.resource.data.reporterUid == request.auth.uid;
+      allow read:   if request.auth != null
+                    && request.auth.token.email == 'phillip.leonard@gmail.com';
+      allow update: if request.auth != null
+                    && request.auth.token.email == 'phillip.leonard@gmail.com';
+      allow delete: if false;
+    }
+
+    // ── NEW: Year in Review (v5.23.0) ──────────────────────────────────────
+    // One doc per user per year (docId `${uid}_${year}`). Owner always
+    // reads/writes their own; anyone can read a doc the owner has marked
+    // public (for the shareable link), enforced by the `privacy` field.
+    match /yearInReviews/{docId} {
+      allow read:   if request.auth != null
+                    && (resource.data.userId == request.auth.uid
+                        || resource.data.privacy == 'public');
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
   }
 }

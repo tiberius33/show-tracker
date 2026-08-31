@@ -18,6 +18,7 @@ import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
 import { tourKeyFor } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import { removeFromBucketList } from '@/lib/bucketList';
+import YearInReviewCard from '@/components/yearInReview/YearInReviewCard';
 import {
   Search, Camera, X, Upload,
   Bell, ChevronRight, ChevronLeft, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
@@ -296,6 +297,8 @@ export default function ShowsPage() {
               </>
             }
           />
+
+          {!filterLabel && !guestMode && <YearInReviewCard shows={shows} user={user} />}
 
           {/* Friend request / show tag notification banner */}
           {!guestMode && pendingNotificationCount > 0 && (

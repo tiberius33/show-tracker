@@ -4,6 +4,25 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.23.0] — 2026-08-31
+
+### New: Venue Verification
+- Venue owners/managers apply to verify a venue (proof of ownership/management upload); reviewed in a new admin dashboard at `/admin/venue-verifications`.
+- Verified venues show a blue checkmark, get a Venue Management Dashboard (`/venue-dashboard/[venueKey]`) to edit info, upload official photos, and post announcements.
+- Users can report unverified venues claiming to be official, duplicates, or inaccurate listings.
+- Introduces the app's first real Venue entity (`venues` collection + `/venues/[venueKey]` page) — previously venues only existed as denormalized text on each show.
+
+### New: Year in Review
+- Automatic annual concert recap (top artist, favorite venue, most-heard song, top-rated shows, achievements/milestones) at `/year-in-review/[userId]/[year]`, surfaced via a home-page banner mid-December through February.
+- Shareable as a downloadable image (canvas-rendered), native share sheet, Twitter, email, or a public link with a per-year privacy toggle.
+
+### Technical
+- New Firestore collections: `venues`, `venueVerificationApplications`, `venueAnnouncements`, `venuePhotos`, `venueReports`, `yearInReviews`.
+- New Storage paths: `venueVerificationDocs/`, `venuePhotos/`.
+- Requires `npm run deploy:rules` before these features work in production.
+
+---
+
 ## [4.0.0] — 2026-04-20
 
 ### Overview

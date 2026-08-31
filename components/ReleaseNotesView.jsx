@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.23.0',
+      date: 'August 31, 2026',
+      title: 'Venue Verification & Year in Review',
+      changes: [
+        'New: Venue Verification — venue owners/managers can apply for a blue checkmark by submitting proof of ownership; MySetlists reviews and approves in a new admin dashboard at /admin/venue-verifications',
+        'Verified venues get a checkmark on their venue page, can edit venue info (capacity, year opened, website, address), upload official photos, and post announcements from a Venue Management Dashboard',
+        '"Report this venue" lets anyone flag an unverified venue falsely claiming to be official, a duplicate, or inaccurate info',
+        'New: Year in Review — an automatic annual recap (top artist, favorite venue, top-rated shows, milestones like your 100th show, longest streak) available mid-December through February',
+        'Shareable as a downloadable image, native share sheet, Twitter post, email, or a public link with a privacy toggle (private by default)',
+        'New Venue entity (`venues` collection) is the first real venue page in the app — previously venues only existed as text on each show',
+        'Requires a Firestore + Storage rules deploy (`npm run deploy:rules`) before verification/photo uploads work in production — new `venues`, `venueVerificationApplications`, `venueAnnouncements`, `venuePhotos`, `venueReports`, and `yearInReviews` collections need their security rules live',
+      ]
+    },
+    {
       version: '5.22.0',
       date: 'August 31, 2026',
       title: 'Group Meetups (MVP)',
