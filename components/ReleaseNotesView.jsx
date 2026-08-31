@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.21.0',
+      date: 'August 31, 2026',
+      title: 'Anniversary Notifications',
+      changes: [
+        'New: "X years ago today you saw [Artist] at [Venue]" reminders, sent automatically on the anniversary date of any show more than a year old',
+        'Delivered as an in-app notification, an email, or both — your choice under Profile → Notifications → Anniversary reminders (on by default)',
+        'New: an "Upcoming anniversaries" list on the Notifications page showing what\'s coming up, soonest first',
+        'This runs on a new daily scheduled job — the first one in this app (previous "digest email" work had flagged the lack of any scheduled job as a blocker; this is that infrastructure, reused for anniversaries first)',
+        'Known limitation: only the exact-date reminder is built — a "week before" or "month before" option, and weekly/monthly digest emails, aren\'t built yet',
+      ]
+    },
+    {
       version: '5.20.0',
       date: 'August 31, 2026',
       title: 'Advanced Search',

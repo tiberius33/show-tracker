@@ -2,6 +2,7 @@
 
 import { Bell } from 'lucide-react';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
+import AnniversaryCalendar from '@/components/notifications/AnniversaryCalendar';
 import { PageHeader, EmptyState, Button } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 
@@ -26,7 +27,14 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader eyebrow="Community" title="Notifications" />
-      <NotificationCenter />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <NotificationCenter />
+        </div>
+        <div>
+          <AnniversaryCalendar />
+        </div>
+      </div>
     </>
   );
 }

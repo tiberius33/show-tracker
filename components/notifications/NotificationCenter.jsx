@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
-import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell, AtSign } from 'lucide-react';
+import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell, AtSign, PartyPopper } from 'lucide-react';
 import { Card, EmptyState, Spinner, Button } from '@/components/ui';
 import { db } from '@/lib/firebase';
 import { useApp } from '@/context/AppContext';
@@ -24,6 +24,7 @@ const ICONS = {
   comment_mention: AtSign,
   photo_like: ImageIcon,
   roadmap_published: Megaphone,
+  anniversary: PartyPopper,
 };
 
 function NotificationRow({ notification, showHref, onClick }) {

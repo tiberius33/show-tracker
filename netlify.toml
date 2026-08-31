@@ -12,6 +12,11 @@
   # being compiled into new JavaScript bundles.
   NETLIFY_NEXT_PLUGIN_SKIP = "true"
 
+# Daily anniversary reminder job ("X years ago today you saw...") — runs
+# once a day at 13:00 UTC. See netlify/functions/anniversary-notifications.js.
+[functions."anniversary-notifications"]
+  schedule = "0 13 * * *"
+
 # Rewrite /api/* to Netlify functions for static export compatibility
 [[redirects]]
   from = "/api/send-email"

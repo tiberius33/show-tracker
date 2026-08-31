@@ -16,6 +16,7 @@ export default function NotificationSettings({ userId }) {
     communityUpdates: false,
     engagementNotifications: true,
     emailFrequency: 'off', // 'off' | 'immediate' — daily/weekly digest needs a scheduled job that doesn't exist yet
+    anniversaries: { enabled: true, method: 'both' }, // method: 'push' | 'email' | 'both'
   });
 
   useEffect(() => {
@@ -27,7 +28,11 @@ export default function NotificationSettings({ userId }) {
         const profile = await getDoc(profileRef);
         if (profile.exists()) {
           if (profile.data().notificationPrefs) {
-            setPreferences(profile.data().notificationPrefs);
+            setPreferences(prev => ({
+              ...prev,
+              ...profile.data().notificationPrefs,
+              anniversaries: { ...prev.anniversaries, ...profile.data().notificationPrefs.anniversaries },
+            }));
           }
           if (profile.data().fcmToken) {
             setFcmToken(profile.data().fcmToken);
@@ -190,6 +195,42 @@ export default function NotificationSettings({ userId }) {
               <option value="immediate">Immediately</option>
             </select>
             <p className="text-muted text-xs mt-1">Daily and weekly digest options are coming later.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Anniversary reminders — "X years ago today you saw..." — sent by a
+          daily scheduled job (see netlify/functions/anniversary-notifications.js),
+          independent of the browser push permission and the engagement
+          notifications above. */}
+      <div className="mt-5 pt-5 border-t border-subtle">
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={preferences.anniversaries?.enabled !== false}
+            onChange={(e) => handlePreferenceChange('anniversaries', { ...preferences.anniversaries, enabled: e.target.checked })}
+            className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+          />
+          <div>
+            <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+              Anniversary reminders
+            </span>
+            <p className="text-secondary text-xs">"X years ago today you saw..." — on the exact date, once a year per show</p>
+          </div>
+        </label>
+
+        {preferences.anniversaries?.enabled !== false && (
+          <div className="mt-3 pl-7">
+            <label className="text-secondary text-xs font-medium block mb-1.5">Notify me via</label>
+            <select
+              value={preferences.anniversaries?.method || 'both'}
+              onChange={(e) => handlePreferenceChange('anniversaries', { ...preferences.anniversaries, method: e.target.value })}
+              className="text-sm bg-hover border border-active rounded-lg px-2.5 py-1.5 text-primary focus:ring-2 focus:ring-brand/50 focus:outline-none"
+            >
+              <option value="both">Push and email</option>
+              <option value="push">Push only</option>
+              <option value="email">Email only</option>
+            </select>
           </div>
         )}
       </div>
