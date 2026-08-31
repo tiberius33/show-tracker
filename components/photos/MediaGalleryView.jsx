@@ -1,21 +1,23 @@
-// components/photos/PhotoGallery.jsx
+// components/photos/MediaGalleryView.jsx
 //
-// Photo/video gallery for a concert, shown on ShowDetailView. Thumbnail
-// grid (3-4 cols desktop, 2 tablet, 1 mobile) with a lightbox modal for
-// the full view — arrow keys / on-screen arrows to navigate, Escape or
-// backdrop click to close (via components/ui/Modal). See lib/photos.js
-// for the data model and why this is keyed by concert, not by any one
-// user's private show doc.
+// Presentational gallery: thumbnail grid + lightbox + upload button, for
+// one category ('photo' | 'poster' | 'setlist') of a concert's media.
+// Deliberately takes `items` as a prop rather than subscribing itself —
+// see ShowMediaSection.jsx, which subscribes once for all three
+// categories so a show page doesn't run three near-identical Firestore
+// listeners against the same concertKey.
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Camera, Heart, Trash2, ChevronLeft, ChevronRight, Play, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Heart, Trash2, ChevronLeft, ChevronRight, Play, Plus } from 'lucide-react';
 import { Card, Avatar, Button, Modal, Spinner } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
-import { subscribePhotos, togglePhotoLike, deletePhoto, extractYoutubeId } from '@/lib/photos';
+import { togglePhotoLike, deletePhoto, extractYoutubeId } from '@/lib/photos';
 import { createEngagementNotification } from '@/lib/notifications';
 import { timeAgo } from '@/lib/utils';
+
+const LABEL_BY_CATEGORY = { poster: 'poster', setlist: 'setlist photo' };
 import UploadMediaModal from './UploadMediaModal';
 
 function Thumbnail({ item, onClick }) {
@@ -51,8 +53,9 @@ function Thumbnail({ item, onClick }) {
   );
 }
 
-function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerate, onLike, onDelete }) {
+function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerate, onLike, onDelete, zoomable }) {
   const item = items[index];
+  const [zoomed, setZoomed] = useState(false);
 
   const handleKey = useCallback((e) => {
     if (e.key === 'ArrowLeft') onIndexChange((index - 1 + items.length) % items.length);
@@ -63,6 +66,8 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerat
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [handleKey]);
+
+  useEffect(() => { setZoomed(false); }, [index]);
 
   if (!item) return null;
 
@@ -106,9 +111,19 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerat
           ) : item.type === 'video' ? (
             <video src={item.url} controls autoPlay className="max-w-full max-h-[70vh]" />
           ) : (
-            <img src={item.url} alt={item.caption || 'Concert photo'} className="max-w-full max-h-[70vh] object-contain" />
+            <img
+              src={item.url}
+              alt={item.caption || 'Concert media'}
+              onClick={zoomable ? () => setZoomed((z) => !z) : undefined}
+              className={`transition-transform ${zoomable ? 'cursor-zoom-in' : ''} ${
+                zoomed ? 'max-w-none max-h-none scale-150 cursor-zoom-out' : 'max-w-full max-h-[70vh] object-contain'
+              }`}
+            />
           )}
         </div>
+        {zoomable && (
+          <p className="text-xs text-muted text-center -mt-1">Click the image to zoom in</p>
+        )}
 
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -146,27 +161,10 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerat
   );
 }
 
-export default function PhotoGallery({ show }) {
-  const { user, isAdmin, guestMode, setToast, normalizeShowKey } = useApp();
-  const concertKey = useMemo(() => (show ? normalizeShowKey(show) : null), [show, normalizeShowKey]);
-
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function MediaGalleryView({ show, concertKey, category, title, icon: Icon, emptyText, signInText, zoomable, items, allItems, loading }) {
+  const { user, isAdmin, guestMode, setToast } = useApp();
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
-
-  useEffect(() => {
-    if (!concertKey || !user || guestMode) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const unsubscribe = subscribePhotos(concertKey, (list) => {
-      setPhotos(list);
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, [concertKey, user, guestMode]);
 
   const handleLike = async (item) => {
     if (!user) return;
@@ -175,10 +173,11 @@ export default function PhotoGallery({ show }) {
       await togglePhotoLike(item.id, user.uid, alreadyLiked);
       if (!alreadyLiked) {
         const likerName = user.displayName || 'Anonymous';
+        const noun = LABEL_BY_CATEGORY[category] || (item.type === 'image' ? 'photo' : 'video');
         createEngagementNotification(item.uploadedBy, 'photo_like', {
           concertKey, artist: show.artist, venue: show.venue, date: show.date,
           fromUid: user.uid, fromName: likerName,
-          message: `${likerName} liked your ${item.type === 'image' ? 'photo' : 'video'} from ${show.artist}`,
+          message: `${likerName} liked your ${noun} from ${show.artist}`,
         });
       }
     } catch (err) {
@@ -187,7 +186,7 @@ export default function PhotoGallery({ show }) {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm('Delete this photo/video?')) return;
+    if (!window.confirm('Delete this?')) return;
     try {
       await deletePhoto(item);
       setLightboxIndex(null);
@@ -196,33 +195,29 @@ export default function PhotoGallery({ show }) {
     }
   };
 
-  if (!concertKey) return null;
-
   return (
     <Card padding="md" className="mt-6">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-          <Camera size={18} className="text-brand" />
-          Photos & Videos {photos.length > 0 && <span className="text-muted font-normal text-sm">({photos.length})</span>}
+          <Icon size={18} className="text-brand" />
+          {title} {items.length > 0 && <span className="text-muted font-normal text-sm">({items.length})</span>}
         </h3>
         {user && !guestMode && (
           <Button size="sm" variant="secondary" icon={Plus} onClick={() => setUploadOpen(true)}>
-            Add Photos
+            Add {category === 'photo' ? 'Photos' : title}
           </Button>
         )}
       </div>
 
       {!user || guestMode ? (
-        <p className="text-sm text-muted">Sign in to see and share photos from this show.</p>
+        <p className="text-sm text-muted">{signInText}</p>
       ) : loading ? (
-        <div className="py-8"><Spinner size="sm" label="Loading gallery…" /></div>
-      ) : photos.length === 0 ? (
-        <p className="text-sm text-muted text-center py-8">
-          No photos or videos yet — be the first to share one from this show.
-        </p>
+        <div className="py-8"><Spinner size="sm" label={`Loading ${title.toLowerCase()}…`} /></div>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted text-center py-8">{emptyText}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {photos.map((item, i) => (
+          {items.map((item, i) => (
             <Thumbnail key={item.id} item={item} onClick={() => setLightboxIndex(i)} />
           ))}
         </div>
@@ -230,7 +225,7 @@ export default function PhotoGallery({ show }) {
 
       {lightboxIndex !== null && (
         <Lightbox
-          items={photos}
+          items={items}
           index={lightboxIndex}
           onIndexChange={setLightboxIndex}
           onClose={() => setLightboxIndex(null)}
@@ -238,6 +233,7 @@ export default function PhotoGallery({ show }) {
           canModerate={isAdmin}
           onLike={handleLike}
           onDelete={handleDelete}
+          zoomable={zoomable}
         />
       )}
 
@@ -248,7 +244,10 @@ export default function PhotoGallery({ show }) {
           concertKey={concertKey}
           uid={user.uid}
           uploaderName={user.displayName || 'Anonymous'}
-          existingPhotos={photos}
+          show={show}
+          category={category}
+          title={`Add ${title}`}
+          existingPhotos={allItems}
           onUploaded={() => setToast?.('Uploaded!')}
           onError={(msg) => setToast?.(msg)}
         />
