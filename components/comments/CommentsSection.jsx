@@ -14,6 +14,7 @@ import { Card, Avatar, Button, Textarea, Tabs, Spinner } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { subscribeComments, postComment, toggleCommentLike, deleteComment } from '@/lib/comments';
 import { createEngagementNotification } from '@/lib/notifications';
+import { logActivity } from '@/lib/activityFeed';
 import { timeAgo } from '@/lib/utils';
 
 const SORTS = [
@@ -168,6 +169,9 @@ export default function CommentsSection({ show }) {
   const handlePost = async (text) => {
     try {
       await postComment(concertKey, user.uid, user.displayName || 'Anonymous', text);
+      logActivity(user.uid, user.displayName, 'commented', {
+        showId: show.id, artist: show.artist, venue: show.venue || null,
+      });
     } catch (err) {
       setToast?.("Couldn't post your comment. Please try again.");
     }
@@ -181,6 +185,9 @@ export default function CommentsSection({ show }) {
         concertKey, artist: show.artist, venue: show.venue, date: show.date,
         fromUid: user.uid, fromName: authorName,
         message: `${authorName} replied to your comment on ${show.artist}`,
+      });
+      logActivity(user.uid, authorName, 'commented', {
+        showId: show.id, artist: show.artist, venue: show.venue || null,
       });
     } catch (err) {
       setToast?.("Couldn't post your reply. Please try again.");

@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.13.0',
+      date: 'August 30, 2026',
+      title: 'Comments & Photos in the Activity Feed',
+      changes: [
+        'The Activity Feed (added in v5.8.0, flagged then as not-yet-covering comments/photos) now logs those too: "commented on", and "shared a photo/poster/setlist photo from" a show',
+        'Two new filter tabs — Comments, Photos — alongside the existing All/Shows/Ratings',
+        'Same privacy rule as everything else in the feed: only shows up for friends who have activity sharing turned on, and links to the actual show only when the poster\'s public profile is on',
+      ]
+    },
+    {
       version: '5.12.0',
       date: 'August 30, 2026',
       title: 'Posters & Setlist Photos',
