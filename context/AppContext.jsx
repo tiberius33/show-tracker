@@ -15,6 +15,7 @@ import { apiUrl } from '@/lib/api';
 import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
+import { logActivity } from '@/lib/activityFeed';
 import {
   inviteEmail,
   friendJoinedEmail,
@@ -995,6 +996,13 @@ export function AppProvider({ children }) {
       // Background suggestion check — non-blocking
       checkShowSuggestionsForNewShow(newShow).catch(() => {});
 
+      // Friend activity feed — best-effort, non-blocking (see lib/activityFeed.js)
+      logActivity(user.uid, user.displayName, 'added_show', {
+        showId: newShow.id,
+        artist: newShow.artist,
+        venue: newShow.venue || null,
+      });
+
       // Fetch and store artist image in background — non-blocking
       fetchArtistImage(newShow.artist).then(imageUrl => {
         if (!imageUrl) return;
@@ -1832,7 +1840,17 @@ export function AppProvider({ children }) {
     if (selectedShow?.id === showId) {
       setSelectedShow(updatedShows.find(s => s.id === showId));
     }
-    await saveShow(updatedShows.find(s => s.id === showId));
+    const updatedShow = updatedShows.find(s => s.id === showId);
+    await saveShow(updatedShow);
+
+    if (user && !guestMode) {
+      logActivity(user.uid, user.displayName, 'rated_show', {
+        showId,
+        artist: updatedShow.artist,
+        venue: updatedShow.venue || null,
+        rating,
+      });
+    }
   };
 
   const updateShowComment = async (showId, comment) => {

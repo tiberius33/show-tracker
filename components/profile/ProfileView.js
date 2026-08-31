@@ -27,6 +27,11 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
   // Public profile state — off by default for every user, always.
   const [handle, setHandle] = useState(null);
   const [publicProfile, setPublicProfile] = useState(false);
+
+  // Friend activity feed — on by default (opt-out), unlike Public Profile.
+  // Read/written in lib/activityFeed.js's logActivity() before every write.
+  const [shareActivity, setShareActivity] = useState(true);
+  const [shareActivityLoading, setShareActivityLoading] = useState(false);
   const [handleInput, setHandleInput] = useState('');
   const [handleSaving, setHandleSaving] = useState(false);
   const [handleError, setHandleError] = useState('');
@@ -61,6 +66,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           setEmailOptOut(profile.data().emailOptOut || false);
           setHandle(profile.data().handle || null);
           setPublicProfile(profile.data().publicProfile || false);
+          setShareActivity(profile.data().shareActivity !== false);
         }
       };
       loadProfile();
@@ -198,6 +204,20 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
       console.error('Failed to update public profile setting:', err);
     } finally {
       setPublicToggleLoading(false);
+    }
+  };
+
+  const handleShareActivityToggle = async () => {
+    if (!user?.uid) return;
+    setShareActivityLoading(true);
+    const newValue = !shareActivity;
+    try {
+      await updateDoc(doc(db, 'userProfiles', user.uid), { shareActivity: newValue });
+      setShareActivity(newValue);
+    } catch (err) {
+      console.error('Failed to update activity sharing setting:', err);
+    } finally {
+      setShareActivityLoading(false);
     }
   };
 
@@ -598,6 +618,30 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
             {publicToggleLoading && <p className="text-muted text-xs">Saving...</p>}
           </div>
         )}
+      </Card>
+
+      {/* Friend Activity Feed — on by default for every user, unlike Public Profile. */}
+      <Card padding="md">
+        <h3 className="text-lg font-semibold text-primary mb-2 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-brand" />
+          Activity Feed
+        </h3>
+        <p className="text-secondary text-sm mb-4">
+          When you add a show or rate one, friends who follow your activity see it in their feed. This never includes notes, photos, or anything not covered by Public Profile above — just that you added or rated a show.
+        </p>
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={shareActivity}
+            onChange={handleShareActivityToggle}
+            disabled={shareActivityLoading}
+            className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+          />
+          <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+            Show my activity to friends
+          </span>
+        </label>
+        {shareActivityLoading && <p className="text-muted text-xs mt-2">Saving...</p>}
       </Card>
 
       {/* Public Profile Preview Modal — exactly what the fields above claim: shows,
