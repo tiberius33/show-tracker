@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.20.0',
+      date: 'August 31, 2026',
+      title: 'Advanced Search',
+      changes: [
+        'New: an Advanced Search page ("Advanced search" link on the Shows page) for filtering your own show history by artist, venue, city, country, date range, tour, festival, minimum rating, your notes, tagged friend, or a specific setlist song — any combination at once',
+        'Autocomplete on artist, venue, and city fields, drawn from your own logged shows',
+        'Quick filters for "This month," "This year," and "Last year"',
+        'Save a search by name for one-click reuse, and see your last few searches under Recent — both stored on this device, not synced across devices yet',
+        'Results that matched on notes, a setlist song, or a tagged friend show a small "matched on…" hint, since those aren\'t otherwise visible on the show card',
+        'The existing basic artist/venue search and year/date filter on the Shows page are unchanged — this is a separate, more powerful search alongside it',
+      ]
+    },
+    {
       version: '5.19.0',
       date: 'August 31, 2026',
       title: 'Festival Tracking',

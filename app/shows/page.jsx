@@ -417,6 +417,10 @@ export default function ShowsPage() {
                   Clear
                 </Button>
               )}
+
+              <Link href="/advanced-search/">
+                <Button variant="ghost" size="sm" icon={Search}>Advanced search</Button>
+              </Link>
             </div>
 
             {/* Sort buttons */}
