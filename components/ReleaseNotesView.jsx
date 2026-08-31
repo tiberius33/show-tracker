@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.16.0',
+      date: 'August 30, 2026',
+      title: 'Immediate Email Notifications',
+      changes: [
+        'New: an "Also email me" option under Replies & Likes on your Profile page — set to Immediately to get an email the moment someone replies to your comment, likes your comment/photo, or mentions you',
+        'Off by default — nobody gets emailed unless they turn it on',
+        'Daily and weekly digest options from the original ask need a scheduled email job that doesn\'t exist in this app yet — flagged as a follow-up rather than half-built here; this release covers immediate only',
+      ]
+    },
+    {
       version: '5.15.0',
       date: 'August 30, 2026',
       title: 'Per-Photo Captions & Most-Liked Sort',
