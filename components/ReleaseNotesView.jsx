@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.15.0',
+      date: 'August 30, 2026',
+      title: 'Per-Photo Captions & Most-Liked Sort',
+      changes: [
+        'New: uploading several photos or videos at once now gives each one its own caption field, instead of one caption applying to the whole batch',
+        'New: a "Most Liked" sort option on the Photos & Videos, Posters, and Setlist Photos galleries — the practical version of "community voting" flagged when those features shipped',
+        'Both were flagged as follow-ups in the Photos/Video (v5.10.0) and Posters/Setlist Photos (v5.12.0) releases',
+      ]
+    },
+    {
       version: '5.14.0',
       date: 'August 30, 2026',
       title: 'Comment @Mentions & Unread Highlighting',
