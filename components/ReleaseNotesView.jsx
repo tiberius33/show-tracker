@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.19.0',
+      date: 'August 31, 2026',
+      title: 'Festival Tracking',
+      changes: [
+        'New: a dedicated Festivals section (sidebar → Festivals) that automatically groups shows into festivals — detected when two or more different artists in your history share the same setlist.fm tour/event name, like several artists all tagged "Bonnaroo 2023"',
+        'Festival list shows Festivals Attended, total Festival Shows, and your Favorite Festival (by average rating)',
+        'Each festival\'s page lists every artist you saw there, every show, and stats for venues, countries, and unique songs',
+        'Known limitation: if you only logged one artist from a festival, it can\'t be told apart from that artist\'s own tour and won\'t show up here — same limitation tour grouping already has',
+      ]
+    },
+    {
       version: '5.18.0',
       date: 'August 31, 2026',
       title: 'Tours Tab & Richer Tour Stats',

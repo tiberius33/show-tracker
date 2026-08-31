@@ -18,7 +18,7 @@ import { usePathname } from 'next/navigation';
 import {
   Search, List, BarChart3, Ticket, Send, Shield, Coffee,
   LogOut, User, X, Heart, ScrollText, HelpCircle,
-  Activity, Bell, Bookmark, GalleryVertical,
+  Activity, Bell, Bookmark, GalleryVertical, Tent,
 } from 'lucide-react';
 import Pick from '../brand/Pick';
 import Wordmark from '../brand/Wordmark';
@@ -48,6 +48,7 @@ export default function Sidebar({
     { id: 'shows', label: 'My Shows', icon: List, href: '/' },
     ...(isGuest ? [] : [
       { id: 'wishlist', label: 'Wishlist', icon: Heart, href: '/wishlist' },
+      { id: 'festivals', label: 'Festivals', icon: Tent, href: '/festivals' },
     ]),
     { id: 'upcoming', label: 'Upcoming', icon: Ticket, href: '/upcoming', badge: upcomingShowsBadgeCount, beta: true },
     { id: 'stats', label: 'Stats', icon: BarChart3, href: '/stats' },
