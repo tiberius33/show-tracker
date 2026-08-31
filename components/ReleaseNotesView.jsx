@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.10.0',
+      date: 'August 30, 2026',
+      title: 'Concert Photos & Videos',
+      changes: [
+        'New: a Photos & Videos gallery on every show page — upload images, MP4 clips, or paste a YouTube link, and see what everyone else who logged that concert has shared',
+        'Thumbnail grid with a full-size lightbox: arrow keys or on-screen arrows to browse, caption, uploader, timestamp, and a like button on each',
+        '10MB per file, 50MB total per show — this is the first feature to use Firebase Storage, which wasn\'t wired into the app until now',
+        'Delete your own upload any time; moderators can remove any',
+        'Not yet built: per-photo captions when uploading several at once (one caption currently applies to the whole batch), and community voting beyond a simple like — both flagged as follow-ups rather than half-built here',
+      ]
+    },
+    {
       version: '5.9.0',
       date: 'August 30, 2026',
       title: 'Concert Comments',
