@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 import CommentsSection from '@/components/comments/CommentsSection';
-import PhotoGallery from '@/components/photos/PhotoGallery';
+import ShowMediaSection from '@/components/photos/ShowMediaSection';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -603,7 +603,7 @@ export default function ShowDetailView({
         </aside>
       </div>
 
-      <PhotoGallery show={show} />
+      <ShowMediaSection show={show} />
       <CommentsSection show={show} />
 
       {/* Share toast */}

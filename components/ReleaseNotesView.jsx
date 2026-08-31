@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.12.0',
+      date: 'August 30, 2026',
+      title: 'Posters & Setlist Photos',
+      changes: [
+        'New: dedicated Posters and Setlist Photos galleries on every show page, alongside the existing Photos & Videos gallery — same upload flow, lightbox, and likes, images only (no video, since a poster or setlist isn\'t one)',
+        'New: a searchable Setlist Photos directory (find it in the sidebar) — browse setlist photos from every show in the app, not just ones you\'ve logged yourself, filterable by artist, venue, or date',
+        'The lightbox for posters and setlist photos supports zooming in, so a handwritten setlist is actually legible',
+        'The 10MB-per-file / 50MB-per-show upload limit is shared across photos, posters, and setlist photos combined, not tracked separately per gallery',
+        '"Community voting" from the original ask is the same like button used everywhere else in the app — sort-by-most-liked already exists on comments; a dedicated best-of ranking is a bigger, separate feature and is flagged as a follow-up rather than half-built here',
+      ]
+    },
+    {
       version: '5.11.0',
       date: 'August 30, 2026',
       title: 'Notifications',

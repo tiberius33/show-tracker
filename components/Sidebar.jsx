@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, List, Camera, BarChart3, UserPlus, Users, Ticket, Bookmark, Activity, Bell, TrendingUp, ScrollText, Send, MessageSquare, Shield, Coffee, LogOut, User, X, Menu, HelpCircle } from 'lucide-react';
+import { Search, List, Camera, BarChart3, UserPlus, Users, Ticket, Bookmark, Activity, Bell, TrendingUp, ScrollText, GalleryVertical, Send, MessageSquare, Shield, Coffee, LogOut, User, X, Menu, HelpCircle } from 'lucide-react';
 
 function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount, pendingNotificationCount, upcomingShowsBadgeCount, unreadNotificationCount }) {
   const router = useRouter();
@@ -26,7 +26,10 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
       { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotificationCount },
     ]),
     { id: 'upcoming', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
-    ...(isGuest ? [] : [{ id: 'bucket-list', label: 'Bucket List', icon: Bookmark }]),
+    ...(isGuest ? [] : [
+      { id: 'bucket-list', label: 'Bucket List', icon: Bookmark },
+      { id: 'setlist-photos', label: 'Setlist Photos', icon: GalleryVertical },
+    ]),
     { id: 'roadmap', label: 'Roadmap', icon: TrendingUp },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
     { id: 'how-to-use', label: 'How to Use', icon: HelpCircle },

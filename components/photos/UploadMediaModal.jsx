@@ -1,25 +1,27 @@
 // components/photos/UploadMediaModal.jsx
 //
-// "Add Photos" modal on a show's gallery. Two modes: upload one or more
-// image/MP4 files (sequential, with a per-file progress bar), or paste a
-// YouTube link (no Storage involved — see lib/photos.js). One caption
-// applies to the whole batch of files selected at once; per-photo
-// captions in a multi-file batch is a scope cut, noted in the release
-// notes rather than half-built here.
+// Upload modal shared by all three galleries (photos/videos, posters,
+// setlist photos) — which tabs/file types it offers depends on
+// `category`: posters and setlist photos are images only (no video, no
+// YouTube tab), since a poster or a setlist isn't a video by definition.
+// One caption applies to the whole batch of files selected at once;
+// per-photo captions in a multi-file batch is a scope cut, noted in the
+// release notes rather than half-built here.
 
 'use client';
 
 import React, { useState } from 'react';
 import { Upload, Youtube, X as XIcon } from 'lucide-react';
 import { Modal, Button, Input, Textarea, Tabs } from '@/components/ui';
-import { checkUploadAllowed, uploadShowMedia, addYoutubeLink } from '@/lib/photos';
+import { checkUploadAllowed, uploadShowMedia, addYoutubeLink, allowedTypesFor } from '@/lib/photos';
 
-const MODES = [
-  { id: 'file', label: 'Upload File', icon: Upload },
-  { id: 'youtube', label: 'YouTube Link', icon: Youtube },
-];
+export default function UploadMediaModal({
+  open, onClose, concertKey, uid, uploaderName, show, existingPhotos,
+  category = 'photo', title = 'Add Photos & Videos', onUploaded, onError,
+}) {
+  const allowYoutube = category === 'photo';
+  const acceptTypes = allowedTypesFor(category).join(',');
 
-export default function UploadMediaModal({ open, onClose, concertKey, uid, uploaderName, existingPhotos, onUploaded, onError }) {
   const [mode, setMode] = useState('file');
   const [files, setFiles] = useState([]);
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -49,7 +51,7 @@ export default function UploadMediaModal({ open, onClose, concertKey, uid, uploa
     // through uploading the good ones ahead of it.
     let runningPhotos = existingPhotos;
     for (const file of selected) {
-      const err = checkUploadAllowed(file, runningPhotos);
+      const err = checkUploadAllowed(file, runningPhotos, category);
       if (err) {
         setValidationError(err);
         setFiles([]);
@@ -67,8 +69,9 @@ export default function UploadMediaModal({ open, onClose, concertKey, uid, uploa
     try {
       for (let i = 0; i < files.length; i++) {
         setProgress({ index: i + 1, total: files.length, pct: 0 });
-        await uploadShowMedia(files[i], concertKey, uid, uploaderName, caption, (pct) => {
-          setProgress({ index: i + 1, total: files.length, pct });
+        await uploadShowMedia({
+          file: files[i], concertKey, uid, uploaderName, caption, category, show,
+          onProgress: (pct) => setProgress({ index: i + 1, total: files.length, pct }),
         });
       }
       onUploaded?.();
@@ -87,7 +90,7 @@ export default function UploadMediaModal({ open, onClose, concertKey, uid, uploa
     if (!youtubeUrl.trim()) return;
     setUploading(true);
     try {
-      await addYoutubeLink(youtubeUrl, concertKey, uid, uploaderName, caption);
+      await addYoutubeLink({ url: youtubeUrl, concertKey, uid, uploaderName, caption, show });
       onUploaded?.();
       reset();
       onClose();
@@ -99,20 +102,30 @@ export default function UploadMediaModal({ open, onClose, concertKey, uid, uploa
   };
 
   return (
-    <Modal open={open} onClose={handleClose} title="Add Photos & Videos" size="md">
-      <Tabs value={mode} onChange={setMode} tabs={MODES} className="mb-5" />
+    <Modal open={open} onClose={handleClose} title={title} size="md">
+      {allowYoutube && (
+        <Tabs
+          value={mode}
+          onChange={setMode}
+          tabs={[
+            { id: 'file', label: 'Upload File', icon: Upload },
+            { id: 'youtube', label: 'YouTube Link', icon: Youtube },
+          ]}
+          className="mb-5"
+        />
+      )}
 
-      {mode === 'file' ? (
+      {mode === 'file' || !allowYoutube ? (
         <div className="space-y-4">
           <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-subtle rounded-xl py-8 cursor-pointer hover:border-brand/40 transition-colors">
             <Upload size={22} className="text-muted" />
             <span className="text-sm text-secondary">
-              {files.length > 0 ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Choose images or MP4 videos'}
+              {files.length > 0 ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : `Choose ${category === 'photo' ? 'images or MP4 videos' : 'images'}`}
             </span>
             <span className="text-xs text-muted">10MB per file, 50MB per show</span>
             <input
               type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+              accept={acceptTypes}
               multiple
               className="hidden"
               onChange={handleFileChange}
