@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.14.0',
+      date: 'August 30, 2026',
+      title: 'Comment @Mentions & Unread Highlighting',
+      changes: [
+        'New: type "@" in a comment or reply to autocomplete a friend\'s name — mentioning them sends a notification',
+        'New: comments and replies posted since your last visit to a show are highlighted "New", so you can tell what you haven\'t seen yet',
+        'Both were flagged as follow-ups when Comments shipped (v5.9.0) — now built',
+      ]
+    },
+    {
       version: '5.13.0',
       date: 'August 30, 2026',
       title: 'Comments & Photos in the Activity Feed',

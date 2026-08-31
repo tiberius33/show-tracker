@@ -8,13 +8,14 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MessageSquare, Heart, Trash2, CornerDownRight, Send } from 'lucide-react';
 import { Card, Avatar, Button, Textarea, Tabs, Spinner } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { subscribeComments, postComment, toggleCommentLike, deleteComment } from '@/lib/comments';
 import { createEngagementNotification } from '@/lib/notifications';
 import { logActivity } from '@/lib/activityFeed';
+import { getLastViewed, markViewed } from '@/lib/commentViews';
 import { timeAgo } from '@/lib/utils';
 
 const SORTS = [
@@ -23,9 +24,44 @@ const SORTS = [
   { id: 'liked', label: 'Most Liked' },
 ];
 
-function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel }) {
+// Matches an "@" that starts a mention-in-progress right at the cursor —
+// either at the very start of the text or preceded by whitespace, so
+// "email@x.com" doesn't trigger a mention halfway through a word.
+const MENTION_PATTERN = /(?:^|\s)@(\w*)$/;
+
+function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel, friends = [] }) {
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState(null); // null = no mention popup open
+  const textareaRef = useRef(null);
+
+  const mentionMatches = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase();
+    return friends
+      .filter((f) => (f.friendName || '').toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [mentionQuery, friends]);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setText(val);
+    const cursor = e.target.selectionStart ?? val.length;
+    const match = val.slice(0, cursor).match(MENTION_PATTERN);
+    setMentionQuery(match ? match[1] : null);
+  };
+
+  const selectMention = (friend) => {
+    const el = textareaRef.current;
+    const cursor = el ? el.selectionStart ?? text.length : text.length;
+    const before = text.slice(0, cursor).replace(MENTION_PATTERN, (m, _q, offset) =>
+      (m.startsWith(' ') ? ' ' : '') + `@${friend.friendName} `
+    );
+    const newText = before + text.slice(cursor);
+    setText(newText);
+    setMentionQuery(null);
+    requestAnimationFrame(() => el?.focus());
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -41,15 +77,32 @@ function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel }) {
   };
 
   return (
-    <form onSubmit={submit} className="flex gap-2 items-start">
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={placeholder}
-        rows={2}
-        autoFocus={autoFocus}
-        containerClassName="flex-1"
-      />
+    <form onSubmit={submit} className="flex gap-2 items-start relative">
+      <div className="flex-1 relative">
+        <Textarea
+          ref={textareaRef}
+          value={text}
+          onChange={handleChange}
+          placeholder={placeholder}
+          rows={2}
+          autoFocus={autoFocus}
+        />
+        {mentionMatches.length > 0 && (
+          <div className="absolute z-10 left-0 right-0 mt-1 bg-surface border border-subtle rounded-xl shadow-theme-md overflow-hidden">
+            {mentionMatches.map((f) => (
+              <button
+                key={f.friendUid}
+                type="button"
+                onClick={() => selectMention(f)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-primary hover:bg-hover transition-colors"
+              >
+                <Avatar name={f.friendName} size="sm" />
+                {f.friendName}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-1.5">
         <Button type="submit" size="sm" icon={Send} loading={posting} disabled={!text.trim()}>
           Post
@@ -62,18 +115,19 @@ function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel }) {
   );
 }
 
-function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike, onDelete, replyOpen, onToggleReply }) {
+function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike, onDelete, replyOpen, onToggleReply, isNew, friends }) {
   const liked = currentUid ? (comment.likedBy || []).includes(currentUid) : false;
   const likeCount = (comment.likedBy || []).length;
   const canDelete = currentUid && (comment.authorUid === currentUid || canModerate);
 
   return (
-    <div className={`flex gap-3 ${isReply ? 'ml-10 mt-3' : 'py-4 border-b border-subtle last:border-0'}`}>
+    <div className={`flex gap-3 rounded-xl transition-colors ${isReply ? 'ml-10 mt-3' : 'py-4 border-b border-subtle last:border-0'} ${isNew ? 'bg-brand-subtle/40 -mx-2 px-2' : ''}`}>
       <Avatar name={comment.authorName} size={isReply ? 'sm' : 'md'} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-semibold text-sm text-primary">{comment.authorName}</span>
           <span className="text-xs text-muted">{timeAgo(comment.createdAt)}</span>
+          {isNew && <span className="text-[10px] font-bold uppercase tracking-wide text-brand">New</span>}
         </div>
         <p className="text-sm text-primary mt-0.5 whitespace-pre-wrap break-words">{comment.text}</p>
         <div className="flex items-center gap-3 mt-1.5">
@@ -114,6 +168,7 @@ function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike
               autoFocus
               onCancel={onToggleReply}
               onSubmit={(text) => onReply(comment, text)}
+              friends={friends}
             />
           </div>
         )}
@@ -123,13 +178,18 @@ function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike
 }
 
 export default function CommentsSection({ show }) {
-  const { user, isAdmin, guestMode, setToast, normalizeShowKey } = useApp();
+  const { user, isAdmin, guestMode, friends, setToast, normalizeShowKey } = useApp();
   const concertKey = useMemo(() => (show ? normalizeShowKey(show) : null), [show, normalizeShowKey]);
 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState('newest');
   const [replyOpenId, setReplyOpenId] = useState(null);
+  // Captured once per mount, before markViewed() moves the high-water
+  // mark forward — see lib/commentViews.js. Comments created after this
+  // are highlighted "New"; re-opening the page later won't re-highlight
+  // them, since by then lastViewedMs has advanced past them.
+  const [lastViewedMs, setLastViewedMs] = useState(null);
 
   useEffect(() => {
     // Reading showComments requires Firestore auth (see firestore.rules) —
@@ -146,6 +206,16 @@ export default function CommentsSection({ show }) {
       setLoading(false);
     });
     return unsubscribe;
+  }, [concertKey, user, guestMode]);
+
+  useEffect(() => {
+    if (!concertKey || !user || guestMode) return;
+    let cancelled = false;
+    getLastViewed(user.uid, concertKey).then((ms) => {
+      if (!cancelled) setLastViewedMs(ms);
+    });
+    markViewed(user.uid, concertKey);
+    return () => { cancelled = true; };
   }, [concertKey, user, guestMode]);
 
   const topLevel = useMemo(() => {
@@ -166,12 +236,32 @@ export default function CommentsSection({ show }) {
       .filter((c) => c.parentId === commentId)
       .sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
 
+  // Fires a notification for every friend whose name appears as "@Name"
+  // in the just-posted text — best-effort, matched against the same
+  // `friends` list the mention autocomplete suggested from, so it only
+  // ever fires for someone actually in your friends list, not any
+  // substring that happens to start with "@".
+  const notifyMentions = (text, authorName) => {
+    (friends || []).forEach((f) => {
+      if (f.friendUid === user.uid) return;
+      if (text.includes(`@${f.friendName}`)) {
+        createEngagementNotification(f.friendUid, 'comment_mention', {
+          concertKey, artist: show.artist, venue: show.venue, date: show.date,
+          fromUid: user.uid, fromName: authorName,
+          message: `${authorName} mentioned you in a comment on ${show.artist}`,
+        });
+      }
+    });
+  };
+
   const handlePost = async (text) => {
+    const authorName = user.displayName || 'Anonymous';
     try {
-      await postComment(concertKey, user.uid, user.displayName || 'Anonymous', text);
-      logActivity(user.uid, user.displayName, 'commented', {
+      await postComment(concertKey, user.uid, authorName, text);
+      logActivity(user.uid, authorName, 'commented', {
         showId: show.id, artist: show.artist, venue: show.venue || null,
       });
+      notifyMentions(text, authorName);
     } catch (err) {
       setToast?.("Couldn't post your comment. Please try again.");
     }
@@ -189,6 +279,7 @@ export default function CommentsSection({ show }) {
       logActivity(user.uid, authorName, 'commented', {
         showId: show.id, artist: show.artist, venue: show.venue || null,
       });
+      notifyMentions(text, authorName);
     } catch (err) {
       setToast?.("Couldn't post your reply. Please try again.");
     }
@@ -235,7 +326,7 @@ export default function CommentsSection({ show }) {
 
       {user && !guestMode ? (
         <div className="mb-5">
-          <CommentComposer placeholder="Share your thoughts on this show…" onSubmit={handlePost} />
+          <CommentComposer placeholder="Share your thoughts on this show…" onSubmit={handlePost} friends={friends} />
         </div>
       ) : (
         <p className="text-sm text-muted mb-5">Sign in to see and join the discussion.</p>
@@ -260,6 +351,8 @@ export default function CommentsSection({ show }) {
                 onReply={handleReply}
                 replyOpen={replyOpenId === comment.id}
                 onToggleReply={() => setReplyOpenId(replyOpenId === comment.id ? null : comment.id)}
+                isNew={lastViewedMs != null && comment.authorUid !== user.uid && (comment.createdAt?.toMillis?.() || 0) > lastViewedMs}
+                friends={friends}
               />
               {repliesFor(comment.id).map((reply) => (
                 <CommentRow
@@ -270,6 +363,8 @@ export default function CommentsSection({ show }) {
                   canModerate={isAdmin}
                   onLike={handleLike}
                   onDelete={handleDelete}
+                  isNew={lastViewedMs != null && reply.authorUid !== user.uid && (reply.createdAt?.toMillis?.() || 0) > lastViewedMs}
+                  friends={friends}
                 />
               ))}
             </div>
