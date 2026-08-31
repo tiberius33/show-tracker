@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.7.0',
+      date: 'August 30, 2026',
+      title: 'Bucket List',
+      changes: [
+        'New: a Bucket List for shows you want to attend — separate from the song-level Wishlist. Add a show manually, or straight from an Upcoming Shows listing with one tap',
+        'Sort by soonest or artist, filter by artist/venue, add a one-click Google Calendar reminder, or share your list with friends',
+        '"Mark Attended" moves a bucket-list entry into the regular Add Show flow, pre-filled, then removes it from the list once saved',
+        'Sign-in only, like Wishlist and Friends — a guest\'s bucket list would have nowhere durable to live',
+        'Not yet built: distance-from-you sorting — the upcoming-shows data (Ticketmaster/SeatGeek) doesn\'t carry venue coordinates today, so this is flagged as a follow-up rather than faked',
+      ]
+    },
+    {
       version: '5.6.0',
       date: 'August 30, 2026',
       title: 'Public Profiles',

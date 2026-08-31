@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, List, Camera, BarChart3, UserPlus, Users, Ticket, TrendingUp, ScrollText, Send, MessageSquare, Shield, Coffee, LogOut, User, X, Menu, HelpCircle } from 'lucide-react';
+import { Search, List, Camera, BarChart3, UserPlus, Users, Ticket, Bookmark, TrendingUp, ScrollText, Send, MessageSquare, Shield, Coffee, LogOut, User, X, Menu, HelpCircle } from 'lucide-react';
 
 function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCreateAccount, pendingNotificationCount, upcomingShowsBadgeCount }) {
   const router = useRouter();
@@ -24,6 +24,7 @@ function Sidebar({ isAdmin, onLogout, userName, isOpen, onClose, isGuest, onCrea
       { id: 'friends', label: 'Friends', icon: UserPlus, badge: pendingNotificationCount },
     ]),
     { id: 'upcoming', label: 'Upcoming Shows', icon: Ticket, badge: upcomingShowsBadgeCount, beta: true },
+    ...(isGuest ? [] : [{ id: 'bucket-list', label: 'Bucket List', icon: Bookmark }]),
     { id: 'roadmap', label: 'Roadmap', icon: TrendingUp },
     { id: 'release-notes', label: 'Release Notes', icon: ScrollText },
     { id: 'how-to-use', label: 'How to Use', icon: HelpCircle },

@@ -16,6 +16,7 @@ import ShowDetailView from '@/components/shows/ShowDetailView';
 import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
 import { tourKeyFor } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
+import { removeFromBucketList } from '@/lib/bucketList';
 import {
   Search, Camera, X, Upload,
   Bell, ChevronRight, ChevronLeft, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
@@ -27,6 +28,8 @@ export default function ShowsPage() {
     selectedShow, setSelectedShow,
     selectedArtist, setSelectedArtist,
     showForm, setShowForm,
+    bucketListPrefill, setBucketListPrefill,
+    setToast,
     searchTerm, setSearchTerm,
     filterYear, setFilterYear, filterDate, setFilterDate, availableYears,
     sortBy, setSortBy,
@@ -49,6 +52,27 @@ export default function ShowsPage() {
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
   const [showsTab, setShowsTab] = useState('timeline'); // 'timeline' | 'artist'
   const [bulkTagShows, setBulkTagShows] = useState(null); // array of shows for bulk tag modal
+
+  // Arriving from BucketListView's "Mark Attended" — open the manual add
+  // form pre-filled with the saved show, and clear the prefill so it
+  // doesn't re-trigger on a later visit to this page.
+  useEffect(() => {
+    if (bucketListPrefill) setShowForm(true);
+  }, [bucketListPrefill, setShowForm]);
+
+  const handleAddShowFromBucketList = async (formData) => {
+    const result = await addShow(formData);
+    if (bucketListPrefill?.bucketListKey) {
+      try {
+        await removeFromBucketList(user.uid, bucketListPrefill.bucketListKey);
+      } catch (err) {
+        console.error('[bucketList] Failed to remove after marking attended:', err);
+        setToast?.('Show added, but removing it from your bucket list failed.');
+      }
+    }
+    setBucketListPrefill(null);
+    return result;
+  };
 
   // Lightweight badges on each ShowCard for a run ("Night 2 of 3") or a
   // linkable tour name — kept as a shallow lookup by showId so ShowCard
@@ -479,10 +503,11 @@ export default function ShowsPage() {
           {/* Manual add form */}
           {showForm && (
             <ShowForm
-              onSubmit={addShow}
-              onCancel={() => setShowForm(false)}
+              onSubmit={bucketListPrefill ? handleAddShowFromBucketList : addShow}
+              onCancel={() => { setShowForm(false); setBucketListPrefill(null); }}
               friends={user && !guestMode ? friends : []}
               onTagFriends={tagFriendsAtShow}
+              initialData={bucketListPrefill}
             />
           )}
 
