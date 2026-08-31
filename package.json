@@ -1,6 +1,6 @@
 {
   "name": "show-tracker",
-  "version": "5.16.0",
+  "version": "5.16.1",
   "private": true,
   "dependencies": {
     "@capacitor-firebase/authentication": "^8.1.0",
@@ -24,6 +24,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/stamp-service-worker.js",
     "build": "next build",
     "analyze": "ANALYZE=true next build",
     "start": "next start",
