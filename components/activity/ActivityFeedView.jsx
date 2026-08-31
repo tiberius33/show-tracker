@@ -1,16 +1,16 @@
 // components/activity/ActivityFeedView.jsx
 //
 // /activity page body. Real-time, chronological log of what friends have
-// been doing — currently "added a show" and "rated a show" (the only two
-// event types lib/activityFeed.js writes today). Designed to grow: a
-// future comments/photos PR just adds a new `action` value here and a
-// matching logActivity() call at the write site, no schema change needed.
+// been doing: adding a show, rating one, commenting, or sharing a
+// photo/poster/setlist photo. Designed to grow further the same way —
+// a new `action` value here plus a matching logActivity() call at the
+// write site, no schema change needed.
 
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Activity, PlusCircle, Star, Users } from 'lucide-react';
+import { Activity, PlusCircle, Star, Users, MessageSquare, Camera } from 'lucide-react';
 import { Card, EmptyState, Spinner, Tabs, Avatar } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { subscribeFriendActivity } from '@/lib/activityFeed';
@@ -20,15 +20,26 @@ const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'added_show', label: 'Shows' },
   { id: 'rated_show', label: 'Ratings' },
+  { id: 'commented', label: 'Comments' },
+  { id: 'shared_media', label: 'Photos' },
 ];
 
+const MEDIA_NOUN = { photo: 'a photo', video: 'a video', poster: 'a poster', setlist: 'a setlist photo' };
+
 function ActivityRow({ item }) {
-  const isRating = item.action === 'rated_show';
   // Only linkable when the actor's public profile was on at the time this
   // was logged — there's no route for viewing another user's private show
   // (see lib/activityFeed.js's `handle` field for why).
   const showHref = item.handle ? `/u/${item.handle}/shows/${item.showId}` : null;
   const RowTag = showHref ? Link : 'div';
+
+  const Icon = {
+    rated_show: Star,
+    commented: MessageSquare,
+    shared_media: Camera,
+  }[item.action] || PlusCircle;
+
+  const iconClass = item.action === 'rated_show' ? 'text-amber' : 'text-brand';
 
   return (
     <RowTag
@@ -39,19 +50,14 @@ function ActivityRow({ item }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm text-primary">
           <span className="font-semibold">{item.userName}</span>{' '}
-          {isRating ? (
-            <>rated <span className="font-semibold">{item.artist}</span> {item.rating}/10</>
-          ) : (
-            <>added <span className="font-semibold">{item.artist}</span>{item.venue ? ` at ${item.venue}` : ''}</>
-          )}
+          {item.action === 'rated_show' && <>rated <span className="font-semibold">{item.artist}</span> {item.rating}/10</>}
+          {item.action === 'commented' && <>commented on <span className="font-semibold">{item.artist}</span></>}
+          {item.action === 'shared_media' && <>shared {MEDIA_NOUN[item.mediaCategory] || 'media'} from <span className="font-semibold">{item.artist}</span></>}
+          {item.action === 'added_show' && <>added <span className="font-semibold">{item.artist}</span>{item.venue ? ` at ${item.venue}` : ''}</>}
         </p>
         <p className="text-xs text-muted mt-0.5">{timeAgo(item.timestamp)}</p>
       </div>
-      {isRating ? (
-        <Star size={16} className="text-amber flex-shrink-0 mt-1" fill="currentColor" />
-      ) : (
-        <PlusCircle size={16} className="text-brand flex-shrink-0 mt-1" />
-      )}
+      <Icon size={16} className={`${iconClass} flex-shrink-0 mt-1`} fill={item.action === 'rated_show' ? 'currentColor' : 'none'} />
     </RowTag>
   );
 }

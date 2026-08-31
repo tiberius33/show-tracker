@@ -15,6 +15,7 @@ import { Card, Avatar, Button, Modal, Spinner } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { togglePhotoLike, deletePhoto, extractYoutubeId } from '@/lib/photos';
 import { createEngagementNotification } from '@/lib/notifications';
+import { logActivity } from '@/lib/activityFeed';
 import { timeAgo } from '@/lib/utils';
 
 const LABEL_BY_CATEGORY = { poster: 'poster', setlist: 'setlist photo' };
@@ -248,7 +249,12 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
           category={category}
           title={`Add ${title}`}
           existingPhotos={allItems}
-          onUploaded={() => setToast?.('Uploaded!')}
+          onUploaded={() => {
+            setToast?.('Uploaded!');
+            logActivity(user.uid, user.displayName, 'shared_media', {
+              showId: show.id, artist: show.artist, venue: show.venue || null, mediaCategory: category,
+            });
+          }}
           onError={(msg) => setToast?.(msg)}
         />
       )}
