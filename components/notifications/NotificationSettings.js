@@ -15,6 +15,7 @@ export default function NotificationSettings({ userId }) {
     newFeatures: true,
     communityUpdates: false,
     engagementNotifications: true,
+    emailFrequency: 'off', // 'off' | 'immediate' — daily/weekly digest needs a scheduled job that doesn't exist yet
   });
 
   useEffect(() => {
@@ -176,6 +177,21 @@ export default function NotificationSettings({ userId }) {
             <p className="text-secondary text-xs">Notify me when someone replies to my comment, or likes my comment or photo</p>
           </div>
         </label>
+
+        {preferences.engagementNotifications && (
+          <div className="mt-3 pl-7">
+            <label className="text-secondary text-xs font-medium block mb-1.5">Also email me</label>
+            <select
+              value={preferences.emailFrequency || 'off'}
+              onChange={(e) => handlePreferenceChange('emailFrequency', e.target.value)}
+              className="text-sm bg-hover border border-active rounded-lg px-2.5 py-1.5 text-primary focus:ring-2 focus:ring-brand/50 focus:outline-none"
+            >
+              <option value="off">Off</option>
+              <option value="immediate">Immediately</option>
+            </select>
+            <p className="text-muted text-xs mt-1">Daily and weekly digest options are coming later.</p>
+          </div>
+        )}
       </div>
     </div>
   );

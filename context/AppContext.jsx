@@ -16,6 +16,7 @@ import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
 import { logActivity } from '@/lib/activityFeed';
+import { sendEmailIfAllowed } from '@/lib/email';
 import {
   inviteEmail,
   friendJoinedEmail,
@@ -25,38 +26,6 @@ import {
   bulkShowTagNotification,
   suggestionNudgeEmail,
 } from '@/lib/emailTemplates';
-
-// ── Helper: send email only if recipient hasn't opted out ────────────────
-async function sendEmailIfAllowed(recipientUidOrEmail, emailPayload) {
-  // If we have a UID, check the profile's emailOptOut flag
-  if (recipientUidOrEmail && !recipientUidOrEmail.includes('@')) {
-    try {
-      const profileSnap = await getDoc(doc(db, 'userProfiles', recipientUidOrEmail));
-      if (profileSnap.exists() && profileSnap.data().emailOptOut) {
-        return; // User has opted out of emails
-      }
-    } catch {
-      // If we can't check, proceed with sending
-    }
-  }
-  // If we have an email address (non-registered user), check if any profile with that email opted out
-  if (recipientUidOrEmail && recipientUidOrEmail.includes('@')) {
-    try {
-      const q = query(collection(db, 'userProfiles'), where('email', '==', recipientUidOrEmail.toLowerCase()));
-      const snap = await getDocs(q);
-      if (!snap.empty && snap.docs[0].data().emailOptOut) {
-        return; // User has opted out
-      }
-    } catch {
-      // If we can't check, proceed with sending
-    }
-  }
-  return fetch(apiUrl('/api/send-email'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(emailPayload),
-  });
-}
 
 // ── Helper: update the user's profile doc with current stats ────────────
 async function updateUserProfile(user, shows = []) {
