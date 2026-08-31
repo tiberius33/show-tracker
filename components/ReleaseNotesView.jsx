@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.9.0',
+      date: 'August 30, 2026',
+      title: 'Concert Comments',
+      changes: [
+        'New: a Comments section on every show page — discuss the setlist, the crowd, the venue, whatever\'s on your mind, with anyone else who\'s logged that same concert',
+        'Different from the old "Shared Memories" feature removed in v4.1.1 (which was private between you and one tagged friend): this is a real discussion thread, open to everyone who logged the show, not just a friend pair',
+        'One level of replies, sort by newest/oldest/most-liked, real-time — no refresh needed to see a new comment or reply land',
+        'Delete your own comment any time; spam or abuse can be removed by moderators',
+        'Not yet built: @mention autocomplete and "new since your last visit" highlighting — both flagged as follow-ups rather than half-built here',
+      ]
+    },
+    {
       version: '5.8.0',
       date: 'August 30, 2026',
       title: 'Friend Activity Feed',
