@@ -6,6 +6,18 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.8.0',
+      date: 'August 30, 2026',
+      title: 'Friend Activity Feed',
+      changes: [
+        'New: an Activity page showing what your friends have been up to — added a show, rated a show — chronologically and in real time, no refresh needed',
+        'Filter by All, Shows, or Ratings',
+        'On by default for every account (unlike the off-by-default Public Profile) — a new toggle on your Profile page lets you stop sharing your own activity at any time; turning it off only stops new entries, past ones already shown to friends aren\'t retroactively removed',
+        'A feed item links to the actual show only when the friend who did it has Public Profile turned on — there\'s no separate "friend\'s private show" viewer, so without that, the row is plain text, not a broken link',
+        'Not yet built: comments and photos in the feed — both need their own feature first (coming in later releases), at which point they slot into this same feed with no schema changes',
+      ]
+    },
+    {
       version: '5.7.0',
       date: 'August 30, 2026',
       title: 'Bucket List',
