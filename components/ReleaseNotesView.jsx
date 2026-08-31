@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.22.0',
+      date: 'August 31, 2026',
+      title: 'Group Meetups (MVP)',
+      changes: [
+        'New: "Find or create meetup" on any Bucket List show — see who else is going, join, and coordinate in a discussion thread',
+        'Meetup page shows the attendee list, an organizer-pinned note for where/when to meet, and a message thread',
+        'Bucket list cards now show a live "N people meeting up" count',
+        'The organizer gets notified when someone else joins their meetup',
+        'MVP scope: same-show meetups only, no location-based/general meetups yet',
+        'Requires a Firestore rules deploy (`npm run deploy:rules`) before meetups can actually be created in production — new `meetups` and `meetupComments` collections need their security rules live',
+      ]
+    },
+    {
       version: '5.21.0',
       date: 'August 31, 2026',
       title: 'Anniversary Notifications',

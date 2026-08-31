@@ -20,6 +20,7 @@ import { Bookmark, Calendar, MapPin, ExternalLink, Trash2, CheckCircle2, Share2,
 import { Card, EmptyState, Spinner, Badge, Button, Input, Tabs } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { listBucketList, removeFromBucketList, addToBucketList } from '@/lib/bucketList';
+import MeetupCard from '@/components/meetups/MeetupCard';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -86,6 +87,10 @@ function BucketListCard({ item, onRemove, onMarkAttended, removing }) {
         >
           Remove
         </Button>
+      </div>
+
+      <div className="pt-2 border-t border-subtle">
+        <MeetupCard show={item} />
       </div>
     </Card>
   );

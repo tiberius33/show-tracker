@@ -119,6 +119,41 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid;
     }
 
+    // Group meetups — one doc per concert (keyed the same way as
+    // showComments, off a shared concertKey rather than any one user's
+    // private bucket-list/show doc, since attendees each have their own
+    // private "I'm going" record and there's no single shared show doc to
+    // attach this to). Creating the doc seeds attendeeUids with just the
+    // creator; joining/leaving afterward is restricted to adding or
+    // removing only the caller's own uid, mirroring showComments' likedBy
+    // pattern. The organizer alone may edit the pinned `description`.
+    match /meetups/{meetupId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.attendeeUids == [request.auth.uid];
+      allow update: if request.auth != null && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendeeUids', 'attendeeNames'])
+          && request.resource.data.attendeeUids.removeAll(resource.data.attendeeUids).hasOnly([request.auth.uid])
+          && resource.data.attendeeUids.removeAll(request.resource.data.attendeeUids).hasOnly([request.auth.uid]))
+        ||
+        (resource.data.createdBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['description', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    // Meetup discussion thread — flat (no replies/likes), same
+    // author-owns-their-own-comment shape as showComments.
+    match /meetupComments/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.authorUid == request.auth.uid;
+      allow delete: if request.auth != null
+        && (resource.data.authorUid == request.auth.uid
+            || request.auth.token.email == 'phillip.leonard@gmail.com');
+    }
+
     // Concert photos/videos — metadata doc for each upload (see
     // lib/photos.js). Same shape as showComments: keyed by concertKey,
     // any authenticated user can read/post, `likedBy` is the only

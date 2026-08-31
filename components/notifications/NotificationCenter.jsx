@@ -11,11 +11,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
-import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell, AtSign, PartyPopper } from 'lucide-react';
+import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell, AtSign, PartyPopper, Users } from 'lucide-react';
 import { Card, EmptyState, Spinner, Button } from '@/components/ui';
 import { db } from '@/lib/firebase';
 import { useApp } from '@/context/AppContext';
 import { subscribeAllNotifications } from '@/lib/notifications';
+import { meetupIdFor } from '@/lib/meetups';
 import { timeAgo } from '@/lib/utils';
 
 const ICONS = {
@@ -25,6 +26,7 @@ const ICONS = {
   photo_like: ImageIcon,
   roadmap_published: Megaphone,
   anniversary: PartyPopper,
+  meetup_join: Users,
 };
 
 function NotificationRow({ notification, showHref, onClick }) {
@@ -126,12 +128,18 @@ export default function NotificationCenter() {
       )}
       <Card padding="none" className="overflow-hidden">
         {notifications.map((n) => {
-          const show = n.concertKey ? showByKey.get(n.concertKey) : null;
+          let href = null;
+          if (n.type === 'meetup_join' && n.concertKey) {
+            href = `/meetups/?id=${meetupIdFor(n.concertKey)}`;
+          } else if (n.concertKey) {
+            const show = showByKey.get(n.concertKey);
+            href = show ? `/shows/${show.id}` : null;
+          }
           return (
             <NotificationRow
               key={n.id}
               notification={n}
-              showHref={show ? `/shows/${show.id}` : null}
+              showHref={href}
               onClick={handleClick}
             />
           );
