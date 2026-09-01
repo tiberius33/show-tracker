@@ -34,7 +34,7 @@ import { Card, EmptyState, Spinner, Badge } from '@/components/ui';
 import ArtistPicker from '@/components/wishlist/ArtistPicker';
 import { useApp } from '@/context/AppContext';
 import { apiUrl } from '@/lib/api';
-import { normalizeSongTitle } from '@/lib/utils';
+import { normalizeSongTitle, parseDate, humanizeGapDuration } from '@/lib/utils';
 import { artistKeyFor, loadWishlist, addWishlistSong, removeWishlistSong, listWishlistedArtists } from '@/lib/wishlist';
 import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
 
@@ -43,7 +43,7 @@ const ERROR_FLASH_MS = 5000;
 // Star toggle, shared by the catalog list and the Wishlist column so both
 // read/write the exact same wishlistMap state — starring/unstarring is
 // symmetric no matter which list you click from.
-function StarToggleRow({ title, meta, checked, pending, hasError, onToggle }) {
+function StarToggleRow({ title, meta, subMeta, checked, pending, hasError, onToggle }) {
   const label = checked ? `Remove ${title} from wishlist` : `Add ${title} to wishlist`;
   return (
     <li>
@@ -65,9 +65,12 @@ function StarToggleRow({ title, meta, checked, pending, hasError, onToggle }) {
           className={`flex-shrink-0 ${checked ? 'text-amber' : 'text-muted'}`}
           fill={checked ? 'currentColor' : 'none'}
         />
-        <span className="min-w-0 flex items-baseline gap-2 flex-1">
-          <span className="text-sm text-primary truncate">{title}</span>
-          {meta && <span className="text-xs text-muted flex-shrink-0">{meta}</span>}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-2">
+            <span className="text-sm text-primary truncate">{title}</span>
+            {meta && <span className="text-xs text-muted flex-shrink-0">{meta}</span>}
+          </span>
+          {subMeta && <span className="block text-[11px] text-muted truncate">{subMeta}</span>}
         </span>
         {hasError && (
           <span className="text-xs font-semibold text-danger flex-shrink-0">Couldn't save — try again</span>
@@ -154,6 +157,31 @@ export default function WishlistView() {
     () => new Set(catalogSongs.map(s => normalizeSongTitle(s.name))),
     [catalogSongs]
   );
+
+  // normalizedKey -> catalog song ({ name, count, plays }), for reading a
+  // wishlisted song's play history without a second fetch — the catalog
+  // call above already pulled every play (with dates) for this artist.
+  const catalogByKey = useMemo(() => {
+    const map = new Map();
+    catalogSongs.forEach(s => map.set(normalizeSongTitle(s.name), s));
+    return map;
+  }, [catalogSongs]);
+
+  // "last played 2 years, 3 months ago" — null while the catalog hasn't
+  // loaded, or if setlist.fm has no play data for this song at all.
+  const lastPlayedLabel = useCallback((key) => {
+    const song = catalogByKey.get(key);
+    if (!song?.plays?.length) return null;
+    let mostRecent = null;
+    song.plays.forEach(p => {
+      const d = parseDate(p.date);
+      if (d && d.getTime() > 0 && (!mostRecent || d > mostRecent)) mostRecent = d;
+    });
+    if (!mostRecent) return null;
+    const days = Math.round((Date.now() - mostRecent.getTime()) / 86400000);
+    if (days <= 0) return 'played most recently';
+    return `last played ${humanizeGapDuration(days)} ago`;
+  }, [catalogByKey]);
 
   const catalogRemaining = useMemo(
     () => catalogSongs.filter(s => !seenNormalizedSet.has(normalizeSongTitle(s.name))),
@@ -439,6 +467,7 @@ export default function WishlistView() {
                 <StarToggleRow
                   key={s.key}
                   title={s.title}
+                  subMeta={lastPlayedLabel(s.key)}
                   checked
                   pending={pendingKeys.has(s.key)}
                   hasError={errorKeys.has(s.key)}

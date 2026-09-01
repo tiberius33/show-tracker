@@ -14,24 +14,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, Badge, StatFigure } from '@/components/ui';
-import { formatDate } from '@/lib/utils';
+import { formatDate, humanizeGapDuration } from '@/lib/utils';
 import { getBustOutSeverity, BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
-import useBustOutThreshold from '@/hooks/useBustOutThreshold';
-
-function humanizeGapDuration(days) {
-  if (!days || days <= 0) return null;
-  const years = Math.floor(days / 365.25);
-  const remainingDays = days - years * 365.25;
-  const months = Math.floor(remainingDays / 30.44);
-  const parts = [];
-  if (years > 0) parts.push(`${years} year${years !== 1 ? 's' : ''}`);
-  if (months > 0) parts.push(`${months} month${months !== 1 ? 's' : ''}`);
-  if (parts.length === 0) {
-    const d = Math.max(1, Math.round(days));
-    parts.push(`${d} day${d !== 1 ? 's' : ''}`);
-  }
-  return parts.join(', ');
-}
+import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 
 function venueLabel({ venue, city }) {
   if (!venue) return null;
@@ -147,8 +132,8 @@ function PerformanceRow({ perf, onOpen }) {
 export default function SongDetailView({ song }) {
   const router = useRouter();
   const { shows, setSelectedShow, user } = useApp();
-  const { thresholdDays: bustOutThresholdDays } = useBustOutThreshold(user?.uid);
-  const personalBustOutSeverity = getBustOutSeverity(song.currentGap.days, bustOutThresholdDays);
+  const { sensitivity: bustOutSensitivity } = useBustOutSensitivity(user?.uid);
+  const personalBustOutSeverity = getBustOutSeverity(song.currentGap.days, song.currentGap.shows, bustOutSensitivity);
   const personalBustOutMeta = personalBustOutSeverity ? BUSTOUT_SEVERITY_META[personalBustOutSeverity] : null;
 
   const goToShow = (showId) => {
@@ -183,7 +168,7 @@ export default function SongDetailView({ song }) {
           {song.title}
           {personalBustOutMeta && (
             <span
-              title={`${personalBustOutMeta.label} for you · ${song.currentGap.days} days since you last saw it`}
+              title={`${personalBustOutMeta.label} for you · ${song.currentGap.shows} shows / ${song.currentGap.days} days since you last saw it`}
               className={`text-[10px] font-extrabold tracking-[0.1em] uppercase px-2 py-1 rounded ${personalBustOutMeta.badgeClass}`}
             >
               {personalBustOutMeta.flames} {personalBustOutMeta.label}

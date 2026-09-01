@@ -4,6 +4,22 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.26.0] — 2026-08-31
+
+### Changed: Bust-Out Severity
+- Severity now weighs both shows and time since a song was last played, taking whichever band it clears first: minor at 50+ shows or 1+ year, major at 100+ shows or 2+ years, epic at 5+ years (no show-count band for epic).
+- `netlify/functions/get-artist-song-stats.js` now also returns `showDates` (every distinct date the artist played across the fetched setlists) so "shows since" can be counted, not just days elapsed.
+- The Profile setting is now a Sensitivity multiplier (`userProfiles/{uid}.bustOutSensitivity`, replacing `bustOutThresholdDays`) that scales both dimensions of every band together.
+
+### New: Wishlist Last-Played
+- The Wishlist column on `/wishlist` now shows how long it's been since each starred song was last played live, computed from the same setlist.fm catalog data already fetched for that page — no new call.
+
+### Technical
+- `lib/utils.js` gains `humanizeGapDuration` (moved out of `SongDetailView.jsx`, now shared with `WishlistView.jsx`).
+- `hooks/useBustOutThreshold.js` replaced by `hooks/useBustOutSensitivity.js`.
+
+---
+
 ## [5.25.0] — 2026-08-31
 
 ### New: Bust-Out Detection

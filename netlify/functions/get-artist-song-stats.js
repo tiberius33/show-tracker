@@ -103,11 +103,19 @@ exports.handler = async function (event) {
 
     const songs = aggregateSongs(allSetlists);
 
+    // Every fetched show's date (deduplicated, one entry per date the
+    // artist played — regardless of which songs they played), independent
+    // of any single song's own play list. Lets a caller count how many
+    // shows the artist played between two dates ("shows since"), not just
+    // days elapsed — see lib/bustOuts.js.
+    const showDates = [...new Set(allSetlists.map(sl => sl.eventDate).filter(Boolean))];
+
     return {
       statusCode: 200,
       headers: CORS_HEADERS,
       body: JSON.stringify({
         songs,
+        showDates,
         totalSetlistsFetched: allSetlists.length,
         totalSetlistsAvailable: total,
         artistName: firstPage.setlist?.[0]?.artist?.name || '',

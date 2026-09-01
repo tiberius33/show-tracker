@@ -1,10 +1,11 @@
 // hooks/useBustOutAnalysis.js
 //
 // Resolves a show's artist to a setlist.fm mbid, fetches that artist's
-// recent play-date history, merges in the user's own personal performance
-// history for songs outside that window, and computes which songs in
-// `show.setlist` are bust-outs at the given threshold. See lib/bustOuts.js
-// for the underlying calculation.
+// recent play-date history (including every show date, for "shows since"
+// counts), merges in the user's own personal performance history for songs
+// outside that window, and computes which songs in `show.setlist` are
+// bust-outs at the given sensitivity. See lib/bustOuts.js for the
+// underlying calculation.
 
 'use client';
 
@@ -16,10 +17,10 @@ import {
   resolveArtistMbid,
   fetchArtistSongHistory,
   computeShowBustOuts,
-  DEFAULT_BUSTOUT_THRESHOLD_DAYS,
+  DEFAULT_BUSTOUT_SENSITIVITY,
 } from '@/lib/bustOuts';
 
-export default function useBustOutAnalysis(show, thresholdDays = DEFAULT_BUSTOUT_THRESHOLD_DAYS) {
+export default function useBustOutAnalysis(show, sensitivity = DEFAULT_BUSTOUT_SENSITIVITY) {
   const songIndex = useSongIndex();
   const [songHistory, setSongHistory] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -63,9 +64,9 @@ export default function useBustOutAnalysis(show, thresholdDays = DEFAULT_BUSTOUT
       showDate: show.date,
       songHistory,
       personalPerformances,
-      thresholdDays,
+      sensitivity,
     });
-  }, [show?.setlist, show?.date, songHistory, personalPerformances, thresholdDays]);
+  }, [show?.setlist, show?.date, songHistory, personalPerformances, sensitivity]);
 
   return { bustOuts, loading };
 }

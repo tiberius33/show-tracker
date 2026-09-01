@@ -9,7 +9,7 @@ import { buildRunIndex } from '@/lib/runIndex';
 import { normalizeSongTitle, formatDate } from '@/lib/utils';
 import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 import useBustOutAnalysis from '@/hooks/useBustOutAnalysis';
-import useBustOutThreshold from '@/hooks/useBustOutThreshold';
+import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
@@ -55,7 +55,7 @@ function buildSets(setlist = [], bustOuts, allShows, artist) {
         bustout: !!bustOut || !!(song.bustout || song.tags?.includes('bustout')),
         bustoutSeverity: bustOut?.severity || null,
         bustoutNote: bustOut
-          ? `${bustOut.days} day${bustOut.days !== 1 ? 's' : ''} since last played`
+          ? `${bustOut.days} day${bustOut.days !== 1 ? 's' : ''}${bustOut.showsSince != null ? ` (${bustOut.showsSince} shows)` : ''} since last played`
           : (song.bustoutNote || null),
         bustoutDetail: bustOut
           ? {
@@ -272,8 +272,8 @@ export default function ShowDetailView({
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }, [show?.setlist]);
 
-  const { thresholdDays: bustOutThresholdDays } = useBustOutThreshold(user?.uid);
-  const { bustOuts } = useBustOutAnalysis(show, bustOutThresholdDays);
+  const { sensitivity: bustOutSensitivity } = useBustOutSensitivity(user?.uid);
+  const { bustOuts } = useBustOutAnalysis(show, bustOutSensitivity);
 
   if (!show) return null;
 

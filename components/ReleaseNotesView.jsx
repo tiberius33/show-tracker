@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.26.0',
+      date: 'August 31, 2026',
+      title: 'Bust-Out Tuning & Wishlist Last-Played',
+      changes: [
+        'Bust-out severity now considers both shows and time since a song was last played, whichever gets there first: 🔥 minor at 50+ shows or 1+ year, 🔥🔥 major at 100+ shows or 2+ years, 🔥🔥🔥 epic at 5+ years',
+        'Renamed the bust-out setting from a single day threshold to a Sensitivity scale (Profile → Bust-Out Sensitivity) that adjusts both the shows and time bands together',
+        'New: your Wishlist now shows how long it\'s been since each starred song was last played live, using the same setlist.fm data already pulled for the catalog',
+      ]
+    },
+    {
       version: '5.25.0',
       date: 'August 31, 2026',
       title: 'Bust-Out Detection',
