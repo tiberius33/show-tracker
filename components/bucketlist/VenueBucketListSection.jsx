@@ -9,8 +9,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { MapPin, Plus, Trash2, Bell, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MapPin, Plus, Trash2, Bell, ChevronRight } from 'lucide-react';
 import { Card, EmptyState, Button, Input } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import {
@@ -55,12 +55,18 @@ function AddVenueForm({ onAdd, adding }) {
 }
 
 function VenueCard({ venue, onRemove, removing }) {
+  const router = useRouter();
+  const goToVenue = () => router.push(`/venues/${encodeURIComponent(venue.venueKey)}/`);
+
   return (
-    <Card padding="md" className="flex items-start justify-between gap-3">
+    <Card
+      padding="md"
+      interactive
+      onClick={goToVenue}
+      className="flex items-start justify-between gap-3"
+    >
       <div className="min-w-0">
-        <Link href={`/venues/${encodeURIComponent(venue.venueKey)}/`} className="font-bold text-primary truncate hover:underline block">
-          {venue.venueName}
-        </Link>
+        <div className="font-bold text-primary truncate">{venue.venueName}</div>
         {(venue.venueCity || venue.venueState) && (
           <div className="flex items-center gap-1.5 text-sm text-muted mt-0.5">
             <MapPin size={13} className="flex-shrink-0" />
@@ -73,14 +79,12 @@ function VenueCard({ venue, onRemove, removing }) {
         </div>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
-        <Link href={`/venues/${encodeURIComponent(venue.venueKey)}/`}>
-          <Button size="sm" variant="ghost" icon={ExternalLink} />
-        </Link>
+        <ChevronRight size={16} className="text-muted mt-1" />
         <Button
           size="sm" variant="ghost" icon={Trash2}
           loading={removing}
           className="text-danger hover:bg-[#fdecec]"
-          onClick={() => onRemove(venue)}
+          onClick={(e) => { e.stopPropagation(); onRemove(venue); }}
         />
       </div>
     </Card>
