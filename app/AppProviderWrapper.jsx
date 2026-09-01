@@ -8,6 +8,7 @@ import MobileHeader from '@/components/layout/MobileHeader';
 import InstallPrompt from '@/components/InstallPrompt';
 import Footer from '@/components/Footer';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
+import ChangelogPopup from '@/components/ChangelogPopup';
 import { extractFirstName } from '@/lib/utils';
 import { initCapacitorPlugins } from '@/lib/capacitor';
 import { registerServiceWorker } from '@/lib/service-worker';
@@ -178,6 +179,9 @@ function AppShell({ children }) {
 
       {/* Mobile Header */}
       <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
+
+      {/* Changelog popup — shown once per user after login, skipped while the invite welcome modal is up */}
+      {user && !guestMode && !welcomeState && <ChangelogPopup user={user} />}
 
       {/* Welcome modal — shown once when a new user joins via an invite */}
       {welcomeState && (
