@@ -1,30 +1,28 @@
 'use client';
 
-// Festivals list (no query param) or a single festival's detail
-// (?festival=<festivalKey>) — same static query-param routing approach as
-// /tours/, /songs/, and /runs/. See app/tours/page.jsx.
+// Festivals list. A single festival's detail now lives at its own
+// /festivals/[festivalId] route (see app/festivals/[festivalId]/page.jsx),
+// following the same dynamic-route pattern as /shows/[id] — this page
+// redirects the old `?festival=<key>` query-param form (from the
+// pre-5.28.0 auto-detected festival feature) to the new route for anyone
+// with an old link, though no in-app or emailed link ever used it.
 
-import { useMemo } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Heart, Tent, ArrowLeft } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import useFestivalIndex from '@/hooks/useFestivalIndex';
 import FestivalListView from '@/components/festivals/FestivalListView';
-import FestivalDetailView from '@/components/festivals/FestivalDetailView';
 import { Button, PageHeader, EmptyState } from '@/components/ui';
 
 export default function FestivalsPage() {
   const router = useRouter();
-  const { user, guestMode, openAuthModal } = useApp();
-  const festivalIndex = useFestivalIndex();
-
   const searchParams = useSearchParams();
-  const festivalKey = searchParams.get('festival') || '';
-  const festival = useMemo(() => festivalIndex[festivalKey] || null, [festivalIndex, festivalKey]);
-  const festivals = useMemo(
-    () => Object.values(festivalIndex).sort((a, b) => (a.dateRange.start < b.dateRange.start ? 1 : -1)),
-    [festivalIndex]
-  );
+  const { user, guestMode, openAuthModal } = useApp();
+
+  const legacyFestivalKey = searchParams.get('festival');
+  useEffect(() => {
+    if (legacyFestivalKey) router.replace(`/festivals/${encodeURIComponent(legacyFestivalKey)}`);
+  }, [legacyFestivalKey, router]);
 
   if (guestMode || !user) {
     return (
@@ -34,27 +32,14 @@ export default function FestivalsPage() {
           icon={Heart}
           tone="brand"
           title="Sign in to see your festivals"
-          body="Festivals are built from your own logged shows, so create a free account to see every one you caught."
+          body="Festivals are yours to create and attach shows to, so create a free account to get started."
           action={<Button onClick={() => openAuthModal('signup')}>Create account</Button>}
         />
       </>
     );
   }
 
-  if (festivalKey) {
-    if (!festival) {
-      return (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Tent className="w-10 h-10 text-muted mb-4" />
-          <p className="text-lg text-primary mb-4">Festival not found.</p>
-          <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/festivals/')}>
-            Back to festivals
-          </Button>
-        </div>
-      );
-    }
-    return <FestivalDetailView festival={festival} />;
-  }
+  if (legacyFestivalKey) return null;
 
-  return <FestivalListView festivals={festivals} />;
+  return <FestivalListView />;
 }

@@ -10,7 +10,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { Search, X, Bookmark, Clock, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
-import useFestivalIndex from '@/hooks/useFestivalIndex';
 import { EMPTY_FILTERS, filterShows, hasActiveFilters } from '@/lib/advancedSearch';
 import { getSavedSearches, addSavedSearch, deleteSavedSearch, getSearchHistory, pushSearchHistory } from '@/lib/savedSearches';
 import { Card, Button, Input, Select, PageHeader, EmptyState } from '@/components/ui';
@@ -41,7 +40,7 @@ function startOfMonthISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-function summarizeFilters(filters, tourIndex, festivalIndex, friends) {
+function summarizeFilters(filters, tourIndex, festivalById, friends) {
   const parts = [];
   if (filters.artist) parts.push(filters.artist);
   if (filters.venue) parts.push(`@ ${filters.venue}`);
@@ -49,7 +48,7 @@ function summarizeFilters(filters, tourIndex, festivalIndex, friends) {
   if (filters.country) parts.push(filters.country);
   if (filters.dateFrom || filters.dateTo) parts.push(`${filters.dateFrom || '…'} → ${filters.dateTo || '…'}`);
   if (filters.tourKey && tourIndex[filters.tourKey]) parts.push(`tour: ${tourIndex[filters.tourKey].tourName}`);
-  if (filters.festivalKey && festivalIndex[filters.festivalKey]) parts.push(`festival: ${festivalIndex[filters.festivalKey].name}`);
+  if (filters.festivalKey && festivalById.get(filters.festivalKey)) parts.push(`festival: ${festivalById.get(filters.festivalKey).name}`);
   if (filters.minRating > 0) parts.push(`${filters.minRating}★+`);
   if (filters.notes) parts.push(`notes: "${filters.notes}"`);
   if (filters.friendUid) {
@@ -61,9 +60,9 @@ function summarizeFilters(filters, tourIndex, festivalIndex, friends) {
 }
 
 export default function AdvancedSearchView() {
-  const { user, shows, friends, setSelectedShow, navigateTo } = useApp();
+  const { user, shows, friends, festivals, setSelectedShow, navigateTo } = useApp();
   const tourIndex = useTourIndex();
-  const festivalIndex = useFestivalIndex();
+  const festivalById = useMemo(() => new Map((festivals || []).map(f => [f.id, f])), [festivals]);
 
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [sortBy, setSortBy] = useState('date-desc');
@@ -89,8 +88,8 @@ export default function AdvancedSearchView() {
     [tourIndex]
   );
   const festivalOptions = useMemo(
-    () => Object.values(festivalIndex).sort((a, b) => a.name.localeCompare(b.name)),
-    [festivalIndex]
+    () => (festivals || []).slice().sort((a, b) => a.name.localeCompare(b.name)),
+    [festivals]
   );
 
   const tourShowIds = useMemo(() => {
@@ -99,9 +98,9 @@ export default function AdvancedSearchView() {
   }, [filters.tourKey, tourIndex]);
 
   const festivalShowIds = useMemo(() => {
-    if (!filters.festivalKey || !festivalIndex[filters.festivalKey]) return null;
-    return new Set(festivalIndex[filters.festivalKey].shows.map(s => s.showId));
-  }, [filters.festivalKey, festivalIndex]);
+    if (!filters.festivalKey) return null;
+    return new Set(shows.filter(s => s.festivalId === filters.festivalKey).map(s => s.id));
+  }, [filters.festivalKey, shows]);
 
   const active = hasActiveFilters(filters);
 
@@ -143,7 +142,7 @@ export default function AdvancedSearchView() {
 
   const runSearch = () => {
     if (!user || !active) return;
-    const summary = summarizeFilters(filters, tourIndex, festivalIndex, friends);
+    const summary = summarizeFilters(filters, tourIndex, festivalById, friends);
     setHistory(pushSearchHistory(user.uid, summary));
   };
 
@@ -240,7 +239,7 @@ export default function AdvancedSearchView() {
             label="Festival"
             value={filters.festivalKey}
             onChange={set('festivalKey')}
-            options={[{ value: '', label: 'Any festival' }, ...festivalOptions.map(f => ({ value: f.key, label: f.name }))]}
+            options={[{ value: '', label: 'Any festival' }, ...festivalOptions.map(f => ({ value: f.id, label: f.name }))]}
           />
 
           <Select

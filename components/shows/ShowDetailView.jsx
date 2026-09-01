@@ -8,7 +8,6 @@ import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
 import { buildRunIndex } from '@/lib/runIndex';
 import { normalizeSongTitle, formatDate } from '@/lib/utils';
 import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
-import { festivalKeyFor } from '@/lib/festivalIndex';
 import useBustOutAnalysis from '@/hooks/useBustOutAnalysis';
 import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SetlistView from './SetlistView';
@@ -207,7 +206,6 @@ export default function ShowDetailView({
   onUpdateRating,
   onUpdateVenueRating,
   onUpdateComment,
-  onUpdateFestival,
   onTagFriends,
   onCreatePlaylist,
   onDeleteShow,
@@ -217,14 +215,18 @@ export default function ShowDetailView({
   isArtistFavorite,
   allShows = [],
   user,
+  // The explicit, user-created Festival this show is attached to (or null)
+  // — resolved by the caller from `show.festivalId` against useApp()'s
+  // `festivals` array (see app/shows/page.jsx / ShowDetailClient.jsx),
+  // since this component takes shows as a prop rather than calling
+  // useApp() itself. Replaces the old isFestival/festivalName tagging UI.
+  festival = null,
 }) {
   const [showPlayCounts, setShowPlayCounts] = useState(true);
   const [toast, setToast] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
-  const [editingFestival, setEditingFestival] = useState(false);
-  const [festivalNameInput, setFestivalNameInput] = useState('');
   const [newSongName, setNewSongName] = useState('');
   const [newSongSet, setNewSongSet] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -300,17 +302,6 @@ export default function ShowDetailView({
   const saveNote = () => {
     onUpdateComment?.(show.id, noteText.trim());
     setEditingNote(false);
-  };
-
-  const saveFestival = () => {
-    const name = festivalNameInput.trim() || show.tour || '';
-    if (!name) return;
-    onUpdateFestival?.(show.id, { isFestival: true, festivalName: name });
-    setEditingFestival(false);
-  };
-
-  const removeFestivalTag = () => {
-    onUpdateFestival?.(show.id, { isFestival: false });
   };
 
   const handleAddSong = (e) => {
@@ -406,60 +397,29 @@ export default function ShowDetailView({
           </p>
         )}
 
-        {/* Festival tag */}
-        {show.isFestival ? (
+        {/* Run + festival badges — both can be true for the same show
+            (e.g. one night of a multi-night run that was also part of a
+            festival weekend), so these render side by side, not either/or. */}
+        {(runForThisShow || festival) && (
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <Link
-              href={`/festivals/?festival=${encodeURIComponent(festivalKeyFor(show.festivalName || show.tour || ''))}`}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber bg-amber-subtle px-2.5 py-1 rounded-lg hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <Tent className="w-3.5 h-3.5" />
-              {show.festivalName || show.tour} — view festival
-            </Link>
-            {onUpdateFestival && (
-              <button
-                onClick={removeFestivalTag}
-                className="text-xs text-muted hover:text-primary transition-colors"
+            {runForThisShow && (
+              <Link
+                href={`/runs/?run=${encodeURIComponent(runForThisShow.runKey)}`}
+                className="inline-block text-sm font-semibold text-amber bg-amber-subtle px-2.5 py-1 rounded-lg hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               >
-                Remove tag
-              </button>
+                Night {runForThisShow.nightNumber} of {runForThisShow.nightCount} — view the full run
+              </Link>
+            )}
+            {festival && (
+              <Link
+                href={`/festivals/${festival.id}`}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber bg-amber-subtle px-2.5 py-1 rounded-lg hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              >
+                <Tent className="w-3.5 h-3.5" />
+                {festival.name} — view festival
+              </Link>
             )}
           </div>
-        ) : onUpdateFestival && editingFestival ? (
-          <div className="mb-3 flex items-center gap-2 flex-wrap">
-            <input
-              type="text"
-              value={festivalNameInput}
-              onChange={e => setFestivalNameInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), saveFestival())}
-              placeholder="Festival name (e.g. Bonnaroo 2023)"
-              autoFocus
-              className="px-3 py-1.5 border border-subtle rounded-lg text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder-muted"
-            />
-            <button onClick={saveFestival} className="px-3 py-1.5 bg-brand text-[#2a2a4e] rounded-lg text-xs font-medium">
-              Save
-            </button>
-            <button onClick={() => setEditingFestival(false)} className="px-3 py-1.5 bg-hover text-secondary rounded-lg text-xs font-medium">
-              Cancel
-            </button>
-          </div>
-        ) : onUpdateFestival ? (
-          <button
-            onClick={() => { setEditingFestival(true); setFestivalNameInput(show.tour || ''); }}
-            className="flex items-center gap-1.5 mb-3 text-sm text-muted hover:text-primary transition-colors"
-          >
-            <Tent className="w-4 h-4" />
-            Tag as festival
-          </button>
-        ) : null}
-
-        {runForThisShow && (
-          <Link
-            href={`/runs/?run=${encodeURIComponent(runForThisShow.runKey)}`}
-            className="inline-block text-sm font-semibold text-amber bg-amber-subtle px-2.5 py-1 rounded-lg mb-3 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-          >
-            Night {runForThisShow.nightNumber} of {runForThisShow.nightCount} — view the full run
-          </Link>
         )}
 
         {/* Show + venue ratings */}

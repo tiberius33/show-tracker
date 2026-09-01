@@ -48,3 +48,6 @@ playwright-report/
 # Firebase (sensitive - download from Firebase Console)
 GoogleService-Info.plist
 GoogleService-Info*.plist
+
+# Claude Code agent worktrees (local scratch, not repo content)
+.claude/worktrees/

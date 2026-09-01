@@ -13,7 +13,6 @@ import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatFigure } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
-import ToursTabView from '@/components/shows/ToursTabView';
 import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
 import { tourKeyFor } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
@@ -39,7 +38,7 @@ export default function ShowsPage() {
     addSongToShow, updateSetlistOrder,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow,
-    friends,
+    friends, festivals,
     pendingNotificationCount, pendingFriendRequests, pendingShowTags,
     setFriendsInitialTab, navigateTo,
     summaryStats, userRank, statsTab, setStatsTab,
@@ -95,10 +94,7 @@ export default function ShowsPage() {
     const key = tourKeyFor(show.artist, show.tour);
     return key && tourIndex[key] ? `/tours/?tour=${encodeURIComponent(key)}` : null;
   };
-  const sortedTours = useMemo(
-    () => Object.values(tourIndex).sort((a, b) => (a.dateRange.start < b.dateRange.start ? 1 : -1)),
-    [tourIndex]
-  );
+  const festivalById = useMemo(() => new Map((festivals || []).map(f => [f.id, f])), [festivals]);
 
   // Arriving from a Top Artists / Top Venues row: seed the filter from the
   // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
@@ -178,10 +174,7 @@ export default function ShowsPage() {
           onUpdateRating={updateShowRating}
           onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
           onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
-          onUpdateFestival={async (showId, updates) => {
-            await updateShowData(showId, updates);
-            setSelectedShow(prev => prev && prev.id === showId ? { ...prev, ...updates } : prev);
-          }}
+          festival={selectedShow.festivalId ? festivals.find(f => f.id === selectedShow.festivalId) || null : null}
           onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
           onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
           onDeleteShow={deleteShow}
@@ -347,7 +340,6 @@ export default function ShowsPage() {
               {[
                 { id: 'timeline', label: 'Timeline', count: sortedFilteredShows.length },
                 { id: 'artist', label: 'By artist', count: artistGroups.length },
-                { id: 'tours', label: 'Tours', count: sortedTours.length },
               ].map(t => (
                 <button
                   key={t.id}
@@ -543,6 +535,7 @@ export default function ShowsPage() {
                   onDelete={() => setShowToDelete(show)}
                   runInfo={runInfoByShowId.get(show.id) || null}
                   tourHref={tourHrefFor(show)}
+                  festival={show.festivalId ? festivalById.get(show.festivalId) || null : null}
                 />
               ))}
             </div>
@@ -579,11 +572,6 @@ export default function ShowsPage() {
                 </tbody>
               </table>
             </Card>
-          )}
-
-          {/* Tours: collapsible tour cards */}
-          {showsTab === 'tours' && (
-            <ToursTabView tours={sortedTours} shows={shows} onSelectShow={setSelectedShow} />
           )}
 
           {/* Tag friends modal */}

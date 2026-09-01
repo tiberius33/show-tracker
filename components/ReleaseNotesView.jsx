@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.28.0',
+      date: 'September 1, 2026',
+      title: 'Create & Manage Festivals',
+      changes: [
+        'New: festivals are now something you create — give one a name, dates, an optional location and notes, then attach any of your existing shows to it from a searchable picker',
+        'Festival detail pages group your shows by day, list every artist you caught (linking to their shows), and show stats: shows attended, distinct artists, days, and your average rating',
+        'A show can only be in one festival at a time — attaching a show already in a different one asks first instead of silently double-attaching',
+        'Deleting a festival keeps the shows in it — only the grouping goes away',
+        'Tours gets its own sidebar page at /tours, with a full landing list, not just single-tour pages',
+        'Notifications and Activity moved from the sidebar onto the Profile page, same as Friends — same URLs as before',
+        'This replaces the previous "Tag a Show as a Festival" auto-detection from 5.27.0, which is now fully retired',
+      ]
+    },
+    {
       version: '5.27.0',
       date: 'August 31, 2026',
       title: 'Tag a Show as a Festival',

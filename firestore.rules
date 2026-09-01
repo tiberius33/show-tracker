@@ -8,6 +8,15 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // User-created festivals (v5.28.0) — explicit, per-user festival
+    // objects the owner creates and attaches their own shows to (via
+    // festivalId on the show doc, see context/AppContext.jsx). Private to
+    // the owner: unlike shows, there's no cross-user "Shows Together" read
+    // need here, so this is owner-only read/write, same shape as friends.
+    match /users/{userId}/festivals/{festivalId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // User friends list
     match /users/{userId}/friends/{friendId} {
       allow read: if request.auth != null && request.auth.uid == userId;
