@@ -4,6 +4,21 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.25.0] — 2026-08-31
+
+### New: Bust-Out Detection
+- Setlists automatically flag bust-outs — songs returning after a significant absence — directly on the song name, no manual tagging required.
+- Severity bands: 🔥 minor (90–180 days), 🔥🔥 major (180–365 days), 🔥🔥🔥 epic (1+ year). Tapping a badge expands the previous performance's date/venue with a link to it.
+- User-configurable threshold (30/60/90/180/365 days) at Profile → Bust-Out Threshold, stored on `userProfiles/{uid}.bustOutThresholdDays`.
+- Show detail pages get a "This show featured N bust-outs" sidebar card; song pages show the user's own personal bust-out status via their existing gap data.
+
+### Technical
+- `lib/bustOuts.js` computes bust-outs on demand from an artist's setlist.fm play history (reuses `get-artist-song-stats`, sharing its existing `song_stats_${mbid}` cache) merged with the user's own logged performances — no new Firestore collection, Cloud Function, or background job. This also means historical shows get bust-out flags immediately on first view, with no batch backfill needed.
+- New: `hooks/useBustOutAnalysis.js`, `hooks/useBustOutThreshold.js`, `components/profile/BustOutSettings.jsx`.
+- Unit tests: `lib/__tests__/bustOuts.test.js`.
+
+---
+
 ## [5.24.0] — 2026-08-31
 
 ### New: Venue Bucket List

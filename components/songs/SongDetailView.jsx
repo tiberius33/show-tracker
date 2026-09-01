@@ -15,6 +15,8 @@ import { ArrowLeft, Star } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, Badge, StatFigure } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
+import { getBustOutSeverity, BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
+import useBustOutThreshold from '@/hooks/useBustOutThreshold';
 
 function humanizeGapDuration(days) {
   if (!days || days <= 0) return null;
@@ -144,7 +146,10 @@ function PerformanceRow({ perf, onOpen }) {
 
 export default function SongDetailView({ song }) {
   const router = useRouter();
-  const { shows, setSelectedShow } = useApp();
+  const { shows, setSelectedShow, user } = useApp();
+  const { thresholdDays: bustOutThresholdDays } = useBustOutThreshold(user?.uid);
+  const personalBustOutSeverity = getBustOutSeverity(song.currentGap.days, bustOutThresholdDays);
+  const personalBustOutMeta = personalBustOutSeverity ? BUSTOUT_SEVERITY_META[personalBustOutSeverity] : null;
 
   const goToShow = (showId) => {
     const show = shows.find(s => s.id === showId);
@@ -174,7 +179,17 @@ export default function SongDetailView({ song }) {
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="bg-surface border border-subtle rounded-2xl p-6 mb-6">
-        <h1 className="text-2xl font-bold text-primary mb-1">{song.title}</h1>
+        <h1 className="text-2xl font-bold text-primary mb-1 flex items-center gap-2 flex-wrap">
+          {song.title}
+          {personalBustOutMeta && (
+            <span
+              title={`${personalBustOutMeta.label} for you · ${song.currentGap.days} days since you last saw it`}
+              className={`text-[10px] font-extrabold tracking-[0.1em] uppercase px-2 py-1 rounded ${personalBustOutMeta.badgeClass}`}
+            >
+              {personalBustOutMeta.flames} {personalBustOutMeta.label}
+            </span>
+          )}
+        </h1>
         <Link
           href={`/shows/?artist=${encodeURIComponent(song.artistName)}`}
           className="text-sm text-brand hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"

@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.25.0',
+      date: 'August 31, 2026',
+      title: 'Bust-Out Detection',
+      changes: [
+        'New: setlists now automatically flag bust-outs — songs returning after a significant absence — right on the song name, no manual tagging needed',
+        'Severity scales with the gap: 🔥 minor (90–180 days), 🔥🔥 major (180–365 days), 🔥🔥🔥 epic (1+ year)',
+        'Tap a bust-out badge to see exactly how long it had been and where it was last played, with a link to that earlier performance',
+        'Customize your own bust-out threshold (30/60/90/180/365 days) under Profile → Bust-Out Threshold',
+        'Show detail pages get a "This show featured N bust-outs" summary card',
+        'Song pages show your own personal bust-out status based on when you last saw that song',
+        'Uses each artist\'s setlist.fm play history (already fetched for Tour Info) plus your own logged shows — no new data import needed, so past shows get bust-out flags immediately, not just new ones',
+      ]
+    },
+    {
       version: '5.24.0',
       date: 'August 31, 2026',
       title: 'Venue Bucket List',
