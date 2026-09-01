@@ -13,7 +13,6 @@ import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatFigure } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
-import ToursTabView from '@/components/shows/ToursTabView';
 import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
 import { tourKeyFor } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
@@ -95,10 +94,6 @@ export default function ShowsPage() {
     const key = tourKeyFor(show.artist, show.tour);
     return key && tourIndex[key] ? `/tours/?tour=${encodeURIComponent(key)}` : null;
   };
-  const sortedTours = useMemo(
-    () => Object.values(tourIndex).sort((a, b) => (a.dateRange.start < b.dateRange.start ? 1 : -1)),
-    [tourIndex]
-  );
 
   // Arriving from a Top Artists / Top Venues row: seed the filter from the
   // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
@@ -347,7 +342,6 @@ export default function ShowsPage() {
               {[
                 { id: 'timeline', label: 'Timeline', count: sortedFilteredShows.length },
                 { id: 'artist', label: 'By artist', count: artistGroups.length },
-                { id: 'tours', label: 'Tours', count: sortedTours.length },
               ].map(t => (
                 <button
                   key={t.id}
@@ -579,11 +573,6 @@ export default function ShowsPage() {
                 </tbody>
               </table>
             </Card>
-          )}
-
-          {/* Tours: collapsible tour cards */}
-          {showsTab === 'tours' && (
-            <ToursTabView tours={sortedTours} shows={shows} onSelectShow={setSelectedShow} />
           )}
 
           {/* Tag friends modal */}

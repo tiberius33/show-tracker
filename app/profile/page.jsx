@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trophy, Music, Star, Users, Calendar, MapPin, Send } from 'lucide-react';
+import { Trophy, Music, Star, Users, Calendar, MapPin, Send, Bell, Activity } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import ProfileView from '@/components/profile/ProfileView';
 import ProfileHero from '@/components/profile/ProfileHero';
@@ -14,8 +14,9 @@ export default function ProfilePage() {
   const {
     user, guestMode, shows, userRank, friends,
     setSelectedShow, favoriteArtists, toggleFavoriteArtist,
-    pendingNotificationCount,
+    pendingNotificationCount, unreadNotifications,
   } = useApp();
+  const unreadNotificationCount = unreadNotifications?.length || 0;
   const router = useRouter();
 
   if (guestMode || !user) return null;
@@ -72,6 +73,22 @@ export default function ProfilePage() {
             </Button>
             <Button variant="secondary" icon={Send} onClick={() => router.push('/invite/')}>
               Invite Friends
+            </Button>
+            <Button
+              variant="secondary"
+              icon={Bell}
+              onClick={() => router.push('/notifications/')}
+              className="relative"
+            >
+              Notifications
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center">
+                  {unreadNotificationCount}
+                </span>
+              )}
+            </Button>
+            <Button variant="secondary" icon={Activity} onClick={() => router.push('/activity/')}>
+              Activity
             </Button>
           </>
         }
