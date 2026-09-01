@@ -46,6 +46,7 @@ export default function ShowDetailClient({ id }) {
         onUpdateRating={updateShowRating}
         onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
         onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
+        onUpdateFestival={(showId, updates) => updateShowData(showId, updates)}
         onTagFriends={!guestMode ? (s) => setTagFriendsShow(s) : undefined}
         onCreatePlaylist={!guestMode ? (s) => setPlaylistShow(s) : undefined}
         onDeleteShow={deleteShow}

@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.27.0',
+      date: 'August 31, 2026',
+      title: 'Tag a Show as a Festival',
+      changes: [
+        'New: tag any show as a festival appearance right from the show detail page — give it a name (e.g. "Bonnaroo 2023") and it shows up under the Festivals tab',
+        'Previously festivals only appeared automatically when 2+ different artists you logged shared the same tour name — now tagging works even if you only logged your one artist\'s set',
+        'A manually tagged show and an auto-detected festival with the same name merge into one, rather than splitting',
+      ]
+    },
+    {
       version: '5.26.0',
       date: 'August 31, 2026',
       title: 'Bust-Out Tuning & Wishlist Last-Played',

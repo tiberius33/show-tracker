@@ -178,6 +178,10 @@ export default function ShowsPage() {
           onUpdateRating={updateShowRating}
           onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
           onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
+          onUpdateFestival={async (showId, updates) => {
+            await updateShowData(showId, updates);
+            setSelectedShow(prev => prev && prev.id === showId ? { ...prev, ...updates } : prev);
+          }}
           onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
           onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
           onDeleteShow={deleteShow}

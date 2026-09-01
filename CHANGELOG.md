@@ -4,6 +4,19 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.27.0] — 2026-08-31
+
+### New: Tag a Show as a Festival
+- Show detail pages get a "Tag as festival" control — name it (e.g. "Bonnaroo 2023") and it now shows up under the Festivals tab, even if you only logged one artist's set there.
+- Festival grouping (`lib/festivalIndex.js`) previously only auto-detected a festival when 2+ distinct artists shared the same tour name — the common case of logging just your own artist's set at a festival was invisible to it. A manually tagged show now forms (or merges into) a festival group on its own.
+- Tagged and auto-detected shows for the same event name merge into a single festival rather than splitting into two.
+
+### Technical
+- `Show` documents gain optional `isFestival` (boolean) and `festivalName` (string) fields, written via the existing generic `updateShowData`.
+- Unit tests: 4 new cases in `lib/__tests__/festivalIndex.test.js`.
+
+---
+
 ## [5.26.0] — 2026-08-31
 
 ### Changed: Bust-Out Severity

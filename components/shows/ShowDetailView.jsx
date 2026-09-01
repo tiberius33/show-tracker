@@ -8,6 +8,7 @@ import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
 import { buildRunIndex } from '@/lib/runIndex';
 import { normalizeSongTitle, formatDate } from '@/lib/utils';
 import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
+import { festivalKeyFor } from '@/lib/festivalIndex';
 import useBustOutAnalysis from '@/hooks/useBustOutAnalysis';
 import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SetlistView from './SetlistView';
@@ -18,7 +19,7 @@ import ArchivalAudioSection from './ArchivalAudioSection';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
   Trash2, X, Tag, MessageSquare, ArrowLeft, Plus,
-  Pencil, Check, ChevronUp, ChevronDown, Flame,
+  Pencil, Check, ChevronUp, ChevronDown, Flame, Tent,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 import CommentsSection from '@/components/comments/CommentsSection';
@@ -206,6 +207,7 @@ export default function ShowDetailView({
   onUpdateRating,
   onUpdateVenueRating,
   onUpdateComment,
+  onUpdateFestival,
   onTagFriends,
   onCreatePlaylist,
   onDeleteShow,
@@ -221,6 +223,8 @@ export default function ShowDetailView({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [editingFestival, setEditingFestival] = useState(false);
+  const [festivalNameInput, setFestivalNameInput] = useState('');
   const [newSongName, setNewSongName] = useState('');
   const [newSongSet, setNewSongSet] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -296,6 +300,17 @@ export default function ShowDetailView({
   const saveNote = () => {
     onUpdateComment?.(show.id, noteText.trim());
     setEditingNote(false);
+  };
+
+  const saveFestival = () => {
+    const name = festivalNameInput.trim() || show.tour || '';
+    if (!name) return;
+    onUpdateFestival?.(show.id, { isFestival: true, festivalName: name });
+    setEditingFestival(false);
+  };
+
+  const removeFestivalTag = () => {
+    onUpdateFestival?.(show.id, { isFestival: false });
   };
 
   const handleAddSong = (e) => {
@@ -390,6 +405,53 @@ export default function ShowDetailView({
             Tour: {show.tourName || show.tour}
           </p>
         )}
+
+        {/* Festival tag */}
+        {show.isFestival ? (
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Link
+              href={`/festivals/?festival=${encodeURIComponent(festivalKeyFor(show.festivalName || show.tour || ''))}`}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber bg-amber-subtle px-2.5 py-1 rounded-lg hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
+              <Tent className="w-3.5 h-3.5" />
+              {show.festivalName || show.tour} — view festival
+            </Link>
+            {onUpdateFestival && (
+              <button
+                onClick={removeFestivalTag}
+                className="text-xs text-muted hover:text-primary transition-colors"
+              >
+                Remove tag
+              </button>
+            )}
+          </div>
+        ) : onUpdateFestival && editingFestival ? (
+          <div className="mb-3 flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              value={festivalNameInput}
+              onChange={e => setFestivalNameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), saveFestival())}
+              placeholder="Festival name (e.g. Bonnaroo 2023)"
+              autoFocus
+              className="px-3 py-1.5 border border-subtle rounded-lg text-sm text-primary bg-surface focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder-muted"
+            />
+            <button onClick={saveFestival} className="px-3 py-1.5 bg-brand text-[#2a2a4e] rounded-lg text-xs font-medium">
+              Save
+            </button>
+            <button onClick={() => setEditingFestival(false)} className="px-3 py-1.5 bg-hover text-secondary rounded-lg text-xs font-medium">
+              Cancel
+            </button>
+          </div>
+        ) : onUpdateFestival ? (
+          <button
+            onClick={() => { setEditingFestival(true); setFestivalNameInput(show.tour || ''); }}
+            className="flex items-center gap-1.5 mb-3 text-sm text-muted hover:text-primary transition-colors"
+          >
+            <Tent className="w-4 h-4" />
+            Tag as festival
+          </button>
+        ) : null}
 
         {runForThisShow && (
           <Link
