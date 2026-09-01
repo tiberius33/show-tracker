@@ -54,7 +54,11 @@ export default function FestivalListView() {
           {sorted.map(festival => {
             const count = showCountByFestival.get(festival.id) || 0;
             return (
-              <Link key={festival.id} href={`/festivals/${festival.id}`} className="block">
+              <Link
+                key={festival.id}
+                href={`/festivals/${festival.id}`}
+                className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              >
                 <Card padding="md" className="hover:bg-hover transition-colors">
                   <div className="min-w-0">
                     <div className="text-base font-semibold text-primary truncate">{festival.name}</div>

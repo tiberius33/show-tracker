@@ -32,7 +32,11 @@ function ToursLandingView({ tours }) {
       ) : (
         <div className="space-y-3">
           {tours.map(tour => (
-            <Link key={tour.key} href={`/tours/?tour=${encodeURIComponent(tour.key)}`} className="block">
+            <Link
+              key={tour.key}
+              href={`/tours/?tour=${encodeURIComponent(tour.key)}`}
+              className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
               <Card padding="md" className="hover:bg-hover transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">

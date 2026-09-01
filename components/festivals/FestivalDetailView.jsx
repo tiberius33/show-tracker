@@ -125,7 +125,7 @@ export default function FestivalDetailView({ festival }) {
             <button
               type="button"
               onClick={() => setEditingNotes(true)}
-              className="text-sm text-secondary text-left hover:text-primary transition-colors w-full"
+              className="text-sm text-secondary text-left hover:text-primary transition-colors w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               {festival.notes || <span className="text-muted italic">Add a note…</span>}
             </button>
