@@ -1,20 +1,40 @@
 // components/festivals/FestivalDetailView.jsx
 //
-// One festival: every artist you saw there, every show, in date order.
-// See lib/festivalIndex.js for how the grouping is built.
+// One festival: header (name/date range/location), a stat row (same
+// Card/StatFigure convention as components/runs/TourDetailView.jsx), shows
+// grouped by calendar day (see lib/festivalGrouping.js — via
+// hooks/useFestivalShows.js), the artist list linking out to each artist's
+// shows, editable notes, and the add/remove-shows entry points.
 
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Pencil, Trash2, UserPlus, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { Card, StatFigure } from '@/components/ui';
+import useFestivalShows from '@/hooks/useFestivalShows';
+import { Card, StatFigure, Button, Textarea } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
+import FestivalFormModal from './FestivalFormModal';
+import DeleteFestivalModal from './DeleteFestivalModal';
+import AttachShowsModal from './AttachShowsModal';
 
 export default function FestivalDetailView({ festival }) {
   const router = useRouter();
-  const { shows, setSelectedShow } = useApp();
+  const {
+    shows, festivals, setSelectedShow,
+    updateFestivalData, deleteFestival, attachShowsToFestival, detachShowsFromFestival,
+  } = useApp();
+
+  const stats = useFestivalShows(festival.id);
+
+  const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [showAttach, setShowAttach] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(festival.notes || '');
+  const [savingNotes, setSavingNotes] = useState(false);
 
   const goToShow = (showId) => {
     const show = shows.find(s => s.id === showId);
@@ -22,6 +42,20 @@ export default function FestivalDetailView({ festival }) {
       setSelectedShow(show);
       router.push('/shows/');
     }
+  };
+
+  const saveNotes = async () => {
+    setSavingNotes(true);
+    try {
+      await updateFestivalData(festival.id, { notes: notesDraft.trim() });
+      setEditingNotes(false);
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const removeShow = (showId) => {
+    detachShowsFromFestival([showId]);
   };
 
   return (
@@ -35,51 +69,163 @@ export default function FestivalDetailView({ festival }) {
       </Link>
 
       <div className="bg-surface border border-subtle rounded-2xl p-6 mb-6">
-        <h1 className="text-2xl font-bold text-primary mb-1">{festival.name}</h1>
-        <p className="text-sm text-secondary">
-          {festival.artists.join(', ')}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-primary mb-1">{festival.name}</h1>
+            <p className="text-sm text-secondary">
+              {formatDate(festival.startDate)}
+              {festival.endDate !== festival.startDate ? ` – ${formatDate(festival.endDate)}` : ''}
+              {festival.location ? ` · ${festival.location}` : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowEdit(true)}
+              aria-label="Edit festival"
+              className="p-2 rounded-lg text-muted hover:text-primary hover:bg-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDelete(true)}
+              aria-label="Delete festival"
+              className="p-2 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6">
-          <Card padding="sm"><StatFigure value={festival.showCount} label="Shows You Caught" /></Card>
-          <Card padding="sm"><StatFigure value={festival.artistCount} label="Artists" /></Card>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+          <Card padding="sm"><StatFigure value={stats.showCount} label="Shows Attended" /></Card>
+          <Card padding="sm"><StatFigure value={stats.artistCount} label="Artists" /></Card>
+          <Card padding="sm"><StatFigure value={stats.dayCount} label="Days" /></Card>
           <Card padding="sm">
-            <StatFigure value={formatDate(festival.dateRange.start)} label="First Day" />
-          </Card>
-          <Card padding="sm"><StatFigure value={festival.venuesCount} label="Venues" /></Card>
-          <Card padding="sm"><StatFigure value={festival.countriesVisited} label="Countries" /></Card>
-          <Card padding="sm">
-            <StatFigure value={festival.avgRating != null ? festival.avgRating.toFixed(1) : '—'} label="Avg Rating" />
+            <StatFigure value={stats.avgRating != null ? stats.avgRating.toFixed(1) : '—'} label="Avg Rating" />
           </Card>
         </div>
+
+        {/* Notes — inline edit, explicit save (matches the show-note edit
+            pattern on components/shows/ShowDetailView.jsx) */}
+        <div className="mt-5">
+          <p className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-muted mb-2">Notes</p>
+          {editingNotes ? (
+            <div className="flex flex-col gap-2">
+              <Textarea value={notesDraft} onChange={(e) => setNotesDraft(e.target.value)} rows={3} autoFocus />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={saveNotes} loading={savingNotes}>Save</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditingNotes(false); setNotesDraft(festival.notes || ''); }}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingNotes(true)}
+              className="text-sm text-secondary text-left hover:text-primary transition-colors w-full"
+            >
+              {festival.notes || <span className="text-muted italic">Add a note…</span>}
+            </button>
+          )}
+        </div>
+
+        {stats.artists.length > 0 && (
+          <div className="mt-5">
+            <p className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-muted mb-2">Artists</p>
+            <div className="flex flex-wrap gap-1.5">
+              {stats.artists.map(artist => (
+                <Link
+                  key={artist}
+                  href={`/shows/?artist=${encodeURIComponent(artist)}`}
+                  className="text-xs font-medium text-brand bg-brand-subtle px-2 py-1 rounded-lg hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  {artist}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <Card padding="none">
-        <ul className="list-none p-0 m-0 divide-y divide-subtle">
-          {festival.shows.map(show => (
-            <li key={show.showId}>
-              <button
-                type="button"
-                onClick={() => goToShow(show.showId)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-primary truncate">{show.artist}</div>
-                  <div className="text-xs text-secondary mt-0.5 truncate">
-                    {formatDate(show.date)} · {show.venue}{show.city ? `, ${show.city}` : ''}
-                  </div>
-                </div>
-                {show.rating > 0 && (
-                  <div className="flex items-center gap-1 text-sm font-semibold text-amber flex-shrink-0">
-                    <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
-                    {show.rating}/10
-                  </div>
-                )}
-              </button>
-            </li>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-muted">Shows</p>
+        <Button size="sm" variant="secondary" icon={UserPlus} onClick={() => setShowAttach(true)}>
+          Add shows
+        </Button>
+      </div>
+
+      {stats.groupedByDay.length === 0 ? (
+        <Card padding="lg" className="text-center">
+          <p className="text-secondary text-sm">No shows attached yet.</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {stats.groupedByDay.map(day => (
+            <div key={day.date}>
+              <p className="text-xs font-semibold text-secondary mb-2">{formatDate(day.date)}</p>
+              <Card padding="none">
+                <ul className="list-none p-0 m-0 divide-y divide-subtle">
+                  {day.shows.map(show => (
+                    <li key={show.id} className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => goToShow(show.id)}
+                        className="flex-1 min-w-0 flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-primary truncate">{show.artist}</div>
+                          <div className="text-xs text-secondary mt-0.5 truncate">
+                            {show.venue}{show.city ? `, ${show.city}` : ''}
+                          </div>
+                        </div>
+                        {typeof show.rating === 'number' && show.rating > 0 && (
+                          <div className="flex items-center gap-1 text-sm font-semibold text-amber flex-shrink-0">
+                            <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
+                            {show.rating}/10
+                          </div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeShow(show.id)}
+                        aria-label={`Remove ${show.artist} from this festival`}
+                        title="Remove from festival"
+                        className="p-2.5 mr-1.5 flex-shrink-0 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </div>
           ))}
-        </ul>
-      </Card>
+        </div>
+      )}
+
+      <FestivalFormModal
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+        festival={festival}
+        onSubmit={(updates) => updateFestivalData(festival.id, updates)}
+      />
+      <DeleteFestivalModal
+        festival={festival}
+        isOpen={showDelete}
+        onClose={() => setShowDelete(false)}
+        onConfirm={async (id) => { await deleteFestival(id); router.push('/festivals/'); }}
+      />
+      <AttachShowsModal
+        open={showAttach}
+        onClose={() => setShowAttach(false)}
+        festival={festival}
+        shows={shows}
+        festivals={festivals}
+        onAttach={(showIds, opts) => attachShowsToFestival(festival.id, showIds, opts)}
+      />
     </div>
   );
 }

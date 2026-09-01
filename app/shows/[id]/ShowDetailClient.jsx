@@ -15,7 +15,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function ShowDetailClient({ id }) {
   const router = useRouter();
   const {
-    shows, user, guestMode, friends,
+    shows, user, guestMode, friends, festivals,
     updateShowRating, updateShowData, updateShowComment,
     tagFriendsAtShow, tagFriendByEmail, tagFriendsShow, setTagFriendsShow,
     deleteShow, toggleFavoriteArtist, isArtistFavorite, addSongToShow,
@@ -46,7 +46,7 @@ export default function ShowDetailClient({ id }) {
         onUpdateRating={updateShowRating}
         onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
         onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
-        onUpdateFestival={(showId, updates) => updateShowData(showId, updates)}
+        festival={show.festivalId ? festivals.find(f => f.id === show.festivalId) || null : null}
         onTagFriends={!guestMode ? (s) => setTagFriendsShow(s) : undefined}
         onCreatePlaylist={!guestMode ? (s) => setPlaylistShow(s) : undefined}
         onDeleteShow={deleteShow}

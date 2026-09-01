@@ -2,9 +2,10 @@
 
 // Tours landing (no `?tour=` param) or a single tour's detail
 // (?tour=<tourKey>) — same static query-param routing approach as
-// /songs/, /runs/, and /festivals/. See lib/runIndex.js for the shared
-// tour-building logic (also used by components/shows/ToursTabView.jsx,
-// which this page's landing list now supersedes — see that file's header).
+// /songs/ and /runs/. See lib/runIndex.js for the shared tour-building
+// logic. The landing list here replaces the old Tours tab on the Shows
+// page (components/shows/ToursTabView.jsx, removed) — /tours is now the
+// single place a tour list is rendered.
 
 import { useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';

@@ -4,6 +4,33 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.28.0] — 2026-09-01
+
+### New: Create & Manage Festivals
+- Festivals are now something you create, not something the app guesses at: give one a name, a date range, an optional location and notes, then attach any of your existing shows to it from a searchable picker (defaults to shows within the festival's dates, but you can search outside that range too).
+- The Festival detail page groups your attached shows by day, lists every artist you caught (each linking to that artist's shows), and shows attended / distinct artists / days / your average rating across the festival.
+- Shows attached to a festival get a small badge on the Shows list and on the show detail page (alongside the "Night N of M" run badge when both apply — a show can be part of a run and a festival at the same time).
+- A show can only belong to one festival at a time — trying to attach a show that's already in a different one surfaces that instead of silently double-attaching, so you can choose to move it.
+- Deleting a festival only removes the grouping — the shows in it are never touched.
+- **Known limitation:** festivals are private to the account that creates them (same per-user storage as the rest of your data) — they aren't shared or deduplicated across users yet. Two friends at the same festival each create and maintain their own copy. A cross-user festival directory is a possible future migration, not part of this release.
+
+### Changed: Tours Get Their Own Page; Notifications & Activity Move Under Profile
+- Tours moves out from a tab on the Shows page into its own sidebar entry at `/tours`, with a proper landing list (sorted most-recent-first) in addition to the existing per-tour detail view.
+- Notifications and Activity are no longer top-level sidebar entries — they're now reached from the Profile page (same pattern as the existing Friends link), at their same URLs (`/notifications`, `/activity`). Profile's sidebar badge now combines pending friend requests/invites and unread notifications, since it's the one place that count surfaces now.
+
+### Removed: Auto-Detected Festivals
+- The 5.27.0 "Tag a Show as a Festival" auto-detection/tagging feature (`lib/festivalIndex.js`, the `isFestival`/`festivalName` fields on Show, the "Tag as festival" control on the show detail page) is fully replaced by the explicit model above. Old tagged shows keep their `isFestival`/`festivalName` fields in Firestore as harmless orphaned data — the app simply no longer reads them.
+
+### Technical
+- New per-user Firestore subcollection `users/{uid}/festivals/{festivalId}` — `{ name, startDate, endDate, location, notes, createdAt, updatedAt }`. The link to a show is `festivalId` on the Show doc (not `showIds` on the Festival) since shows are already loaded in full into `AppContext`, making a client-side filter by festivalId cheap and always in sync.
+- `context/AppContext.jsx` gains Festival CRUD (`createFestival`, `updateFestivalData`, `deleteFestival`) plus `attachShowsToFestival` (single batch write, enforces one-festival-per-show) and `detachShowsFromFestival`.
+- New `lib/festivalGrouping.js` (pure day-grouping/stats over a festival's attached shows, reusing `formatDate`/`parseDate` so a festival spanning a year boundary groups correctly) wrapped by `hooks/useFestivalShows.js`, mirroring the existing `lib/runIndex.js` / `hooks/useRunIndex.js` pattern.
+- New dynamic route `app/festivals/[festivalId]/`, following the same pattern as `app/shows/[id]/`; the old `/festivals/?festival=` query-param form now redirects to it.
+- `firestore.rules` gains an owner-only rule for the new `festivals` subcollection; no new composite index was needed since all festival reads run client-side against the already-loaded `shows` array.
+- Also includes the one-time changelog popup shown after login, shipped just after 5.27.0 but not previously called out here.
+
+---
+
 ## [5.27.0] — 2026-08-31
 
 ### New: Tag a Show as a Festival

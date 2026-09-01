@@ -38,7 +38,7 @@ export default function ShowsPage() {
     addSongToShow, updateSetlistOrder,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow,
-    friends,
+    friends, festivals,
     pendingNotificationCount, pendingFriendRequests, pendingShowTags,
     setFriendsInitialTab, navigateTo,
     summaryStats, userRank, statsTab, setStatsTab,
@@ -94,6 +94,7 @@ export default function ShowsPage() {
     const key = tourKeyFor(show.artist, show.tour);
     return key && tourIndex[key] ? `/tours/?tour=${encodeURIComponent(key)}` : null;
   };
+  const festivalById = useMemo(() => new Map((festivals || []).map(f => [f.id, f])), [festivals]);
 
   // Arriving from a Top Artists / Top Venues row: seed the filter from the
   // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
@@ -173,10 +174,7 @@ export default function ShowsPage() {
           onUpdateRating={updateShowRating}
           onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
           onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
-          onUpdateFestival={async (showId, updates) => {
-            await updateShowData(showId, updates);
-            setSelectedShow(prev => prev && prev.id === showId ? { ...prev, ...updates } : prev);
-          }}
+          festival={selectedShow.festivalId ? festivals.find(f => f.id === selectedShow.festivalId) || null : null}
           onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
           onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
           onDeleteShow={deleteShow}
@@ -537,6 +535,7 @@ export default function ShowsPage() {
                   onDelete={() => setShowToDelete(show)}
                   runInfo={runInfoByShowId.get(show.id) || null}
                   tourHref={tourHrefFor(show)}
+                  festival={show.festivalId ? festivalById.get(show.festivalId) || null : null}
                 />
               ))}
             </div>

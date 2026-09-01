@@ -1,77 +1,82 @@
 // components/festivals/FestivalListView.jsx
 //
-// All detected festivals (see lib/festivalIndex.js) with top-level stats.
+// All of the user's explicitly-created festivals — name, date range, show
+// count per festival, and a create action. See context/AppContext.jsx for
+// the Festival CRUD (createFestival etc.) and lib/festivalGrouping.js for
+// per-festival stats used on the detail view.
 
 'use client';
 
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Tent, Star } from 'lucide-react';
-import { Card, StatFigure, PageHeader, EmptyState } from '@/components/ui';
+import { Tent, Plus } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
+import { Card, PageHeader, EmptyState, Button } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
+import FestivalFormModal from './FestivalFormModal';
 
-export default function FestivalListView({ festivals }) {
-  const festivalShowsTotal = festivals.reduce((sum, f) => sum + f.showCount, 0);
-  const favorite = festivals.reduce((best, f) => {
-    if (f.avgRating == null) return best;
-    if (!best || f.avgRating > best.avgRating || (f.avgRating === best.avgRating && f.showCount > best.showCount)) return f;
-    return best;
-  }, null);
+export default function FestivalListView() {
+  const { festivals, shows, createFestival } = useApp();
+  const [showCreate, setShowCreate] = useState(false);
+
+  const sorted = useMemo(
+    () => (festivals || []).slice().sort((a, b) => (a.startDate < b.startDate ? 1 : -1)),
+    [festivals]
+  );
+
+  const showCountByFestival = useMemo(() => {
+    const map = new Map();
+    (shows || []).forEach(s => {
+      if (!s.festivalId) return;
+      map.set(s.festivalId, (map.get(s.festivalId) || 0) + 1);
+    });
+    return map;
+  }, [shows]);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <PageHeader eyebrow="Festivals" title="Your festivals" />
+    <div className="max-w-3xl mx-auto">
+      <PageHeader
+        eyebrow="Festivals"
+        title="Your festivals"
+        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>New festival</Button>}
+      />
 
-      {festivals.length === 0 ? (
+      {sorted.length === 0 ? (
         <EmptyState
           icon={Tent}
           tone="brand"
-          title="No festivals detected yet"
-          body="Festivals are detected automatically when two or more artists in your show history share the same setlist.fm tour/event name (e.g. multiple artists all tagged “Bonnaroo 2023”)."
+          title="No festivals yet"
+          body="Create a festival and attach the shows you caught there — multiple artists, one event, all grouped together."
+          action={<Button icon={Plus} onClick={() => setShowCreate(true)}>New festival</Button>}
         />
       ) : (
-        <>
-          <div className="grid grid-cols-3 gap-3.5 mb-8">
-            <Card padding="sm"><StatFigure value={festivals.length} label="Festivals Attended" /></Card>
-            <Card padding="sm"><StatFigure value={festivalShowsTotal} label="Festival Shows" /></Card>
-            <Card padding="sm" className="min-w-0">
-              <div className="text-[22px] font-extrabold tracking-[-0.02em] truncate" title={favorite ? favorite.name : undefined}>
-                {favorite ? favorite.name : '—'}
-              </div>
-              <div className="text-[11px] text-muted font-semibold tracking-[0.08em] uppercase">Favorite Festival</div>
-            </Card>
-          </div>
-
-          <div className="space-y-3">
-            {festivals.map(festival => (
-              <Link
-                key={festival.key}
-                href={`/festivals/?festival=${encodeURIComponent(festival.key)}`}
-                className="block"
-              >
+        <div className="space-y-3">
+          {sorted.map(festival => {
+            const count = showCountByFestival.get(festival.id) || 0;
+            return (
+              <Link key={festival.id} href={`/festivals/${festival.id}`} className="block">
                 <Card padding="md" className="hover:bg-hover transition-colors">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-base font-semibold text-primary truncate">{festival.name}</div>
-                      <div className="text-sm text-secondary mt-0.5">
-                        {formatDate(festival.dateRange.start)}
-                        {festival.dateRange.end !== festival.dateRange.start ? ` – ${formatDate(festival.dateRange.end)}` : ''}
-                        {' · '}{festival.artistCount} artist{festival.artistCount !== 1 ? 's' : ''}
-                        {' · '}{festival.showCount} show{festival.showCount !== 1 ? 's' : ''}
-                      </div>
+                  <div className="min-w-0">
+                    <div className="text-base font-semibold text-primary truncate">{festival.name}</div>
+                    <div className="text-sm text-secondary mt-0.5 truncate">
+                      {formatDate(festival.startDate)}
+                      {festival.endDate !== festival.startDate ? ` – ${formatDate(festival.endDate)}` : ''}
+                      {festival.location ? ` · ${festival.location}` : ''}
+                      {' · '}{count} show{count !== 1 ? 's' : ''}
                     </div>
-                    {festival.avgRating != null && (
-                      <div className="flex items-center gap-1 text-sm font-semibold text-amber flex-shrink-0">
-                        <Star className="w-4 h-4 fill-current" />
-                        {festival.avgRating.toFixed(1)}
-                      </div>
-                    )}
                   </div>
                 </Card>
               </Link>
-            ))}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
+
+      <FestivalFormModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onSubmit={createFestival}
+      />
     </div>
   );
 }

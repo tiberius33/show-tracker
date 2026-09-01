@@ -176,6 +176,11 @@ export function AppProvider({ children }) {
 
   // ── Core state ──────────────────────────────────────────────────────
   const [shows, setShows] = useState([]);
+  // User-created festivals (users/{uid}/festivals) — see loadFestivals below
+  // and the Festival CRUD section for how these are read/written. Replaces
+  // the old auto-detected/tagged festival concept (isFestival/festivalName
+  // on Show, lib/festivalIndex.js) — see CHANGELOG 5.28.0.
+  const [festivals, setFestivals] = useState([]);
   const [activeView, setActiveView] = useState('shows');
   const [statsTab, setStatsTab] = useState('years');
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
@@ -537,6 +542,21 @@ export function AppProvider({ children }) {
     }
   }, [calculateUserRank]);
 
+  // ── Load festivals from Firestore ────────────────────────────────────
+  // Same per-user subcollection shape as shows (users/{uid}/festivals), but
+  // owner-only — unlike shows there's no "Shows Together" cross-user read
+  // need, so firestore.rules keeps this private to the owner.
+  const loadFestivals = useCallback(async (userId) => {
+    try {
+      const festivalsRef = collection(db, 'users', userId, 'festivals');
+      const snapshot = await getDocs(festivalsRef);
+      const loaded = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setFestivals(loaded);
+    } catch (error) {
+      console.error('Failed to load festivals:', error);
+    }
+  }, []);
+
   // ── Guest shows (localStorage) ─────────────────────────────────────
   const loadGuestShows = useCallback(() => {
     try {
@@ -624,6 +644,7 @@ export function AppProvider({ children }) {
           }
         }
         loadShows(currentUser.uid);
+        loadFestivals(currentUser.uid);
         loadInviteStats(currentUser.uid);
 
         // Auto-friend the user who invited them via referral link
@@ -801,6 +822,7 @@ export function AppProvider({ children }) {
     try {
       await signOut(auth);
       setShows([]);
+      setFestivals([]);
       setSelectedShow(null);
     } catch (error) {
       console.error('Logout failed:', error);
@@ -1147,6 +1169,129 @@ export function AppProvider({ children }) {
     } catch (error) {
       console.error('Failed to delete show:', error);
       setToast({ message: 'Failed to delete show. Please try again.', type: 'error' });
+      throw error;
+    }
+  };
+
+  // === FESTIVAL FUNCTIONS ===
+  // Explicit, user-created Festival objects, one per user
+  // (users/{uid}/festivals/{festivalId}) — replaces the old auto-detected
+  // isFestival/festivalName tagging on Show (see CHANGELOG 5.28.0). Link
+  // direction: `festivalId` lives on the Show doc (not `showIds` on the
+  // Festival) because shows are already loaded in full into `shows` state,
+  // so filtering that array by festivalId is cheap, always in sync with
+  // this session's data, and never needs a second write to stay consistent.
+  // A show's `festivalId` is simply orphaned (and the app stops reading it)
+  // once its Festival doc is deleted — see deleteFestival below.
+  //
+  // A show may belong to at most one festival. attachShowsToFestival
+  // reports any shows already attached elsewhere as `conflicts` instead of
+  // silently double-attaching, so the caller can offer "move it".
+
+  const createFestival = async (festivalData) => {
+    if (!user) throw new Error('Sign in required to create a festival.');
+    try {
+      const ref = doc(collection(db, 'users', user.uid, 'festivals'));
+      const festival = {
+        name: (festivalData.name || '').trim(),
+        startDate: festivalData.startDate,
+        endDate: festivalData.endDate,
+        location: festivalData.location?.trim() || '',
+        notes: festivalData.notes?.trim() || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      await setDoc(ref, festival);
+      const newFestival = { id: ref.id, ...festival, createdAt: new Date(), updatedAt: new Date() };
+      setFestivals(prev => [...prev, newFestival]);
+      setToast('Festival created.');
+      return newFestival;
+    } catch (error) {
+      console.error('Failed to create festival:', error);
+      setToast({ message: 'Failed to create festival. Please try again.', type: 'error' });
+      throw error;
+    }
+  };
+
+  const updateFestivalData = async (festivalId, updates) => {
+    if (!user) return;
+    try {
+      const ref = doc(db, 'users', user.uid, 'festivals', festivalId);
+      const patch = { ...updates, updatedAt: serverTimestamp() };
+      await updateDoc(ref, patch);
+      setFestivals(prev => prev.map(f => f.id === festivalId ? { ...f, ...updates, updatedAt: new Date() } : f));
+    } catch (error) {
+      console.error('Failed to update festival:', error);
+      setToast({ message: 'Failed to save festival changes. Please try again.', type: 'error' });
+      throw error;
+    }
+  };
+
+  // Deletes the Festival doc only — attached shows are kept, they simply
+  // stop pointing at a live festival (their festivalId field is left as
+  // orphaned data rather than requiring an extra write per show; the UI
+  // never reads festivalId for a festival that no longer exists in
+  // `festivals`, so nothing shows up broken).
+  const deleteFestival = async (festivalId) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'festivals', festivalId));
+      setFestivals(prev => prev.filter(f => f.id !== festivalId));
+      setToast('Festival deleted. Its shows were kept in your history.');
+    } catch (error) {
+      console.error('Failed to delete festival:', error);
+      setToast({ message: 'Failed to delete festival. Please try again.', type: 'error' });
+      throw error;
+    }
+  };
+
+  // Attaches multiple shows to a festival in one batch write. Returns
+  // { success: true } or, when one or more of the requested shows is
+  // already attached to a *different* festival, { success: false, conflicts }
+  // without writing anything — the caller decides whether to re-call with
+  // `force: true` to move those shows over.
+  const attachShowsToFestival = async (festivalId, showIds, { force = false } = {}) => {
+    if (!user || !festivalId || !showIds?.length) return { success: false, conflicts: [] };
+
+    if (!force) {
+      const conflicts = showIds
+        .map(id => shows.find(s => s.id === id))
+        .filter(s => s && s.festivalId && s.festivalId !== festivalId)
+        .map(s => ({ showId: s.id, artist: s.artist, date: s.date, festivalId: s.festivalId }));
+      if (conflicts.length > 0) return { success: false, conflicts };
+    }
+
+    try {
+      const batch = writeBatch(db);
+      showIds.forEach(showId => {
+        batch.update(doc(db, 'users', user.uid, 'shows', showId), { festivalId });
+      });
+      await batch.commit();
+      setShows(prev => prev.map(s => showIds.includes(s.id) ? { ...s, festivalId } : s));
+      setToast(`Added ${showIds.length} show${showIds.length !== 1 ? 's' : ''} to the festival.`);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to attach shows to festival:', error);
+      setToast({ message: 'Failed to add shows to the festival. Please try again.', type: 'error' });
+      throw error;
+    }
+  };
+
+  // Detaches shows from whichever festival they're on (does not delete the
+  // shows themselves) — one batch write.
+  const detachShowsFromFestival = async (showIds) => {
+    if (!user || !showIds?.length) return;
+    try {
+      const batch = writeBatch(db);
+      showIds.forEach(showId => {
+        batch.update(doc(db, 'users', user.uid, 'shows', showId), { festivalId: null });
+      });
+      await batch.commit();
+      setShows(prev => prev.map(s => showIds.includes(s.id) ? { ...s, festivalId: null } : s));
+      setToast(`Removed ${showIds.length} show${showIds.length !== 1 ? 's' : ''} from the festival.`);
+    } catch (error) {
+      console.error('Failed to remove shows from festival:', error);
+      setToast({ message: 'Failed to remove shows from the festival. Please try again.', type: 'error' });
       throw error;
     }
   };
@@ -2394,6 +2539,14 @@ export function AppProvider({ children }) {
     normalizeVenueKey,
     getVenueRatings,
     computeVenueAggregate,
+
+    // Festivals
+    festivals,
+    createFestival,
+    updateFestivalData,
+    deleteFestival,
+    attachShowsToFestival,
+    detachShowsFromFestival,
 
     // Show CRUD
     saveShow,

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Calendar, MapPin, MessageSquare, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, MessageSquare, Trash2, Tent } from 'lucide-react';
 import { formatDate, artistColor, avgSongRating } from '@/lib/utils';
 import { Card, Badge } from '@/components/ui';
 
@@ -23,9 +23,10 @@ function taggedFriendsLabel(taggedFriends) {
 // part of a multi-night run, renders a small "Night N of M" badge linking
 // to the run page. tourHref: string | null — when the show carries a tour
 // name and it resolves to a real tour, renders that name as a link instead
-// of plain text. Both optional so existing callers (e.g. StatsView) are
-// unaffected.
-export default function ShowCard({ show, friends = [], onClick, onDelete, runInfo, tourHref }) {
+// of plain text. festival: { id, name } | null — when the show is attached
+// to a user-created festival, renders a light pill linking to it. All
+// optional so existing callers (e.g. StatsView) are unaffected.
+export default function ShowCard({ show, friends = [], onClick, onDelete, runInfo, tourHref, festival }) {
   const songAvg = avgSongRating(show.setlist || []);
   const taggedFriendIds = new Set(show.taggedFriendUids || []);
   const taggedFriends = friends.filter(f => taggedFriendIds.has(f.friendUid));
@@ -65,6 +66,16 @@ export default function ShowCard({ show, friends = [], onClick, onDelete, runInf
               className="text-[11px] font-semibold text-amber bg-amber-subtle px-1.5 py-0.5 rounded hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               Night {runInfo.nightNumber} of {runInfo.nightCount}
+            </Link>
+          )}
+          {festival && (
+            <Link
+              href={`/festivals/${festival.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber bg-amber-subtle px-1.5 py-0.5 rounded hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
+              <Tent className="w-3 h-3" />
+              {festival.name}
             </Link>
           )}
         </div>
