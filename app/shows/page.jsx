@@ -20,7 +20,7 @@ import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import { removeFromBucketList } from '@/lib/bucketList';
 import YearInReviewCard from '@/components/yearInReview/YearInReviewCard';
 import {
-  Search, Camera, X, Upload,
+  Search, Camera, X, Upload, Send,
   Bell, ChevronRight, ChevronLeft, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
 
@@ -292,6 +292,9 @@ export default function ShowsPage() {
                 : 'Your concert journey starts here')}
             actions={
               <>
+                {!guestMode && !filterLabel && (
+                  <Button variant="secondary" icon={Send} onClick={() => navigateTo('invite')}>Invite Friends</Button>
+                )}
                 <Button variant="secondary" icon={Camera} onClick={() => navigateTo('scan-import')}>Scan / Import</Button>
                 <Button icon={Search} onClick={() => navigateTo('search')}>Search for a Show</Button>
               </>

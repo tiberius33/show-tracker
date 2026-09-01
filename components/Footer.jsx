@@ -6,7 +6,9 @@ export default function Footer() {
   return (
     <div className="mt-auto py-8 border-t border-subtle">
       <div className="max-w-6xl mx-auto px-4 text-center">
-        <div className="flex items-center justify-center gap-4 text-sm text-muted">
+        <div className="flex items-center justify-center gap-4 text-sm text-muted flex-wrap">
+          <Link href="/release-notes" className="hover:text-primary transition-colors">Release Notes</Link>
+          <span>&middot;</span>
           <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
           <span>&middot;</span>
           <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>

@@ -16,8 +16,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Search, List, BarChart3, Ticket, Send, Shield, Coffee,
-  LogOut, User, X, Heart, ScrollText, HelpCircle,
+  Search, List, BarChart3, Ticket, Shield, Coffee,
+  LogOut, User, X, Heart, HelpCircle,
   Activity, Bell, Bookmark, GalleryVertical, Tent,
 } from 'lucide-react';
 import Pick from '../brand/Pick';
@@ -46,22 +46,16 @@ export default function Sidebar({
 
   const primary = [
     { id: 'shows', label: 'My Shows', icon: List, href: '/' },
-    ...(isGuest ? [] : [
-      { id: 'wishlist', label: 'Wishlist', icon: Heart, href: '/wishlist' },
-      { id: 'festivals', label: 'Festivals', icon: Tent, href: '/festivals' },
-    ]),
-    { id: 'upcoming', label: 'Upcoming', icon: Ticket, href: '/upcoming', badge: upcomingShowsBadgeCount, beta: true },
     { id: 'stats', label: 'Stats', icon: BarChart3, href: '/stats' },
-    ...(isGuest ? [] : [
-      { id: 'profile', label: 'Profile', icon: User, href: '/profile', badge: pendingNotificationCount },
-      { id: 'activity', label: 'Activity', icon: Activity, href: '/activity' },
-      { id: 'notifications', label: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotificationCount },
-      { id: 'bucket-list', label: 'Bucket List', icon: Bookmark, href: '/bucket-list' },
-      { id: 'setlist-photos', label: 'Setlist Photos', icon: GalleryVertical, href: '/setlist-photos' },
-    ]),
-  ];
-
-  const secondary = isGuest ? [] : [{ id: 'invite', label: 'Invite', icon: Send, href: '/invite' }];
+    !isGuest && { id: 'wishlist', label: 'Wishlist', icon: Heart, href: '/wishlist' },
+    !isGuest && { id: 'bucket-list', label: 'Bucket List', icon: Bookmark, href: '/bucket-list' },
+    !isGuest && { id: 'festivals', label: 'Festivals', icon: Tent, href: '/festivals' },
+    { id: 'upcoming', label: 'Upcoming', icon: Ticket, href: '/upcoming', badge: upcomingShowsBadgeCount, beta: true },
+    !isGuest && { id: 'activity', label: 'Activity', icon: Activity, href: '/activity' },
+    !isGuest && { id: 'profile', label: 'Profile', icon: User, href: '/profile', badge: pendingNotificationCount },
+    !isGuest && { id: 'notifications', label: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotificationCount },
+    !isGuest && { id: 'setlist-photos', label: 'Setlist Photos', icon: GalleryVertical, href: '/setlist-photos' },
+  ].filter(Boolean);
 
   const navItem = (id, href, Icon, label, { badge, beta, tone = 'default' } = {}) => {
     const active = segment === id;
@@ -165,13 +159,6 @@ export default function Sidebar({
           {primary.map((it) => navItem(it.id, it.href, it.icon, it.label, { badge: it.badge, beta: it.beta }))}
         </nav>
 
-        {/* Pinned secondary */}
-        {secondary.length > 0 && (
-          <div className="px-3 py-2 space-y-0.5 border-t border-white/[0.08]">
-            {secondary.map((it) => navItem(it.id, it.href, it.icon, it.label, { badge: it.badge }))}
-          </div>
-        )}
-
         {/* Account & utilities */}
         <div className="px-3 py-3 border-t border-white/[0.08] space-y-1">
           {isGuest && (
@@ -192,24 +179,14 @@ export default function Sidebar({
             </>
           )}
           {isAdmin && navItem('admin', '/admin', Shield, 'Admin', { tone: 'danger' })}
-          <div className="flex items-center gap-1 px-1 py-0.5">
-            <Link
-              href="/release-notes"
-              onClick={onClose}
-              className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-on-dark-muted/70 hover:bg-white/[0.06] hover:text-on-dark-muted transition-colors"
-            >
-              <ScrollText size={12} strokeWidth={2} />
-              <span className="font-medium">Release Notes</span>
-            </Link>
-            <Link
-              href="/how-to-use"
-              onClick={onClose}
-              className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-on-dark-muted/70 hover:bg-white/[0.06] hover:text-on-dark-muted transition-colors"
-            >
-              <HelpCircle size={12} strokeWidth={2} />
-              <span className="font-medium">How to Use</span>
-            </Link>
-          </div>
+          <Link
+            href="/how-to-use"
+            onClick={onClose}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] text-on-dark-muted hover:bg-white/[0.06] hover:text-on-dark transition-colors"
+          >
+            <HelpCircle size={15} strokeWidth={2} />
+            <span className="font-medium">How to Use</span>
+          </Link>
           <a
             href="https://buymeacoffee.com/phillipd"
             target="_blank"

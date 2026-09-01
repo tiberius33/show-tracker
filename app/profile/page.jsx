@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trophy, Music, Star, Users, Calendar, MapPin } from 'lucide-react';
+import { Trophy, Music, Star, Users, Calendar, MapPin, Send } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import ProfileView from '@/components/profile/ProfileView';
 import ProfileHero from '@/components/profile/ProfileHero';
@@ -56,19 +56,24 @@ export default function ProfilePage() {
           { value: stats.friends, label: 'Friends' },
         ]}
         actions={
-          <Button
-            variant="secondary"
-            icon={Users}
-            onClick={() => router.push('/friends/')}
-            className="relative"
-          >
-            Friends
-            {pendingNotificationCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center">
-                {pendingNotificationCount}
-              </span>
-            )}
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              icon={Users}
+              onClick={() => router.push('/friends/')}
+              className="relative"
+            >
+              Friends
+              {pendingNotificationCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center">
+                  {pendingNotificationCount}
+                </span>
+              )}
+            </Button>
+            <Button variant="secondary" icon={Send} onClick={() => router.push('/invite/')}>
+              Invite Friends
+            </Button>
+          </>
         }
       />
 
