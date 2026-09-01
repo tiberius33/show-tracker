@@ -183,6 +183,7 @@ export default function CommentsSection({ show }) {
 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [sort, setSort] = useState('newest');
   const [replyOpenId, setReplyOpenId] = useState(null);
   // Captured once per mount, before markViewed() moves the high-water
@@ -201,9 +202,11 @@ export default function CommentsSection({ show }) {
       return;
     }
     setLoading(true);
-    const unsubscribe = subscribeComments(concertKey, (list) => {
+    setLoadError(false);
+    const unsubscribe = subscribeComments(concertKey, (list, err) => {
       setComments(list);
       setLoading(false);
+      setLoadError(!!err);
     });
     return unsubscribe;
   }, [concertKey, user, guestMode]);
@@ -334,6 +337,10 @@ export default function CommentsSection({ show }) {
 
       {!user || guestMode ? null : loading ? (
         <div className="py-8"><Spinner size="sm" label="Loading comments…" /></div>
+      ) : loadError ? (
+        <p className="text-sm text-muted text-center py-8">
+          Couldn't load comments — try refreshing the page.
+        </p>
       ) : topLevel.length === 0 ? (
         <p className="text-sm text-muted text-center py-8">
           No comments yet — be the first to say something about this show.

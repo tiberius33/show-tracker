@@ -19,6 +19,7 @@ export default function ShowMediaSection({ show }) {
 
   const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     // Reading showPhotos requires Firestore auth — a guest has no
@@ -29,9 +30,11 @@ export default function ShowMediaSection({ show }) {
       return;
     }
     setLoading(true);
-    const unsubscribe = subscribePhotos(concertKey, (list) => {
+    setLoadError(false);
+    const unsubscribe = subscribePhotos(concertKey, (list, err) => {
       setAllItems(list);
       setLoading(false);
+      setLoadError(!!err);
     });
     return unsubscribe;
   }, [concertKey, user, guestMode]);
@@ -55,7 +58,7 @@ export default function ShowMediaSection({ show }) {
         category="photo"
         title="Photos & Videos"
         icon={Camera}
-        emptyText="No photos or videos yet — be the first to share one from this show."
+        emptyText={loadError ? "Couldn't load photos — try refreshing the page." : "No photos or videos yet — be the first to share one from this show."}
         signInText="Sign in to see and share photos from this show."
         items={byCategory.photo}
         allItems={allItems}
@@ -67,7 +70,7 @@ export default function ShowMediaSection({ show }) {
         category="poster"
         title="Posters"
         icon={PosterIcon}
-        emptyText="No posters uploaded yet — add the show announcement or gig poster if you have one."
+        emptyText={loadError ? "Couldn't load posters — try refreshing the page." : "No posters uploaded yet — add the show announcement or gig poster if you have one."}
         signInText="Sign in to see and share posters for this show."
         items={byCategory.poster}
         allItems={allItems}
@@ -79,7 +82,7 @@ export default function ShowMediaSection({ show }) {
         category="setlist"
         title="Setlist Photos"
         icon={ScrollText}
-        emptyText="No setlist photos yet — add a photo of the paper or board setlist if you have one."
+        emptyText={loadError ? "Couldn't load setlist photos — try refreshing the page." : "No setlist photos yet — add a photo of the paper or board setlist if you have one."}
         signInText="Sign in to see and share setlist photos for this show."
         zoomable
         items={byCategory.setlist}

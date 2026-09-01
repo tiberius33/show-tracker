@@ -38,7 +38,7 @@
     "test:all": "npx playwright test --project=smoke --project=integration",
     "test:pre-deploy": "node tests/utils/pre-deploy-checks.js",
     "test:cleanup": "node e2e/utils/cleanup.js",
-    "deploy:rules": "firebase deploy --only firestore:rules,storage"
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.2.0",
