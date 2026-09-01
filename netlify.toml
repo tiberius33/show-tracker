@@ -17,6 +17,13 @@
 [functions."anniversary-notifications"]
   schedule = "0 13 * * *"
 
+# Daily venue-bucket-list match job ("your favorite artist is playing at a
+# venue on your bucket list") — runs once a day at 13:30 UTC, offset from
+# the anniversary job above. See
+# netlify/functions/venue-bucket-list-notifications.js.
+[functions."venue-bucket-list-notifications"]
+  schedule = "30 13 * * *"
+
 # Rewrite /api/* to Netlify functions for static export compatibility
 [[redirects]]
   from = "/api/send-email"

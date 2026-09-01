@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.24.0',
+      date: 'August 31, 2026',
+      title: 'Venue Bucket List',
+      changes: [
+        'New: add a venue (not a specific show) to your Bucket List — a venue you\'ve always wanted to see a show at',
+        'New "Venues" tab on the Bucket List page, alongside the existing show-based Bucket List',
+        '"Add to Bucket List" button now also appears on every venue page',
+        'New: automatic daily check that notifies you when one of your favorite artists announces or has an upcoming show at a venue on your bucket list — configurable under Profile → Notifications → Venue bucket list matches (push, email, or both; on by default)',
+        'Runs on the same daily scheduled job infrastructure as anniversary reminders — a new `venue-bucket-list-notifications` Netlify function checks favorite artists\' upcoming Ticketmaster listings against everyone\'s bucket-list venues',
+        'Requires a Firestore rules deploy (`npm run deploy:rules`) before venue bucket-list entries can be saved in production — new `bucketListVenues` collection needs its security rule live',
+      ]
+    },
+    {
       version: '5.23.0',
       date: 'August 31, 2026',
       title: 'Venue Verification & Year in Review',

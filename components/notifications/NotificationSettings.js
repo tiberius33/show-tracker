@@ -17,6 +17,7 @@ export default function NotificationSettings({ userId }) {
     engagementNotifications: true,
     emailFrequency: 'off', // 'off' | 'immediate' — daily/weekly digest needs a scheduled job that doesn't exist yet
     anniversaries: { enabled: true, method: 'both' }, // method: 'push' | 'email' | 'both'
+    venueBucketList: { enabled: true, method: 'both' }, // method: 'push' | 'email' | 'both'
   });
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function NotificationSettings({ userId }) {
               ...prev,
               ...profile.data().notificationPrefs,
               anniversaries: { ...prev.anniversaries, ...profile.data().notificationPrefs.anniversaries },
+              venueBucketList: { ...prev.venueBucketList, ...profile.data().notificationPrefs.venueBucketList },
             }));
           }
           if (profile.data().fcmToken) {
@@ -225,6 +227,41 @@ export default function NotificationSettings({ userId }) {
             <select
               value={preferences.anniversaries?.method || 'both'}
               onChange={(e) => handlePreferenceChange('anniversaries', { ...preferences.anniversaries, method: e.target.value })}
+              className="text-sm bg-hover border border-active rounded-lg px-2.5 py-1.5 text-primary focus:ring-2 focus:ring-brand/50 focus:outline-none"
+            >
+              <option value="both">Push and email</option>
+              <option value="push">Push only</option>
+              <option value="email">Email only</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Venue bucket list matches — "your favorite artist is playing at a
+          venue on your bucket list" — sent by a daily scheduled job (see
+          netlify/functions/venue-bucket-list-notifications.js). */}
+      <div className="mt-5 pt-5 border-t border-subtle">
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={preferences.venueBucketList?.enabled !== false}
+            onChange={(e) => handlePreferenceChange('venueBucketList', { ...preferences.venueBucketList, enabled: e.target.checked })}
+            className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+          />
+          <div>
+            <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+              Venue bucket list matches
+            </span>
+            <p className="text-secondary text-xs">Notify me when a favorite artist is playing at a venue on my bucket list</p>
+          </div>
+        </label>
+
+        {preferences.venueBucketList?.enabled !== false && (
+          <div className="mt-3 pl-7">
+            <label className="text-secondary text-xs font-medium block mb-1.5">Notify me via</label>
+            <select
+              value={preferences.venueBucketList?.method || 'both'}
+              onChange={(e) => handlePreferenceChange('venueBucketList', { ...preferences.venueBucketList, method: e.target.value })}
               className="text-sm bg-hover border border-active rounded-lg px-2.5 py-1.5 text-primary focus:ring-2 focus:ring-brand/50 focus:outline-none"
             >
               <option value="both">Push and email</option>

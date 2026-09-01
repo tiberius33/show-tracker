@@ -4,6 +4,15 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.24.0] — 2026-08-31
+
+### New: Venue Bucket List
+- Add a venue (not a specific show) to your Bucket List — a new "Venues" tab on `/bucket-list`, and an "Add to Bucket List" button on every venue page.
+- Daily scheduled job (`netlify/functions/venue-bucket-list-notifications.js`) cross-references favorite artists' upcoming Ticketmaster listings against every user's bucket-list venues and sends a `venue_bucket_list_match` notification (push/email/both, configurable in Profile → Notifications) on a hit.
+- New Firestore collection: `bucketListVenues`. Requires `npm run deploy:rules`.
+
+---
+
 ## [5.23.0] — 2026-08-31
 
 ### New: Venue Verification

@@ -9,6 +9,7 @@ import { useApp } from '@/context/AppContext';
 import { PageHeader, Button, Card, StatTile } from '@/components/ui';
 import VerificationBadge from '@/components/venues/VerificationBadge';
 import VerifyVenueButton from '@/components/venues/VerifyVenueButton';
+import VenueBucketListButton from '@/components/venues/VenueBucketListButton';
 import ReportVenueModal from '@/components/venues/ReportVenueModal';
 import VenueAnnouncements from '@/components/venues/VenueAnnouncements';
 import VenuePhotoGallery from '@/components/venues/VenuePhotoGallery';
@@ -60,6 +61,7 @@ export default function VenueDetailClient({ venueKey }) {
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <VerifyVenueButton venue={venue} venueKey={venueKey} venueName={venueName} venueCity={venueCity} currentUser={user} />
+            <VenueBucketListButton venueKey={venueKey} venueName={venueName} venueCity={venueCity} venueState={venue?.state} currentUser={user} />
             {isOwner && (
               <Button variant="secondary" onClick={() => router.push(`/venue-dashboard/${encodeURIComponent(venueKey)}/`)}>
                 Manage Venue

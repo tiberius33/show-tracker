@@ -75,6 +75,20 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
+    // Venue bucket list — venues (not specific shows) a user wants to see
+    // any show at. Same owner-only shape as bucketList above; matched
+    // against favorite artists' upcoming events by the daily
+    // venue-bucket-list-notifications scheduled function (admin SDK,
+    // bypasses these rules entirely).
+    match /bucketListVenues/{docId} {
+      allow read: if request.auth != null
+        && (resource == null || resource.data.userId == request.auth.uid);
+      allow create, update: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
     // Friend activity feed — append-only log of add/rate events, read by
     // friends via a `userId in [...]` query. Privacy is enforced by the app
     // (lib/activityFeed.js checks the actor's shareActivity setting before

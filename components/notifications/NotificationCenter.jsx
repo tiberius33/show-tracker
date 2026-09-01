@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
-import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell, AtSign, PartyPopper, Users } from 'lucide-react';
+import { MessageSquare, Heart, Image as ImageIcon, Megaphone, Bell, AtSign, PartyPopper, Users, MapPin } from 'lucide-react';
 import { Card, EmptyState, Spinner, Button } from '@/components/ui';
 import { db } from '@/lib/firebase';
 import { useApp } from '@/context/AppContext';
@@ -27,6 +27,7 @@ const ICONS = {
   roadmap_published: Megaphone,
   anniversary: PartyPopper,
   meetup_join: Users,
+  venue_bucket_list_match: MapPin,
 };
 
 function NotificationRow({ notification, showHref, onClick }) {
@@ -131,6 +132,8 @@ export default function NotificationCenter() {
           let href = null;
           if (n.type === 'meetup_join' && n.concertKey) {
             href = `/meetups/?id=${meetupIdFor(n.concertKey)}`;
+          } else if (n.type === 'venue_bucket_list_match' && n.venueKey) {
+            href = `/venues/${encodeURIComponent(n.venueKey)}/`;
           } else if (n.concertKey) {
             const show = showByKey.get(n.concertKey);
             href = show ? `/shows/${show.id}` : null;

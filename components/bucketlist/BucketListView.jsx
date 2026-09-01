@@ -21,6 +21,7 @@ import { Card, EmptyState, Spinner, Badge, Button, Input, Tabs } from '@/compone
 import { useApp } from '@/context/AppContext';
 import { listBucketList, removeFromBucketList, addToBucketList } from '@/lib/bucketList';
 import MeetupCard from '@/components/meetups/MeetupCard';
+import VenueBucketListSection from '@/components/bucketlist/VenueBucketListSection';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -141,6 +142,7 @@ export default function BucketListView() {
   const { user, setToast, setBucketListPrefill } = useApp();
   const router = useRouter();
 
+  const [section, setSection] = useState('shows'); // 'shows' | 'venues'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'artist'
@@ -226,16 +228,52 @@ export default function BucketListView() {
     } catch (_) { /* user cancelled share — not an error */ }
   };
 
-  if (loading) {
-    return <div className="py-12"><Spinner size="md" label="Loading your bucket list…" /></div>;
-  }
+  return (
+    <div className="space-y-5">
+      <Tabs
+        value={section}
+        onChange={setSection}
+        tabs={[
+          { id: 'shows', label: 'Shows' },
+          { id: 'venues', label: 'Venues' },
+        ]}
+      />
 
+      {section === 'venues' ? (
+        <VenueBucketListSection />
+      ) : loading ? (
+        <div className="py-12"><Spinner size="md" label="Loading your bucket list…" /></div>
+      ) : (
+        <BucketListShowsSection
+          items={items}
+          filtered={filtered}
+          today={today}
+          filterText={filterText}
+          setFilterText={setFilterText}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          adding={adding}
+          removingKey={removingKey}
+          onAdd={handleAdd}
+          onRemove={handleRemove}
+          onMarkAttended={handleMarkAttended}
+          onShare={handleShare}
+        />
+      )}
+    </div>
+  );
+}
+
+function BucketListShowsSection({
+  items, filtered, today, filterText, setFilterText, sortBy, setSortBy,
+  adding, removingKey, onAdd, onRemove, onMarkAttended, onShare,
+}) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <ManualAddForm onAdd={handleAdd} adding={adding} />
+        <ManualAddForm onAdd={onAdd} adding={adding} />
         {filtered.length > 0 && (
-          <Button size="sm" variant="ghost" icon={Share2} onClick={handleShare}>
+          <Button size="sm" variant="ghost" icon={Share2} onClick={onShare}>
             Share with friends
           </Button>
         )}
@@ -280,8 +318,8 @@ export default function BucketListView() {
               key={item.key}
               item={item}
               removing={removingKey === item.key}
-              onRemove={handleRemove}
-              onMarkAttended={handleMarkAttended}
+              onRemove={onRemove}
+              onMarkAttended={onMarkAttended}
             />
           ))}
         </div>
