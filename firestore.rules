@@ -73,10 +73,19 @@ service cloud.firestore {
     // never starred a tour can read their (nonexistent) doc instead of
     // being denied outright. Unstarring only ever deletes a single map
     // field via updateDoc, so no `allow delete` is needed.
+    //
+    // The docId check is not redundant with the userId check. Matching on
+    // the field alone would let any signed-in user write to
+    // favoriteTours/<someone-else's-uid> as long as they set userId to
+    // their own — overwriting that user's document and locking them out of
+    // reading it back. This collection keys its docs by uid, so pinning
+    // docId to the caller closes that off exactly.
     match /favoriteTours/{docId} {
       allow read: if request.auth != null
+        && docId == request.auth.uid
         && (resource == null || resource.data.userId == request.auth.uid);
       allow create, update: if request.auth != null
+        && docId == request.auth.uid
         && request.resource.data.userId == request.auth.uid;
     }
 
