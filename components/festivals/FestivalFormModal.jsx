@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Button, Input, Textarea } from '@/components/ui';
 
 export default function FestivalFormModal({ open, onClose, onSubmit, festival = null }) {
@@ -19,6 +19,20 @@ export default function FestivalFormModal({ open, onClose, onSubmit, festival = 
   const [notes, setNotes] = useState(festival?.notes || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // This component stays mounted between openings (Modal returns null when
+  // closed), so without this the create form would still be holding the
+  // previous festival's values the second time it's opened — and the edit
+  // form wouldn't pick up a festival edited elsewhere.
+  useEffect(() => {
+    if (!open) return;
+    setName(festival?.name || '');
+    setStartDate(festival?.startDate || '');
+    setEndDate(festival?.endDate || '');
+    setLocation(festival?.location || '');
+    setNotes(festival?.notes || '');
+    setError('');
+  }, [open, festival]);
 
   const handleSubmit = async () => {
     if (!name.trim()) return setError('Give your festival a name.');

@@ -188,6 +188,34 @@ export default function WishlistView() {
     [catalogSongs, seenNormalizedSet]
   );
 
+  // "All songs" — the union of setlist.fm's live catalog for this artist and
+  // everything the user has actually logged, keyed by normalizeSongTitle so
+  // a song that appears in both (the common case) is one row, not two. This
+  // is deliberately a superset of the old "songs you haven't seen" catalog
+  // list rather than a fourth section: seen, unseen and wishlisted songs are
+  // all here, all starrable, with `seenCount` marking the ones already
+  // caught. Songs the user logged that setlist.fm has no record of still
+  // appear (with no play count), same as the "no setlist.fm record" marker
+  // on the Songs I've Seen list.
+  const allSongs = useMemo(() => {
+    const byKey = new Map(); // normalizedKey -> { key, title, plays, seenCount }
+    catalogSongs.forEach(song => {
+      const key = normalizeSongTitle(song.name);
+      if (!key) return;
+      byKey.set(key, { key, title: song.name, plays: song.count || 0, seenCount: 0 });
+    });
+    seenSongs.forEach(song => {
+      const key = normalizeSongTitle(song.title);
+      if (!key) return;
+      const existing = byKey.get(key);
+      if (existing) existing.seenCount = song.count;
+      else byKey.set(key, { key, title: song.title, plays: 0, seenCount: song.count });
+    });
+    // Same ordering as the catalog list it replaces: most-played live first,
+    // alphabetical to break ties.
+    return Array.from(byKey.values()).sort((a, b) => b.plays - a.plays || a.title.localeCompare(b.title));
+  }, [catalogSongs, seenSongs]);
+
   const wishlistEntries = useMemo(
     () => Object.entries(wishlistMap)
       .map(([key, v]) => ({ key, title: v.title, addedAt: v.addedAt }))
@@ -407,82 +435,48 @@ export default function WishlistView() {
         </button>
       </div>
 
-      {/* Two-column: Songs I've Seen | Wishlist */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Card padding="md">
-          <div className="flex items-center gap-2 mb-4">
-            <Music size={17} className="text-brand" strokeWidth={2.2} />
-            <h3 className="font-bold text-primary">Songs I've Seen</h3>
-            <Badge tone="green" size="sm">{seenSongs.length}</Badge>
-          </div>
-          {seenSongs.length === 0 ? (
-            <p className="text-sm text-secondary py-6 text-center">
-              No logged shows for {artist.name} yet — songs you've seen live will show up here.
-            </p>
-          ) : (
-            <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
-              {seenSongs.map((s) => {
-                const notInCatalog = !catalogLoading && catalogSongs.length > 0 && !catalogNormalizedSet.has(normalizeSongTitle(s.title));
-                const songSlug = songSlugFromTitle(s.title);
-                const href = songSlug ? `/songs/?artist=${artistSlugFromName(artist.name)}&song=${songSlug}` : null;
-                const RowTag = href ? Link : 'div';
-                return (
-                  <li key={s.title}>
-                    <RowTag
-                      {...(href ? { href } : {})}
-                      className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                    >
-                      <span className="text-sm text-primary min-w-0 truncate hover:text-brand hover:underline transition-colors">
-                        {s.title}
-                        {notInCatalog && (
-                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                            no setlist.fm record
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-xs font-bold text-brand flex-shrink-0">{s.count}×</span>
-                    </RowTag>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
+      {/* Section order is deliberate and stacked full-width (not columns):
+          what you still want to catch first, the whole catalog second,
+          what you've already seen last — which is also the order that reads
+          best top-to-bottom on a phone. */}
 
-        <Card padding="md">
-          <div className="flex items-center gap-2 mb-4">
-            <Heart size={17} className="text-amber" strokeWidth={2.2} />
-            <h3 className="font-bold text-primary">Wishlist</h3>
-            <Badge tone="amber" size="sm">{wishlistEntries.length}</Badge>
-          </div>
-          {wishlistLoading ? (
-            <div className="py-6"><Spinner size="sm" label="Loading your wishlist…" /></div>
-          ) : wishlistEntries.length === 0 ? (
-            <p className="text-sm text-secondary py-6 text-center">
-              Star songs below to add them to your wishlist.
-            </p>
-          ) : (
-            <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
-              {wishlistEntries.map((s) => (
-                <StarToggleRow
-                  key={s.key}
-                  title={s.title}
-                  subMeta={lastPlayedLabel(s.key)}
-                  checked
-                  pending={pendingKeys.has(s.key)}
-                  hasError={errorKeys.has(s.key)}
-                  onToggle={toggleSong}
-                />
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      {/* Catalog — every song setlist.fm has this artist playing live, minus songs you've seen */}
+      {/* 1 — Songs I want to see (the starred wishlist) */}
       <Card padding="md">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="font-bold text-primary">Played Live — Songs You Haven't Seen</h3>
+          <Heart size={17} className="text-amber" strokeWidth={2.2} />
+          <h3 className="font-bold text-primary">Songs I want to see</h3>
+          <Badge tone="amber" size="sm">{wishlistEntries.length}</Badge>
+        </div>
+        {wishlistLoading ? (
+          <div className="py-6"><Spinner size="sm" label="Loading your wishlist…" /></div>
+        ) : wishlistEntries.length === 0 ? (
+          <p className="text-sm text-secondary py-6 text-center">
+            Star songs below to add them to your wishlist.
+          </p>
+        ) : (
+          <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
+            {wishlistEntries.map((s) => (
+              <StarToggleRow
+                key={s.key}
+                title={s.title}
+                subMeta={lastPlayedLabel(s.key)}
+                checked
+                pending={pendingKeys.has(s.key)}
+                hasError={errorKeys.has(s.key)}
+                onToggle={toggleSong}
+              />
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* 2 — All songs: setlist.fm's live catalog for this artist unioned
+          with everything you've logged (seen, unseen and wishlisted alike). */}
+      <Card padding="md">
+        <div className="flex items-center gap-2 mb-4">
+          <Music size={17} className="text-brand" strokeWidth={2.2} />
+          <h3 className="font-bold text-primary">All songs</h3>
+          {!catalogLoading && allSongs.length > 0 && <Badge tone="green" size="sm">{allSongs.length}</Badge>}
           {catalogLoading && <Spinner size="sm" />}
         </div>
 
@@ -503,31 +497,76 @@ export default function WishlistView() {
           />
         ) : catalogLoading ? (
           <div className="py-10"><Spinner size="md" label="Loading catalog from setlist.fm…" /></div>
-        ) : catalogRemaining.length === 0 ? (
+        ) : allSongs.length === 0 ? (
           <p className="text-sm text-secondary py-6 text-center">
-            {catalogSongs.length === 0
-              ? 'No catalog data available for this artist.'
-              : "You've seen everything setlist.fm has on record for this artist live. Nice."}
+            No catalog data available for this artist.
           </p>
         ) : (
-          <ul className="space-y-1 max-h-[32rem] overflow-y-auto pr-1" role="list">
-            {catalogRemaining.map((song) => {
-              const key = normalizeSongTitle(song.name);
-              return (
+          <>
+            {catalogSongs.length > 0 && catalogRemaining.length === 0 && (
+              <p className="text-sm text-secondary pb-3 text-center">
+                You&apos;ve seen everything setlist.fm has on record for this artist live. Nice.
+              </p>
+            )}
+            <ul className="space-y-1 max-h-[32rem] overflow-y-auto pr-1" role="list">
+              {allSongs.map((song) => (
                 <StarToggleRow
-                  key={song.name}
-                  title={song.name}
-                  meta={song.count > 0 ? `played ${song.count}×` : null}
-                  checked={!!wishlistMap[key]}
-                  pending={pendingKeys.has(key)}
-                  hasError={errorKeys.has(key)}
+                  key={song.key}
+                  title={song.title}
+                  meta={song.plays > 0 ? `played ${song.plays}×` : null}
+                  subMeta={song.seenCount > 0 ? `you’ve seen this ${song.seenCount}×` : null}
+                  checked={!!wishlistMap[song.key]}
+                  pending={pendingKeys.has(song.key)}
+                  hasError={errorKeys.has(song.key)}
                   onToggle={toggleSong}
                 />
+              ))}
+            </ul>
+          </>
+        )}
+      </Card>
+
+      {/* 3 — The songs I've seen */}
+      <Card padding="md">
+        <div className="flex items-center gap-2 mb-4">
+          <Music size={17} className="text-brand" strokeWidth={2.2} />
+          <h3 className="font-bold text-primary">The songs I&apos;ve seen</h3>
+          <Badge tone="green" size="sm">{seenSongs.length}</Badge>
+        </div>
+        {seenSongs.length === 0 ? (
+          <p className="text-sm text-secondary py-6 text-center">
+            No logged shows for {artist.name} yet — songs you&apos;ve seen live will show up here.
+          </p>
+        ) : (
+          <ul className="space-y-1 max-h-96 overflow-y-auto pr-1">
+            {seenSongs.map((s) => {
+              const notInCatalog = !catalogLoading && catalogSongs.length > 0 && !catalogNormalizedSet.has(normalizeSongTitle(s.title));
+              const songSlug = songSlugFromTitle(s.title);
+              const href = songSlug ? `/songs/?artist=${artistSlugFromName(artist.name)}&song=${songSlug}` : null;
+              const RowTag = href ? Link : 'div';
+              return (
+                <li key={s.title}>
+                  <RowTag
+                    {...(href ? { href } : {})}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-hover text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                  >
+                    <span className="text-sm text-primary min-w-0 truncate hover:text-brand hover:underline transition-colors">
+                      {s.title}
+                      {notInCatalog && (
+                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                          no setlist.fm record
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs font-bold text-brand flex-shrink-0">{s.count}×</span>
+                  </RowTag>
+                </li>
               );
             })}
           </ul>
         )}
       </Card>
+
     </div>
   );
 }

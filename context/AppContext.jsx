@@ -181,6 +181,10 @@ export function AppProvider({ children }) {
   // the old auto-detected/tagged festival concept (isFestival/festivalName
   // on Show, lib/festivalIndex.js) — see CHANGELOG 5.28.0.
   const [festivals, setFestivals] = useState([]);
+  // True until the first Firestore read of the festivals subcollection
+  // resolves, so a direct link to /festivals/?festival=<id> shows a loading
+  // state instead of flashing "Festival not found" before the list arrives.
+  const [festivalsLoading, setFestivalsLoading] = useState(true);
   const [activeView, setActiveView] = useState('shows');
   const [statsTab, setStatsTab] = useState('years');
   const [friendsInitialTab, setFriendsInitialTab] = useState(null);
@@ -547,13 +551,19 @@ export function AppProvider({ children }) {
   // owner-only — unlike shows there's no "Shows Together" cross-user read
   // need, so firestore.rules keeps this private to the owner.
   const loadFestivals = useCallback(async (userId) => {
+    setFestivalsLoading(true);
     try {
       const festivalsRef = collection(db, 'users', userId, 'festivals');
       const snapshot = await getDocs(festivalsRef);
       const loaded = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setFestivals(loaded);
     } catch (error) {
+      // Don't fail silently — an empty Festivals page and a Festivals page
+      // whose read was rejected look identical to the user otherwise.
       console.error('Failed to load festivals:', error);
+      setToast({ message: "Couldn't load your festivals. Please refresh.", type: 'error' });
+    } finally {
+      setFestivalsLoading(false);
     }
   }, []);
 
@@ -762,9 +772,11 @@ export function AppProvider({ children }) {
 
       } else if (guestMode) {
         loadGuestShows();
+        setFestivalsLoading(false);
       } else {
         setShows([]);
         setIsLoading(false);
+        setFestivalsLoading(false);
       }
     });
 
@@ -823,6 +835,7 @@ export function AppProvider({ children }) {
       await signOut(auth);
       setShows([]);
       setFestivals([]);
+      setFestivalsLoading(false);
       setSelectedShow(null);
     } catch (error) {
       console.error('Logout failed:', error);
@@ -1275,6 +1288,98 @@ export function AppProvider({ children }) {
       setToast({ message: 'Failed to add shows to the festival. Please try again.', type: 'error' });
       throw error;
     }
+  };
+
+  // Bulk "import these festival sets and put them all in the festival" —
+  // the write half of the lineup search (see
+  // components/festivals/FestivalLineupModal.jsx).
+  //
+  // For each candidate it either (a) reuses the show the user already has
+  // logged for that artist/venue/date, or (b) creates a new one — then
+  // attaches every one of them to the festival through the existing
+  // attachShowsToFestival batch, so there is only ever one attach path.
+  //
+  // Dedup reuses findDuplicateShow (artist + venue + date, the same check
+  // the manual add and the setlist.fm import already run) and additionally
+  // matches on setlistfmId, which catches the case where the same set was
+  // imported under a slightly different venue spelling.
+  //
+  // The writes go out as one Firestore batch rather than N addShow() calls:
+  // addShow derives its doc id from Date.now() and closes over the current
+  // `shows` array, so calling it in a loop would collide ids and clobber
+  // state. `shows` is updated with a functional setState here for the same
+  // reason.
+  const importShowsToFestival = async (festivalId, candidates = [], { force = false } = {}) => {
+    if (!user || !festivalId || !candidates.length) return { success: false, created: 0, attached: 0, conflicts: [] };
+
+    const bySetlistfmId = new Map(
+      shows.filter(s => s.setlistfmId).map(s => [s.setlistfmId, s])
+    );
+
+    // Resolve every candidate to either an existing show or a new one
+    // *before* writing anything, so a conflict bail-out can't leave newly
+    // created shows stranded outside the festival.
+    const existingIds = [];
+    const toCreate = [];
+    let idSeed = Date.now();
+
+    candidates.forEach(candidate => {
+      const existing =
+        (candidate.setlistfmId && bySetlistfmId.get(candidate.setlistfmId)) ||
+        findDuplicateShow(candidate);
+      if (existing) {
+        existingIds.push(existing.id);
+        return;
+      }
+      toCreate.push({
+        ...candidate,
+        id: String(idSeed++),
+        setlist: candidate.setlist || [],
+        createdAt: new Date().toISOString(),
+        isManual: !candidate.setlistfmId,
+      });
+    });
+
+    // Only already-logged shows can belong to another festival; the ones
+    // about to be created obviously can't.
+    if (!force) {
+      const conflicts = existingIds
+        .map(id => shows.find(s => s.id === id))
+        .filter(s => s && s.festivalId && s.festivalId !== festivalId)
+        .map(s => ({ showId: s.id, artist: s.artist, date: s.date, festivalId: s.festivalId }));
+      if (conflicts.length > 0) return { success: false, created: 0, attached: 0, conflicts };
+    }
+
+    try {
+      if (toCreate.length > 0) {
+        const batch = writeBatch(db);
+        toCreate.forEach(show => {
+          const { id, ...showData } = show;
+          batch.set(doc(db, 'users', user.uid, 'shows', id), { ...showData, createdAt: serverTimestamp() });
+        });
+        await batch.commit();
+        setShows(prev => [...prev, ...toCreate]);
+      }
+    } catch (error) {
+      console.error('Failed to import festival shows:', error);
+      setToast({ message: 'Failed to add those shows. Please try again.', type: 'error' });
+      throw error;
+    }
+
+    // force:true here because the conflict check above already ran against
+    // the right set — attachShowsToFestival's own check reads the `shows`
+    // array from this render, which doesn't yet contain the rows created
+    // a few lines up.
+    await attachShowsToFestival(festivalId, [...existingIds, ...toCreate.map(s => s.id)], { force: true });
+
+    if (toCreate.length > 0) {
+      const updatedShows = [...shows, ...toCreate];
+      await updateUserProfile(user, updatedShows);
+      updateCommunityStats();
+      calculateUserRank(user.uid, updatedShows.length);
+    }
+
+    return { success: true, created: toCreate.length, attached: existingIds.length, conflicts: [] };
   };
 
   // Detaches shows from whichever festival they're on (does not delete the
@@ -2542,11 +2647,13 @@ export function AppProvider({ children }) {
 
     // Festivals
     festivals,
+    festivalsLoading,
     createFestival,
     updateFestivalData,
     deleteFestival,
     attachShowsToFestival,
     detachShowsFromFestival,
+    importShowsToFestival,
 
     // Show CRUD
     saveShow,

@@ -9,15 +9,28 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Tent, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Tent, Plus, ChevronRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { Card, PageHeader, EmptyState, Button } from '@/components/ui';
+import { Card, PageHeader, EmptyState, Button, Spinner } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
+import { festivalHref } from '@/lib/festivalGrouping';
 import FestivalFormModal from './FestivalFormModal';
 
 export default function FestivalListView() {
-  const { festivals, shows, createFestival } = useApp();
+  const router = useRouter();
+  const { festivals, festivalsLoading, shows, createFestival } = useApp();
   const [showCreate, setShowCreate] = useState(false);
+
+  // Creating drops the user straight onto the new festival's page, which is
+  // where shows get attached (both from their own history and from a
+  // setlist.fm lineup search) — otherwise a brand-new, empty festival is a
+  // dead end in the list.
+  const handleCreate = async (data) => {
+    const created = await createFestival(data);
+    if (created?.id) router.push(festivalHref(created.id));
+    return created;
+  };
 
   const sorted = useMemo(
     () => (festivals || []).slice().sort((a, b) => (a.startDate < b.startDate ? 1 : -1)),
@@ -41,7 +54,9 @@ export default function FestivalListView() {
         actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>New festival</Button>}
       />
 
-      {sorted.length === 0 ? (
+      {festivalsLoading && sorted.length === 0 ? (
+        <Card padding="lg"><Spinner size="md" label="Loading your festivals…" /></Card>
+      ) : sorted.length === 0 ? (
         <EmptyState
           icon={Tent}
           tone="brand"
@@ -56,18 +71,21 @@ export default function FestivalListView() {
             return (
               <Link
                 key={festival.id}
-                href={`/festivals/${festival.id}`}
+                href={festivalHref(festival.id)}
                 className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               >
                 <Card padding="md" className="hover:bg-hover transition-colors">
-                  <div className="min-w-0">
-                    <div className="text-base font-semibold text-primary truncate">{festival.name}</div>
-                    <div className="text-sm text-secondary mt-0.5 truncate">
-                      {formatDate(festival.startDate)}
-                      {festival.endDate !== festival.startDate ? ` – ${formatDate(festival.endDate)}` : ''}
-                      {festival.location ? ` · ${festival.location}` : ''}
-                      {' · '}{count} show{count !== 1 ? 's' : ''}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-base font-semibold text-primary truncate">{festival.name}</div>
+                      <div className="text-sm text-secondary mt-0.5 truncate">
+                        {formatDate(festival.startDate)}
+                        {festival.endDate !== festival.startDate ? ` – ${formatDate(festival.endDate)}` : ''}
+                        {festival.location ? ` · ${festival.location}` : ''}
+                        {' · '}{count} show{count !== 1 ? 's' : ''}
+                      </div>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-muted flex-shrink-0" />
                   </div>
                 </Card>
               </Link>
@@ -79,7 +97,7 @@ export default function FestivalListView() {
       <FestivalFormModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        onSubmit={createFestival}
+        onSubmit={handleCreate}
       />
     </div>
   );

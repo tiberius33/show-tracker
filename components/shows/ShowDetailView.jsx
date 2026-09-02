@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { parseDate } from '@/lib/utils';
 import { groupSongsBySet, getSetLabels, getSetOptions, moveSongToSet, reorderSongWithinSet } from '@/lib/setlistGrouping';
 import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
-import { buildRunIndex } from '@/lib/runIndex';
+import { buildRunIndex, buildTourIndex, tourKeyFor, tourHref } from '@/lib/runIndex';
 import { normalizeSongTitle, formatDate } from '@/lib/utils';
+import { festivalHref } from '@/lib/festivalGrouping';
 import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 import useBustOutAnalysis from '@/hooks/useBustOutAnalysis';
 import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
@@ -261,6 +262,19 @@ export default function ShowDetailView({
     const nightNumber = run.nights.findIndex(n => n.showId === show.id) + 1;
     return { runKey: run.key, nightNumber, nightCount: run.nightCount };
   }, [allShows, show?.id]);
+  // Tour link — only when this show's tour name actually resolves to a
+  // tour in the user's own history (buildTourIndex only keeps artist+tour
+  // groupings drawn from their logged shows), so a tour name setlist.fm
+  // supplied for a one-off show renders as plain text rather than a link
+  // to an empty page. Same index and route the Tours page reads.
+  const tourLinkHref = useMemo(() => {
+    const name = show?.tour || show?.tourName;
+    if (!name || !show?.artist) return null;
+    const key = tourKeyFor(show.artist, name);
+    if (!key) return null;
+    return buildTourIndex(allShows)[key] ? tourHref(key) : null;
+  }, [allShows, show?.artist, show?.tour, show?.tourName]);
+
   const artistSlug = show?.artist ? artistSlugFromName(show.artist) : null;
   const getSongHref = (title) => {
     if (!artistSlug) return null;
@@ -390,10 +404,22 @@ export default function ShowDetailView({
           {show.venue && ` · ${show.venue}${show.city ? `, ${show.city}` : ''}`}
         </p>
 
-        {/* Tour */}
+        {/* Tour — links to the tour's own page when the app knows that tour.
+            This sits below the header's own click targets (artist/venue), so
+            there's no nested-interactive conflict to worry about. */}
         {(show.tour || show.tourName) && (
           <p className="text-sm font-medium text-brand mb-3">
-            Tour: {show.tourName || show.tour}
+            Tour:{' '}
+            {tourLinkHref ? (
+              <Link
+                href={tourLinkHref}
+                className="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
+              >
+                {show.tourName || show.tour}
+              </Link>
+            ) : (
+              show.tourName || show.tour
+            )}
           </p>
         )}
 
@@ -412,7 +438,7 @@ export default function ShowDetailView({
             )}
             {festival && (
               <Link
-                href={`/festivals/${festival.id}`}
+                href={festivalHref(festival.id)}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber bg-amber-subtle px-2.5 py-1 rounded-lg hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               >
                 <Tent className="w-3.5 h-3.5" />
@@ -622,7 +648,17 @@ export default function ShowDetailView({
               <dl className="space-y-2.5">
                 <StatRow label="Songs" value={totalSongs} />
                 {totalDuration && <StatRow label="Duration" value={totalDuration} />}
-                {show.tour && <StatRow label="Tour" value={show.tour} />}
+                {show.tour && (
+                  <StatRow
+                    label="Tour"
+                    tone={tourLinkHref ? 'brand' : undefined}
+                    value={tourLinkHref ? (
+                      <Link href={tourLinkHref} className="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded">
+                        {show.tour}
+                      </Link>
+                    ) : show.tour}
+                  />
+                )}
                 {debuts > 0 && <StatRow label="Debuts" value={`${debuts} song${debuts !== 1 ? 's' : ''}`} tone="brand" />}
                 {bustouts.length > 0 && (
                   <StatRow

@@ -9,6 +9,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Calendar, MapPin, MessageSquare, Trash2, Tent } from 'lucide-react';
 import { formatDate, artistColor, avgSongRating } from '@/lib/utils';
+import { festivalHref } from '@/lib/festivalGrouping';
 import { Card, Badge } from '@/components/ui';
 
 function taggedFriendsLabel(taggedFriends) {
@@ -70,7 +71,7 @@ export default function ShowCard({ show, friends = [], onClick, onDelete, runInf
           )}
           {festival && (
             <Link
-              href={`/festivals/${festival.id}`}
+              href={festivalHref(festival.id)}
               onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber bg-amber-subtle px-1.5 py-0.5 rounded hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >

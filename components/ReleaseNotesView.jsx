@@ -6,6 +6,22 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.29.0',
+      date: 'September 2, 2026',
+      title: 'Festival Lineup Search, Tour Filters & Wishlist Reorder',
+      changes: [
+        'Fixed: festivals you\u2019d already created wouldn\u2019t open \u2014 clicking one dropped you on My Shows instead, so they looked like they\u2019d vanished. Festival pages now live at a URL this app can actually serve, and old links redirect to it',
+        'Fixed: an error while saving a festival showed a blank screen instead of an error message',
+        'New: \u201cSearch lineup\u201d on a festival looks it up on setlist.fm and lists every band that played inside its dates \u2014 tick everyone you saw and add them all at once',
+        'Bulk-added sets are logged as your shows (with full setlists) and attached to the festival in one step; anything you\u2019d already logged is attached rather than duplicated',
+        'If setlist.fm doesn\u2019t have the lineup, you can still add shows the old way \u2014 nothing about creating a festival depends on the search',
+        'New: filter Tours by year, artist, or favorites, and star the tours you loved. Tours now sort by how many stops you caught by default',
+        'New: every tour page shows the songs you heard for the first time on that tour, with where and when you first caught each one',
+        'Tour pages are fully clickable now \u2014 stops, artist, venues and songs all link where they should \u2014 and a show\u2019s tour name links to that tour',
+        'Changed: the Wishlist page now reads \u201cSongs I want to see\u201d, then a new combined \u201cAll songs\u201d list, then \u201cThe songs I\u2019ve seen\u201d \u2014 stacked so it reads the same on a phone',
+      ]
+    },
+    {
       version: '5.28.0',
       date: 'September 1, 2026',
       title: 'Create & Manage Festivals',
