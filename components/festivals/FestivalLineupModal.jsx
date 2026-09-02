@@ -5,12 +5,18 @@
 // as a bulk-selectable list, and adds every checked one to the user's shows
 // *and* to this festival in a single action.
 //
-// setlist.fm has no festival entity, so the lookup goes through the
-// festival's venue — see netlify/functions/search-festival-lineup.js for
-// exactly what's queried and why. When it comes back empty (a festival
-// setlist.fm doesn't cover well, or a name that resolves to no venue) this
-// says so and points back at AttachShowsModal's "pick from my own shows"
-// flow rather than blocking anything.
+// setlist.fm has no festival entity, so the lookup reconstructs one from
+// the festival's own city and dates — see
+// netlify/functions/search-festival-lineup.js for exactly what's queried
+// and why. Both come straight off the festival, so the whole-lineup search
+// needs no input at all, and the by-artist search needs only a name.
+//
+// Two modes, because no single query covers every festival: the lineup
+// search finds everyone logged in that city on those days, and the
+// by-artist search looks up one band inside the same window for festivals
+// setlist.fm covers thinly. Either coming back empty says so and points
+// back at AttachShowsModal's "pick from my own shows" flow rather than
+// blocking anything.
 //
 // The write half is importShowsToFestival in context/AppContext.jsx, which
 // reuses the app's existing artist+venue+date dedup so a set the user
@@ -19,7 +25,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search, Check, AlertCircle, Music } from 'lucide-react';
+import { Search, Check, AlertCircle, Music, MapPin, CalendarDays } from 'lucide-react';
 import { Modal, Button, Input, Spinner, Badge } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { apiUrl } from '@/lib/api';
@@ -29,7 +35,8 @@ import { extractSongsFromSetlist } from '@/lib/setlistParser';
 export default function FestivalLineupModal({ open, onClose, festival, onImport }) {
   const { shows, festivals } = useApp();
 
-  const [query, setQuery] = useState(festival?.name || '');
+  const [mode, setMode] = useState('lineup'); // 'lineup' | 'artist'
+  const [artistQuery, setArtistQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
@@ -55,18 +62,23 @@ export default function FestivalLineupModal({ open, onClose, festival, onImport 
     alreadyLogged.has(`id:${r.setlistfmId}`) ||
     alreadyLogged.has(`avd:${r.artist.toLowerCase().trim()}|${r.venue.toLowerCase().trim()}|${r.date}`);
 
-  const runSearch = async () => {
-    const name = query.trim();
-    if (!name) return;
+  // The festival already knows where and when it was — neither search
+  // asks the user to retype either.
+  const runSearch = async (searchMode = mode) => {
+    if (searchMode === 'artist' && !artistQuery.trim()) return;
     setSearching(true);
     setError('');
     setResults([]);
     setSelected(new Set());
     setConflicts(null);
     try {
-      const params = new URLSearchParams({ name });
+      const params = new URLSearchParams();
+      if (festival?.name) params.set('name', festival.name);
+      if (festival?.location) params.set('city', festival.location);
       if (festival?.startDate) params.set('from', festival.startDate);
       if (festival?.endDate) params.set('to', festival.endDate);
+      if (searchMode === 'artist') params.set('artist', artistQuery.trim());
+
       const res = await fetch(`${apiUrl('/.netlify/functions/search-festival-lineup')}?${params}`);
       if (!res.ok) throw new Error('Search failed. Please try again.');
       const data = await res.json();
@@ -77,6 +89,15 @@ export default function FestivalLineupModal({ open, onClose, festival, onImport 
       setSearching(false);
       setSearched(true);
     }
+  };
+
+  const switchMode = (next) => {
+    setMode(next);
+    setResults([]);
+    setSelected(new Set());
+    setConflicts(null);
+    setError('');
+    setSearched(false);
   };
 
   const toggle = (id) => {
@@ -132,24 +153,77 @@ export default function FestivalLineupModal({ open, onClose, festival, onImport 
   return (
     <Modal open={open} onClose={handleClose} title="Search this festival's lineup" size="lg">
       <div className="flex flex-col gap-4">
-        <div className="flex gap-2 items-end">
-          <Input
-            icon={Search}
-            label="Festival or venue name"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
-            placeholder="e.g. Bonnaroo, or the grounds it's held at"
-            containerClassName="flex-1"
-          />
-          <Button onClick={runSearch} loading={searching} disabled={!query.trim()}>Search</Button>
+        {/* What's being searched is the festival itself — shown, not asked
+            for, since it's already on the record. */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span className="font-semibold text-primary">{festival?.name}</span>
+          {festival?.location && (
+            <span className="inline-flex items-center gap-1 text-secondary">
+              <MapPin className="w-3.5 h-3.5" aria-hidden="true" />
+              {festival.location}
+            </span>
+          )}
+          {festival?.startDate && (
+            <span className="inline-flex items-center gap-1 text-secondary">
+              <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
+              {formatDate(festival.startDate)}
+              {festival.endDate !== festival.startDate ? ` – ${formatDate(festival.endDate)}` : ''}
+            </span>
+          )}
         </div>
-        {festival?.startDate && (
+
+        {!festival?.location && (
           <p className="text-xs text-muted -mt-2">
-            Searching {formatDate(festival.startDate)}
-            {festival.endDate !== festival.startDate ? ` – ${formatDate(festival.endDate)}` : ''} — the
-            festival&apos;s own dates.
+            Add a location to this festival (its city) and the lineup search gets a lot more
+            accurate — without one it has to guess the venue from the name.
           </p>
+        )}
+
+        <div className="flex gap-2 border-b border-subtle -mb-1">
+          {[['lineup', 'Whole lineup'], ['artist', 'By artist']].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => switchMode(key)}
+              aria-pressed={mode === key}
+              className={[
+                'px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors',
+                'outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-t',
+                mode === key
+                  ? 'border-brand text-primary'
+                  : 'border-transparent text-secondary hover:text-primary',
+              ].join(' ')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {mode === 'lineup' ? (
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button icon={Search} onClick={() => runSearch('lineup')} loading={searching}>
+              Find who played
+            </Button>
+            <span className="text-xs text-muted">
+              Everyone logged on setlist.fm at this festival&apos;s city and dates.
+            </span>
+          </div>
+        ) : (
+          <div className="flex gap-2 items-end">
+            <Input
+              icon={Search}
+              label="Artist"
+              value={artistQuery}
+              onChange={(e) => setArtistQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') runSearch('artist'); }}
+              placeholder="Just the band you saw — dates and city are already set"
+              containerClassName="flex-1"
+              autoFocus
+            />
+            <Button onClick={() => runSearch('artist')} loading={searching} disabled={!artistQuery.trim()}>
+              Search
+            </Button>
+          </div>
         )}
 
         {error && (
@@ -180,10 +254,13 @@ export default function FestivalLineupModal({ open, onClose, festival, onImport 
         {!searching && searched && results.length === 0 && !error && (
           <div className="text-center py-8 px-4">
             <Music className="w-8 h-8 text-muted mx-auto mb-3" />
-            <p className="text-sm text-primary font-semibold mb-1">No lineup found on setlist.fm</p>
+            <p className="text-sm text-primary font-semibold mb-1">
+              {mode === 'artist' ? 'No set found for that artist' : 'No lineup found on setlist.fm'}
+            </p>
             <p className="text-sm text-secondary">
-              Not every festival is well covered there. Try the venue&apos;s name instead, or close this
-              and use &ldquo;Add shows&rdquo; to pick from the shows you&apos;ve already logged.
+              {mode === 'artist'
+                ? 'Check the spelling, or that they really played inside these dates. Nobody may have logged their set yet.'
+                : 'Not every festival is well covered there. Try looking up the bands one at a time under “By artist”, or close this and use “Add shows” to pick from the shows you’ve already logged.'}
             </p>
           </div>
         )}

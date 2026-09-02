@@ -1,33 +1,39 @@
 // netlify/functions/search-festival-lineup.js
 //
 // "Who played this festival?" — returns every distinct artist/date setlist
-// logged at a venue inside a date window, so the app can offer them as a
-// bulk-selectable lineup.
+// logged at a festival, so the app can offer them as a bulk-selectable
+// lineup.
 //
-// WHY THIS SHAPE: setlist.fm has no first-class "festival" entity. Its
-// /search/setlists endpoint takes artistName/artistMbid, venueName,
-// venueId, cityName and year — there is no festival parameter and no
-// date-range parameter (only an exact `date`). What festivals *do* have is
-// a venue: a multi-day festival's sets are logged individually per
-// artist/date at the festival's grounds ("Great Stage Park", "Empire Polo
-// Club", ...), and many festival grounds are also registered under the
-// festival's own name. So a festival lookup here is:
+// WHY THIS SHAPE: setlist.fm has no festival entity, and its
+// /search/setlists endpoint has no date-*range* parameter — only an exact
+// `date` (dd-MM-yyyy) plus `year`. What it does have is `cityName`,
+// `venueId`/`venueName`, `tourName` and `artistName`. A festival is
+// therefore reconstructed as "everything logged in this city on these
+// days":
 //
-//   1. /search/venues?name=<query>  -> candidate venues for the typed name
-//   2. /search/setlists?venueId=<id>&year=<year> -> every artist that
-//      played there that year, all artists, paged
-//   3. filter to the requested date window and collapse to one entry per
-//      artist+date (an artist with two sets on one day is one entry)
+//   for each day in the festival's window:
+//     /search/setlists?cityName=<city>&date=<dd-MM-yyyy>
 //
-// Step 1 is skipped when the caller passes an explicit venueId. If venue
-// resolution finds nothing, we still try a plain venueName search before
-// giving up, since /search/setlists matches venue names loosely. An empty
-// result is a 200 with `results: []`, never an error — the caller falls
-// back to picking from the user's own already-logged shows.
+// Querying day-by-day rather than by year is what makes this work at all.
+// A year-scoped city query returns that city's whole year newest-first, so
+// for anywhere busier than a small town the festival's own dates fall off
+// the end long before the page cap — the exact-date query returns the
+// festival and nothing else, in two pages instead of fifty.
 //
-// Caching reuses the same `setlistCache` Firestore collection as
-// search-setlists.js (different key namespace), with the same
-// graceful-degradation-if-env-vars-missing behaviour.
+// City is the primary key because a festival's setlist.fm venue is its
+// grounds, not its name: BottleRock is logged at "Napa Valley Expo",
+// Bonnaroo at "Great Stage Park". Searching the city on the right days
+// finds those without having to know either. When no city is known the
+// festival name is resolved through /search/venues first, and a
+// year-scoped venue/tour-name search is the last resort.
+//
+// `artist` switches to a single-artist lookup within the same window —
+// the reliable fallback for a festival setlist.fm covers thinly, where
+// the user knows exactly who they saw.
+//
+// Caching reuses the existing `setlistCache` collection under a
+// `festival_` key prefix, with the same graceful-degradation-if-env-vars-
+// missing behaviour as search-setlists.js.
 
 const https = require('https');
 const crypto = require('crypto');
@@ -35,8 +41,10 @@ const crypto = require('crypto');
 const SETLISTFM_API_KEY = process.env.SETLISTFM_API_KEY || 'VmDr8STg4UbyNE7Jgiubx2D_ojbliDuoYMgQ';
 const CORS_HEADERS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
-// A festival weekend is a handful of pages at 20 setlists each; cap the
-// work so one lookup can't fan out into dozens of upstream calls.
+// Bounds on upstream work. A festival is a handful of days; anything
+// claiming more than MAX_DAYS is truncated rather than fanned out.
+const MAX_DAYS = 10;
+const MAX_PAGES_PER_DAY = 2;
 const MAX_SETLIST_PAGES = 5;
 const MAX_VENUE_CANDIDATES = 3;
 const CACHE_TTL_HOURS = 24;
@@ -95,8 +103,37 @@ function toIsoDate(eventDate) {
   return `${parts[2]}-${parts[1]}-${parts[0]}`;
 }
 
-function countSongs(setlist) {
-  return (setlist?.sets?.set || []).reduce((acc, s) => acc + (s.song?.length || 0), 0);
+// yyyy-MM-dd -> dd-MM-yyyy, the only date format /search/setlists accepts.
+function toSetlistFmDate(isoDate) {
+  const parts = (isoDate || '').split('-');
+  if (parts.length !== 3) return '';
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+
+// Every calendar day in [from, to] inclusive, as yyyy-MM-dd. Built with
+// UTC arithmetic so a festival spanning a month or year boundary
+// enumerates correctly and no local timezone can shift a day.
+function daysInWindow(from, to, max = MAX_DAYS) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from || '')) return [];
+  const end = /^\d{4}-\d{2}-\d{2}$/.test(to || '') ? to : from;
+  if (end < from) return [];
+
+  const days = [];
+  const cursor = new Date(`${from}T00:00:00Z`);
+  const last = new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(cursor.getTime()) || Number.isNaN(last.getTime())) return [];
+
+  while (cursor <= last && days.length < max) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
+// A festival's `location` is free text ("Napa, CA", "Manchester, TN").
+// setlist.fm's cityName wants the city alone.
+function cityFromLocation(location) {
+  return (location || '').split(',')[0].trim();
 }
 
 async function searchVenues(name) {
@@ -112,16 +149,13 @@ async function searchVenues(name) {
   }));
 }
 
-// Pages through one venue's setlists for a year. `venueId` is preferred;
-// `venueName` is the looser fallback when nothing resolved.
-async function fetchSetlists({ venueId, venueName, year }) {
+// Pages one /search/setlists query. `extra` carries whichever of
+// cityName / venueId / venueName / tourName / artistName / date / year
+// this strategy is keyed on.
+async function fetchSetlists(extra, maxPages) {
   const collected = [];
-  for (let page = 1; page <= MAX_SETLIST_PAGES; page++) {
-    const params = new URLSearchParams({ p: String(page) });
-    if (venueId) params.set('venueId', venueId);
-    else if (venueName) params.set('venueName', venueName);
-    if (year) params.set('year', year);
-
+  for (let page = 1; page <= maxPages; page++) {
+    const params = new URLSearchParams({ ...extra, p: String(page) });
     const { status, data } = await fetchJSON(`/rest/1.0/search/setlists?${params}`);
     if (status !== 200 || !data?.setlist?.length) break;
     collected.push(...data.setlist);
@@ -131,6 +165,17 @@ async function fetchSetlists({ venueId, venueName, year }) {
     if (page * perPage >= total) break;
   }
   return collected;
+}
+
+// Runs one keyed query per day of the festival. Days are independent, so
+// they go out together rather than in series — a 4-day festival is 4
+// round trips of latency, not 4x.
+async function fetchByDays(key, days) {
+  const perDay = await Promise.all(
+    days.map(day => fetchSetlists({ ...key, date: toSetlistFmDate(day) }, MAX_PAGES_PER_DAY)
+      .catch(() => []))
+  );
+  return perDay.flat();
 }
 
 // One entry per artist+date. Prefers the richest setlist when an artist has
@@ -170,29 +215,50 @@ function toLineup(setlists, { from, to }) {
   );
 }
 
-// Exported for lib/__tests__/festivalLineup.test.js — the grouping is the
-// part with real logic in it, and it's pure.
+function countSongs(setlist) {
+  return (setlist?.sets?.set || []).reduce((acc, s) => acc + (s.song?.length || 0), 0);
+}
+
+// Exported for lib/__tests__/festivalLineup.test.js — these are the parts
+// with real logic in them, and they're pure.
 exports._toLineup = toLineup;
 exports._toIsoDate = toIsoDate;
+exports._toSetlistFmDate = toSetlistFmDate;
+exports._daysInWindow = daysInWindow;
+exports._cityFromLocation = cityFromLocation;
 
 exports.handler = async function handler(event) {
   if (event.httpMethod !== 'GET') {
     return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { name = '', venueId = '', year = '', from = '', to = '' } = event.queryStringParameters || {};
-  if (!name.trim() && !venueId) {
-    return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'A festival/venue name or venueId is required' }) };
+  const {
+    name = '', venueId = '', city = '', artist = '', year = '', from = '', to = '',
+  } = event.queryStringParameters || {};
+
+  if (!name.trim() && !venueId && !city.trim() && !artist.trim()) {
+    return {
+      statusCode: 400,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'A festival name, city, artist or venueId is required' }),
+    };
   }
 
-  // Derive the year from the date window when the caller didn't pass one —
-  // setlist.fm has no date-range filter, so `year` is what keeps the paged
-  // fetch bounded to the festival's own edition.
   const effectiveYear = year || (from || to).slice(0, 4) || '';
+  const days = daysInWindow(from, to);
+  const cityName = cityFromLocation(city);
 
   const cacheKey = crypto
     .createHash('md5')
-    .update(JSON.stringify({ n: name.toLowerCase().trim(), v: venueId, y: effectiveYear, f: from, t: to }))
+    .update(JSON.stringify({
+      n: name.toLowerCase().trim(),
+      v: venueId,
+      c: cityName.toLowerCase(),
+      a: artist.toLowerCase().trim(),
+      y: effectiveYear,
+      f: from,
+      t: to,
+    }))
     .digest('hex');
   const db = getDb();
 
@@ -212,25 +278,59 @@ exports.handler = async function handler(event) {
 
   try {
     let venues = [];
-    if (venueId) {
-      venues = [{ id: venueId, name: name || '', city: '', state: '', country: '' }];
-    } else {
-      venues = (await searchVenues(name.trim())).slice(0, MAX_VENUE_CANDIDATES);
-    }
-
     let setlists = [];
-    for (const venue of venues) {
-      setlists.push(...await fetchSetlists({ venueId: venue.id, year: effectiveYear }));
-    }
+    let strategy = '';
 
-    // Nothing resolved by venue id — try the looser name match before
-    // reporting an empty lineup.
-    if (setlists.length === 0 && name.trim()) {
-      setlists = await fetchSetlists({ venueName: name.trim(), year: effectiveYear });
+    if (artist.trim()) {
+      // Single-artist lookup: precise, and the fallback that works even
+      // when a festival is barely covered. Day-scoped when we have the
+      // window, year-scoped otherwise.
+      strategy = 'artist';
+      setlists = days.length
+        ? await fetchByDays({ artistName: artist.trim() }, days)
+        : await fetchSetlists({ artistName: artist.trim(), ...(effectiveYear && { year: effectiveYear }) }, MAX_SETLIST_PAGES);
+    } else {
+      if (cityName && days.length) {
+        strategy = 'city+date';
+        setlists = await fetchByDays({ cityName }, days);
+      }
+
+      // No city on the festival (or the city found nothing): resolve the
+      // festival's name to a venue and try that instead.
+      if (setlists.length === 0 && (venueId || name.trim())) {
+        venues = venueId
+          ? [{ id: venueId, name: name || '', city: '', state: '', country: '' }]
+          : (await searchVenues(name.trim())).slice(0, MAX_VENUE_CANDIDATES);
+
+        if (venues.length && days.length) {
+          strategy = 'venue+date';
+          const perVenue = await Promise.all(venues.map(v => fetchByDays({ venueId: v.id }, days)));
+          setlists = perVenue.flat();
+        }
+        if (setlists.length === 0 && venues.length) {
+          strategy = 'venue+year';
+          const perVenue = await Promise.all(
+            venues.map(v => fetchSetlists({ venueId: v.id, ...(effectiveYear && { year: effectiveYear }) }, MAX_SETLIST_PAGES).catch(() => []))
+          );
+          setlists = perVenue.flat();
+        }
+      }
+
+      // Last resort: some festival sets carry the festival's own name in
+      // setlist.fm's tour field, and venueName matches more loosely than
+      // an id.
+      if (setlists.length === 0 && name.trim()) {
+        strategy = 'tour/venue-name';
+        const [byTour, byVenueName] = await Promise.all([
+          fetchSetlists({ tourName: name.trim(), ...(effectiveYear && { year: effectiveYear }) }, MAX_SETLIST_PAGES).catch(() => []),
+          fetchSetlists({ venueName: name.trim(), ...(effectiveYear && { year: effectiveYear }) }, MAX_SETLIST_PAGES).catch(() => []),
+        ]);
+        setlists = [...byTour, ...byVenueName];
+      }
     }
 
     const results = toLineup(setlists, { from, to });
-    const responseBody = JSON.stringify({ venues, results, total: results.length });
+    const responseBody = JSON.stringify({ venues, results, total: results.length, strategy });
 
     if (db) {
       const { Timestamp } = require('firebase-admin/firestore');
@@ -239,7 +339,7 @@ exports.handler = async function handler(event) {
         fetchedAt: Timestamp.now(),
         expiresAt: Timestamp.fromDate(new Date(Date.now() + CACHE_TTL_HOURS * 3600 * 1000)),
         ttlHours: CACHE_TTL_HOURS,
-        queryParams: { name: name.toLowerCase().trim(), venueId, year: effectiveYear, from, to },
+        queryParams: { name: name.toLowerCase().trim(), venueId, city: cityName, artist: artist.trim(), year: effectiveYear, from, to },
         hitCount: 0,
       }).catch(e => console.warn('[CACHE] Write error:', e.message));
     }
