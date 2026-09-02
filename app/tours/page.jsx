@@ -9,13 +9,14 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Map, Heart, ArrowLeft, Star, ChevronRight, X } from 'lucide-react';
+import { Map, Heart, ArrowLeft, Star, ChevronRight, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { useTourIndex } from '@/hooks/useRunIndex';
 import useFavoriteTours from '@/hooks/useFavoriteTours';
 import TourDetailView from '@/components/runs/TourDetailView';
 import TourFavoriteButton from '@/components/runs/TourFavoriteButton';
+import TourBrowseModal from '@/components/tours/TourBrowseModal';
 import { Button, PageHeader, EmptyState, Card, SearchField } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 import { tourHref } from '@/lib/runIndex';
@@ -34,6 +35,7 @@ const SORTS = {
 };
 
 function ToursLandingView({ tours, favorites }) {
+  const [browseOpen, setBrowseOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterArtist, setFilterArtist] = useState('');
@@ -71,7 +73,13 @@ function ToursLandingView({ tours, favorites }) {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <PageHeader eyebrow="Tours" title="Your tours" />
+      <PageHeader
+        eyebrow="Tours"
+        title="Your tours"
+        actions={
+          <Button icon={Plus} onClick={() => setBrowseOpen(true)}>Add shows from a tour</Button>
+        }
+      />
 
       {tours.length === 0 ? (
         <EmptyState
@@ -79,6 +87,7 @@ function ToursLandingView({ tours, favorites }) {
           tone="brand"
           title="No tours yet"
           body="Tours are detected automatically from setlist.fm tour names on your imported shows — once a tour has two or more stops in your history, it'll show up here."
+          action={<Button icon={Plus} onClick={() => setBrowseOpen(true)}>Add shows from a tour</Button>}
         />
       ) : (
         <>
@@ -214,6 +223,8 @@ function ToursLandingView({ tours, favorites }) {
           )}
         </>
       )}
+
+      <TourBrowseModal open={browseOpen} onClose={() => setBrowseOpen(false)} />
     </div>
   );
 }

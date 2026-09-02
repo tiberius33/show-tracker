@@ -15,6 +15,7 @@ import { apiUrl } from '@/lib/api';
 import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
+import { buildExistingShowIndex, existingShowStatus } from '@/lib/tourBrowse';
 import { logActivity } from '@/lib/activityFeed';
 import { sendEmailIfAllowed } from '@/lib/email';
 import {
@@ -26,6 +27,48 @@ import {
   bulkShowTagNotification,
   suggestionNudgeEmail,
 } from '@/lib/emailTemplates';
+
+// Gap between writes in a bulk tour add. Enough to keep a 40-night
+// selection from arriving at Firestore as one burst, small enough that a
+// typical five-night selection still feels immediate.
+const BULK_ADD_DELAY_MS = 120;
+
+// ── Helper: mint a show document id ─────────────────────────────────────
+// Show ids have always been millisecond timestamps as strings, and every
+// existing document in Firestore is keyed that way, so the format is fixed.
+// The counter is what makes it safe to mint several in a row: `Date.now()`
+// alone returns the same value for every call inside the same millisecond,
+// which is exactly what a bulk add does. Monotonic, so ids still sort by
+// creation order.
+let lastMintedShowId = 0;
+function mintShowId() {
+  const now = Date.now();
+  lastMintedShowId = now > lastMintedShowId ? now : lastMintedShowId + 1;
+  return String(lastMintedShowId);
+}
+
+// ── Helper: the one place a show document's shape is defined ────────────
+// Both the single add (addShow) and the bulk tour add (addShowsFromTour)
+// build their documents here, so a bulk-added show is byte-for-byte the
+// same shape as a hand-added one — setlist, venue, artist, tour name, all
+// of it. Change the shape here or not at all.
+function buildShowDoc(showData, id) {
+  return {
+    ...showData,
+    id,
+    setlist: showData.setlist || [],
+    createdAt: new Date().toISOString(),
+    isManual: !showData.setlistfmId,
+  };
+}
+
+// The Firestore half of the same path. `createdAt` is replaced with a
+// server timestamp on the way in (the local ISO string above is what the
+// in-memory copy carries until the next load).
+async function writeShowDoc(uid, show) {
+  const { id, ...showData } = show;
+  await setDoc(doc(db, 'users', uid, 'shows', id), { ...showData, createdAt: serverTimestamp() });
+}
 
 // ── Helper: update the user's profile doc with current stats ────────────
 async function updateUserProfile(user, shows = []) {
@@ -180,6 +223,10 @@ export function AppProvider({ children }) {
   // and the Festival CRUD section for how these are read/written. Replaces
   // the old auto-detected/tagged festival concept (isFestival/festivalName
   // on Show, lib/festivalIndex.js) — see CHANGELOG 5.28.0.
+  // Progress of an in-flight bulk tour add (see addShowsFromTour). Lives
+  // here rather than in the modal so the run survives the modal closing.
+  // null when nothing is running.
+  const [bulkAdd, setBulkAdd] = useState(null);
   const [festivals, setFestivals] = useState([]);
   // True until the first Firestore read of the festivals subcollection
   // resolves, so a direct link to /festivals/?festival=<id> shows a loading
@@ -931,14 +978,8 @@ export function AppProvider({ children }) {
       return { id: existing.id, duplicate: true };
     }
 
-    const showId = Date.now().toString();
-    const newShow = {
-      ...showData,
-      id: showId,
-      setlist: showData.setlist || [],
-      createdAt: new Date().toISOString(),
-      isManual: !showData.setlistfmId,
-    };
+    const showId = mintShowId();
+    const newShow = buildShowDoc(showData, showId);
 
     const isFirstShow = shows.length === 0;
 
@@ -982,8 +1023,7 @@ export function AppProvider({ children }) {
 
     try {
       const showRef = doc(db, 'users', user.uid, 'shows', showId);
-      const { id, ...showDataWithoutId } = newShow;
-      await setDoc(showRef, { ...showDataWithoutId, createdAt: serverTimestamp() });
+      await writeShowDoc(user.uid, newShow);
       const updatedShows = [...shows, newShow];
       setShows(updatedShows);
       setShowForm(false);
@@ -1020,6 +1060,114 @@ export function AppProvider({ children }) {
       alert('Failed to add show. Please try again.');
       return null;
     }
+  };
+
+  // ── Bulk add: every night you caught on one tour ────────────────────
+  // The write half of the tour browse flow (see
+  // components/tours/TourBrowseModal.jsx and
+  // netlify/functions/get-tour-shows.js).
+  //
+  // Deliberately NOT one Firestore batch. A batch is all-or-nothing, and
+  // partial failure is the normal case here, not the exception: if three
+  // of twelve fail the user must keep the nine and be told which three to
+  // retry. So this writes one document at a time, throttled, recording
+  // each outcome — losing connectivity mid-run leaves the completed
+  // writes standing and reports the rest as not added.
+  //
+  // Every document goes through buildShowDoc/writeShowDoc, the same pair
+  // addShow uses, so a bulk-added show is indistinguishable from a
+  // hand-added one. What is NOT repeated per show is the aggregate work
+  // addShow does — profile/community/rank recalculation and the artist
+  // image fetch — which runs once at the end instead of N times.
+  //
+  // Progress lives in AppContext rather than in the modal on purpose: the
+  // run survives closing the modal and navigating around the app. Only
+  // closing the tab stops it, and whatever was written by then stands.
+  //
+  // No per-show activity-feed entry. Catching five nights of a tour is one
+  // action by the user, and N feed items for it would drown a friend's
+  // feed; the show documents themselves are identical either way.
+  const addShowsFromTour = async (candidates = []) => {
+    const empty = { added: [], skipped: [], failed: [] };
+    if (!user || guestMode || !candidates.length) return empty;
+
+    // Snapshot the dedup index once. `shows` can't change under us mid-run
+    // (this closure holds one render's array), so ids created during the
+    // run are tracked separately — two nights of the same tour can't
+    // collide, but a candidate list containing the same show twice can.
+    const index = buildExistingShowIndex(shows);
+    const createdThisRun = [];
+    const skipped = [];
+    const failed = [];
+
+    setBulkAdd({ total: candidates.length, completed: 0, added: 0, running: true });
+
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      setBulkAdd({ total: candidates.length, completed: i, added: createdThisRun.length, running: true });
+
+      // Re-checked at write time, not just in the picker: the picker's
+      // marking is a render-time snapshot, and this is the last line of
+      // defence against creating a duplicate.
+      if (existingShowStatus(index, candidate) === 'added') {
+        skipped.push(candidate);
+        continue;
+      }
+
+      try {
+        const show = buildShowDoc(candidate, mintShowId());
+        await writeShowDoc(user.uid, show);
+        createdThisRun.push(show);
+        // Fold each success into the index so a repeated candidate in the
+        // same selection is skipped rather than written twice.
+        if (show.setlistfmId) index.bySetlistfmId.add(String(show.setlistfmId));
+      } catch (error) {
+        console.error('Failed to add show from tour:', error);
+        failed.push({ candidate, reason: error?.message || 'Firestore write failed' });
+      }
+
+      // Throttle so a 40-night selection doesn't burst at Firestore.
+      if (i < candidates.length - 1) await new Promise(r => setTimeout(r, BULK_ADD_DELAY_MS));
+    }
+
+    if (createdThisRun.length > 0) {
+      setShows(prev => [...prev, ...createdThisRun]);
+
+      // Aggregates once, off the post-run list rather than the stale
+      // render-time `shows`.
+      const updatedShows = [...shows, ...createdThisRun];
+      updateUserProfile(user, updatedShows).catch(() => {});
+      updateCommunityStats();
+      calculateUserRank(user.uid, updatedShows.length);
+
+      // One image fetch per distinct artist — a tour is almost always one
+      // artist, so this is a single request for the whole batch.
+      const artists = Array.from(new Set(createdThisRun.map(s => s.artist).filter(Boolean)));
+      artists.forEach(artist => {
+        fetchArtistImage(artist).then(imageUrl => {
+          if (!imageUrl) return;
+          const ids = createdThisRun.filter(s => s.artist === artist).map(s => s.id);
+          ids.forEach(id => {
+            updateDoc(doc(db, 'users', user.uid, 'shows', id), { artistImage: imageUrl }).catch(() => {});
+          });
+          setShows(prev => prev.map(s => (ids.includes(s.id) ? { ...s, artistImage: imageUrl } : s)));
+        }).catch(() => {});
+      });
+    }
+
+    setBulkAdd({ total: candidates.length, completed: candidates.length, added: createdThisRun.length, running: false });
+
+    // Never claim success for the batch when part of it failed.
+    if (failed.length > 0) {
+      setToast({
+        message: `Added ${createdThisRun.length} of ${candidates.length} shows — ${failed.length} failed.`,
+        type: 'error',
+      });
+    } else if (createdThisRun.length > 0) {
+      setToast(`Added ${createdThisRun.length} show${createdThisRun.length !== 1 ? 's' : ''}.`);
+    }
+
+    return { added: createdThisRun, skipped, failed };
   };
 
   const updateShowData = async (showId, updates) => {
@@ -2658,6 +2806,8 @@ export function AppProvider({ children }) {
     // Show CRUD
     saveShow,
     addShow,
+    addShowsFromTour,
+    bulkAdd,
     updateShowData,
     deleteShow,
     backfillArtistImages,
