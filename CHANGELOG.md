@@ -4,6 +4,21 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.29.1] — 2026-09-02
+
+### Changed: Festival Lineup Search Uses the Festival's Own City and Dates
+- The lineup search no longer asks you to type anything. A festival already knows its name, location and date range, so the search just uses them — the modal shows what it's searching and you press one button.
+- **How it finds a lineup now:** setlist.fm has no festival entity *and no date-range parameter* — only an exact `date` and a `year`. A festival is therefore reconstructed as "everything logged in this city on these days", querying one exact date per festival day. This matters: a year-scoped city query returns that city's whole year newest-first, so for anywhere busier than a small town the festival's dates fall off the end long before the page cap. The per-day query returns the festival and nothing else.
+- City is now the primary key rather than the venue, because a festival's setlist.fm venue is its grounds, not its name — BottleRock is logged at "Napa Valley Expo", Bonnaroo at "Great Stage Park". Searching the city on the right days finds those without having to know either. Venue-name resolution, and a year-scoped venue/tour-name search, remain as fallbacks when a festival has no location set.
+- **New "By artist" mode** — for a festival setlist.fm covers thinly, type just the band you saw; the dates and city are already filled in from the festival. Same bulk-select, same dedup, same one-action add.
+- A festival with no location gets a note explaining that adding its city sharpens the search, rather than silently returning worse results.
+
+### Technical
+- `netlify/functions/search-festival-lineup.js` reworked around day-scoped queries: `daysInWindow` enumerates the festival's days in UTC (so month/year boundaries are exact and no local timezone shifts a day, capped at 10), and each day's query is issued in parallel rather than in series. Strategy order is now city+date → venue+date → venue+year → tour/venue-name, with the chosen one reported back as `strategy` for debugging. New `artist` parameter drives the single-artist mode.
+- Unit tests: 11 new cases in `lib/__tests__/festivalLineup.test.js` covering day enumeration (multi-day, single-day, month and year boundaries, the cap, malformed and reversed windows) and location parsing.
+
+---
+
 ## [5.29.0] — 2026-09-02
 
 ### Fixed: Festivals You'd Already Created Didn't Open

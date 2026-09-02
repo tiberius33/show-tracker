@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.29.1',
+      date: 'September 2, 2026',
+      title: 'Smarter Festival Lineup Search',
+      changes: [
+        'The festival lineup search no longer asks you to type anything — it uses the festival’s own city and dates, so you just press one button to see who played',
+        'It now searches by city and date rather than by venue, which is what actually finds a festival: BottleRock is logged under “Napa Valley Expo”, Bonnaroo under “Great Stage Park” — neither is searchable by the festival’s name',
+        'New “By artist” mode for festivals setlist.fm covers thinly — type just the band you saw, the dates and city are already set',
+        'Festivals without a location get a nudge to add their city, since that’s what makes the search accurate',
+      ]
+    },
+    {
       version: '5.29.0',
       date: 'September 2, 2026',
       title: 'Festival Lineup Search, Tour Filters & Wishlist Reorder',
