@@ -12,22 +12,24 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowLeft, Star, ChevronRight, Sparkles, Plus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import useSongIndex from '@/hooks/useSongIndex';
-import { Card, StatFigure } from '@/components/ui';
+import { Card, StatFigure, Button } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 import { newSongsOnTour } from '@/lib/runIndex';
 import { songSlugFromTitle } from '@/lib/songIndex';
 import TourFavoriteButton from './TourFavoriteButton';
+import TourBrowseModal from '@/components/tours/TourBrowseModal';
 
 export default function TourDetailView({ tour, favorites = null }) {
   const router = useRouter();
   const { shows, setSelectedShow } = useApp();
   const songIndex = useSongIndex();
+  const [browseOpen, setBrowseOpen] = useState(false);
 
   const goToShow = (showId) => {
     const show = shows.find(s => s.id === showId);
@@ -67,14 +69,21 @@ export default function TourDetailView({ tour, favorites = null }) {
               {tour.artistName}
             </Link>
           </div>
-          {favorites && (
-            <TourFavoriteButton
-              tour={tour}
-              isFavorite={favorites.isFavorite(tour.key)}
-              pending={favorites.pendingKeys.has(tour.key)}
-              onToggle={favorites.toggleFavorite}
-            />
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Straight to this tour's show list with the nights already in
+                the account marked — see TourBrowseModal's deep entry. */}
+            <Button size="sm" variant="secondary" icon={Plus} onClick={() => setBrowseOpen(true)}>
+              Add more shows
+            </Button>
+            {favorites && (
+              <TourFavoriteButton
+                tour={tour}
+                isFavorite={favorites.isFavorite(tour.key)}
+                pending={favorites.pendingKeys.has(tour.key)}
+                onToggle={favorites.toggleFavorite}
+              />
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6">
@@ -177,6 +186,13 @@ export default function TourDetailView({ tour, favorites = null }) {
           </ul>
         )}
       </Card>
+
+      <TourBrowseModal
+        open={browseOpen}
+        onClose={() => setBrowseOpen(false)}
+        initialArtistName={tour.artistName}
+        initialTourName={tour.tourName}
+      />
     </div>
   );
 }

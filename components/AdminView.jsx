@@ -28,6 +28,8 @@ function AdminView() {
   const [cacheStatus, setCacheStatus] = useState('');
   const [dupeCleanupLoading, setDupeCleanupLoading] = useState(false);
   const [dupeCleanupResult, setDupeCleanupResult] = useState(null);
+  const [festMigrationLoading, setFestMigrationLoading] = useState(false);
+  const [festMigrationResult, setFestMigrationResult] = useState(null);
   // ── Missing setlists (all-users scan) ────────────────────────────
   const [missingSetlistsLoading, setMissingSetlistsLoading] = useState(false);
   const [missingSetlistsResults, setMissingSetlistsResults] = useState(null);
@@ -2875,6 +2877,127 @@ function AdminView() {
           </div>
         </div>
       )}
+
+      {/* Shared Festival Migration (v5.30.0) — one-time move from per-user
+          festivals to the shared catalog + attendance records. Idempotent,
+          so re-running it is safe; see
+          netlify/functions/admin-migrate-festivals.js. */}
+      <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-6">
+        <h3 className="text-lg font-semibold text-primary mb-1">Shared Festival Migration</h3>
+        <p className="text-secondary text-sm mb-4">
+          Groups every user&apos;s per-user festivals into one shared festival each, and repoints
+          their records at it. Never touches a show, a note or a rating. Safe to run twice.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={async () => {
+              setFestMigrationLoading(true);
+              setFestMigrationResult(null);
+              try {
+                const token = await auth.currentUser.getIdToken();
+                const res = await fetch(apiUrl('/.netlify/functions/admin-migrate-festivals'), {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ dryRun: true }),
+                });
+                setFestMigrationResult(await res.json());
+              } catch (e) {
+                setFestMigrationResult({ error: e.message });
+              }
+              setFestMigrationLoading(false);
+            }}
+            disabled={festMigrationLoading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-subtle hover:bg-amber/30 text-amber border border-amber/30 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+          >
+            <Search className="w-4 h-4" />
+            {festMigrationLoading ? 'Scanning...' : 'Dry Run (Preview)'}
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm('This rewrites every user\'s festival records to point at shared festivals. Review the dry run first. Continue?')) return;
+              setFestMigrationLoading(true);
+              setFestMigrationResult(null);
+              try {
+                const token = await auth.currentUser.getIdToken();
+                const res = await fetch(apiUrl('/.netlify/functions/admin-migrate-festivals'), {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ dryRun: false }),
+                });
+                setFestMigrationResult(await res.json());
+              } catch (e) {
+                setFestMigrationResult({ error: e.message });
+              }
+              setFestMigrationLoading(false);
+            }}
+            disabled={festMigrationLoading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+          >
+            <Database className="w-4 h-4" />
+            Run Migration
+          </button>
+        </div>
+        {festMigrationResult && (
+          <div className="mt-4 bg-surface border border-subtle rounded-xl p-4 text-sm">
+            {festMigrationResult.error ? (
+              <p className="text-danger">Error: {festMigrationResult.error}</p>
+            ) : (
+              <>
+                <p className="text-primary font-medium mb-2">
+                  {festMigrationResult.dryRun ? '🔍 Dry Run Results' : '✅ Migration Complete'}
+                </p>
+                <div className="space-y-1 text-secondary">
+                  <p>Users scanned: {festMigrationResult.usersScanned}</p>
+                  <p>Festival records scanned: {festMigrationResult.festivalsScanned}</p>
+                  <p>Already migrated: {festMigrationResult.alreadyMigrated}</p>
+                  <p>Shared festivals {festMigrationResult.dryRun ? 'to create' : 'created'}: {festMigrationResult.canonicalCreated}</p>
+                  <p>Records {festMigrationResult.dryRun ? 'to repoint' : 'repointed'}: {festMigrationResult.recordsRepointed}</p>
+                  <p>Groups merging 2+ users: {festMigrationResult.mergedGroups}</p>
+                </div>
+                {festMigrationResult.groups?.length > 0 && (
+                  <div className="mt-3 max-h-56 overflow-y-auto space-y-1">
+                    {festMigrationResult.groups.map((g, i) => (
+                      <p key={i} className="text-xs text-muted">
+                        {g.reused ? 'reuse' : 'create'} · {g.canonical.name} ({g.canonical.startDate}
+                        {g.canonical.endDate !== g.canonical.startDate ? `–${g.canonical.endDate}` : ''})
+                        {' — '}{g.memberCount} user{g.memberCount !== 1 ? 's' : ''}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {festMigrationResult.conflicts?.length > 0 && (
+                  <details className="mt-3">
+                    <summary className="text-amber text-sm cursor-pointer font-medium">
+                      {festMigrationResult.conflicts.length} conflict{festMigrationResult.conflicts.length !== 1 ? 's' : ''} — earliest record kept, review these
+                    </summary>
+                    <div className="mt-2 p-3 bg-amber/5 border border-amber/20 rounded-lg max-h-40 overflow-y-auto">
+                      {festMigrationResult.conflicts.map((c, i) => (
+                        <p key={i} className="text-xs text-amber/80 mb-1">
+                          {c.festival} · {c.uid}: {c.differences.join('; ')}
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                )}
+                {festMigrationResult.failures?.length > 0 && (
+                  <details className="mt-3">
+                    <summary className="text-danger text-sm cursor-pointer font-medium">
+                      {festMigrationResult.failures.length} failure{festMigrationResult.failures.length !== 1 ? 's' : ''} — left untouched
+                    </summary>
+                    <div className="mt-2 p-3 bg-danger/5 border border-danger/20 rounded-lg max-h-40 overflow-y-auto">
+                      {festMigrationResult.failures.map((f, i) => (
+                        <p key={i} className="text-xs text-danger/80 mb-1">
+                          {f.scope} {f.uid || f.name}: {f.reason}
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Cache Management */}
       <div className="space-y-4">

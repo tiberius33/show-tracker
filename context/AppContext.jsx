@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import {
   collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc,
-  serverTimestamp, onSnapshot, query, where, addDoc, writeBatch,
+  serverTimestamp, onSnapshot, query, where, addDoc, writeBatch, limit,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, browserPopupRedirectResolver } from '@/lib/firebase';
 import { formatDate, parseDate, extractFirstName, normalizeSongTitle } from '@/lib/utils';
@@ -15,6 +15,8 @@ import { apiUrl } from '@/lib/api';
 import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
+import { buildExistingShowIndex, existingShowStatus } from '@/lib/tourBrowse';
+import { normalizeFestivalName, findFestivalMatches as matchFestivals } from '@/lib/festivalMatch';
 import { logActivity } from '@/lib/activityFeed';
 import { sendEmailIfAllowed } from '@/lib/email';
 import {
@@ -26,6 +28,48 @@ import {
   bulkShowTagNotification,
   suggestionNudgeEmail,
 } from '@/lib/emailTemplates';
+
+// Gap between writes in a bulk tour add. Enough to keep a 40-night
+// selection from arriving at Firestore as one burst, small enough that a
+// typical five-night selection still feels immediate.
+const BULK_ADD_DELAY_MS = 120;
+
+// ── Helper: mint a show document id ─────────────────────────────────────
+// Show ids have always been millisecond timestamps as strings, and every
+// existing document in Firestore is keyed that way, so the format is fixed.
+// The counter is what makes it safe to mint several in a row: `Date.now()`
+// alone returns the same value for every call inside the same millisecond,
+// which is exactly what a bulk add does. Monotonic, so ids still sort by
+// creation order.
+let lastMintedShowId = 0;
+function mintShowId() {
+  const now = Date.now();
+  lastMintedShowId = now > lastMintedShowId ? now : lastMintedShowId + 1;
+  return String(lastMintedShowId);
+}
+
+// ── Helper: the one place a show document's shape is defined ────────────
+// Both the single add (addShow) and the bulk tour add (addShowsFromTour)
+// build their documents here, so a bulk-added show is byte-for-byte the
+// same shape as a hand-added one — setlist, venue, artist, tour name, all
+// of it. Change the shape here or not at all.
+function buildShowDoc(showData, id) {
+  return {
+    ...showData,
+    id,
+    setlist: showData.setlist || [],
+    createdAt: new Date().toISOString(),
+    isManual: !showData.setlistfmId,
+  };
+}
+
+// The Firestore half of the same path. `createdAt` is replaced with a
+// server timestamp on the way in (the local ISO string above is what the
+// in-memory copy carries until the next load).
+async function writeShowDoc(uid, show) {
+  const { id, ...showData } = show;
+  await setDoc(doc(db, 'users', uid, 'shows', id), { ...showData, createdAt: serverTimestamp() });
+}
 
 // ── Helper: update the user's profile doc with current stats ────────────
 async function updateUserProfile(user, shows = []) {
@@ -176,10 +220,15 @@ export function AppProvider({ children }) {
 
   // ── Core state ──────────────────────────────────────────────────────
   const [shows, setShows] = useState([]);
-  // User-created festivals (users/{uid}/festivals) — see loadFestivals below
-  // and the Festival CRUD section for how these are read/written. Replaces
-  // the old auto-detected/tagged festival concept (isFestival/festivalName
-  // on Show, lib/festivalIndex.js) — see CHANGELOG 5.28.0.
+  // Progress of an in-flight bulk tour add (see addShowsFromTour). Lives
+  // here rather than in the modal so the run survives the modal closing.
+  // null when nothing is running.
+  const [bulkAdd, setBulkAdd] = useState(null);
+  // The user's festivals, each one a per-user *attendance* record joined to
+  // the shared canonical festival it points at — see the Festival CRUD
+  // section for both shapes. Replaces the fully per-user festivals of
+  // 5.28.0 (CHANGELOG 5.30.0) and, before those, the auto-detected
+  // isFestival/festivalName tagging on Show.
   const [festivals, setFestivals] = useState([]);
   // True until the first Firestore read of the festivals subcollection
   // resolves, so a direct link to /festivals/?festival=<id> shows a loading
@@ -547,15 +596,56 @@ export function AppProvider({ children }) {
   }, [calculateUserRank]);
 
   // ── Load festivals from Firestore ────────────────────────────────────
-  // Same per-user subcollection shape as shows (users/{uid}/festivals), but
-  // owner-only — unlike shows there's no "Shows Together" cross-user read
-  // need, so firestore.rules keeps this private to the owner.
+  // Two reads per festival: the user's own attendance record
+  // (users/{uid}/festivals/{attendanceId}, owner-only) and the shared
+  // canonical festival it points at (festivals/{festivalId}, readable by
+  // any signed-in user). They are joined here, at read time, rather than
+  // by copying canonical fields onto the attendance record — which is what
+  // keeps a creator's later date correction visible to everyone who joined
+  // instead of leaving them holding a stale copy.
+  //
+  // A canonical document that can't be read (deleted by an admin, or a
+  // rules rejection) leaves the attendance record in the list marked
+  // `unavailable` rather than dropping it, so a user never silently loses
+  // a festival — and never loses the shows attached to it, which are
+  // linked by attendance id and are unaffected either way.
   const loadFestivals = useCallback(async (userId) => {
     setFestivalsLoading(true);
     try {
-      const festivalsRef = collection(db, 'users', userId, 'festivals');
-      const snapshot = await getDocs(festivalsRef);
-      const loaded = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const snapshot = await getDocs(collection(db, 'users', userId, 'festivals'));
+      const attendances = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      const loaded = await Promise.all(attendances.map(async (attendance) => {
+        if (!attendance.festivalId) {
+          // Pre-migration record: still fully per-user, so it already
+          // carries its own name/dates. Renders exactly as it always has.
+          return { ...attendance, festivalId: null, isCreator: true, unmigrated: true };
+        }
+        try {
+          const canonicalSnap = await getDoc(doc(db, 'festivals', attendance.festivalId));
+          if (!canonicalSnap.exists()) {
+            return { ...attendance, unavailable: true, name: attendance.name || 'Unavailable festival' };
+          }
+          const canonical = canonicalSnap.data();
+          return {
+            // Personal fields first, canonical last: the shared document is
+            // the single source of truth for name/dates/location, so it
+            // wins on any field that somehow exists on both.
+            ...attendance,
+            name: canonical.name,
+            startDate: canonical.startDate,
+            endDate: canonical.endDate,
+            location: canonical.location || '',
+            edition: canonical.edition || '',
+            createdBy: canonical.createdBy,
+            isCreator: canonical.createdBy === userId,
+          };
+        } catch (e) {
+          console.warn('Failed to read canonical festival:', attendance.festivalId, e.message);
+          return { ...attendance, unavailable: true, name: attendance.name || 'Unavailable festival' };
+        }
+      }));
+
       setFestivals(loaded);
     } catch (error) {
       // Don't fail silently — an empty Festivals page and a Festivals page
@@ -931,14 +1021,8 @@ export function AppProvider({ children }) {
       return { id: existing.id, duplicate: true };
     }
 
-    const showId = Date.now().toString();
-    const newShow = {
-      ...showData,
-      id: showId,
-      setlist: showData.setlist || [],
-      createdAt: new Date().toISOString(),
-      isManual: !showData.setlistfmId,
-    };
+    const showId = mintShowId();
+    const newShow = buildShowDoc(showData, showId);
 
     const isFirstShow = shows.length === 0;
 
@@ -982,8 +1066,7 @@ export function AppProvider({ children }) {
 
     try {
       const showRef = doc(db, 'users', user.uid, 'shows', showId);
-      const { id, ...showDataWithoutId } = newShow;
-      await setDoc(showRef, { ...showDataWithoutId, createdAt: serverTimestamp() });
+      await writeShowDoc(user.uid, newShow);
       const updatedShows = [...shows, newShow];
       setShows(updatedShows);
       setShowForm(false);
@@ -1020,6 +1103,114 @@ export function AppProvider({ children }) {
       alert('Failed to add show. Please try again.');
       return null;
     }
+  };
+
+  // ── Bulk add: every night you caught on one tour ────────────────────
+  // The write half of the tour browse flow (see
+  // components/tours/TourBrowseModal.jsx and
+  // netlify/functions/get-tour-shows.js).
+  //
+  // Deliberately NOT one Firestore batch. A batch is all-or-nothing, and
+  // partial failure is the normal case here, not the exception: if three
+  // of twelve fail the user must keep the nine and be told which three to
+  // retry. So this writes one document at a time, throttled, recording
+  // each outcome — losing connectivity mid-run leaves the completed
+  // writes standing and reports the rest as not added.
+  //
+  // Every document goes through buildShowDoc/writeShowDoc, the same pair
+  // addShow uses, so a bulk-added show is indistinguishable from a
+  // hand-added one. What is NOT repeated per show is the aggregate work
+  // addShow does — profile/community/rank recalculation and the artist
+  // image fetch — which runs once at the end instead of N times.
+  //
+  // Progress lives in AppContext rather than in the modal on purpose: the
+  // run survives closing the modal and navigating around the app. Only
+  // closing the tab stops it, and whatever was written by then stands.
+  //
+  // No per-show activity-feed entry. Catching five nights of a tour is one
+  // action by the user, and N feed items for it would drown a friend's
+  // feed; the show documents themselves are identical either way.
+  const addShowsFromTour = async (candidates = []) => {
+    const empty = { added: [], skipped: [], failed: [] };
+    if (!user || guestMode || !candidates.length) return empty;
+
+    // Snapshot the dedup index once. `shows` can't change under us mid-run
+    // (this closure holds one render's array), so ids created during the
+    // run are tracked separately — two nights of the same tour can't
+    // collide, but a candidate list containing the same show twice can.
+    const index = buildExistingShowIndex(shows);
+    const createdThisRun = [];
+    const skipped = [];
+    const failed = [];
+
+    setBulkAdd({ total: candidates.length, completed: 0, added: 0, running: true });
+
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      setBulkAdd({ total: candidates.length, completed: i, added: createdThisRun.length, running: true });
+
+      // Re-checked at write time, not just in the picker: the picker's
+      // marking is a render-time snapshot, and this is the last line of
+      // defence against creating a duplicate.
+      if (existingShowStatus(index, candidate) === 'added') {
+        skipped.push(candidate);
+        continue;
+      }
+
+      try {
+        const show = buildShowDoc(candidate, mintShowId());
+        await writeShowDoc(user.uid, show);
+        createdThisRun.push(show);
+        // Fold each success into the index so a repeated candidate in the
+        // same selection is skipped rather than written twice.
+        if (show.setlistfmId) index.bySetlistfmId.add(String(show.setlistfmId));
+      } catch (error) {
+        console.error('Failed to add show from tour:', error);
+        failed.push({ candidate, reason: error?.message || 'Firestore write failed' });
+      }
+
+      // Throttle so a 40-night selection doesn't burst at Firestore.
+      if (i < candidates.length - 1) await new Promise(r => setTimeout(r, BULK_ADD_DELAY_MS));
+    }
+
+    if (createdThisRun.length > 0) {
+      setShows(prev => [...prev, ...createdThisRun]);
+
+      // Aggregates once, off the post-run list rather than the stale
+      // render-time `shows`.
+      const updatedShows = [...shows, ...createdThisRun];
+      updateUserProfile(user, updatedShows).catch(() => {});
+      updateCommunityStats();
+      calculateUserRank(user.uid, updatedShows.length);
+
+      // One image fetch per distinct artist — a tour is almost always one
+      // artist, so this is a single request for the whole batch.
+      const artists = Array.from(new Set(createdThisRun.map(s => s.artist).filter(Boolean)));
+      artists.forEach(artist => {
+        fetchArtistImage(artist).then(imageUrl => {
+          if (!imageUrl) return;
+          const ids = createdThisRun.filter(s => s.artist === artist).map(s => s.id);
+          ids.forEach(id => {
+            updateDoc(doc(db, 'users', user.uid, 'shows', id), { artistImage: imageUrl }).catch(() => {});
+          });
+          setShows(prev => prev.map(s => (ids.includes(s.id) ? { ...s, artistImage: imageUrl } : s)));
+        }).catch(() => {});
+      });
+    }
+
+    setBulkAdd({ total: candidates.length, completed: candidates.length, added: createdThisRun.length, running: false });
+
+    // Never claim success for the batch when part of it failed.
+    if (failed.length > 0) {
+      setToast({
+        message: `Added ${createdThisRun.length} of ${candidates.length} shows — ${failed.length} failed.`,
+        type: 'error',
+      });
+    } else if (createdThisRun.length > 0) {
+      setToast(`Added ${createdThisRun.length} show${createdThisRun.length !== 1 ? 's' : ''}.`);
+    }
+
+    return { added: createdThisRun, skipped, failed };
   };
 
   const updateShowData = async (showId, updates) => {
@@ -1187,38 +1378,225 @@ export function AppProvider({ children }) {
   };
 
   // === FESTIVAL FUNCTIONS ===
-  // Explicit, user-created Festival objects, one per user
-  // (users/{uid}/festivals/{festivalId}) — replaces the old auto-detected
-  // isFestival/festivalName tagging on Show (see CHANGELOG 5.28.0). Link
-  // direction: `festivalId` lives on the Show doc (not `showIds` on the
-  // Festival) because shows are already loaded in full into `shows` state,
-  // so filtering that array by festivalId is cheap, always in sync with
-  // this session's data, and never needs a second write to stay consistent.
-  // A show's `festivalId` is simply orphaned (and the app stops reading it)
-  // once its Festival doc is deleted — see deleteFestival below.
   //
-  // A show may belong to at most one festival. attachShowsToFestival
-  // reports any shows already attached elsewhere as `conflicts` instead of
-  // silently double-attaching, so the caller can offer "move it".
+  // TWO DOCUMENTS PER USER PER FESTIVAL. This replaces 5.28.0's fully
+  // per-user festivals, where two people who both went to Bonnaroo 2026
+  // created two unrelated records.
+  //
+  //   festivals/{festivalId} — the CANONICAL, shared document. One per
+  //   real-world festival edition. Readable by any signed-in user,
+  //   editable only by its creator (and admin). Fields, and these are the
+  //   only fields it ever holds:
+  //       name            string   as the creator typed it
+  //       nameNormalized  string   lib/festivalMatch normalizeFestivalName(name),
+  //                                the key the dedup prefix query ranges over
+  //       startDate       string   yyyy-MM-dd
+  //       endDate         string   yyyy-MM-dd (== startDate for a one-day festival)
+  //       location        string   free text city/state, or a venue
+  //       edition         string   optional, e.g. "2026"
+  //       createdBy       string   uid
+  //       createdAt       Timestamp
+  //       updatedAt       Timestamp
+  //
+  //   users/{uid}/festivals/{attendanceId} — the per-user ATTENDANCE
+  //   record, in the same private subcollection festivals have always
+  //   lived in. Fields:
+  //       festivalId      string   pointer to the canonical document
+  //       notes           string   this user's notes
+  //       rating          number|null  this user's rating
+  //       createdAt, updatedAt
+  //
+  // NOTHING PERSONAL GOES IN THE CANONICAL DOCUMENT, AND NO CANONICAL
+  // FIELD IS COPIED ONTO THE ATTENDANCE RECORD. That is the whole point of
+  // the split: the failure mode here is the same fact living in both
+  // documents and drifting, so a name or date change by the creator is
+  // visible to everyone immediately because nobody else stored a copy.
+  // loadFestivals joins the two at read time.
+  //
+  // ATTENDANCE ID vs FESTIVAL ID. A show's `festivalId` field points at
+  // the *attendance* record's id, exactly as it did before this change —
+  // so no show document had to be rewritten to move to shared festivals,
+  // and /festivals/?festival=<id> links from before it still resolve. The
+  // canonical id is reached through the attendance record's own
+  // `festivalId` field. Everything that takes a "festivalId" argument in
+  // this file (attachShowsToFestival, detachShowsFromFestival,
+  // importShowsToFestival, useFestivalShows) means the attendance id.
+  //
+  // Link direction for shows is unchanged: `festivalId` lives on the Show
+  // doc rather than `showIds` on the festival, because shows are already
+  // loaded in full into `shows` state, so filtering that array is cheap
+  // and never needs a second write to stay consistent. A show may belong
+  // to at most one festival; attachShowsToFestival reports any show
+  // already attached elsewhere as a `conflict` rather than silently
+  // double-attaching.
+  //
+  // NOT BUILT, DELIBERATELY: there is no admin merge/moderation tool for
+  // duplicate canonical festivals. When one is wanted it belongs beside
+  // the other bulk tools in components/AdminView.jsx, backed by a
+  // netlify/functions/admin-*.js using the same match rule
+  // (lib/festivalMatch.js) the migration does.
 
-  const createFestival = async (festivalData) => {
-    if (!user) throw new Error('Sign in required to create a festival.');
+  // How many canonical festivals a dedup lookup will pull down before
+  // fuzzy-matching client-side. Firestore can't do fuzzy search, so the
+  // query has to be bounded and the real comparison happens in
+  // lib/festivalMatch.js over a small candidate set.
+  const FESTIVAL_CANDIDATE_LIMIT = 20;
+
+  // Finds canonical festivals that are probably the one the user is about
+  // to create.
+  //
+  // TWO BOUNDED QUERIES, both single-field ranges, both served by
+  // Firestore's automatic single-field indexes — no composite index is
+  // required and none was added to firestore.indexes.json:
+  //
+  //   1. Name prefix: nameNormalized >= <first token> AND
+  //      nameNormalized <= <first token> + '\uf8ff'. Catches "Bonnaroo"
+  //      against "Bonnaroo Music and Arts Festival" and vice versa.
+  //   2. Date window: startDate >= (start - 7d) AND startDate <= (end + 7d).
+  //      Catches a festival whose name is spelled differently enough that
+  //      the prefix misses it — the common case being a canonical record
+  //      whose name starts with a word the user didn't type.
+  //
+  // The union of the two is then run through the real rule
+  // (lib/festivalMatch.js), which is where the year/edition guard lives.
+  const findFestivalMatchesFor = async (draft) => {
+    if (!user || !draft?.name?.trim() || !draft?.startDate) return [];
+
+    const normalized = normalizeFestivalName(draft.name);
+    const prefix = normalized.split(' ')[0] || '';
+    const catalog = new Map();
+
+    const collect = (snap) => snap.docs.forEach(d => catalog.set(d.id, { id: d.id, ...d.data() }));
+
+    try {
+      if (prefix) {
+        collect(await getDocs(query(
+          collection(db, 'festivals'),
+          where('nameNormalized', '>=', prefix),
+          where('nameNormalized', '<=', `${prefix}\uf8ff`),
+          limit(FESTIVAL_CANDIDATE_LIMIT),
+        )));
+      }
+
+      const pad = 7 * 86400000;
+      const from = new Date(Date.parse(`${draft.startDate}T00:00:00Z`) - pad);
+      const to = new Date(Date.parse(`${draft.endDate || draft.startDate}T00:00:00Z`) + pad);
+      if (!Number.isNaN(from.getTime()) && !Number.isNaN(to.getTime())) {
+        collect(await getDocs(query(
+          collection(db, 'festivals'),
+          where('startDate', '>=', from.toISOString().slice(0, 10)),
+          where('startDate', '<=', to.toISOString().slice(0, 10)),
+          limit(FESTIVAL_CANDIDATE_LIMIT),
+        )));
+      }
+    } catch (error) {
+      // A failed lookup must never block creation — the worst outcome is a
+      // duplicate the match rule will surface next time.
+      console.warn('Festival match lookup failed:', error.message);
+      return [];
+    }
+
+    // A festival the user has already joined isn't a match to offer.
+    const joined = new Set((festivals || []).map(f => f.festivalId).filter(Boolean));
+    return matchFestivals(draft, Array.from(catalog.values()).filter(c => !joined.has(c.id)));
+  };
+
+  // Writes only the user's attendance record against an existing canonical
+  // festival. The canonical document is never touched — not even a
+  // counter: the attendee count is derived on read where it's needed,
+  // which is simpler and leaves nothing for a client to inflate.
+  const joinFestival = async (canonicalFestival) => {
+    if (!user) throw new Error('Sign in required to join a festival.');
+    if (!canonicalFestival?.id) throw new Error('No festival to join.');
+
+    const already = (festivals || []).find(f => f.festivalId === canonicalFestival.id);
+    if (already) return already;
+
     try {
       const ref = doc(collection(db, 'users', user.uid, 'festivals'));
-      const festival = {
-        name: (festivalData.name || '').trim(),
-        startDate: festivalData.startDate,
-        endDate: festivalData.endDate,
-        location: festivalData.location?.trim() || '',
-        notes: festivalData.notes?.trim() || '',
+      const attendance = {
+        festivalId: canonicalFestival.id,
+        notes: '',
+        rating: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
-      await setDoc(ref, festival);
-      const newFestival = { id: ref.id, ...festival, createdAt: new Date(), updatedAt: new Date() };
-      setFestivals(prev => [...prev, newFestival]);
+      await setDoc(ref, attendance);
+
+      const joined = {
+        ...attendance,
+        id: ref.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        name: canonicalFestival.name,
+        startDate: canonicalFestival.startDate,
+        endDate: canonicalFestival.endDate,
+        location: canonicalFestival.location || '',
+        edition: canonicalFestival.edition || '',
+        createdBy: canonicalFestival.createdBy,
+        isCreator: canonicalFestival.createdBy === user.uid,
+      };
+      setFestivals(prev => [...prev, joined]);
+      setToast(`Joined ${canonicalFestival.name}.`);
+      return joined;
+    } catch (error) {
+      console.error('Failed to join festival:', error);
+      setToast({ message: 'Failed to join that festival. Please try again.', type: 'error' });
+      throw error;
+    }
+  };
+
+  // Creates a canonical festival AND the creator's own attendance record.
+  //
+  // Two users creating the same festival within seconds of each other both
+  // succeed — there is deliberately no distributed lock. One of them ends
+  // up holding a near-duplicate, which the match rule surfaces to the next
+  // person who tries to create it. Crashing, or blocking a create on a
+  // read that may be a second stale, would both be worse.
+  const createFestival = async (festivalData) => {
+    if (!user) throw new Error('Sign in required to create a festival.');
+    const name = (festivalData.name || '').trim();
+    try {
+      const canonicalRef = doc(collection(db, 'festivals'));
+      const canonical = {
+        name,
+        nameNormalized: normalizeFestivalName(name),
+        startDate: festivalData.startDate,
+        endDate: festivalData.endDate || festivalData.startDate,
+        location: festivalData.location?.trim() || '',
+        edition: (festivalData.edition || '').trim(),
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      await setDoc(canonicalRef, canonical);
+
+      const attendanceRef = doc(collection(db, 'users', user.uid, 'festivals'));
+      const attendance = {
+        festivalId: canonicalRef.id,
+        notes: festivalData.notes?.trim() || '',
+        rating: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      await setDoc(attendanceRef, attendance);
+
+      const created = {
+        ...attendance,
+        id: attendanceRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        name: canonical.name,
+        startDate: canonical.startDate,
+        endDate: canonical.endDate,
+        location: canonical.location,
+        edition: canonical.edition,
+        createdBy: user.uid,
+        isCreator: true,
+      };
+      setFestivals(prev => [...prev, created]);
       setToast('Festival created.');
-      return newFestival;
+      return created;
     } catch (error) {
       console.error('Failed to create festival:', error);
       setToast({ message: 'Failed to create festival. Please try again.', type: 'error' });
@@ -1226,13 +1604,57 @@ export function AppProvider({ children }) {
     }
   };
 
-  const updateFestivalData = async (festivalId, updates) => {
+  // Splits an edit between the two documents by field. Shared details
+  // (name/dates/location/edition) go to the canonical document and are
+  // creator-only — the rules reject anyone else, and the UI doesn't offer
+  // it. Personal fields (notes, rating) always go to the caller's own
+  // attendance record.
+  const CANONICAL_FESTIVAL_FIELDS = ['name', 'startDate', 'endDate', 'location', 'edition'];
+
+  const updateFestivalData = async (attendanceId, updates) => {
     if (!user) return;
+    const festival = (festivals || []).find(f => f.id === attendanceId);
+    if (!festival) return;
+
+    const canonicalPatch = {};
+    const personalPatch = {};
+    Object.entries(updates || {}).forEach(([key, value]) => {
+      if (CANONICAL_FESTIVAL_FIELDS.includes(key)) canonicalPatch[key] = value;
+      else personalPatch[key] = value;
+    });
+
+    // A pre-migration record has no canonical document yet, so every field
+    // still belongs on the user's own record — it keeps working untouched
+    // until the migration reaches it.
+    if (festival.unmigrated) {
+      Object.assign(personalPatch, canonicalPatch);
+      for (const key of Object.keys(canonicalPatch)) delete canonicalPatch[key];
+    }
+
+    if (Object.keys(canonicalPatch).length > 0 && !festival.isCreator) {
+      setToast({ message: 'Only the person who created this festival can change its details.', type: 'error' });
+      return;
+    }
+
     try {
-      const ref = doc(db, 'users', user.uid, 'festivals', festivalId);
-      const patch = { ...updates, updatedAt: serverTimestamp() };
-      await updateDoc(ref, patch);
-      setFestivals(prev => prev.map(f => f.id === festivalId ? { ...f, ...updates, updatedAt: new Date() } : f));
+      if (Object.keys(canonicalPatch).length > 0 && festival.festivalId) {
+        if (canonicalPatch.name != null) {
+          canonicalPatch.nameNormalized = normalizeFestivalName(canonicalPatch.name);
+        }
+        await updateDoc(doc(db, 'festivals', festival.festivalId), {
+          ...canonicalPatch,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      if (Object.keys(personalPatch).length > 0) {
+        await updateDoc(doc(db, 'users', user.uid, 'festivals', attendanceId), {
+          ...personalPatch,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      setFestivals(prev => prev.map(f => (
+        f.id === attendanceId ? { ...f, ...personalPatch, ...canonicalPatch, updatedAt: new Date() } : f
+      )));
     } catch (error) {
       console.error('Failed to update festival:', error);
       setToast({ message: 'Failed to save festival changes. Please try again.', type: 'error' });
@@ -1240,20 +1662,30 @@ export function AppProvider({ children }) {
     }
   };
 
-  // Deletes the Festival doc only — attached shows are kept, they simply
-  // stop pointing at a live festival (their festivalId field is left as
-  // orphaned data rather than requiring an extra write per show; the UI
-  // never reads festivalId for a festival that no longer exists in
-  // `festivals`, so nothing shows up broken).
-  const deleteFestival = async (festivalId) => {
+  // Leaving deletes ONLY this user's attendance record and detaches their
+  // own shows from it. The canonical festival survives — including when
+  // the person leaving is the one who created it, so everyone else keeps
+  // theirs — and nobody else's attendance, notes or shows are touched.
+  // The shows themselves are never deleted; they go back to being ordinary
+  // shows in the user's history.
+  const leaveFestival = async (attendanceId) => {
     if (!user) return;
     try {
-      await deleteDoc(doc(db, 'users', user.uid, 'festivals', festivalId));
-      setFestivals(prev => prev.filter(f => f.id !== festivalId));
-      setToast('Festival deleted. Its shows were kept in your history.');
+      const attachedIds = (shows || []).filter(s => s.festivalId === attendanceId).map(s => s.id);
+      if (attachedIds.length > 0) {
+        const batch = writeBatch(db);
+        attachedIds.forEach(showId => {
+          batch.update(doc(db, 'users', user.uid, 'shows', showId), { festivalId: null });
+        });
+        await batch.commit();
+        setShows(prev => prev.map(s => (attachedIds.includes(s.id) ? { ...s, festivalId: null } : s)));
+      }
+      await deleteDoc(doc(db, 'users', user.uid, 'festivals', attendanceId));
+      setFestivals(prev => prev.filter(f => f.id !== attendanceId));
+      setToast('Left the festival. Your shows were kept in your history.');
     } catch (error) {
-      console.error('Failed to delete festival:', error);
-      setToast({ message: 'Failed to delete festival. Please try again.', type: 'error' });
+      console.error('Failed to leave festival:', error);
+      setToast({ message: 'Failed to leave the festival. Please try again.', type: 'error' });
       throw error;
     }
   };
@@ -2650,7 +3082,9 @@ export function AppProvider({ children }) {
     festivalsLoading,
     createFestival,
     updateFestivalData,
-    deleteFestival,
+    findFestivalMatches: findFestivalMatchesFor,
+    joinFestival,
+    leaveFestival,
     attachShowsToFestival,
     detachShowsFromFestival,
     importShowsToFestival,
@@ -2658,6 +3092,8 @@ export function AppProvider({ children }) {
     // Show CRUD
     saveShow,
     addShow,
+    addShowsFromTour,
+    bulkAdd,
     updateShowData,
     deleteShow,
     backfillArtistImages,

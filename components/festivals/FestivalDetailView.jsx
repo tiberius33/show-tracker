@@ -5,19 +5,28 @@
 // grouped by calendar day (see lib/festivalGrouping.js — via
 // hooks/useFestivalShows.js), the artist list linking out to each artist's
 // shows, editable notes, and the add/remove-shows entry points.
+//
+// The header reads the SHARED canonical festival (name, dates, location);
+// everything below it — the attached shows, the notes, the rating — reads
+// the user's own attendance record. Two people at the same festival see
+// the same header and completely separate shows and notes.
+//
+// The destructive action here is "leave", not "delete". A client can never
+// delete a canonical festival, not even its creator's; leaving removes
+// only this user's attendance and keeps their shows.
 
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star, Pencil, Trash2, UserPlus, X, Search } from 'lucide-react';
+import { ArrowLeft, Star, Pencil, LogOut, UserPlus, X, Search, Users } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import useFestivalShows from '@/hooks/useFestivalShows';
 import { Card, StatFigure, Button, Textarea } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 import FestivalFormModal from './FestivalFormModal';
-import DeleteFestivalModal from './DeleteFestivalModal';
+import LeaveFestivalModal from './LeaveFestivalModal';
 import AttachShowsModal from './AttachShowsModal';
 import FestivalLineupModal from './FestivalLineupModal';
 
@@ -25,14 +34,14 @@ export default function FestivalDetailView({ festival }) {
   const router = useRouter();
   const {
     shows, festivals, setSelectedShow,
-    updateFestivalData, deleteFestival, attachShowsToFestival, detachShowsFromFestival,
+    updateFestivalData, leaveFestival, attachShowsToFestival, detachShowsFromFestival,
     importShowsToFestival,
   } = useApp();
 
   const stats = useFestivalShows(festival.id);
 
   const [showEdit, setShowEdit] = useState(false);
-  const [showDelete, setShowDelete] = useState(false);
+  const [showLeave, setShowLeave] = useState(false);
   const [showAttach, setShowAttach] = useState(false);
   const [showLineup, setShowLineup] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
@@ -80,23 +89,30 @@ export default function FestivalDetailView({ festival }) {
               {festival.endDate !== festival.startDate ? ` – ${formatDate(festival.endDate)}` : ''}
               {festival.location ? ` · ${festival.location}` : ''}
             </p>
+            {festival.festivalId && !festival.isCreator && (
+              <p className="text-xs text-muted mt-1.5 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                Added by another user — its name, dates and location are theirs to change. Your
+                shows and notes here are yours alone.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
               type="button"
               onClick={() => setShowEdit(true)}
-              aria-label="Edit festival"
+              aria-label={festival.isCreator || festival.unmigrated ? 'Edit festival' : 'Edit your notes for this festival'}
               className="p-2 rounded-lg text-muted hover:text-primary hover:bg-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               <Pencil className="w-4 h-4" />
             </button>
             <button
               type="button"
-              onClick={() => setShowDelete(true)}
-              aria-label="Delete festival"
+              onClick={() => setShowLeave(true)}
+              aria-label="Leave festival"
               className="p-2 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
-              <Trash2 className="w-4 h-4" />
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -228,11 +244,11 @@ export default function FestivalDetailView({ festival }) {
         festival={festival}
         onSubmit={(updates) => updateFestivalData(festival.id, updates)}
       />
-      <DeleteFestivalModal
+      <LeaveFestivalModal
         festival={festival}
-        isOpen={showDelete}
-        onClose={() => setShowDelete(false)}
-        onConfirm={async (id) => { await deleteFestival(id); router.push('/festivals/'); }}
+        isOpen={showLeave}
+        onClose={() => setShowLeave(false)}
+        onConfirm={async (id) => { await leaveFestival(id); router.push('/festivals/'); }}
       />
       <FestivalLineupModal
         open={showLineup}

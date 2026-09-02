@@ -117,8 +117,32 @@ test.describe('Setlists Integration Tests', () => {
     const res = await request.get(
       `${BASE}/.netlify/functions/get-artist-tours?mbid=a74b1b7f-71a5-4011-9441-d0b5e4122711`
     );
-    // 200 with tours, 404/500 if upstream API unavailable
-    expect([200, 404, 500]).toContain(res.status());
+    // 200 with tours; 429/502/504 are the function's own distinct signals
+    // for rate-limited / upstream failure / timeout (see the function — a
+    // failed request must never come back as an empty tour list).
+    expect([200, 429, 502, 504]).toContain(res.status());
+    if (res.status() === 200) {
+      const body = await res.json();
+      expect(Array.isArray(body.tours)).toBe(true);
+    }
+  });
+
+  test('get-tour-shows requires both mbid and tourName', async ({ request }) => {
+    const res = await request.get(`${BASE}/.netlify/functions/get-tour-shows?mbid=a74b1b7f-71a5-4011-9441-d0b5e4122711`);
+    expect(res.status()).toBe(400);
+  });
+
+  test('get-tour-shows returns a tour\'s shows in date order', async ({ request }) => {
+    const res = await request.get(
+      `${BASE}/.netlify/functions/get-tour-shows?mbid=a74b1b7f-71a5-4011-9441-d0b5e4122711&tourName=${encodeURIComponent('In Rainbows')}`
+    );
+    expect([200, 429, 502, 504]).toContain(res.status());
+    if (res.status() === 200) {
+      const body = await res.json();
+      expect(Array.isArray(body.shows)).toBe(true);
+      const dates = body.shows.map(s => s.date);
+      expect(dates).toEqual([...dates].sort());
+    }
   });
 
   // ---------------------------------------------------------------------------

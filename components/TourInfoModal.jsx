@@ -25,11 +25,18 @@ function setCache(key, data) {
   } catch { /* ignore */ }
 }
 
+// Tour dates arrive from get-artist-tours as yyyy-MM-dd (it normalizes
+// setlist.fm's dd-MM-yyyy on the way out, so the whole app speaks one date
+// format). Parsed field-by-field rather than through `new Date(str)`,
+// which reads a bare ISO date as UTC midnight and renders the day before
+// in any negative-offset timezone.
 function formatTourDate(dateStr) {
   if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch { return dateStr; }
+  const iso = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const d = iso
+    ? new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]))
+    : new Date(dateStr);
+  return isNaN(d) ? dateStr : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatSetlistFmDate(dateStr) {
@@ -458,7 +465,7 @@ function TourCard({ tour, isCurrent = false }) {
             <div key={i} className="flex items-center gap-2 text-xs text-muted">
               <MapPin className="w-3 h-3 flex-shrink-0" />
               <span className="truncate">{show.venue}{show.city ? `, ${show.city}` : ''}</span>
-              <span className="flex-shrink-0">{formatSetlistFmDate(show.date)}</span>
+              <span className="flex-shrink-0">{formatTourDate(show.date)}</span>
             </div>
           ))}
           {tour.shows.length > 5 && (

@@ -1,9 +1,15 @@
 // components/festivals/FestivalListView.jsx
 //
-// All of the user's explicitly-created festivals — name, date range, show
-// count per festival, and a create action. See context/AppContext.jsx for
-// the Festival CRUD (createFestival etc.) and lib/festivalGrouping.js for
-// per-festival stats used on the detail view.
+// All of the user's festivals — name, date range, show count per festival,
+// and a create action. Each row is the user's own attendance record joined
+// to the shared canonical festival it points at; see context/AppContext.jsx
+// for both shapes and the Festival CRUD (createFestival / joinFestival /
+// leaveFestival), and lib/festivalGrouping.js for the per-festival stats
+// used on the detail view.
+//
+// Creating goes through FestivalFormModal, which offers an existing
+// festival before it creates a duplicate — joining lands the user on the
+// same page creating would have.
 
 'use client';
 
@@ -19,7 +25,7 @@ import FestivalFormModal from './FestivalFormModal';
 
 export default function FestivalListView() {
   const router = useRouter();
-  const { festivals, festivalsLoading, shows, createFestival } = useApp();
+  const { festivals, festivalsLoading, shows, createFestival, joinFestival } = useApp();
   const [showCreate, setShowCreate] = useState(false);
 
   // Creating drops the user straight onto the new festival's page, which is
@@ -30,6 +36,14 @@ export default function FestivalListView() {
     const created = await createFestival(data);
     if (created?.id) router.push(festivalHref(created.id));
     return created;
+  };
+
+  // Joining an existing festival lands in exactly the same place creating
+  // one would — the festival's own page, where shows get attached.
+  const handleJoin = async (canonical) => {
+    const joined = await joinFestival(canonical);
+    if (joined?.id) router.push(festivalHref(joined.id));
+    return joined;
   };
 
   const sorted = useMemo(
@@ -61,7 +75,7 @@ export default function FestivalListView() {
           icon={Tent}
           tone="brand"
           title="No festivals yet"
-          body="Create a festival and attach the shows you caught there — multiple artists, one event, all grouped together."
+          body="Create a festival and attach the shows you caught there — multiple artists, one event, all grouped together. If someone's already added the one you went to, you can join theirs instead."
           action={<Button icon={Plus} onClick={() => setShowCreate(true)}>New festival</Button>}
         />
       ) : (
@@ -98,6 +112,7 @@ export default function FestivalListView() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onSubmit={handleCreate}
+        onJoin={handleJoin}
       />
     </div>
   );
