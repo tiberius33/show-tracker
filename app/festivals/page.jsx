@@ -1,28 +1,36 @@
 'use client';
 
-// Festivals list. A single festival's detail now lives at its own
-// /festivals/[festivalId] route (see app/festivals/[festivalId]/page.jsx),
-// following the same dynamic-route pattern as /shows/[id] — this page
-// redirects the old `?festival=<key>` query-param form (from the
-// pre-5.28.0 auto-detected festival feature) to the new route for anyone
-// with an old link, though no in-app or emailed link ever used it.
+// Festivals landing (no `?festival=` param) or a single festival's detail
+// (?festival=<festivalId>).
+//
+// Routing note: this is deliberately a single static route with a query
+// param rather than a `/festivals/[festivalId]` dynamic segment. With
+// `output: 'export'`, a dynamic segment only ever renders the exact paths
+// listed in generateStaticParams — everything else falls through
+// netlify.toml's `/* -> /index.html` catch-all and boots the app on the
+// My Shows page instead, which is exactly what made already-created
+// festivals look like they'd vanished (see CHANGELOG 5.29.0). /songs,
+// /runs and /tours all use this same query-param form for the same
+// reason; netlify.toml 301-redirects the old /festivals/<id> URLs here.
 
-import { useEffect } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Heart } from 'lucide-react';
+import { Tent, Heart, ArrowLeft } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import FestivalListView from '@/components/festivals/FestivalListView';
+import FestivalDetailView from '@/components/festivals/FestivalDetailView';
 import { Button, PageHeader, EmptyState } from '@/components/ui';
 
 export default function FestivalsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, guestMode, openAuthModal } = useApp();
+  const { user, guestMode, openAuthModal, festivals, festivalsLoading } = useApp();
 
-  const legacyFestivalKey = searchParams.get('festival');
-  useEffect(() => {
-    if (legacyFestivalKey) router.replace(`/festivals/${encodeURIComponent(legacyFestivalKey)}`);
-  }, [legacyFestivalKey, router]);
+  const festivalId = searchParams.get('festival') || '';
+  const festival = useMemo(
+    () => (festivals || []).find(f => f.id === festivalId) || null,
+    [festivals, festivalId]
+  );
 
   if (guestMode || !user) {
     return (
@@ -39,7 +47,29 @@ export default function FestivalsPage() {
     );
   }
 
-  if (legacyFestivalKey) return null;
+  if (festivalId) {
+    // Don't flash "not found" while the first Firestore read is still in
+    // flight — a direct link or a refresh lands here before `festivals` fills.
+    if (!festival) {
+      if (festivalsLoading) {
+        return (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <p className="text-secondary">Loading festival…</p>
+          </div>
+        );
+      }
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <Tent className="w-10 h-10 text-muted mb-4" />
+          <p className="text-lg text-primary mb-4">Festival not found.</p>
+          <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/festivals/')}>
+            Back to festivals
+          </Button>
+        </div>
+      );
+    }
+    return <FestivalDetailView festival={festival} />;
+  }
 
   return <FestivalListView />;
 }

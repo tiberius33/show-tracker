@@ -110,6 +110,20 @@
   status = 200
   force = true
 
+# Legacy festival detail URLs (the pre-5.29.0 /festivals/<id> dynamic route,
+# which static export could never actually serve — see app/festivals/page.jsx)
+# now point at the query-param form. `:festivalId` only matches a non-empty
+# segment, so /festivals/ itself still serves the list page.
+[[redirects]]
+  from = "/festivals/:festivalId"
+  to = "/festivals/?festival=:festivalId"
+  status = 301
+
+[[redirects]]
+  from = "/festivals/:festivalId/"
+  to = "/festivals/?festival=:festivalId"
+  status = 301
+
 # Catch-all SPA fallback — lets Next.js handle dynamic routes like /shows/[id]/
 # that are not pre-generated at build time (Firebase data is runtime-only).
 # Must be last so API rules above take priority.

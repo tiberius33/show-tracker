@@ -253,10 +253,25 @@ function AppShell({ children }) {
         />
       )}
 
-      {/* Global toast notification */}
+      {/* Global toast notification.
+          setToast() is called with either a plain string or an
+          { message, type } object (every error path in AppContext uses the
+          object form) — rendering the object directly threw "Objects are not
+          valid as a React child" and took the whole app down with it, which
+          is why a failed festival write looked like a blank screen rather
+          than an error toast. */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 bg-brand text-[#2a2a4e] rounded-2xl shadow-lg shadow-brand/40 font-medium text-sm animate-fade-in">
-          {toast}
+        <div
+          className={[
+            'fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 rounded-2xl',
+            'shadow-lg font-medium text-sm animate-fade-in',
+            toast?.type === 'error'
+              ? 'bg-danger text-white shadow-danger/40'
+              : 'bg-brand text-[#2a2a4e] shadow-brand/40',
+          ].join(' ')}
+          role="status"
+        >
+          {typeof toast === 'string' ? toast : toast?.message || ''}
         </div>
       )}
     </div>

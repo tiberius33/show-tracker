@@ -14,7 +14,7 @@ import { Button, Card, SearchField, PageHeader, StatFigure } from '@/components/
 import ShowCard from '@/components/shows/ShowCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
 import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
-import { tourKeyFor } from '@/lib/runIndex';
+import { tourKeyFor, tourHref } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import { removeFromBucketList } from '@/lib/bucketList';
 import YearInReviewCard from '@/components/yearInReview/YearInReviewCard';
@@ -92,7 +92,7 @@ export default function ShowsPage() {
   const tourHrefFor = (show) => {
     if (!show.tour) return null;
     const key = tourKeyFor(show.artist, show.tour);
-    return key && tourIndex[key] ? `/tours/?tour=${encodeURIComponent(key)}` : null;
+    return key && tourIndex[key] ? tourHref(key) : null;
   };
   const festivalById = useMemo(() => new Map((festivals || []).map(f => [f.id, f])), [festivals]);
 

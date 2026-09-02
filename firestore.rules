@@ -67,6 +67,19 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid;
     }
 
+    // Favorite tours (v5.29.0) — one doc per user (id = uid) holding a map
+    // of starred tour keys. Same owner-only, top-level shape as wishlists
+    // above, including the `resource == null` read clause so a user who has
+    // never starred a tour can read their (nonexistent) doc instead of
+    // being denied outright. Unstarring only ever deletes a single map
+    // field via updateDoc, so no `allow delete` is needed.
+    match /favoriteTours/{docId} {
+      allow read: if request.auth != null
+        && (resource == null || resource.data.userId == request.auth.uid);
+      allow create, update: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+    }
+
     // Bucket List — user's saved future shows they want to attend.
     // Private, same shape as wishlists: only the owner can read their own
     // docs. Unlike wishlists (which only ever deletes a single song field

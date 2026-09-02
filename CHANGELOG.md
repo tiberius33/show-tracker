@@ -4,6 +4,44 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.29.0] — 2026-09-02
+
+### Fixed: Festivals You'd Already Created Didn't Open
+- Root cause: 5.28.0 moved a festival's detail page onto a `/festivals/<id>` dynamic route. This app is a static export (`output: 'export'`), where a dynamic segment only ever serves the exact paths listed in `generateStaticParams` — in practice just the `_` placeholder. Every real festival id fell through `netlify.toml`'s `/* → /index.html` catch-all, which boots the app on the My Shows page: clicking one of your festivals silently dumped you somewhere else, so festivals you'd created looked like they'd vanished. (The same constraint is why `/songs`, `/runs` and `/tours` all use query params.)
+- Festival detail now lives at `/festivals/?festival=<id>`, the form 5.28.0 had been *redirecting away from*. Old `/festivals/<id>` links 301 to the new URL.
+- The list also shows a loading state on first paint instead of the "no festivals yet" empty state, and a festival read that Firestore rejects now says so rather than looking like an empty account.
+- Fixed a related crash: every error path in the app calls `setToast({ message, type })`, but the toast rendered its value directly as a React child — an object, which throws and takes the whole page down. So a failed festival write showed a blank screen instead of an error. Toasts now render the message (in red for errors).
+- The create/edit festival form no longer keeps the previous festival's values the next time it's opened.
+
+### New: Search a Festival's Lineup and Bulk-Add the Bands You Saw
+- Adding shows to a festival no longer means picking one at a time from shows you'd already logged. "Search lineup" on a festival looks the event up on setlist.fm and returns every band that played it inside the festival's own dates, as one checkbox list — tick everyone you actually saw, add them all in one action.
+- Each pick does double duty: it's logged as one of your shows (with its full setlist, same as a normal setlist.fm import) *and* attached to the festival.
+- Anything you'd already logged is detected and attached rather than duplicated, using the same artist + venue + date check the manual add and setlist.fm import already run. Already-logged results are labelled as such in the list.
+- A set that's already in a *different* festival is reported instead of being moved silently, with a "move it here anyway" confirmation — same behaviour as the existing picker.
+- If setlist.fm has no lineup for what you typed, the search says so and points you back at the "pick from my own shows" flow. Festival creation never depends on the search succeeding.
+
+### New: Tours Filtering, Favorites, and First-Timers
+- The Tours list gains filters for year, artist, and favorites, plus a text filter, and now sorts by the number of stops you caught by default (the tour you followed hardest first) — with Recent / Artist / Rating as alternatives.
+- Tours can be starred as favorites, from either the list or a tour's page. Same star convention as the Wishlist.
+- A tour's page gains "New songs on this tour": every song whose first-ever performance in *your* logged history landed on one of that tour's stops, with the date and venue you first heard it and a link to the song's page. A tour with no first-timers gets a proper empty state.
+- Everything on a tour's page that represents something else now links to it: each stop opens that show, the artist and each stop's venue drill into your shows there, and every new song opens its song page — with the same chevrons and hover states as the rest of the app.
+- A show's tour name is now a link to that tour, on both the show detail header and the Show Stats card. Shows whose tour name doesn't resolve to a tour in your history stay plain text rather than linking somewhere empty.
+
+### Changed: Wishlist Page Order
+- The per-artist Wishlist now reads, top to bottom: **Songs I want to see** (your starred songs), **All songs**, then **The songs I've seen** — stacked full-width rather than side-by-side columns, so it reads the same way on a phone.
+- "All songs" is new: setlist.fm's full live catalog for that artist unioned with everything you've logged, so seen, unseen and starred songs are all in one list, all starrable, with play counts and a "you've seen this N×" marker. It replaces the old "songs you haven't seen" list rather than adding a fourth section.
+- Star toggles, play counts and persistence are unchanged.
+
+### Technical
+- New `lib/favoriteTours.js` + `hooks/useFavoriteTours.js` — one `favoriteTours/{uid}` doc holding a map of starred tour keys. Top-level collection + owner-uid field, the same shape (and for the same security-rule reason) as `wishlists`; `firestore.rules` gains a matching owner-only block including the `resource == null` read clause.
+- New `netlify/functions/search-festival-lineup.js`. setlist.fm has no festival entity and no date-range parameter, so a festival lookup resolves the typed name to venues via `/search/venues`, pages that venue's `/search/setlists` for the year, filters to the festival's window client-side, and collapses to one entry per artist/date (keeping the fuller setlist when an artist played twice in a day). Caches into the existing `setlistCache` collection under a `festival_` key prefix.
+- New `importShowsToFestival` in `context/AppContext.jsx`: one batched Firestore write for the new shows, then the existing `attachShowsToFestival` for all of them, so there's still only one attach path. It doesn't loop `addShow`, which derives its doc id from `Date.now()` and closes over the current `shows` array — N calls in a row would collide ids and clobber state.
+- `lib/runIndex.js` gains `tourHref`, per-tour `years`, and `newSongsOnTour` (cross-references a tour's stops against `lib/songIndex.js`'s existing `firstSeen`, rather than aggregating performances a second time). `lib/festivalGrouping.js` gains `festivalHref`, now the single source for festival links.
+- Removed `app/festivals/[festivalId]/`; `app/festivals/page.jsx` serves both list and detail.
+- Unit tests: 7 new cases in `lib/__tests__/runIndex.test.js`, new `lib/__tests__/festivalLineup.test.js` (8 cases).
+
+---
+
 ## [5.28.0] — 2026-09-01
 
 ### New: Create & Manage Festivals

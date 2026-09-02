@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star, Pencil, Trash2, UserPlus, X } from 'lucide-react';
+import { ArrowLeft, Star, Pencil, Trash2, UserPlus, X, Search } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import useFestivalShows from '@/hooks/useFestivalShows';
 import { Card, StatFigure, Button, Textarea } from '@/components/ui';
@@ -19,12 +19,14 @@ import { formatDate } from '@/lib/utils';
 import FestivalFormModal from './FestivalFormModal';
 import DeleteFestivalModal from './DeleteFestivalModal';
 import AttachShowsModal from './AttachShowsModal';
+import FestivalLineupModal from './FestivalLineupModal';
 
 export default function FestivalDetailView({ festival }) {
   const router = useRouter();
   const {
     shows, festivals, setSelectedShow,
     updateFestivalData, deleteFestival, attachShowsToFestival, detachShowsFromFestival,
+    importShowsToFestival,
   } = useApp();
 
   const stats = useFestivalShows(festival.id);
@@ -32,6 +34,7 @@ export default function FestivalDetailView({ festival }) {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showAttach, setShowAttach] = useState(false);
+  const [showLineup, setShowLineup] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState(festival.notes || '');
   const [savingNotes, setSavingNotes] = useState(false);
@@ -150,16 +153,29 @@ export default function FestivalDetailView({ festival }) {
         )}
       </div>
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <p className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-muted">Shows</p>
-        <Button size="sm" variant="secondary" icon={UserPlus} onClick={() => setShowAttach(true)}>
-          Add shows
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" icon={Search} onClick={() => setShowLineup(true)}>
+            Search lineup
+          </Button>
+          <Button size="sm" variant="secondary" icon={UserPlus} onClick={() => setShowAttach(true)}>
+            Add shows
+          </Button>
+        </div>
       </div>
 
       {stats.groupedByDay.length === 0 ? (
         <Card padding="lg" className="text-center">
-          <p className="text-secondary text-sm">No shows attached yet.</p>
+          <p className="text-secondary text-sm mb-4">No shows attached yet.</p>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Button size="sm" icon={Search} onClick={() => setShowLineup(true)}>
+              Search the lineup
+            </Button>
+            <Button size="sm" variant="secondary" icon={UserPlus} onClick={() => setShowAttach(true)}>
+              Pick from my shows
+            </Button>
+          </div>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -217,6 +233,12 @@ export default function FestivalDetailView({ festival }) {
         isOpen={showDelete}
         onClose={() => setShowDelete(false)}
         onConfirm={async (id) => { await deleteFestival(id); router.push('/festivals/'); }}
+      />
+      <FestivalLineupModal
+        open={showLineup}
+        onClose={() => setShowLineup(false)}
+        festival={festival}
+        onImport={(candidates, opts) => importShowsToFestival(festival.id, candidates, opts)}
       />
       <AttachShowsModal
         open={showAttach}
