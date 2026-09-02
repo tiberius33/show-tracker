@@ -8,11 +8,15 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // User-created festivals (v5.28.0) — explicit, per-user festival
-    // objects the owner creates and attaches their own shows to (via
-    // festivalId on the show doc, see context/AppContext.jsx). Private to
-    // the owner: unlike shows, there's no cross-user "Shows Together" read
-    // need here, so this is owner-only read/write, same shape as friends.
+    // Per-user festival ATTENDANCE records (v5.30.0). Same path and the
+    // same owner-only rule these have always had — what changed is what
+    // they contain: a pointer (`festivalId`) to a shared canonical
+    // festival below, plus this user's own notes, rating and (via
+    // festivalId on the show doc) their own attached shows. Nothing here
+    // is readable by anyone else, which is what makes "join someone's
+    // festival" safe: the joiner's notes and shows stay private to them.
+    // Pre-5.30.0 records that still hold their own name/dates keep working
+    // untouched under exactly this rule until the migration reaches them.
     match /users/{userId}/festivals/{festivalId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
@@ -327,6 +331,77 @@ service cloud.firestore {
       allow update: if request.auth != null
                     && (resource.data.verifiedOwnerUid == request.auth.uid
                         || request.auth.token.email == 'phillip.leonard@gmail.com');
+      allow delete: if false;
+    }
+
+    // ── Shared festival catalog (v5.30.0) ──────────────────────────────
+    // The canonical, shared half of a festival: one document per real
+    // festival edition, holding only facts about the event itself — name,
+    // normalized name, dates, location, optional edition, creator.
+    // NOTHING PERSONAL lives here; a user's notes, rating and attached
+    // shows stay in their own users/{uid}/festivals record above. This is
+    // the one collection in this release that is readable more widely than
+    // before: festival names, dates and locations, which were private
+    // per-user records until now, are readable by any signed-in user. That
+    // is the entire point of the change — it's what lets one user find and
+    // join the festival another user already created — and it is the only
+    // read widening in this file. No personal field became readable.
+    //
+    // Same shape as /venues above (shared catalog, signed-in read,
+    // creator-or-admin update, no client delete), with field validation
+    // added because these documents are created by clients from free text.
+    //
+    // Not deletable by clients AT ALL, deliberately: once anyone else has
+    // attended a festival, deleting it would break their page, and a rule
+    // can't cheaply count other users' private attendance records to tell
+    // whether that has happened. Leaving a festival deletes only the
+    // leaver's own attendance record (which the rule above governs) and
+    // never touches this document — including when the leaver is its
+    // creator. Cleaning up a genuinely unwanted canonical festival is an
+    // admin operation through the Admin SDK, which bypasses these rules.
+    match /festivals/{festivalId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.keys().hasOnly([
+                         'name', 'nameNormalized', 'startDate', 'endDate',
+                         'location', 'edition', 'createdBy', 'createdAt', 'updatedAt'
+                       ])
+                    && request.resource.data.keys().hasAll([
+                         'name', 'nameNormalized', 'startDate', 'endDate', 'createdBy'
+                       ])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 120
+                    && request.resource.data.nameNormalized is string
+                    && request.resource.data.nameNormalized.size() <= 120
+                    // yyyy-MM-dd, and an end that is not before the start.
+                    // String comparison is exact for this format.
+                    && request.resource.data.startDate is string
+                    && request.resource.data.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                    && request.resource.data.endDate is string
+                    && request.resource.data.endDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                    && request.resource.data.endDate >= request.resource.data.startDate;
+
+      // Only the creator (or admin) may edit the shared details. Everyone
+      // else edits their own attendance record instead. createdBy can
+      // never move, so a festival's creator is fixed at creation.
+      allow update: if request.auth != null
+                    && (resource.data.createdBy == request.auth.uid
+                        || request.auth.token.email == 'phillip.leonard@gmail.com')
+                    && request.resource.data.createdBy == resource.data.createdBy
+                    && request.resource.data.keys().hasOnly([
+                         'name', 'nameNormalized', 'startDate', 'endDate',
+                         'location', 'edition', 'createdBy', 'createdAt', 'updatedAt'
+                       ])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 120
+                    && request.resource.data.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                    && request.resource.data.endDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                    && request.resource.data.endDate >= request.resource.data.startDate;
+
       allow delete: if false;
     }
 

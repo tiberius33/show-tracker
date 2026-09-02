@@ -4,14 +4,41 @@
 // (required, end >= start validated client-side), location + notes
 // (optional). Reuses the same Modal/Input/Textarea/Button primitives as
 // other form modals in the app (see components/VenueRatingModal.jsx).
+//
+// CREATE MODE also runs the shared-festival dedup: as the name and dates
+// fill in, it looks for a canonical festival someone has already created
+// and offers to join it instead. Rules of that offer, all deliberate:
+//   - It never auto-joins. Joining is always one explicit tap.
+//   - It never blocks creation. "Create it anyway" stays one click away
+//     with the match still on screen.
+//   - It never hides a second candidate — same name and dates in two
+//     cities means two real festivals, and both are shown.
+// The match rule itself is lib/festivalMatch.js; the bounded query behind
+// it is findFestivalMatches in context/AppContext.jsx.
+//
+// EDIT MODE distinguishes the creator from everyone else. Shared details
+// belong to the creator, so a non-creator gets a plain explanation and
+// their own notes field rather than a form full of disabled inputs.
 
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Modal, Button, Input, Textarea } from '@/components/ui';
+import { Users, Info } from 'lucide-react';
+import { Modal, Button, Input, Textarea, Card, Spinner } from '@/components/ui';
+import { useApp } from '@/context/AppContext';
+import { formatDate } from '@/lib/utils';
 
-export default function FestivalFormModal({ open, onClose, onSubmit, festival = null }) {
+// Wait this long after the last keystroke before looking for matches, so
+// typing "Bonnaroo" is one lookup rather than eight.
+const MATCH_DEBOUNCE_MS = 400;
+
+export default function FestivalFormModal({ open, onClose, onSubmit, onJoin, festival = null }) {
+  const { findFestivalMatches } = useApp();
   const isEdit = !!festival;
+  // A pre-migration record has no canonical document, so its owner is
+  // still the only person who can see or edit it at all.
+  const canEditDetails = !isEdit || festival.isCreator || festival.unmigrated;
+
   const [name, setName] = useState(festival?.name || '');
   const [startDate, setStartDate] = useState(festival?.startDate || '');
   const [endDate, setEndDate] = useState(festival?.endDate || '');
@@ -19,6 +46,10 @@ export default function FestivalFormModal({ open, onClose, onSubmit, festival = 
   const [notes, setNotes] = useState(festival?.notes || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [matches, setMatches] = useState([]);
+  const [matching, setMatching] = useState(false);
+  const [joiningId, setJoiningId] = useState('');
 
   // This component stays mounted between openings (Modal returns null when
   // closed), so without this the create form would still be holding the
@@ -32,12 +63,62 @@ export default function FestivalFormModal({ open, onClose, onSubmit, festival = 
     setLocation(festival?.location || '');
     setNotes(festival?.notes || '');
     setError('');
+    setMatches([]);
+    setJoiningId('');
   }, [open, festival]);
 
+  // Dedup lookup, create mode only — editing an existing festival is not a
+  // moment to be offered a different one.
+  useEffect(() => {
+    if (!open || isEdit) return;
+    if (!name.trim() || !startDate) {
+      setMatches([]);
+      return;
+    }
+
+    let cancelled = false;
+    setMatching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const found = await findFestivalMatches({
+          name: name.trim(),
+          startDate,
+          endDate: endDate || startDate,
+          location: location.trim(),
+        });
+        if (!cancelled) setMatches(found);
+      } finally {
+        if (!cancelled) setMatching(false);
+      }
+    }, MATCH_DEBOUNCE_MS);
+
+    return () => { cancelled = true; clearTimeout(timer); setMatching(false); };
+  }, [open, isEdit, name, startDate, endDate, location, findFestivalMatches]);
+
+  const validate = () => {
+    if (!name.trim()) return 'Give your festival a name.';
+    if (!startDate || !endDate) return 'Start and end dates are required.';
+    if (endDate < startDate) return 'End date can’t be before the start date.';
+    return '';
+  };
+
   const handleSubmit = async () => {
-    if (!name.trim()) return setError('Give your festival a name.');
-    if (!startDate || !endDate) return setError('Start and end dates are required.');
-    if (endDate < startDate) return setError('End date can’t be before the start date.');
+    // A non-creator's "save" only ever carries their own notes.
+    if (!canEditDetails) {
+      setSaving(true);
+      try {
+        await onSubmit({ notes });
+        onClose();
+      } catch {
+        // AppContext surfaces a toast; keep the modal open to retry.
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    const problem = validate();
+    if (problem) return setError(problem);
     setError('');
     setSaving(true);
     try {
@@ -51,6 +132,24 @@ export default function FestivalFormModal({ open, onClose, onSubmit, festival = 
     }
   };
 
+  const handleJoin = async (canonical) => {
+    if (!onJoin) return;
+    setJoiningId(canonical.id);
+    try {
+      await onJoin(canonical);
+      onClose();
+    } catch {
+      setJoiningId('');
+    }
+  };
+
+  const dateLabel = (f) => {
+    if (!f.startDate) return '';
+    return f.endDate && f.endDate !== f.startDate
+      ? `${formatDate(f.startDate)} – ${formatDate(f.endDate)}`
+      : formatDate(f.startDate);
+  };
+
   return (
     <Modal
       open={open}
@@ -60,38 +159,101 @@ export default function FestivalFormModal({ open, onClose, onSubmit, festival = 
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={handleSubmit} loading={saving}>{isEdit ? 'Save changes' : 'Create festival'}</Button>
+          <Button onClick={handleSubmit} loading={saving}>
+            {isEdit
+              ? (canEditDetails ? 'Save changes' : 'Save my notes')
+              : (matches.length > 0 ? 'Create it anyway' : 'Create festival')}
+          </Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
-        <Input
-          label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Bonnaroo 2023"
-          autoFocus
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Start date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <Input
-            label="End date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-        <Input
-          label="Location (optional)"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="e.g. Manchester, TN"
-        />
+        {isEdit && !canEditDetails && (
+          <div className="flex items-start gap-2 bg-hover border border-subtle rounded-xl p-3 text-sm text-secondary">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+              Someone else created <span className="font-semibold text-primary">{festival.name}</span>,
+              so its name, dates and location are theirs to change — and any change they make shows up
+              here for everyone. Your notes and the shows you attach are yours alone.
+            </span>
+          </div>
+        )}
+
+        {canEditDetails && (
+          <>
+            <Input
+              label="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Bonnaroo 2023"
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Start date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <Input
+                label="End date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <Input
+              label="Location (optional)"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g. Manchester, TN"
+            />
+          </>
+        )}
+
+        {/* Matches sit between the shared details and the personal notes,
+            so they're visible while the fields that produced them are. */}
+        {!isEdit && matching && matches.length === 0 && (
+          <Spinner size="sm" label="Checking for this festival…" />
+        )}
+
+        {!isEdit && matches.length > 0 && (
+          <Card padding="sm" className="border-brand/30">
+            <p className="text-sm font-semibold text-primary mb-2 flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-brand" aria-hidden="true" />
+              {matches.length === 1
+                ? 'Someone already added this festival'
+                : `${matches.length} festivals look like this one`}
+            </p>
+            <ul className="list-none p-0 m-0 flex flex-col gap-2">
+              {matches.map(({ festival: candidate }) => (
+                <li key={candidate.id} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-primary truncate">{candidate.name}</div>
+                    <div className="text-xs text-secondary truncate">
+                      {dateLabel(candidate)}
+                      {candidate.location ? ` · ${candidate.location}` : ''}
+                      {' · created by another user'}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleJoin(candidate)}
+                    loading={joiningId === candidate.id}
+                    className="flex-shrink-0"
+                  >
+                    Join
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-muted mt-2">
+              Joining adds it to your festivals with your own notes and shows. Not the same event?
+              Create yours anyway.
+            </p>
+          </Card>
+        )}
+
         <Textarea
           label="Notes (optional)"
           value={notes}

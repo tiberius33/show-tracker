@@ -6,6 +6,23 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.30.0',
+      date: 'September 2, 2026',
+      title: 'Add a Whole Tour at Once, and Shared Festivals',
+      changes: [
+        'New: add every show you caught on a tour in one go \u2014 pick the artist, pick the tour, tick the nights. Or type \u201cGoose Summer Tour 2025\u201d and go straight to that tour\u2019s shows',
+        'Shows you already have are marked and can\u2019t be added twice, so this can\u2019t duplicate your history \u2014 even for shows you\u2019d added by hand with the venue spelled differently',
+        'Adding shows its progress as it goes; if some fail, the ones that worked are kept and you can retry just the ones that didn\u2019t',
+        'A tour you already have shows from gets \u201cAdd more shows\u201d on its own page, with the nights you already have ticked off',
+        'Changed: festivals are now shared. If someone\u2019s already added the festival you went to, you can join theirs instead of creating a duplicate \u2014 it shows up while you\u2019re still typing the name',
+        'Joining keeps your shows, notes and rating entirely your own \u2014 nobody else at the same festival can see them',
+        'Bonnaroo 2025 and Bonnaroo 2026 are never treated as the same festival, however identically they\u2019re spelled',
+        'The person who created a festival can fix its name, dates or location for everyone; everyone else edits their own notes, and the form says so',
+        'Changed: \u201cdelete festival\u201d is now \u201cleave festival\u201d \u2014 it removes it from your list, keeps every show you\u2019d attached, and never affects anyone else\u2019s copy',
+        'Fixed: a security hole in the starred-tours rules that let one signed-in user overwrite another user\u2019s starred tours',
+      ]
+    },
+    {
       version: '5.29.1',
       date: 'September 2, 2026',
       title: 'Smarter Festival Lineup Search',
