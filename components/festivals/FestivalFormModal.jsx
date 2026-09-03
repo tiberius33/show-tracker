@@ -24,6 +24,7 @@
 
 import { useEffect, useState } from 'react';
 import { Users, Info } from 'lucide-react';
+import { festivalNameProblem } from '@/lib/festivalMatch';
 import { Modal, Button, Input, Textarea, Card, Spinner } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { formatDate } from '@/lib/utils';
@@ -96,7 +97,11 @@ export default function FestivalFormModal({ open, onClose, onSubmit, onJoin, fes
   }, [open, isEdit, name, startDate, endDate, location, findFestivalMatches]);
 
   const validate = () => {
-    if (!name.trim()) return 'Give your festival a name.';
+    // Name limits mirror the `festivals` rule in firestore.rules, so an
+    // over-long name is a form error naming the field rather than an
+    // unexplained permission denial from Firestore.
+    const nameProblem = festivalNameProblem(name);
+    if (nameProblem) return nameProblem;
     if (!startDate || !endDate) return 'Start and end dates are required.';
     if (endDate < startDate) return 'End date can’t be before the start date.';
     return '';

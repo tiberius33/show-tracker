@@ -1557,6 +1557,8 @@ export function AppProvider({ children }) {
     if (!user) throw new Error('Sign in required to create a festival.');
     const name = (festivalData.name || '').trim();
     try {
+      // doc() mints the id locally without writing, so the attendance
+      // record can point at the canonical before the canonical exists.
       const canonicalRef = doc(collection(db, 'festivals'));
       const canonical = {
         name,
@@ -1569,7 +1571,6 @@ export function AppProvider({ children }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
-      await setDoc(canonicalRef, canonical);
 
       const attendanceRef = doc(collection(db, 'users', user.uid, 'festivals'));
       const attendance = {
@@ -1579,7 +1580,18 @@ export function AppProvider({ children }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
+
+      // Private record first, shared catalog second. These can't be one
+      // atomic write (different collections, and the canonical is shared),
+      // so one of them has to fail second — and the orders are not
+      // equivalent. Canonical-first strands a festival in the shared
+      // catalog that nobody attends, and `festivals` has
+      // `allow delete: if false`, so no client can ever remove it: it
+      // would surface forever in other users' join suggestions. This order
+      // fails to a record private to this user, which loadFestivals
+      // already renders as "Unavailable festival" and which they can leave.
       await setDoc(attendanceRef, attendance);
+      await setDoc(canonicalRef, canonical);
 
       const created = {
         ...attendance,
@@ -1599,7 +1611,17 @@ export function AppProvider({ children }) {
       return created;
     } catch (error) {
       console.error('Failed to create festival:', error);
-      setToast({ message: 'Failed to create festival. Please try again.', type: 'error' });
+      // "Please try again" is wrong for a rules denial — retrying never
+      // clears it. v5.30.0 added the shared `festivals` collection, and
+      // Firestore denies any path with no matching rule, so this is what
+      // an undeployed firestore.rules looks like from the UI. Name that,
+      // rather than sending the user round the same loop.
+      setToast({
+        message: error?.code === 'permission-denied'
+          ? "Couldn't create the festival — the app doesn't have permission to write to the shared festival catalog."
+          : 'Failed to create festival. Please try again.',
+        type: 'error',
+      });
       throw error;
     }
   };

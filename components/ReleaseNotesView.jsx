@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.30.1',
+      date: 'September 2, 2026',
+      title: 'Fix: Creating a Festival Failed',
+      changes: [
+        'Fixed: creating a festival failed with a permission error — 5.30.0 introduced a shared festival catalog whose security rule had not been published to Firebase yet',
+        'A permission error no longer tells you to “try again”, which could never have worked — it now says what was actually refused',
+        'Festival names are checked against the real length limit as you submit, instead of being rejected later with no explanation',
+        'A half-finished create can no longer leave an unremovable festival in the shared catalog that nobody attends',
+      ]
+    },
+    {
       version: '5.30.0',
       date: 'September 2, 2026',
       title: 'Add a Whole Tour at Once, and Shared Festivals',
