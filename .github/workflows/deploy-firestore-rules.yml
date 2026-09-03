@@ -1,0 +1,82 @@
+name: Deploy Firestore Rules
+
+# Firestore security rules live in this repo but nothing deployed them.
+# Netlify's build runs `test:pre-deploy && next build` and never touches
+# Firebase, so `firestore.rules` only ever reached production when someone
+# remembered to run `npm run deploy:rules` by hand. That gap is what let the
+# v5.29.0 `favoriteTours` rule sit merged-but-undeployed: the feature was
+# live, the rule that permits its writes was not, and every star came back
+# permission-denied.
+#
+# This deploys the same three targets as the local `deploy:rules` script,
+# on any push to main that actually touches them.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'firestore.indexes.json'
+      - 'storage.rules'
+      - 'firebase.json'
+      - '.firebaserc'
+      - '.github/workflows/deploy-firestore-rules.yml'
+  # Manual trigger, for deploying rules that are already on main (the
+  # backfill case, and any re-run after fixing IAM permissions).
+  workflow_dispatch:
+
+# A rules deploy is last-write-wins on a single live ruleset, so two runs
+# racing could leave production on the older one. Queue instead, and never
+# cancel a run mid-deploy.
+concurrency:
+  group: deploy-firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy rules & indexes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # Fail loudly and early on a missing secret. Without this the CLI
+      # fails much later with an opaque auth error that reads like a rules
+      # problem rather than a configuration one.
+      - name: Check credentials are configured
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON is not set. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      # Written to RUNNER_TEMP, not the workspace, so it can never be picked
+      # up by an artifact upload or committed by a later step.
+      - name: Write service account credentials
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+
+      - name: Deploy
+        env:
+          # Falls back to the default in .firebaserc when the secret isn't set.
+          FIREBASE_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID || 'show-tracker-d7a4d' }}
+        run: |
+          npx --yes firebase-tools@13 deploy \
+            --only firestore:rules,firestore:indexes,storage \
+            --project "$FIREBASE_PROJECT" \
+            --non-interactive
+
+      # `if: always()` so the credentials file is removed even when the
+      # deploy fails.
+      - name: Remove credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-service-account.json"

@@ -4,6 +4,27 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.30.1] — 2026-09-02
+
+### Fixed: Creating a Festival Failed With a Permission Error
+- 5.30.0 split a festival into a shared canonical record (`festivals/{id}`) plus a private attendance record. `firestore.rules` gained a rule for that new collection — but **rules are not deployed by any build**, so in production the new collection had no rule at all, and Firestore denies every path it has no matching rule for. Creation died on its very first write.
+- The rule itself was correct all along. **The fix is to deploy it** (`npm run deploy:rules`, or the workflow in #280); the changes below stop this class of failure from being invisible next time.
+- A permission denial no longer says "Please try again" — retrying can never clear a rules denial. It now names what was actually refused.
+- Festival names are validated against the same 120-character limit the rule enforces, as a form error naming the field. `normalizeFestivalName` expands `&` into ` and `, so a name comfortably under the limit could produce a normalized form over it and be rejected by Firestore with nothing pointing at the cause.
+- Create now writes the user's own attendance record before the shared canonical one. Both writes can't be atomic (different collections, one of them shared), so one must fail second — and the orders are not equivalent. Canonical-first stranded a festival in the shared catalog that nobody attends, and `festivals` has `allow delete: if false`, so no client could ever remove it and it would surface forever in other users' join suggestions. Failing the other way leaves a record private to that user, already rendered as "Unavailable festival", which they can simply leave.
+
+### Fixed: Security Rules Now Deploy Themselves
+- The root cause above is not specific to festivals: security rules live in this repo but nothing deployed them. Netlify's build runs `test:pre-deploy && next build` and never touches Firebase, so `firestore.rules` only reached production when someone remembered `npm run deploy:rules` by hand. It broke favoriting a tour in 5.29.0 and creating a festival in 5.30.0, and would have broken the next rule change too.
+- New `.github/workflows/deploy-firestore-rules.yml` deploys the same three targets as the local script (`firestore:rules`, `firestore:indexes`, `storage`) on any push to `main` that touches them, plus a manual trigger for deploying rules already on main.
+- Authenticates with the `FIREBASE_SERVICE_ACCOUNT_JSON` repo secret the integration-test workflow already uses — no new credential to mint. The credentials file is written to the runner's temp directory rather than the workspace so it can't be swept into an artifact upload, and is removed even when the deploy fails.
+- **Requires the service account to hold `roles/firebaserules.admin` and `roles/datastore.indexAdmin`.** The existing account was provisioned for Admin SDK reads and may not have them; the workflow fails with the IAM error naming the missing role if so.
+
+### Technical
+- `lib/festivalMatch.js` gains `FESTIVAL_NAME_MAX` and `festivalNameProblem`, so the form and the security rule state the same limit in one place.
+- Unit tests: 5 new cases in `lib/__tests__/festivalMatch.test.js` covering the raw limit, the normalized-longer-than-raw case, and whitespace.
+
+---
+
 ## [5.30.0] — 2026-09-02
 
 ### New: Add Every Show You Caught on a Tour, in One Go
