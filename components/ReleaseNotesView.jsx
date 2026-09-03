@@ -14,6 +14,7 @@ function ReleaseNotesView() {
         'A permission error no longer tells you to “try again”, which could never have worked — it now says what was actually refused',
         'Festival names are checked against the real length limit as you submit, instead of being rejected later with no explanation',
         'A half-finished create can no longer leave an unremovable festival in the shared catalog that nobody attends',
+        'Security rules now publish themselves whenever they change, so a feature can no longer ship with the permission it needs still missing — the cause of both this bug and the favorite-tours one',
       ]
     },
     {
