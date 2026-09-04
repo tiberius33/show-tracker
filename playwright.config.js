@@ -1,6 +1,7 @@
 // @ts-check
 const { defineConfig } = require('@playwright/test');
 
+
 module.exports = defineConfig({
   // Default directory for legacy e2e tests (smoke.spec.js, popup.spec.js)
   testDir: './e2e',
@@ -22,11 +23,31 @@ module.exports = defineConfig({
   ],
 
   projects: [
+    // ── Setup: one sign-in per run, shared by the authenticated tests ─────
+    // Deliberately outside ./e2e/smoke so the smoke project doesn't also
+    // collect it as an ordinary test.
+    {
+      name: 'setup',
+      testDir: './e2e',
+      testMatch: /auth\.setup\.js/,
+      use: {
+        baseURL: process.env.TEST_BASE_URL || 'https://mysetlists.net',
+        screenshot: 'only-on-failure',
+        trace: 'on-first-retry',
+        browserName: 'chromium',
+      },
+    },
+
     // ── Smoke: fast, critical-path, run on every push ─────────────────────
+    // The saved session is opted INTO per file (see shows.smoke.spec.js and
+    // the signed-in block of auth.smoke.spec.js) rather than applied as a
+    // project default, because the guest-mode and sign-in tests have to
+    // start logged out.
     {
       name: 'smoke',
       testDir: './e2e/smoke',
       timeout: 30000,
+      dependencies: ['setup'],
       use: {
         baseURL: process.env.TEST_BASE_URL || 'https://mysetlists.net',
         screenshot: 'only-on-failure',

@@ -1,12 +1,21 @@
 // @ts-check
 /**
- * Auth smoke tests — real sign-in / sign-out flows using the TEST_EMAIL
- * and TEST_PASSWORD env vars. Tests are skipped if credentials are absent.
+ * Auth smoke tests — sign-in / sign-out flows using the TEST_EMAIL and
+ * TEST_PASSWORD env vars. Tests are skipped if credentials are absent.
  *
  * These tests do NOT create persistent data; they only exercise the auth flow.
+ *
+ * SPLIT INTO TWO HALVES ON PURPOSE. Only the tests that exercise signing in
+ * actually sign in; everything that merely needs to *be* signed in reuses
+ * the one session captured by e2e/auth.setup.js. This file used to perform
+ * four sign-ins plus a deliberate failed one, and shows.smoke.spec.js added
+ * five more via a beforeEach — ten attempts a run, twenty with retries, one
+ * account, one CI IP. Firebase throttled it, and the resulting
+ * `auth/too-many-requests` failed the entire suite. See e2e/auth.setup.js.
  */
 const { test, expect } = require('@playwright/test');
 const {
+  AUTH_FILE,
   loginUser,
   dismissOverlays,
   logoutUser,
@@ -21,35 +30,31 @@ test.describe('Auth Smoke Tests', () => {
     'Skipping: TEST_EMAIL and TEST_PASSWORD env vars not set'
   );
 
-  // ---------------------------------------------------------------------------
-  // Sign In
-  // ---------------------------------------------------------------------------
+  // ═══════════════════════════════════════════════════════════════════
+  // Signed out — these must start from a clean, logged-out context, so
+  // they deliberately do NOT load the saved session.
+  // ═══════════════════════════════════════════════════════════════════
+
   test('sign in with email/password succeeds', async ({ page }) => {
+    // The one test whose entire point is the sign-in flow, so it is the one
+    // place outside auth.setup.js that authenticates for real.
     await loginUser(page, TEST_EMAIL, TEST_PASSWORD);
     // Confirms we're on the authenticated shell — sidebar visible, no error
     await expect(page.locator('body')).not.toContainText('Application error');
     await expect(page.locator('body')).not.toContainText('Loading...');
   });
 
-  test('authenticated sidebar contains expected nav links', async ({
-    page,
-  }) => {
-    await loginUser(page, TEST_EMAIL, TEST_PASSWORD);
-    await dismissOverlays(page);
-
-    const navLabels = [/shows/i, /stats/i, /friends/i, /search/i];
-    for (const label of navLabels) {
-      await expect(
-        page.getByRole('link', { name: label }).first()
-      ).toBeVisible();
-    }
-  });
-
   test('sign in with wrong password shows error', async ({ page }) => {
     await page.goto('/', { waitUntil: 'load' });
     // Landing page uses "Log in" in v2 design; the modal submit button still says "Sign In"
     await page.getByRole('button', { name: /log in/i }).click();
-    await page.getByPlaceholder('Email address').fill(TEST_EMAIL);
+    // Deliberately NOT TEST_EMAIL. Firebase's throttle weighs *failed*
+    // attempts most heavily, so spending one every run against the same
+    // account every other test signs in with is precisely what tipped the
+    // suite into auth/too-many-requests. An address that cannot exist
+    // exercises the same "credentials rejected" path and costs the real
+    // account nothing.
+    await page.getByPlaceholder('Email address').fill('no-such-account@example.invalid');
     await page.getByPlaceholder('Password').fill('definitely-wrong-password');
     await page.locator('form').getByRole('button', { name: /sign in/i }).click();
     // Should stay on landing or show an error — either way, no redirect to app
@@ -59,21 +64,13 @@ test.describe('Auth Smoke Tests', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Sign Out
-  // ---------------------------------------------------------------------------
-  test('sign out returns to landing page', async ({ page }) => {
-    await loginUser(page, TEST_EMAIL, TEST_PASSWORD);
-    await dismissOverlays(page);
-    await logoutUser(page);
-  });
-
-  // ---------------------------------------------------------------------------
   // Apple Sign-In removal verification
   // ---------------------------------------------------------------------------
   test('Apple Sign-In button is not present on auth page', async ({ page }) => {
-    // On pull_request runs the test targets production, which may still have
-    // Apple auth until the removal PR is merged and deployed. Skip pre-deploy;
-    // enforce on push (post-deploy) and manual runs.
+    // On pull_request runs this used to target production, which may still
+    // have Apple auth until the removal PR is merged and deployed. PR runs
+    // now target the branch's own deploy preview, but the skip is kept
+    // until the removal has shipped to production so the two runs agree.
     if (process.env.GITHUB_EVENT_NAME === 'pull_request') {
       test.skip(true, 'Skipping Apple removal check on PR run — production not yet updated');
       return;
@@ -93,19 +90,45 @@ test.describe('Auth Smoke Tests', () => {
     await expect(page.locator('body')).not.toContainText('Sign up with Apple');
   });
 
-  // ---------------------------------------------------------------------------
-  // Session Persistence
-  // ---------------------------------------------------------------------------
-  test('session persists across page reload', async ({ page }) => {
-    await loginUser(page, TEST_EMAIL, TEST_PASSWORD);
-    await dismissOverlays(page);
+  // ═══════════════════════════════════════════════════════════════════
+  // Signed in — reuse the session captured once by e2e/auth.setup.js.
+  // None of these costs a Firebase sign-in.
+  // ═══════════════════════════════════════════════════════════════════
+  test.describe('with a restored session', () => {
+    test.use({ storageState: AUTH_FILE });
 
-    await page.reload({ waitUntil: 'load' });
+    test('authenticated sidebar contains expected nav links', async ({ page }) => {
+      await page.goto('/', { waitUntil: 'load' });
+      await dismissOverlays(page);
 
-    // After reload, user should still be signed in (sidebar visible)
-    await expect(
-      page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first()
-    ).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('body')).not.toContainText('Application error');
+      const navLabels = [/shows/i, /stats/i, /friends/i, /search/i];
+      for (const label of navLabels) {
+        await expect(
+          page.getByRole('link', { name: label }).first()
+        ).toBeVisible();
+      }
+    });
+
+    test('sign out returns to landing page', async ({ page }) => {
+      await page.goto('/', { waitUntil: 'load' });
+      await dismissOverlays(page);
+      await logoutUser(page);
+    });
+
+    test('session persists across page reload', async ({ page }) => {
+      await page.goto('/', { waitUntil: 'load' });
+      await dismissOverlays(page);
+
+      await page.reload({ waitUntil: 'load' });
+
+      // After reload, user should still be signed in (sidebar visible).
+      // Restoring from storage state and surviving a reload are the same
+      // property this always asserted: that the session lives somewhere
+      // durable rather than in memory.
+      await expect(
+        page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first()
+      ).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('body')).not.toContainText('Application error');
+    });
   });
 });

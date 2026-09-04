@@ -123,12 +123,19 @@ test.describe('Guest Mode', () => {
       timeout: 15000,
     });
 
-    for (const label of [/stats/i, 'Search for a Show', /roadmap/i]) {
-      const locator =
-        typeof label === 'string'
-          ? page.getByRole('link', { name: label })
-          : page.getByRole('link', { name: label });
-      await locator.click();
+    // Only links a GUEST actually has. components/layout/Sidebar.jsx hides
+    // Tours, Wishlist, Bucket List, Festivals, Profile and Setlist Photos
+    // behind `!isGuest`, leaving My Shows, Stats, Upcoming, "Search for a
+    // show" and "How to Use".
+    //
+    // This list used to end with /roadmap/i, which is not in the sidebar at
+    // all — not for a guest, not for anyone (it exists only as
+    // app/roadmap/page.jsx and some cards). The test had been failing on a
+    // link that never existed. "Support" is deliberately excluded: it is an
+    // external <a> to buymeacoffee.com, and clicking it would navigate the
+    // test off the site.
+    for (const label of [/stats/i, /search for a show/i, /upcoming/i, /how to use/i]) {
+      await page.getByRole('link', { name: label }).first().click();
       await expect(page.locator('body')).not.toContainText('Application error');
     }
   });

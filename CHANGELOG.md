@@ -6,6 +6,17 @@ All notable changes to mysetlists.net are documented here.
 
 ## [Unreleased]
 
+### Fixed: The Smoke Tests Were Rate-Limiting Themselves Out of Existence
+- Every authenticated smoke test signed in for itself: four standalone calls in `auth.smoke.spec.js`, a `beforeEach` across the five tests in `shows.smoke.spec.js`, and a deliberate wrong-password attempt. Ten Firebase sign-ins per run, twenty with `retries: 1`, all from one CI IP against one account. Firebase throttles exactly that, and the block outlives the run — so the suite failed with `auth/too-many-requests` ("Too many attempts. Please try again later.") and stayed failed. The tests were not detecting a broken app or bad credentials; they were breaking themselves.
+- New `e2e/auth.setup.js` signs in **once** per run as a Playwright setup project and saves the session; the authenticated specs opt into it with `test.use({ storageState })`. Only the two tests that exercise the sign-in flow itself still authenticate for real, so a run makes **2 sign-in attempts instead of 10** (4 instead of 20 with retries).
+- `indexedDB: true` on `context.storageState()` is load-bearing and not optional: Firebase Auth keeps its session in IndexedDB, not cookies or localStorage, so a state captured without it restores nothing and every dependent test silently starts logged out. Playwright's own docs name Firebase for this option. Needs Playwright ≥ 1.51; the repo is on 1.58.
+- The wrong-password test now uses an address that cannot exist rather than the real `TEST_EMAIL`. Firebase weighs *failed* attempts most heavily, so spending one every run against the account every other test signs in with was a meaningful part of the problem. It exercises the same rejected-credentials path at no cost to the real account.
+- The saved session is opted into per file rather than set as a project default, because the guest-mode and sign-in tests have to start logged out. `e2e/.auth/` is gitignored — it holds a live session.
+
+### Fixed: A Guest-Mode Test Asserted a Sidebar Link That Has Never Existed
+- `core.smoke.spec.js` walked the guest sidebar clicking `/stats/`, "Search for a Show" and **`/roadmap/`**. There is no Roadmap link in `Sidebar.jsx`, `MobileHeader.jsx` or `Footer.jsx` — it exists only as a page and some cards — so that step could never pass. It was masked for a long time behind the sign-in failure above.
+- The walk now uses links a guest actually has: Stats, "Search for a show", Upcoming and "How to Use". `Sidebar.jsx` hides Tours, Wishlist, Bucket List, Festivals, Profile and Setlist Photos behind `!isGuest`. "Support" is deliberately excluded — it is an external `<a>` to buymeacoffee.com, and clicking it would navigate the test off the site entirely.
+
 Nothing user-facing — CI and test-harness only, so there is no version bump
 and no Release Notes entry. A patch bump would restamp the service worker
 and needlessly invalidate every user's cache for a change that ships no app

@@ -8,7 +8,7 @@
  */
 const { test, expect } = require('@playwright/test');
 const {
-  loginUser,
+  AUTH_FILE,
   dismissOverlays,
 } = require('../utils/test-helpers');
 
@@ -27,8 +27,14 @@ test.describe('Shows Smoke Tests', () => {
     'Skipping: TEST_EMAIL and TEST_PASSWORD env vars not set'
   );
 
+  // Reuse the one session captured by e2e/auth.setup.js. This beforeEach
+  // used to sign in for every test in the file — five Firebase sign-ins a
+  // run from here alone, ten with retries, which is most of what got the
+  // account throttled with auth/too-many-requests.
+  test.use({ storageState: AUTH_FILE });
+
   test.beforeEach(async ({ page }) => {
-    await loginUser(page, TEST_EMAIL, TEST_PASSWORD);
+    await page.goto('/', { waitUntil: 'load' });
     await dismissOverlays(page);
   });
 

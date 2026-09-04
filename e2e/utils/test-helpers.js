@@ -1,7 +1,13 @@
 // @ts-check
 'use strict';
 
+const path = require('node:path');
 const { expect } = require('@playwright/test');
+
+// Where e2e/auth.setup.js saves the one signed-in session per run, and
+// where the authenticated specs opt into it. Declared once here so the
+// setup file and every consumer cannot drift apart.
+const AUTH_FILE = path.join(__dirname, '..', '.auth', 'user.json');
 
 const LOGIN_TIMEOUT_MS = 20000;
 
@@ -129,6 +135,7 @@ async function navigateSidebar(page, label) {
 }
 
 module.exports = {
+  AUTH_FILE,
   loginUser,
   dismissOverlays,
   setupAuthenticatedSession,

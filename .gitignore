@@ -51,3 +51,6 @@ GoogleService-Info*.plist
 
 # Claude Code agent worktrees (local scratch, not repo content)
 .claude/worktrees/
+
+# Playwright auth state captured by e2e/auth.setup.js (contains a live session)
+e2e/.auth/
