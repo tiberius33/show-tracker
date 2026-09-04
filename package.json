@@ -32,10 +32,10 @@
     "build:ios": "next build && npx cap sync ios",
     "open:ios": "npx cap open ios",
     "test:e2e": "npx playwright test",
-    "test:smoke": "npx playwright test --project=smoke",
+    "test:smoke": "npx playwright test --project=smoke --project=smoke-auth",
     "test:integration": "npx playwright test --project=integration",
     "test:legacy": "npx playwright test --project=legacy-smoke",
-    "test:all": "npx playwright test --project=smoke --project=integration",
+    "test:all": "npx playwright test --project=smoke --project=smoke-auth --project=integration",
     "test:pre-deploy": "node tests/utils/pre-deploy-checks.js",
     "test:cleanup": "node e2e/utils/cleanup.js",
     "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage"

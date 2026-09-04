@@ -14,12 +14,7 @@
  * `auth/too-many-requests` failed the entire suite. See e2e/auth.setup.js.
  */
 const { test, expect } = require('@playwright/test');
-const {
-  AUTH_FILE,
-  loginUser,
-  dismissOverlays,
-  logoutUser,
-} = require('../utils/test-helpers');
+const { loginUser } = require('../utils/test-helpers');
 
 const TEST_EMAIL = process.env.TEST_EMAIL;
 const TEST_PASSWORD = process.env.TEST_PASSWORD;
@@ -88,47 +83,5 @@ test.describe('Auth Smoke Tests', () => {
     ).toHaveCount(0);
     await expect(page.locator('body')).not.toContainText('Sign in with Apple');
     await expect(page.locator('body')).not.toContainText('Sign up with Apple');
-  });
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Signed in — reuse the session captured once by e2e/auth.setup.js.
-  // None of these costs a Firebase sign-in.
-  // ═══════════════════════════════════════════════════════════════════
-  test.describe('with a restored session', () => {
-    test.use({ storageState: AUTH_FILE });
-
-    test('authenticated sidebar contains expected nav links', async ({ page }) => {
-      await page.goto('/', { waitUntil: 'load' });
-      await dismissOverlays(page);
-
-      const navLabels = [/shows/i, /stats/i, /friends/i, /search/i];
-      for (const label of navLabels) {
-        await expect(
-          page.getByRole('link', { name: label }).first()
-        ).toBeVisible();
-      }
-    });
-
-    test('sign out returns to landing page', async ({ page }) => {
-      await page.goto('/', { waitUntil: 'load' });
-      await dismissOverlays(page);
-      await logoutUser(page);
-    });
-
-    test('session persists across page reload', async ({ page }) => {
-      await page.goto('/', { waitUntil: 'load' });
-      await dismissOverlays(page);
-
-      await page.reload({ waitUntil: 'load' });
-
-      // After reload, user should still be signed in (sidebar visible).
-      // Restoring from storage state and surviving a reload are the same
-      // property this always asserted: that the session lives somewhere
-      // durable rather than in memory.
-      await expect(
-        page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first()
-      ).toBeVisible({ timeout: 15000 });
-      await expect(page.locator('body')).not.toContainText('Application error');
-    });
   });
 });

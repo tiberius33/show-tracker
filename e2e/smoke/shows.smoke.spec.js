@@ -7,10 +7,7 @@
  * Requires: TEST_EMAIL, TEST_PASSWORD
  */
 const { test, expect } = require('@playwright/test');
-const {
-  AUTH_FILE,
-  dismissOverlays,
-} = require('../utils/test-helpers');
+const { dismissOverlays } = require('../utils/test-helpers');
 
 const TEST_EMAIL = process.env.TEST_EMAIL;
 const TEST_PASSWORD = process.env.TEST_PASSWORD;
@@ -27,12 +24,12 @@ test.describe('Shows Smoke Tests', () => {
     'Skipping: TEST_EMAIL and TEST_PASSWORD env vars not set'
   );
 
-  // Reuse the one session captured by e2e/auth.setup.js. This beforeEach
+  // Reuses the one session captured by e2e/auth.setup.js. This beforeEach
   // used to sign in for every test in the file — five Firebase sign-ins a
   // run from here alone, ten with retries, which is most of what got the
-  // account throttled with auth/too-many-requests.
-  test.use({ storageState: AUTH_FILE });
-
+  // account throttled with auth/too-many-requests. The storage state comes
+  // from the `smoke-auth` project, not a test.use() here, so there is one
+  // place that decides it.
   test.beforeEach(async ({ page }) => {
     await page.goto('/', { waitUntil: 'load' });
     await dismissOverlays(page);

@@ -1,6 +1,11 @@
 // @ts-check
 const { defineConfig } = require('@playwright/test');
 
+// Specs that need a signed-in session. They run in their own project so a
+// sign-in outage costs only these — see the `smoke-auth` project below.
+const AUTHENTICATED_SPECS = ['**/shows.smoke.spec.js', '**/session.smoke.spec.js'];
+const AUTH_FILE = 'e2e/.auth/user.json';
+
 
 module.exports = defineConfig({
   // Default directory for legacy e2e tests (smoke.spec.js, popup.spec.js)
@@ -39,13 +44,35 @@ module.exports = defineConfig({
     },
 
     // ── Smoke: fast, critical-path, run on every push ─────────────────────
-    // The saved session is opted INTO per file (see shows.smoke.spec.js and
-    // the signed-in block of auth.smoke.spec.js) rather than applied as a
-    // project default, because the guest-mode and sign-in tests have to
-    // start logged out.
+    // Everything that does NOT need a session: API health, email endpoints,
+    // legal pages, guest mode, and the sign-in flow itself.
+    //
+    // Deliberately has NO dependency on `setup`. When the whole smoke
+    // project depended on it, a throttled test account failed setup and
+    // took all 36 tests with it, including the two dozen that never touch
+    // auth — worse signal than the problem being fixed. These keep
+    // reporting whether or not signing in is possible.
     {
       name: 'smoke',
       testDir: './e2e/smoke',
+      testIgnore: AUTHENTICATED_SPECS,
+      timeout: 30000,
+      use: {
+        baseURL: process.env.TEST_BASE_URL || 'https://mysetlists.net',
+        screenshot: 'only-on-failure',
+        trace: 'on-first-retry',
+        browserName: 'chromium',
+      },
+    },
+
+    // ── Smoke (authenticated): reuses the one session from `setup` ────────
+    // The single place the signed-in storage state is configured, so no
+    // spec has to remember to opt in. If setup cannot sign in, only these
+    // are skipped.
+    {
+      name: 'smoke-auth',
+      testDir: './e2e/smoke',
+      testMatch: AUTHENTICATED_SPECS,
       timeout: 30000,
       dependencies: ['setup'],
       use: {
@@ -53,6 +80,7 @@ module.exports = defineConfig({
         screenshot: 'only-on-failure',
         trace: 'on-first-retry',
         browserName: 'chromium',
+        storageState: AUTH_FILE,
       },
     },
 
