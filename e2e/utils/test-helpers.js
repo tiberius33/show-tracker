@@ -3,9 +3,24 @@
 
 const { expect } = require('@playwright/test');
 
+const LOGIN_TIMEOUT_MS = 20000;
+
 /**
  * Sign in via the email/password form.
  * Returns once the main authenticated sidebar is visible.
+ *
+ * Every authenticated smoke test funnels through here, so when sign-in
+ * stops working this is the single line that fails — ten times over, all
+ * reading `expect(locator).toBeVisible() failed ... element(s) not found`,
+ * which says nothing about *why*. It could be bad credentials, a rejected
+ * account, Firebase being down, or a genuine app regression, and the
+ * report looked identical for all of them.
+ *
+ * So the wait races the signed-in sidebar against the login form's own
+ * error message (components/auth/LoginForm.js renders it as
+ * `<p class="text-danger">`) and reports whichever arrives. A rejected
+ * sign-in now fails with Firebase's actual reason instead of a bare
+ * locator timeout.
  */
 async function loginUser(page, email, password) {
   await page.goto('/', { waitUntil: 'load' });
@@ -15,10 +30,38 @@ async function loginUser(page, email, password) {
   await page.getByPlaceholder('Password').fill(password);
   // Auth modal submit still says "Sign In"
   await page.locator('form').getByRole('button', { name: /sign in/i }).click();
-  // Wait for the sidebar nav link to appear — confirms auth + render
-  await expect(
-    page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first()
-  ).toBeVisible({ timeout: 20000 });
+
+  const sidebar = page.locator('[class*="bg-sidebar"]').getByText(/shows/i).first();
+  const authError = page.locator('form').locator('p.text-danger').first();
+
+  // A locator that times out must not win the race — otherwise whichever
+  // rejects first decides the outcome. Losing branches park forever and
+  // the explicit timer below is the only thing that reports "neither".
+  const never = () => new Promise(() => {});
+  const outcome = await Promise.race([
+    sidebar.waitFor({ state: 'visible', timeout: LOGIN_TIMEOUT_MS + 5000 }).then(() => 'signed-in').catch(never),
+    authError.waitFor({ state: 'visible', timeout: LOGIN_TIMEOUT_MS + 5000 }).then(() => 'auth-error').catch(never),
+    new Promise(resolve => setTimeout(() => resolve('timeout'), LOGIN_TIMEOUT_MS)),
+  ]);
+
+  if (outcome === 'auth-error') {
+    const message = ((await authError.textContent()) || '').trim();
+    throw new Error(
+      `Sign-in was rejected for ${email}: "${message}". ` +
+      'The page worked; the sign-in did not. Most often that is the TEST_EMAIL / ' +
+      'TEST_PASSWORD repository secrets, but the message above is the real reason — ' +
+      'auth/network-request-failed, for instance, means Firebase was unreachable.'
+    );
+  }
+
+  if (outcome === 'timeout') {
+    throw new Error(
+      `Sign-in neither completed nor reported an error within ${LOGIN_TIMEOUT_MS}ms at ${page.url()}. ` +
+      'The signed-in sidebar never rendered and the login form showed no message.'
+    );
+  }
+
+  await expect(sidebar).toBeVisible();
 }
 
 /**

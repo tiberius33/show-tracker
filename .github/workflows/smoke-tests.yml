@@ -15,6 +15,17 @@ on:
         required: false
         default: 'https://mysetlists.net'
 
+# A second push to the same PR supersedes the first: without this, two runs
+# race and the older one can report on a preview that has already been
+# replaced.
+concurrency:
+  group: smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: read
+
 jobs:
   smoke:
     name: Smoke Tests
@@ -33,20 +44,124 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      # On push to main, wait for Netlify to finish deploying before testing
-      - name: Wait for Netlify deploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: sleep 90
+      # WHICH SITE THE TESTS POINT AT.
+      #
+      # This used to be `inputs.base_url || 'https://mysetlists.net'` for
+      # every event. `inputs` only exists on workflow_dispatch, so both
+      # `push` and `pull_request` fell through to production — meaning a PR
+      # run tested the live site and said nothing whatsoever about the
+      # branch. A crash that shipped in v5.30.0 (a lucide `Map` icon import
+      # shadowing the global Map constructor, see v5.30.2) went out with
+      # this workflow "passing PRs" that never loaded the code.
+      #
+      # A pull request now tests its own Netlify deploy preview.
+      - name: Resolve target URL
+        env:
+          DISPATCH_URL: ${{ inputs.base_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            url="https://deploy-preview-${PR_NUMBER}--setlisttracker.netlify.app"
+          elif [ -n "${DISPATCH_URL:-}" ]; then
+            url="$DISPATCH_URL"
+          else
+            url="https://mysetlists.net"
+          fi
+          echo "TEST_BASE_URL=$url" >> "$GITHUB_ENV"
+          echo "Smoke tests will run against $url"
+
+      # Netlify builds the deploy concurrently with this job, so the preview
+      # is not live yet — and on a re-push the *previous* deploy is still
+      # answering at the same URL, so polling for HTTP 200 alone would
+      # happily test stale code. Netlify posts its own check runs against
+      # the exact commit; waiting for those to finish is what ties the wait
+      # to this commit's deploy rather than to whatever is currently up.
+      #
+      # Pull requests only: Netlify posts these checks for deploy previews
+      # and NOT for production deploys, so the same wait on a push to main
+      # would find zero checks and time out. Production gets the
+      # version-based wait below instead.
+      - name: Wait for the Netlify deploy preview of this commit
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          deadline=$(( SECONDS + 600 ))
+          while (( SECONDS < deadline )); do
+            runs=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/check-runs?per_page=100" \
+              --jq '[.check_runs[] | select(.name | test("setlisttracker"))]' 2>/dev/null || echo '[]')
+            total=$(jq 'length' <<<"$runs")
+            finished=$(jq '[.[] | select(.status == "completed")] | length' <<<"$runs")
+            if (( total > 0 && total == finished )); then
+              echo "Netlify finished deploying ${HEAD_SHA} (${total} checks)."
+              exit 0
+            fi
+            echo "Waiting for Netlify — ${finished}/${total} checks complete…"
+            sleep 15
+          done
+          echo "::error::Timed out after 10m waiting for the Netlify deploy preview of ${HEAD_SHA}."
+          exit 1
+
+      # Production has no per-commit Netlify check to wait on, so tie the
+      # wait to something the deploy itself changes: scripts/stamp-service-
+      # worker.js writes the package.json version into public/service-worker.js
+      # on every build, so the live file naming this version means this
+      # release is serving.
+      #
+      # Not every push to main bumps the version, so failing to observe it is
+      # a warning, not an error — the run continues rather than blocking a
+      # legitimate no-bump push. Replaces a blind `sleep 90`.
+      - name: Wait for production to serve this release
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          echo "Looking for mysetlists-v${version} at ${TEST_BASE_URL}/service-worker.js"
+          for attempt in $(seq 1 30); do
+            if curl -sS --max-time 20 "${TEST_BASE_URL}/service-worker.js" 2>/dev/null \
+                 | grep -q "mysetlists-v${version}"; then
+              echo "Production is serving v${version} after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "attempt ${attempt}: v${version} not live yet…"
+            sleep 10
+          done
+          echo "::warning::Never saw mysetlists-v${version} live. If this push bumped the version, the tests below ran against the previous deploy."
+
+      # Belt and braces: the deploy being "finished" and the URL actually
+      # serving are not quite the same moment. Fail loudly here rather than
+      # letting every test fail one by one against a URL that is down.
+      - name: Wait for the target URL to serve
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            # Assign on failure rather than `|| echo 000`: curl already
+            # prints 000 via -w before exiting non-zero, so appending a
+            # second one logs a nonsense "HTTP 000000".
+            code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 20 "$TEST_BASE_URL") || code=000
+            if [ "$code" = "200" ]; then
+              echo "$TEST_BASE_URL is serving (HTTP 200) after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "attempt ${attempt}: $TEST_BASE_URL -> HTTP ${code}"
+            sleep 10
+          done
+          echo "::error::$TEST_BASE_URL never returned HTTP 200."
+          exit 1
 
       - name: Run smoke tests
         env:
-          TEST_BASE_URL: ${{ inputs.base_url || 'https://mysetlists.net' }}
           TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_TEST_DATABASE_ID: ${{ secrets.NOTION_TEST_DATABASE_ID }}
           TEST_SUITE_NAME: Smoke Tests
-          ENVIRONMENT: production
+          # Reported alongside the results, so a run against a preview isn't
+          # mistaken for a run against the live site.
+          ENVIRONMENT: ${{ github.event_name == 'pull_request' && 'deploy-preview' || 'production' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: npx playwright test --project=smoke
 
