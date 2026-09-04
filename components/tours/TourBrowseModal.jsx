@@ -21,7 +21,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Search, ArrowLeft, Check, AlertCircle, Map, CalendarDays, MapPin, Music, RotateCcw,
+  Search, ArrowLeft, Check, AlertCircle, CalendarDays, MapPin, Music, RotateCcw,
+  // Aliased: lucide exports an icon literally named `Map`, and importing it
+  // unaliased shadows the global Map constructor for this whole module —
+  // which crashed the month grouping below with "Map is not a constructor"
+  // on any tour long enough to group. Never import this one bare.
+  Map as MapIcon,
 } from 'lucide-react';
 import { Modal, Button, Input, Spinner, Badge, Card } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
@@ -122,6 +127,19 @@ export default function TourBrowseModal({
 
   // ── Network ─────────────────────────────────────────────────────────
 
+  // Parses a successful response's body. A 200 carrying HTML rather than
+  // JSON is what the SPA catch-all serves when a function isn't deployed —
+  // letting the raw SyntaxError through surfaced
+  // `Unexpected token '<', "<!DOCTYPE "...` to the user as if it were an
+  // explanation of what went wrong.
+  const readJson = async (res) => {
+    try {
+      return await res.json();
+    } catch {
+      throw new Error("Couldn't read the response from setlist.fm. Try again in a moment.");
+    }
+  };
+
   // Turns a non-OK response from either tour function into the honest
   // message it carries. Never collapses a failure into an empty list: a
   // tour that errored and a tour with no shows are different things and
@@ -143,7 +161,7 @@ export default function TourBrowseModal({
     try {
       const res = await fetch(`${apiUrl('/.netlify/functions/get-artist-tours')}?mbid=${encodeURIComponent(forArtist.mbid)}`);
       if (!res.ok) throw new Error(await messageFor(res));
-      const data = await res.json();
+      const data = await readJson(res);
       if (seq !== requestSeq.current) return null;
 
       const browsable = (data.tours || []).filter(isBrowsableTour);
@@ -180,7 +198,7 @@ export default function TourBrowseModal({
       const params = new URLSearchParams({ mbid: forArtist.mbid, tourName: forTour.name });
       const res = await fetch(`${apiUrl('/.netlify/functions/get-tour-shows')}?${params}`);
       if (!res.ok) throw new Error(await messageFor(res));
-      const data = await res.json();
+      const data = await readJson(res);
       if (seq !== requestSeq.current) return;
       setTourShows(data.shows || []);
       setShowsTruncated(!!data.truncated);
@@ -211,7 +229,7 @@ export default function TourBrowseModal({
   const searchArtists = async (name) => {
     const res = await fetch(`${apiUrl('/.netlify/functions/search-artists')}?artistName=${encodeURIComponent(name)}`);
     if (!res.ok) throw new Error('Artist search failed. Try again.');
-    const data = await res.json();
+    const data = await readJson(res);
     return data.artist || [];
   };
 
@@ -530,7 +548,7 @@ export default function TourBrowseModal({
               <div className="py-10"><Spinner size="md" label="Looking up tours…" /></div>
             ) : tours.length === 0 && !error ? (
               <div className="text-center py-10 px-4">
-                <Map className="w-8 h-8 text-muted mx-auto mb-3" aria-hidden="true" />
+                <MapIcon className="w-8 h-8 text-muted mx-auto mb-3" aria-hidden="true" />
                 <p className="text-sm font-semibold text-primary mb-1">
                   No tour names for {artist?.name || 'this artist'}
                 </p>

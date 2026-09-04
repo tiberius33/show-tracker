@@ -6,6 +6,15 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.30.2',
+      date: 'September 4, 2026',
+      title: 'Fix: Opening a Tour Crashed the Page',
+      changes: [
+        'Fixed: picking a tour under \u201cAdd shows from a tour\u201d blanked the page with an application error for any tour with a dozen or more shows \u2014 which is most of them',
+        'Fixed: when setlist.fm couldn\u2019t be reached, the tour lookups showed a raw technical parser error instead of a readable message',
+      ]
+    },
+    {
       version: '5.30.1',
       date: 'September 2, 2026',
       title: 'Fix: Creating a Festival Failed',
