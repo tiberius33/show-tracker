@@ -6,6 +6,11 @@ All notable changes to mysetlists.net are documented here.
 
 ## [Unreleased]
 
+### Fixed: The Guest-Mode Nav Test Was Blocked by the Cookie Banner
+- The previous fix to this test replaced a `/roadmap/` link that has never existed with links a guest actually has. That part was right, but the test still failed — and the reason was a different one hiding behind it. CI's call log is explicit: the locator *resolved* to `<a href="/how-to-use/">`, the element was "visible, enabled and stable", and then `<div class="fixed bottom-0 left-0 right-0 z-50 …"> intercepts pointer events` on every retry until the 30s timeout.
+- That div is `CookieConsentBanner`. It spans the bottom of the viewport, and "How to Use" sits low in the sidebar, so the banner covers it. Playwright reports this as a click that never lands rather than as a missing element, which reads at a glance like a selector problem when it isn't one.
+- `dismissOverlays` already knows how to clear that banner (and the What's New modal); the guest test simply never called it. It does now.
+
 ### Fixed: The Smoke Tests Were Rate-Limiting Themselves Out of Existence
 - Every authenticated smoke test signed in for itself: four standalone calls in `auth.smoke.spec.js`, a `beforeEach` across the five tests in `shows.smoke.spec.js`, and a deliberate wrong-password attempt. Ten Firebase sign-ins per run, twenty with `retries: 1`, all from one CI IP against one account. Firebase throttles exactly that, and the block outlives the run — so the suite failed with `auth/too-many-requests` ("Too many attempts. Please try again later.") and stayed failed. The tests were not detecting a broken app or bad credentials; they were breaking themselves.
 - New `e2e/auth.setup.js` signs in **once** per run as a Playwright setup project and saves the session; the authenticated specs opt into it with `test.use({ storageState })`. Only the two tests that exercise the sign-in flow itself still authenticate for real, so a run makes **2 sign-in attempts instead of 10** (4 instead of 20 with retries).

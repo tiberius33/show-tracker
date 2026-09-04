@@ -5,6 +5,7 @@
  * No test credentials required.
  */
 const { test, expect } = require('@playwright/test');
+const { dismissOverlays } = require('../utils/test-helpers');
 
 const BASE = process.env.TEST_BASE_URL || 'https://mysetlists.net';
 
@@ -122,6 +123,17 @@ test.describe('Guest Mode', () => {
     await expect(page.getByText('Exit Guest Mode').first()).toBeVisible({
       timeout: 15000,
     });
+
+    // The cookie consent banner is `fixed bottom-0 left-0 right-0 z-50`, so
+    // it sits over the lower part of the viewport and intercepts pointer
+    // events for anything under it — including "How to Use", which is near
+    // the bottom of the sidebar. Playwright reports that as the click
+    // retrying forever against
+    //   <div class="fixed bottom-0 ..."> intercepts pointer events
+    // rather than as a missing element, which is easy to misread.
+    // dismissOverlays already knows how to clear this (and the What's New
+    // modal); the guest test simply never called it.
+    await dismissOverlays(page);
 
     // Only links a GUEST actually has. components/layout/Sidebar.jsx hides
     // Tours, Wishlist, Bucket List, Festivals, Profile and Setlist Photos
