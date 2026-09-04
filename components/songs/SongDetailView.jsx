@@ -11,12 +11,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { Card, Badge, StatFigure } from '@/components/ui';
+import { Card, StatFigure } from '@/components/ui';
 import { formatDate, humanizeGapDuration } from '@/lib/utils';
 import { getBustOutSeverity, BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
+import SongPerformanceRow from '@/components/songs/SongPerformanceRow';
 
 function venueLabel({ venue, city }) {
   if (!venue) return null;
@@ -87,45 +88,6 @@ function PerformancesByYear({ performances }) {
         );
       })}
     </div>
-  );
-}
-
-// Opens a show via context state (setSelectedShow + /shows/) rather than
-// linking straight to /shows/{id} — that dynamic route only ever resolves
-// its build-time placeholder under output: 'export', so a real per-id link
-// 404s for any show that wasn't statically generated. This mirrors how the
-// rest of the app already opens a specific show (see SongHistoryModal).
-function PerformanceRow({ perf, onOpen }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(perf.showId)}
-      className="block w-full text-left rounded-2xl bg-surface border border-subtle p-4 transition-colors hover:border-active hover:bg-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-primary">{formatDate(perf.date)}</div>
-          <div className="text-xs text-secondary mt-0.5 truncate">
-            {perf.venue}{perf.city ? `, ${perf.city}` : ''}
-          </div>
-          <div className="text-[11px] text-muted mt-1.5 flex items-center gap-2 flex-wrap">
-            {perf.setLabel && (
-              <span>{perf.setLabel}{perf.position ? ` · #${perf.position}` : ''}</span>
-            )}
-            {perf.manuallyAdded && <Badge tone="neutral" size="sm">added by you</Badge>}
-          </div>
-          {perf.segueOut && (
-            <div className="text-[11px] text-muted mt-1">&gt; segue</div>
-          )}
-        </div>
-        {perf.rating > 0 && (
-          <div className="flex items-center gap-1 text-sm font-semibold text-amber flex-shrink-0">
-            <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
-            {perf.rating}/10
-          </div>
-        )}
-      </div>
-    </button>
   );
 }
 
@@ -215,7 +177,7 @@ export default function SongDetailView({ song }) {
           <h2 className="text-lg font-bold text-primary mb-4">Every Time You've Seen It</h2>
           <div className="space-y-2.5">
             {song.performances.map((perf, i) => (
-              <PerformanceRow key={`${perf.showId}-${i}`} perf={perf} onOpen={goToShow} />
+              <SongPerformanceRow key={`${perf.showId}-${i}`} perf={perf} onOpen={goToShow} />
             ))}
           </div>
         </section>
