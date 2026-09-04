@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.31.0',
+      date: 'September 4, 2026',
+      title: 'Duplicate Festivals Can Now Be Merged',
+      changes: [
+        'New: when two people add the same festival under slightly different names — "Outside Lands" and "Outside Lands Music & Arts Festival" — those copies can now be folded into one, so everyone who was there ends up on the same festival instead of separate copies of it',
+        'Your notes, your rating and every show you attached stay exactly as they are; nothing about your own record changes except which shared festival it points at',
+        'Two different years of the same festival can never be merged into each other, no matter how identical the names are',
+      ]
+    },
+    {
       version: '5.30.4',
       date: 'September 4, 2026',
       title: 'Fix: Two Years of the Same Festival Could Be Merged',

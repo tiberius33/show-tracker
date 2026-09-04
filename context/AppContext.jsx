@@ -1430,11 +1430,18 @@ export function AppProvider({ children }) {
   // already attached elsewhere as a `conflict` rather than silently
   // double-attaching.
   //
-  // NOT BUILT, DELIBERATELY: there is no admin merge/moderation tool for
-  // duplicate canonical festivals. When one is wanted it belongs beside
-  // the other bulk tools in components/AdminView.jsx, backed by a
-  // netlify/functions/admin-*.js using the same match rule
-  // (lib/festivalMatch.js) the migration does.
+  // DUPLICATE CANONICAL FESTIVALS are cleaned up by the admin merge tool,
+  // not from here: netlify/functions/admin-merge-festivals.js, surfaced
+  // beside the other bulk tools in components/AdminView.jsx. It uses the
+  // same match rule this file does, via the shared CommonJS copy in
+  // netlify/functions/lib/festivalMatchRule.js.
+  //
+  // Nothing on the client can do this, by design. Merging means deleting a
+  // canonical festival, and firestore.rules says `allow delete: if false`
+  // for every client; the tool deletes with the admin SDK, which bypasses
+  // rules. So a user who spots a duplicate has no self-service path and is
+  // not meant to — silently repointing other people's attendance records
+  // is not a thing one attendee should be able to do to another.
 
   // How many canonical festivals a dedup lookup will pull down before
   // fuzzy-matching client-side. Firestore can't do fuzzy search, so the

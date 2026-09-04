@@ -30,6 +30,13 @@ function AdminView() {
   const [dupeCleanupResult, setDupeCleanupResult] = useState(null);
   const [festMigrationLoading, setFestMigrationLoading] = useState(false);
   const [festMigrationResult, setFestMigrationResult] = useState(null);
+  const [festMergeLoading, setFestMergeLoading] = useState(false);
+  const [festMergeScan, setFestMergeScan] = useState(null);
+  const [festMergeSurvivors, setFestMergeSurvivors] = useState({}); // clusterIndex -> festival id
+  const [festMergeResult, setFestMergeResult] = useState(null);
+  // The request that produced festMergeResult, so a refusal can be retried
+  // with the override the response asked for without rebuilding it.
+  const [festMergeLastRequest, setFestMergeLastRequest] = useState(null);
   // ── Missing setlists (all-users scan) ────────────────────────────
   const [missingSetlistsLoading, setMissingSetlistsLoading] = useState(false);
   const [missingSetlistsResults, setMissingSetlistsResults] = useState(null);
@@ -205,6 +212,43 @@ function AdminView() {
       setLoadingShows(false);
     }
   }, []);
+
+  /**
+   * One call into admin-merge-festivals, used for both the preview and the
+   * real merge and for the retries that add an override.
+   *
+   * The request is kept in state so a 409 refusal can be re-sent with the
+   * flag the response asked for — the function refuses rather than guesses
+   * whenever a merge would leave someone with duplicate cards, or pairs
+   * festivals the match rule would not, and both refusals are meant to be
+   * answered deliberately rather than rebuilt by hand.
+   *
+   * On a successful non-dry-run merge the scan is cleared: it now describes
+   * a catalog that no longer exists, and acting on a stale cluster would
+   * send ids of festivals that have just been deleted.
+   */
+  const runFestivalMerge = async (request) => {
+    setFestMergeLoading(true);
+    setFestMergeLastRequest(request);
+    setFestMergeResult(null);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(apiUrl('/.netlify/functions/admin-merge-festivals'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'merge', ...request }),
+      });
+      const data = await res.json();
+      setFestMergeResult(data);
+      if (res.ok && data.success && request.dryRun === false) {
+        setFestMergeScan(null);
+        setFestMergeSurvivors({});
+      }
+    } catch (e) {
+      setFestMergeResult({ error: e.message });
+    }
+    setFestMergeLoading(false);
+  };
 
   const handleSelectUser = (user) => {
     setSelectedUser(user);
@@ -2993,6 +3037,205 @@ function AdminView() {
                       {festMigrationResult.failures.map((f, i) => (
                         <p key={i} className="text-xs text-danger/80 mb-1">
                           {f.scope} {f.uid || f.name}: {f.reason}
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Duplicate Festivals (v5.31.0) — dedup at create time is advisory
+          by design (it shows matches and never blocks), so duplicates
+          accumulate and nothing could clean them up: the client cannot
+          delete a canonical festival. See
+          netlify/functions/admin-merge-festivals.js. */}
+      <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-6">
+        <h3 className="text-lg font-semibold text-primary mb-1">Duplicate Festivals</h3>
+        <p className="text-secondary text-sm mb-4">
+          Finds shared festivals that are really the same one and folds them together. Attendance
+          records are repointed; notes, ratings and attached shows are never touched. Two years of
+          the same festival can never be merged.
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={async () => {
+              setFestMergeLoading(true);
+              setFestMergeScan(null);
+              setFestMergeResult(null);
+              setFestMergeSurvivors({});
+              try {
+                const token = await auth.currentUser.getIdToken();
+                const res = await fetch(apiUrl('/.netlify/functions/admin-merge-festivals'), {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'scan' }),
+                });
+                const data = await res.json();
+                setFestMergeScan(data);
+                // Pre-select each cluster's suggested survivor so the
+                // common case is one click, while still letting the admin
+                // pick a different one.
+                if (data.clusters) {
+                  const picks = {};
+                  data.clusters.forEach((c, i) => { picks[i] = c.suggestedSurvivorId; });
+                  setFestMergeSurvivors(picks);
+                }
+              } catch (e) {
+                setFestMergeScan({ error: e.message });
+              }
+              setFestMergeLoading(false);
+            }}
+            disabled={festMergeLoading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-subtle hover:bg-amber/30 text-amber border border-amber/30 rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+          >
+            <Search className="w-4 h-4" />
+            {festMergeLoading ? 'Working...' : 'Scan for Duplicates'}
+          </button>
+        </div>
+
+        {festMergeScan && (
+          <div className="mt-4 bg-surface border border-subtle rounded-xl p-4 text-sm">
+            {festMergeScan.error ? (
+              <p className="text-danger">Error: {festMergeScan.error}</p>
+            ) : (
+              <>
+                <p className="text-secondary mb-3">
+                  Scanned {festMergeScan.festivalsScanned} shared festival
+                  {festMergeScan.festivalsScanned !== 1 ? 's' : ''} —{' '}
+                  {festMergeScan.duplicateClusters} duplicate group
+                  {festMergeScan.duplicateClusters !== 1 ? 's' : ''} found.
+                  {festMergeScan.truncated && ' (Catalog truncated — re-run after merging.)'}
+                </p>
+
+                {festMergeScan.duplicateClusters === 0 && (
+                  <p className="text-secondary">Nothing to merge. The catalog is clean.</p>
+                )}
+
+                {festMergeScan.clusters?.map((cluster, i) => {
+                  const survivorId = festMergeSurvivors[i] || cluster.suggestedSurvivorId;
+                  const duplicateIds = cluster.members.map(m => m.id).filter(id => id !== survivorId);
+                  return (
+                    <div key={cluster.members.map(m => m.id).join('-')} className="mb-4 border border-subtle rounded-xl p-3">
+                      <p className="text-xs text-secondary mb-2">
+                        Pick the one to keep — the others fold into it.
+                      </p>
+                      {cluster.members.map(member => (
+                        <label key={member.id} className="flex items-start gap-2 py-1 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={`survivor-${i}`}
+                            checked={survivorId === member.id}
+                            onChange={() => setFestMergeSurvivors(prev => ({ ...prev, [i]: member.id }))}
+                            className="mt-1"
+                          />
+                          <span className="text-primary">
+                            {member.name}{' '}
+                            <span className="text-secondary">
+                              · {member.startDate}
+                              {member.endDate && member.endDate !== member.startDate ? ` – ${member.endDate}` : ''}
+                              {member.location ? ` · ${member.location}` : ''}
+                              {' · '}
+                              {member.attendeeCount} attendee{member.attendeeCount !== 1 ? 's' : ''}
+                            </span>
+                            {/* The doc id is what a follow-up repair or a
+                                support question needs; the migration's
+                                conflict list originally omitted its ids and
+                                that made a real incident harder to fix. */}
+                            <span className="block text-[11px] text-secondary font-mono">{member.id}</span>
+                          </span>
+                        </label>
+                      ))}
+
+                      {cluster.usersOnMultiple?.length > 0 && (
+                        <p className="mt-2 text-xs text-amber">
+                          {cluster.usersOnMultiple.length} user
+                          {cluster.usersOnMultiple.length !== 1 ? 's are' : ' is'} on more than one of
+                          these and would end up with duplicate cards. The merge refuses unless you
+                          confirm it.
+                        </p>
+                      )}
+
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => runFestivalMerge({ survivorId, duplicateIds, dryRun: true })}
+                          disabled={festMergeLoading || duplicateIds.length === 0}
+                          className="px-3 py-1.5 bg-hover hover:bg-hover text-secondary border border-subtle rounded-lg text-xs font-medium disabled:opacity-50"
+                        >
+                          Preview
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!confirm(`Fold ${duplicateIds.length} festival(s) into "${cluster.members.find(m => m.id === survivorId)?.name}"? Review the preview first.`)) return;
+                            runFestivalMerge({ survivorId, duplicateIds, dryRun: false });
+                          }}
+                          disabled={festMergeLoading || duplicateIds.length === 0}
+                          className="px-3 py-1.5 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-lg text-xs font-medium disabled:opacity-50"
+                        >
+                          Merge
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
+
+        {festMergeResult && (
+          <div className="mt-4 bg-surface border border-subtle rounded-xl p-4 text-sm">
+            {festMergeResult.error ? (
+              <>
+                <p className="text-danger font-medium">{festMergeResult.error}</p>
+                {festMergeResult.detail && <p className="text-secondary mt-1">{festMergeResult.detail}</p>}
+                {festMergeResult.sharedAttendees?.length > 0 && (
+                  <button
+                    onClick={() => runFestivalMerge({ ...festMergeLastRequest, allowSharedAttendees: true })}
+                    className="mt-3 px-3 py-1.5 bg-amber-subtle hover:bg-amber/30 text-amber border border-amber/30 rounded-lg text-xs font-medium"
+                  >
+                    {festMergeLastRequest?.dryRun === false ? 'Merge anyway' : 'Preview anyway'} — accept duplicate cards
+                  </button>
+                )}
+                {festMergeResult.unmatched?.length > 0 && (
+                  <button
+                    onClick={() => runFestivalMerge({ ...festMergeLastRequest, confirmUnmatched: true })}
+                    className="mt-3 px-3 py-1.5 bg-amber-subtle hover:bg-amber/30 text-amber border border-amber/30 rounded-lg text-xs font-medium"
+                  >
+                    {festMergeLastRequest?.dryRun === false ? 'Merge anyway' : 'Preview anyway'} — these really are the same festival
+                  </button>
+                )}
+                {/* No override is offered for crossEdition. There isn't one. */}
+                {festMergeResult.crossEdition?.length > 0 && (
+                  <p className="mt-2 text-xs text-secondary">
+                    Correct the dates on whichever copy is wrong, then scan again.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="font-medium text-primary mb-2">
+                  {festMergeResult.dryRun ? '🔍 Preview' : '✅ Merged'}
+                </p>
+                <div className="text-secondary space-y-1">
+                  <p>Keeping: {festMergeResult.plan?.survivor?.name} ({festMergeResult.plan?.survivor?.attendeeCount} attendees)</p>
+                  <p>Festivals {festMergeResult.dryRun ? 'to delete' : 'deleted'}: {festMergeResult.plan?.festivalsDeleted ?? 0}</p>
+                  <p>Records {festMergeResult.dryRun ? 'to repoint' : 'repointed'}: {festMergeResult.plan?.recordsRepointed ?? 0}</p>
+                  <p>Shows touched: {festMergeResult.plan?.showsTouched ?? 0} · Notes touched: {festMergeResult.plan?.notesTouched ?? 0}</p>
+                </div>
+                {festMergeResult.plan?.duplicates?.some(d => d.differences?.length > 0) && (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-amber text-xs">
+                      Field differences — the survivor keeps its own values
+                    </summary>
+                    <div className="mt-2 space-y-1">
+                      {festMergeResult.plan.duplicates.filter(d => d.differences?.length).map(d => (
+                        <p key={d.id} className="text-xs text-secondary">
+                          {d.name}: {d.differences.join('; ')}
                         </p>
                       ))}
                     </div>
