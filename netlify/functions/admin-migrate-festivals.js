@@ -62,6 +62,13 @@ const MAX_START_DATE_GAP_DAYS = 3;
 const MIN_NAME_SIMILARITY = 0.6;
 const MIN_NAME_LENGTH = 3;
 const MS_PER_DAY = 86400000;
+// See lib/festivalMatch.js for why these exist: a startDate typed as
+// "0011-08-12" parsed as year 11 AD, giving a ~2001-year window that
+// merged a 2011 festival into a 2008 one. Out-of-range dates now match
+// nothing rather than everything.
+const MAX_FESTIVAL_DAYS = 30;
+const MIN_FESTIVAL_YEAR = 1900;
+const MAX_FESTIVAL_YEAR = 2100;
 const LEADING_ARTICLES = /^(the|a|an)\s+/;
 const TRAILING_YEAR = /\s+(19|20)\d{2}$/;
 
@@ -107,6 +114,8 @@ function namesAreClose(a, b) {
 
 function parseDay(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return null;
+  const year = Number(value.slice(0, 4));
+  if (year < MIN_FESTIVAL_YEAR || year > MAX_FESTIVAL_YEAR) return null;
   const ms = Date.parse(`${value}T00:00:00Z`);
   return Number.isNaN(ms) ? null : ms;
 }
@@ -115,7 +124,9 @@ function windowOf(festival) {
   const start = parseDay(festival && festival.startDate);
   if (start === null) return null;
   const end = parseDay(festival && festival.endDate);
-  return { start, end: end === null || end < start ? start : end };
+  if (end === null || end < start) return { start, end: start };
+  if (end - start > MAX_FESTIVAL_DAYS * MS_PER_DAY) return null;
+  return { start, end };
 }
 
 function datesAreClose(a, b) {
