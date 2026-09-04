@@ -19,6 +19,13 @@ All notable changes to mysetlists.net are documented here.
 - `core.smoke.spec.js` walked the guest sidebar clicking `/stats/`, "Search for a Show" and **`/roadmap/`**. There is no Roadmap link in `Sidebar.jsx`, `MobileHeader.jsx` or `Footer.jsx` — it exists only as a page and some cards — so that step could never pass. It was masked for a long time behind the sign-in failure above.
 - The walk now uses links a guest actually has: Stats, "Search for a show", Upcoming and "How to Use". `Sidebar.jsx` hides Tours, Wishlist, Bucket List, Festivals, Profile and Setlist Photos behind `!isGuest`. "Support" is deliberately excluded — it is an external `<a>` to buymeacoffee.com, and clicking it would navigate the test off the site entirely.
 
+### Fixed: The Guest-Mode Walk Still Failed, Now on the Cookie Banner
+- The fix above swapped `/roadmap/` for links a guest really has, ending with "How to Use" — but that link sits at the bottom of the sidebar, underneath the cookie-consent banner. The banner is `fixed bottom-0 left-0 right-0 z-50`, so Playwright reports `<div …> intercepts pointer events`, retries for the full 30s and times out. Same test, same red, one link further along.
+- Verified against a local build of `main`: `enter guest mode and navigate pages` still fails there, on `/how to use/i` rather than `/roadmap/i`.
+- The banner is dismissed before the walk instead of dropping "How to Use" from it, so the link keeps its coverage. The sibling test `exit guest mode returns to landing` already had to do this — "Exit Guest Mode" is under the banner too — and its inline copy is now the same helper.
+- That helper, `dismissCookieBanner`, is factored out of `dismissOverlays` in `e2e/utils/test-helpers.js` (which already contained this exact block) and exported, so there is one definition rather than a third copy. `dismissOverlays` calls it; behaviour there is unchanged. It no-ops when the banner is absent, so it is safe to call unconditionally.
+- After: `enter guest mode and navigate pages` goes from a 30s timeout to passing in 4.8s, and `core.smoke.spec.js` runs 15 passed / 3 failed. The three are the API Health checks, which need Netlify functions a static local server cannot route to; they pass in CI.
+
 Nothing user-facing — CI and test-harness only, so there is no version bump
 and no Release Notes entry. A patch bump would restamp the service worker
 and needlessly invalidate every user's cache for a change that ships no app

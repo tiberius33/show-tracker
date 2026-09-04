@@ -95,7 +95,23 @@ async function dismissOverlays(page) {
     await tooltip.click();
   }
 
-  // Cookie consent banner
+  await dismissCookieBanner(page);
+}
+
+/**
+ * Dismiss the cookie-consent banner, if it is showing.
+ *
+ * Worth its own helper because the banner is `fixed bottom-0 left-0 right-0
+ * z-50`: it sits on top of whatever is at the bottom of the viewport, which
+ * in this app is the bottom of the sidebar — "How to Use", the Support link
+ * and "Exit Guest Mode". Playwright reports those as
+ * `<div …> intercepts pointer events` and burns the whole test timeout
+ * retrying, so any test that clicks down there has to clear it first.
+ *
+ * Safe to call unconditionally: it no-ops when the banner is absent (already
+ * accepted, or a context that never showed it).
+ */
+async function dismissCookieBanner(page) {
   const cookieBanner = page
     .locator('[class*="fixed bottom-0"]')
     .filter({ hasText: /cookie|accept/i });
@@ -138,6 +154,7 @@ module.exports = {
   AUTH_FILE,
   loginUser,
   dismissOverlays,
+  dismissCookieBanner,
   setupAuthenticatedSession,
   logoutUser,
   navigateSidebar,
