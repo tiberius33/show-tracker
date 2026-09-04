@@ -25,6 +25,26 @@ code.
 
 ---
 
+## [5.30.3] — 2026-09-04
+
+### Added: Expand a Song on Stats → Songs to See Every Show You Heard It At
+- Clicking a song row on `/stats/songs` now expands it in place, listing every performance of that song in the user's own logged shows — date, venue and city, set label and position within the set, segue markers, and the user's rating of that specific performance. Clicking again collapses it. No navigation, no modal, no drawer.
+- Toggles are **independent**, not an accordion: comparing two songs' histories side by side is the obvious next thing to do on this page, and nothing about the list makes several open panels awkward.
+- Each expanded row is itself a link to that show, opening it the same way every other list in the app does (`setSelectedShow` + `/shows/`) rather than a per-id URL, which static export can't serve.
+- The row is a real `<button>`: it takes focus, toggles on Enter and Space, shows the same focus ring the rest of the page uses, and carries `aria-expanded` plus an `aria-controls` pointing at the panel. The chevron is the same `ChevronDown` + `rotate-180` affordance already used for expandable rows on My Shows and the legacy Stats tables.
+- The row previously navigated straight to the song page; that link is preserved as a "Song page →" link inside the expansion, so nothing that was reachable before became unreachable.
+
+### Technical
+- `components/songs/SongPerformanceRow.jsx` is the performance row, extracted verbatim from `components/songs/SongDetailView.jsx` where it was inlined. Both the song page and the new expansion render it; a `compact` prop swaps only the wrapper's padding and chrome, never the content, so the two can't drift into two implementations of the same timeline. The song page's rendering is byte-for-byte what it was.
+- Both use the same `lib/songIndex.js` — one normalizer (`normalizeSongTitle`), keyed `artistSlug:normalizedTitle`, so `"Ashes//Dust"`, `"Ashes // Dust"` and `"ASHES//DUST"` collapse into one expansion while a title two different artists both play stays on two.
+- Expansion causes **no Firestore reads**. It renders from `hooks/useSongIndex`, which is memoized on the `shows` array already in `AppContext`. Verified in a real browser with 550 shows / 12,100 setlist entries: the index is built exactly once and stays at one build across 22 expand/collapse toggles and a sort change; zero backend requests are issued while toggling; expand latency stayed under 100ms including the test driver's own round-trip.
+- `segueIn` added to each indexed performance. Segues are stored one-directionally (`tape` on a song means it ran into the next one, which is what the show detail setlist renders as its `> segue` line), so a song's segue-*in* is the previous song's flag. Rendered with the same `>` and "segue" vocabulary the show detail view uses.
+- Missing set data still degrades to no set label rather than `Set undefined`/`Set null`, and a manually-added song renders identically to a setlist.fm-sourced one (with the existing "added by you" badge). Both are covered by tests.
+- Six new cases in `lib/__tests__/songIndex.test.js` cover performance ordering, completeness and de-duplication, the single-performance case, the "no song can have zero performances" invariant, a song played twice in one show, and segue in/out direction. 14 tests pass.
+- Fixed in passing: the numeric columns on this page were fixed-width `w-24` at every breakpoint, which left the song title roughly 20px wide on a 390px phone — unreadable before this change and worse with a chevron added. They are now `w-16 sm:w-24`, restoring a readable title column on mobile.
+
+---
+
 ## [5.30.2] — 2026-09-04
 
 ### Fixed: Opening a Tour from "Add shows from a tour" Crashed the Page
