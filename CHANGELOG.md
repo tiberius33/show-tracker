@@ -4,11 +4,29 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
-## [5.30.3] — 2026-09-04
+## [Unreleased]
 
-The festival fixes here are app code; the CI fixes below shipped in the same
-release rather than sitting unreleased behind them.
+### Fixed: The Smoke Tests Were Rate-Limiting Themselves Out of Existence
+- Every authenticated smoke test signed in for itself: four standalone calls in `auth.smoke.spec.js`, a `beforeEach` across the five tests in `shows.smoke.spec.js`, and a deliberate wrong-password attempt. Ten Firebase sign-ins per run, twenty with `retries: 1`, all from one CI IP against one account. Firebase throttles exactly that, and the block outlives the run — so the suite failed with `auth/too-many-requests` ("Too many attempts. Please try again later.") and stayed failed. The tests were not detecting a broken app or bad credentials; they were breaking themselves.
+- New `e2e/auth.setup.js` signs in **once** per run as a Playwright setup project and saves the session; the authenticated specs opt into it with `test.use({ storageState })`. Only the two tests that exercise the sign-in flow itself still authenticate for real, so a run makes **2 sign-in attempts instead of 10** (4 instead of 20 with retries).
+- `indexedDB: true` on `context.storageState()` is load-bearing and not optional: Firebase Auth keeps its session in IndexedDB, not cookies or localStorage, so a state captured without it restores nothing and every dependent test silently starts logged out. Playwright's own docs name Firebase for this option. Needs Playwright ≥ 1.51; the repo is on 1.58.
+- The wrong-password test now uses an address that cannot exist rather than the real `TEST_EMAIL`. Firebase weighs *failed* attempts most heavily, so spending one every run against the account every other test signs in with was a meaningful part of the problem. It exercises the same rejected-credentials path at no cost to the real account.
+- The authenticated specs run as their own `smoke-auth` project, which is the only thing that depends on the setup project. My first attempt made the *whole* smoke project depend on it, and CI showed exactly why that was wrong: a still-throttled account failed setup and reported `1 failed, 36 did not run` — the two dozen tests that never touch authentication (API health, email endpoints, legal pages, guest mode) stopped reporting at all. That is strictly worse signal than the problem being fixed. Now a sign-in outage costs only the nine tests that genuinely need a session; verified by forcing setup to fail and confirming the other 28 still run.
+- The signed-in tests that don't exercise signing in moved into `e2e/smoke/session.smoke.spec.js`, because Playwright selects projects by file and `auth.smoke.spec.js` holds both signed-out and signed-in cases. Storage state is configured once on the `smoke-auth` project rather than per file.
+- `test:smoke` / `test:all` and the workflow now run `--project=smoke --project=smoke-auth`. `e2e/.auth/` is gitignored — it holds a live session.
 
+### Fixed: A Guest-Mode Test Asserted a Sidebar Link That Has Never Existed
+- `core.smoke.spec.js` walked the guest sidebar clicking `/stats/`, "Search for a Show" and **`/roadmap/`**. There is no Roadmap link in `Sidebar.jsx`, `MobileHeader.jsx` or `Footer.jsx` — it exists only as a page and some cards — so that step could never pass. It was masked for a long time behind the sign-in failure above.
+- The walk now uses links a guest actually has: Stats, "Search for a show", Upcoming and "How to Use". `Sidebar.jsx` hides Tours, Wishlist, Bucket List, Festivals, Profile and Setlist Photos behind `!isGuest`. "Support" is deliberately excluded — it is an external `<a>` to buymeacoffee.com, and clicking it would navigate the test off the site entirely.
+
+Nothing user-facing — CI and test-harness only, so there is no version bump
+and no Release Notes entry. A patch bump would restamp the service worker
+and needlessly invalidate every user's cache for a change that ships no app
+code.
+
+---
+
+## [5.30.4] — 2026-09-04
 
 ### Fixed: A Mistyped Year Could Merge Two Different Festival Editions
 - Found in production, by the shared-festival migration itself. One record's `startDate` had been typed `0011-08-12` instead of `2011-08-12`. Year 11 AD parses perfectly well — four digits is four digits — so that record carried a **~2001-year-wide** date window that overlapped every festival in the catalog. Its name ("Outside Lands") is contained by another edition's ("Outside Lands Music & Arts Festival"), so the name gate passed too, and a 2011 festival was merged into a 2008 one. That is precisely the edition collapse the date gate exists to prevent.
@@ -35,6 +53,26 @@ release rather than sitting unreleased behind them.
 ### Fixed: A Failed Sign-in in the Smoke Tests Gave No Reason
 - Every authenticated smoke test funnels through `loginUser`, so when sign-in breaks, ten tests fail on one line with `expect(locator).toBeVisible() failed ... element(s) not found`. Bad credentials, a disabled account, Firebase being unreachable and a real app regression all produced that identical, undiagnosable output.
 - The wait now races the signed-in sidebar against the login form's own error message and reports whichever arrives, so a rejected sign-in fails with Firebase's actual reason. Verified by driving the built export in Chromium with deliberately bad credentials.
+
+---
+
+## [5.30.3] — 2026-09-04
+
+### Added: Expand a Song on Stats → Songs to See Every Show You Heard It At
+- Clicking a song row on `/stats/songs` now expands it in place, listing every performance of that song in the user's own logged shows — date, venue and city, set label and position within the set, segue markers, and the user's rating of that specific performance. Clicking again collapses it. No navigation, no modal, no drawer.
+- Toggles are **independent**, not an accordion: comparing two songs' histories side by side is the obvious next thing to do on this page, and nothing about the list makes several open panels awkward.
+- Each expanded row is itself a link to that show, opening it the same way every other list in the app does (`setSelectedShow` + `/shows/`) rather than a per-id URL, which static export can't serve.
+- The row is a real `<button>`: it takes focus, toggles on Enter and Space, shows the same focus ring the rest of the page uses, and carries `aria-expanded` plus an `aria-controls` pointing at the panel. The chevron is the same `ChevronDown` + `rotate-180` affordance already used for expandable rows on My Shows and the legacy Stats tables.
+- The row previously navigated straight to the song page; that link is preserved as a "Song page →" link inside the expansion, so nothing that was reachable before became unreachable.
+
+### Technical
+- `components/songs/SongPerformanceRow.jsx` is the performance row, extracted verbatim from `components/songs/SongDetailView.jsx` where it was inlined. Both the song page and the new expansion render it; a `compact` prop swaps only the wrapper's padding and chrome, never the content, so the two can't drift into two implementations of the same timeline. The song page's rendering is byte-for-byte what it was.
+- Both use the same `lib/songIndex.js` — one normalizer (`normalizeSongTitle`), keyed `artistSlug:normalizedTitle`, so `"Ashes//Dust"`, `"Ashes // Dust"` and `"ASHES//DUST"` collapse into one expansion while a title two different artists both play stays on two.
+- Expansion causes **no Firestore reads**. It renders from `hooks/useSongIndex`, which is memoized on the `shows` array already in `AppContext`. Verified in a real browser with 550 shows / 12,100 setlist entries: the index is built exactly once and stays at one build across 22 expand/collapse toggles and a sort change; zero backend requests are issued while toggling; expand latency stayed under 100ms including the test driver's own round-trip.
+- `segueIn` added to each indexed performance. Segues are stored one-directionally (`tape` on a song means it ran into the next one, which is what the show detail setlist renders as its `> segue` line), so a song's segue-*in* is the previous song's flag. Rendered with the same `>` and "segue" vocabulary the show detail view uses.
+- Missing set data still degrades to no set label rather than `Set undefined`/`Set null`, and a manually-added song renders identically to a setlist.fm-sourced one (with the existing "added by you" badge). Both are covered by tests.
+- Six new cases in `lib/__tests__/songIndex.test.js` cover performance ordering, completeness and de-duplication, the single-performance case, the "no song can have zero performances" invariant, a song played twice in one show, and segue in/out direction. 14 tests pass.
+- Fixed in passing: the numeric columns on this page were fixed-width `w-24` at every breakpoint, which left the song title roughly 20px wide on a 390px phone — unreadable before this change and worse with a chevron added. They are now `w-16 sm:w-24`, restoring a readable title column on mobile.
 
 ---
 

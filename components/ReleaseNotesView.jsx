@@ -6,11 +6,22 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
-      version: '5.30.3',
+      version: '5.30.4',
       date: 'September 4, 2026',
       title: 'Fix: Two Years of the Same Festival Could Be Merged',
       changes: [
         'Fixed: a festival whose start date had a mistyped year (2011 entered as 0011) could be treated as spanning two thousand years, which let it be merged with a different year of the same festival. Dates that can\u2019t be real are now ignored for matching rather than matching everything',
+      ]
+    },
+    {
+      version: '5.30.3',
+      date: 'September 4, 2026',
+      title: 'See Every Show a Song Was Played At, Without Leaving Stats',
+      changes: [
+        'New: on Stats \u2192 Songs, tap a song to expand it right there and see every show you\u2019ve heard it at \u2014 newest first, with the date, venue, which set it landed in and where in that set, any segue, and the rating you gave that particular version',
+        'Tap any of those to jump straight to that show; tap the song again to collapse it. You can keep several songs open at once',
+        'Songs you added by hand look exactly like ones imported from setlist.fm, and a show with no set information simply shows without a set label rather than a blank one',
+        'Fixed: on a phone, the song titles on this page were squeezed down to about one letter wide by the Times Seen and Gap columns \u2014 they now have room to be read',
       ]
     },
     {

@@ -163,7 +163,7 @@ jobs:
           # mistaken for a run against the live site.
           ENVIRONMENT: ${{ github.event_name == 'pull_request' && 'deploy-preview' || 'production' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-        run: npx playwright test --project=smoke
+        run: npx playwright test --project=smoke --project=smoke-auth
 
       - name: Upload test results on failure
         if: failure()
