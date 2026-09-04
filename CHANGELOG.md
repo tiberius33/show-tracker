@@ -4,6 +4,19 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.30.2] — 2026-09-04
+
+### Fixed: Opening a Tour from "Add shows from a tour" Crashed the Page
+- Picking any tour with a dozen or more shows blanked the page with "Application error: a client-side exception has occurred". Since most real tours are longer than that, the feature was effectively unusable.
+- Root cause: `components/tours/TourBrowseModal.jsx` imported lucide-react's icon named `Map`. That import shadows the global `Map` constructor for the whole module, so the `new Map()` that groups a long tour's shows by month threw `Map is not a constructor`. The icon is now imported as `MapIcon`.
+- Why nothing caught it: the shadowing is valid JavaScript, so it built cleanly and the deploy preview rendered fine — the throw only happens once a tour's show list crosses the twelve-show month-grouping threshold, which no build-time or unit check ever reached. Reproduced in a real browser against the built export before fixing.
+- Also fixed in the same flow: when a setlist.fm function returned HTML instead of JSON (what the SPA catch-all serves if a function isn't deployed), the raw parser error `Unexpected token '<', "<!DOCTYPE "...` was shown to the user as though it were an explanation. All three lookups now report a readable message.
+
+### Technical
+- New `lib/__tests__/iconShadowing.test.js` scans `app/`, `components/`, `lib/` and `hooks/` for any module that imports a lucide icon whose name shadows a global constructor (`Map`, `Set`, `Image`, `Text`, `File`, …) *and* calls `new <Name>(`. lucide exports a lot of these names, and this repo's icon imports span multiple lines, so the scan is multi-line aware and strips comments from the whole import block before splitting on commas — doing that in the other order lets a comma inside a comment glue prose onto the next name, which made the first version of this scan pass on the very bug it was written for. It carries self-checks so it fails loudly rather than vacuously.
+
+---
+
 ## [5.30.1] — 2026-09-02
 
 ### Fixed: Creating a Festival Failed With a Permission Error
