@@ -41,6 +41,27 @@ code.
 
 ---
 
+## [5.31.0] — 2026-09-04
+
+### Added: Admin Tooling to Merge Duplicate Shared Festivals
+- Dedup at create time is advisory by design — it surfaces matches inline and never blocks creation, because a wrong auto-join is worse than a duplicate. So duplicates accumulate, and until now nothing could clear them: the client cannot delete a canonical festival (`allow delete: if false`), and there was no admin path either, so every un-merge needed a one-off function. This is the tool the note in `context/AppContext.jsx` said would go here, in the place it said it would go.
+- `netlify/functions/admin-merge-festivals.js` has two actions. `scan` clusters the whole canonical catalog by the shared match rule and returns every group of 2+ with attendee counts, a suggested survivor and any users already on more than one member; it writes nothing, ever. `merge` repoints every attendance record from the duplicates onto the survivor and then deletes the duplicate canonicals. `dryRun` defaults to **true**.
+- Never touches a show, a note or a rating. Shows link to a festival by the *attendance record's* id, and only that record's `festivalId` pointer is ever rewritten — so every attached show stays attached, and no show document is read or written at all. The survivor is never edited either: disagreements with the duplicates are reported for a human, not merged in.
+- Repoint happens before delete, so an interrupted merge leaves records pointing at a festival that still exists rather than at a dangling id. Re-running finishes the job.
+- **The edition guard.** The one thing this must never do is collapse Bonnaroo 2025 into Bonnaroo 2026 — the failure the match rule's date gate exists to prevent, now reachable by hand. Pairs the rule matches are allowed; pairs it refuses that start more than 60 days apart, or whose start date is too malformed to measure, are refused outright with **no override flag**; pairs it refuses that start close together are allowed only with an explicit `confirmUnmatched`. The gap is measured in days rather than by comparing calendar years, which would be the obvious way and is wrong: a festival running 30 Dec to 2 Jan starts in a different year from a duplicate recorded as starting 1 Jan, and a year comparison would call that an edition collapse and refuse a plainly correct merge.
+- **Shared attendees.** If someone holds a record on both the survivor and a duplicate, repointing leaves them with two cards on one festival. Combining those records is not safe to automate — each carries its own notes, rating and attached shows, and shows hang off the record id — so the merge refuses by default and names the users affected, proceeding only with an explicit `allowSharedAttendees`.
+- Cluster membership is anchored rather than transitive. A matching B and B matching C does not put A and C together when the rule itself would refuse A and C; without that, the tool would offer a merge the rule forbids.
+- Admin UI beside the migration tool in `components/AdminView.jsx`: scan, pick which copy to keep per group, preview, merge. Each row shows its document id, because the migration's original conflict list omitted ids and that made a real incident materially harder to fix.
+
+### Changed: The Match Rule Is Now Shared Between Netlify Functions
+- `netlify/functions/lib/festivalMatchRule.js` is one CommonJS copy of the rule that functions require, following the arrangement three public-page functions already use for `netlify/functions/lib/publicPageHtml.js`. Previously every function that needed the rule re-implemented it inline.
+- That scaled badly, and the cost was real: the bound that stops a mistyped year absorbing unrelated festivals had to be applied by hand to each copy, and a copy that missed it would have gone on mis-merging silently.
+- `lib/__tests__/festivalMatchParity.test.js` runs both the ESM module and the CommonJS one over the same inputs — a 4,608-case name x window grid, plus the exact production pair behind the 2011-into-2008 mis-merge and the Bonnaroo 2025/2026 case — and asserts identical answers, so the two definitions cannot drift silently. Verified by reintroducing the original year bug into the shared copy and confirming the test fails.
+- The older inline ports in `admin-migrate-festivals.js` and `admin-repair-festival-split.js` are deliberately left alone: they are shipped, working code, and rewriting them is a larger change than the one that introduced the shared module. New functions should require the shared module.
+- No security rules changed. Deleting a canonical festival is done with the admin SDK, which bypasses rules; the client-facing `allow delete: if false` stays exactly as it is.
+
+---
+
 ## [5.30.4] — 2026-09-04
 
 ### Fixed: A Mistyped Year Could Merge Two Different Festival Editions
