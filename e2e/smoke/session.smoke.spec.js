@@ -35,7 +35,19 @@ test.describe('Restored Session Smoke Tests', () => {
     await page.goto('/', { waitUntil: 'load' });
     await dismissOverlays(page);
 
-    const navLabels = [/shows/i, /stats/i, /friends/i, /search/i];
+    // Only links a signed-in user actually has. components/layout/Sidebar.jsx
+    // renders My Shows, Stats, Tours, Wishlist, Bucket List, Festivals,
+    // Upcoming, Profile and Setlist Photos for a signed-in account, plus
+    // "How to Use" in the utilities block below the nav.
+    //
+    // This list used to hold /friends/i and /search/i. Neither is a sidebar
+    // link. /friends is a real page — the nav walk in shows.smoke.spec.js
+    // reaches it directly — but nothing in Sidebar.jsx links to it, and
+    // "Search for a Show" is a control on the Shows page rather than a nav
+    // entry. Same failure mode as the /roadmap/i assertion fixed in #286,
+    // and it hid for just as long, because until the credentials were
+    // replaced this test had never once run.
+    const navLabels = [/my shows/i, /stats/i, /tours/i, /festivals/i, /upcoming/i];
     for (const label of navLabels) {
       await expect(
         page.getByRole('link', { name: label }).first()
