@@ -55,9 +55,13 @@ test.describe('Shows Smoke Tests', () => {
     await expect(addBtn).toBeVisible({ timeout: 10000 });
     await addBtn.click();
 
-    // Should now be on the Search Shows page
+    // Should now be on the Search page. Its H1, set by PageHeader in
+    // app/search/page.jsx, is "Search" — nothing renders "Search Shows",
+    // so the old assertion could never pass. Anchored to level 1 and to
+    // the whole string so it cannot drift onto SearchView's h2s ("Select
+    // Artist", "Artists Found", "Search Results").
     await expect(
-      page.getByRole('heading', { name: /search shows/i })
+      page.getByRole('heading', { name: /^search$/i, level: 1 })
     ).toBeVisible({ timeout: 10000 });
 
     // Fill in the artist name field (placeholder: "e.g., Radiohead")

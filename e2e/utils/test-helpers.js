@@ -108,19 +108,52 @@ async function dismissOverlays(page) {
  * `<div …> intercepts pointer events` and burns the whole test timeout
  * retrying, so any test that clicks down there has to clear it first.
  *
- * Safe to call unconditionally: it no-ops when the banner is absent (already
- * accepted, or a context that never showed it).
+ * Safe to call unconditionally: it no-ops when the banner is dismissed
+ * (already accepted, or a context that never showed it).
+ *
+ * ANCHOR ON THE BUTTON, NOT THE CONTAINER. CookieConsentBanner never
+ * unmounts — see the comment in components/CookieConsentBanner.jsx, which
+ * keeps the node mounted on purpose so its first appearance doesn't count
+ * toward Cumulative Layout Shift. Once dismissed it keeps its
+ * `fixed bottom-0` classes and slides away with
+ * `translate-y-full pointer-events-none`, setting `aria-hidden="true"`.
+ *
+ * That breaks a container-first check, because Playwright's two notions of
+ * "there" disagree about it:
+ *   - `isVisible()` is layout-based. A translated element still has a
+ *     non-empty bounding box and is not `display:none`, so the dismissed
+ *     banner answers **true**.
+ *   - `getByRole()` reads the accessibility tree, where an `aria-hidden`
+ *     subtree contains no buttons at all, so the click target never
+ *     resolves.
+ * The guard therefore passed and the click then waited out the entire 30s
+ * test timeout for a button that could not appear. It only bit the
+ * authenticated specs: they restore the storage state captured by
+ * e2e/auth.setup.js *after* it accepted the banner, so they start with
+ * `cookie-consent` already in localStorage and the banner already hidden.
+ * A signed-out test gets a fresh context, sees the real banner, and passes —
+ * which is why this survived the guest-mode fix in #287.
+ *
+ * Anchoring on the button makes both halves agree: no accessible button
+ * means dismissed, and the guard falls through in 2s instead of 30s.
  */
 async function dismissCookieBanner(page) {
-  const cookieBanner = page
+  const acceptButton = page
     .locator('[class*="fixed bottom-0"]')
-    .filter({ hasText: /cookie|accept/i });
-  if (await cookieBanner.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await cookieBanner.getByRole('button').first().click();
-    await cookieBanner
-      .waitFor({ state: 'hidden', timeout: 3000 })
-      .catch(() => {});
+    .filter({ hasText: /cookie|accept/i })
+    .getByRole('button')
+    .first();
+
+  if (!(await acceptButton.isVisible({ timeout: 2000 }).catch(() => false))) {
+    return;
   }
+
+  // Bounded so a future variant of this problem costs seconds, not the
+  // whole test timeout.
+  await acceptButton.click({ timeout: 5000 }).catch(() => {});
+  // Waiting for the container to go `hidden` would never resolve — it stays
+  // mounted. The button leaving the accessibility tree is the real signal.
+  await acceptButton.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
 }
 
 /**
