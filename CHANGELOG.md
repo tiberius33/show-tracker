@@ -4,6 +4,27 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [Unreleased]
+
+Nothing user-facing — CI and test-harness only, so there is no version bump
+and no Release Notes entry. A patch bump would restamp the service worker
+and needlessly invalidate every user's cache for a change that ships no app
+code.
+
+### Fixed: Smoke Tests on a Pull Request Tested Production, Not the Pull Request
+- `TEST_BASE_URL` was `${{ inputs.base_url || 'https://mysetlists.net' }}` for every event. `inputs` only exists on `workflow_dispatch`, so both `push` and `pull_request` fell through to production — a PR run exercised the live site and said nothing whatsoever about the branch under review. This is why the v5.30.0 tour-browse crash (fixed in v5.30.2) shipped past a workflow that had "run" on its PR.
+- A pull request now runs against its own Netlify deploy preview; `push` still targets production; `workflow_dispatch` still honours its input.
+- The run waits for **this commit's** deploy rather than sleeping. On a PR it polls the Netlify check runs posted against the head SHA, because the deploy-preview URL keeps serving the *previous* build until the new one is ready — polling for HTTP 200 alone would cheerfully test stale code on any re-push. Netlify posts those checks only for previews, not for production, so a push to main instead waits until `/service-worker.js` names the version being released (`scripts/stamp-service-worker.js` writes it on every build). Not every push bumps the version, so that one warns rather than fails. Replaces a blind `sleep 90`/`sleep 120`.
+- Added a `concurrency` group so a second push to a PR cancels the superseded run instead of racing it and reporting on a preview that has already been replaced.
+- `ENVIRONMENT` is reported as `deploy-preview` for PR runs so results logged to Notion aren't mistaken for production runs.
+- `integration-tests.yml` is deliberately unchanged: it already skips pull requests and is *supposed* to exercise the live site's Netlify functions with real secrets.
+
+### Fixed: A Failed Sign-in in the Smoke Tests Gave No Reason
+- Every authenticated smoke test funnels through `loginUser`, so when sign-in breaks, ten tests fail on one line with `expect(locator).toBeVisible() failed ... element(s) not found`. Bad credentials, a disabled account, Firebase being unreachable and a real app regression all produced that identical, undiagnosable output.
+- The wait now races the signed-in sidebar against the login form's own error message and reports whichever arrives, so a rejected sign-in fails with Firebase's actual reason. Verified by driving the built export in Chromium with deliberately bad credentials.
+
+---
+
 ## [5.30.2] — 2026-09-04
 
 ### Fixed: Opening a Tour from "Add shows from a tour" Crashed the Page
