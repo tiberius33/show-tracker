@@ -4,12 +4,25 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
-## [Unreleased]
+## [5.30.3] — 2026-09-04
 
-Nothing user-facing — CI and test-harness only, so there is no version bump
-and no Release Notes entry. A patch bump would restamp the service worker
-and needlessly invalidate every user's cache for a change that ships no app
-code.
+The festival fixes here are app code; the CI fixes below shipped in the same
+release rather than sitting unreleased behind them.
+
+
+### Fixed: A Mistyped Year Could Merge Two Different Festival Editions
+- Found in production, by the shared-festival migration itself. One record's `startDate` had been typed `0011-08-12` instead of `2011-08-12`. Year 11 AD parses perfectly well — four digits is four digits — so that record carried a **~2001-year-wide** date window that overlapped every festival in the catalog. Its name ("Outside Lands") is contained by another edition's ("Outside Lands Music & Arts Festival"), so the name gate passed too, and a 2011 festival was merged into a 2008 one. That is precisely the edition collapse the date gate exists to prevent.
+- `lib/festivalMatch.js` now bounds both ends of the problem: a year outside `MIN_FESTIVAL_YEAR`–`MAX_FESTIVAL_YEAR` (1900–2100) is not a date, and a window wider than `MAX_FESTIVAL_DAYS` (30) is a mistyped year rather than a range. Either way the record matches **nothing** instead of everything — the worst outcome here is a wrong merge, so a record that can't be dated confidently is left to stand alone. The same bounds are mirrored into the rule ported inside `admin-migrate-festivals.js`.
+- Five regression tests, including the exact production pair, both corruption directions (bad start, bad end), the range boundaries, and a check that the record still matches its own true edition once the date is corrected.
+
+### Added: `admin-repair-festival-split`
+- The rule fix prevents recurrence but cannot undo a merge that already happened — the migration is idempotent and re-running it will not un-merge anything. This admin-only function moves one user's attendance record off a canonical festival it was wrongly merged into and onto the right one, reusing a matching canonical if one exists.
+- `action: "inspect"` lists a user's attendance records joined to their canonical festivals (read-only). `action: "split"` does the repair, dry-run by default.
+- It never touches a show (shows link by attendance id, which never changes), never deletes notes or a rating, and never edits the canonical being left, since other users are still attending it. Corrected dates are validated against the same bounds the match rule uses, so the typo that caused the problem cannot be re-entered through the repair.
+- This is the admin moderation tooling previously noted as "where it would go, but not built" — built now because it was needed, not for tidiness.
+
+### Fixed: The Migration's Conflict List Omitted the Document Id
+- `AdminView` rendered conflicts as `festival · uid`, dropping the `docId` the function already returns. That is the one field a repair needs to address the record, which made a real mis-merge materially harder to fix. Conflicts now read `users/{uid}/festivals/{docId}`.
 
 ### Fixed: Smoke Tests on a Pull Request Tested Production, Not the Pull Request
 - `TEST_BASE_URL` was `${{ inputs.base_url || 'https://mysetlists.net' }}` for every event. `inputs` only exists on `workflow_dispatch`, so both `push` and `pull_request` fell through to production — a PR run exercised the live site and said nothing whatsoever about the branch under review. This is why the v5.30.0 tour-browse crash (fixed in v5.30.2) shipped past a workflow that had "run" on its PR.

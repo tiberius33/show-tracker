@@ -6,6 +6,14 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.30.3',
+      date: 'September 4, 2026',
+      title: 'Fix: Two Years of the Same Festival Could Be Merged',
+      changes: [
+        'Fixed: a festival whose start date had a mistyped year (2011 entered as 0011) could be treated as spanning two thousand years, which let it be merged with a different year of the same festival. Dates that can\u2019t be real are now ignored for matching rather than matching everything',
+      ]
+    },
+    {
       version: '5.30.2',
       date: 'September 4, 2026',
       title: 'Fix: Opening a Tour Crashed the Page',

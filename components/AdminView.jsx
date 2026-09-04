@@ -2973,7 +2973,12 @@ function AdminView() {
                     <div className="mt-2 p-3 bg-amber/5 border border-amber/20 rounded-lg max-h-40 overflow-y-auto">
                       {festMigrationResult.conflicts.map((c, i) => (
                         <p key={i} className="text-xs text-amber/80 mb-1">
-                          {c.festival} · {c.uid}: {c.differences.join('; ')}
+                          {/* docId included: it is what
+                              admin-repair-festival-split needs to undo a
+                              bad merge, and leaving it out of this list
+                              once made a real mis-merge much harder to
+                              repair than it needed to be. */}
+                          {c.festival} · users/{c.uid}/festivals/{c.docId}: {c.differences.join('; ')}
                         </p>
                       ))}
                     </div>
