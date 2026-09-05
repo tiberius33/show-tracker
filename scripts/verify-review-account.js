@@ -137,16 +137,39 @@ async function guarded(label, fn) {
     : fail('friend edges', `forward ${fwd.exists}, reverse ${rev.exists} — friendship must be written both ways`);
 
   // ── comments: the app's exact query, composite index included ──
-  const sampleKey = shared[0] || keyOf(reviewShows.docs[0].data());
-  await guarded('comments query', async () => {
-    const snap = await db.collection('showComments')
-      .where('concertKey', '==', sampleKey).orderBy('createdAt', 'asc').get();
-    snap.size > 0 ? pass('comments query', `${snap.size} on the sample show`)
-                  : fail('comments query', 'returned nothing for a show that should have comments');
+  //
+  // Sample the keys from the comments themselves rather than picking a show
+  // and hoping. Firestore returns shows in document-id order, which has
+  // nothing to do with which of them were given comments — an earlier version
+  // of this check tested a show that never had any and reported a failure
+  // that was entirely its own fault.
+  const allComments = await db.collection('showComments')
+    .where('authorUid', 'in', [reviewUid, friendUid].filter(Boolean)).get();
+  allComments.size > 0
+    ? pass('comments seeded', `${allComments.size} total across both accounts`)
+    : fail('comments seeded', 'none found');
+
+  const commentKeys = [...new Set(allComments.docs.map(d => d.data().concertKey))];
+  const showKeys = new Set(reviewShows.docs.map(d => keyOf(d.data())));
+
+  await guarded('comments query (ordered, needs the composite index)', async () => {
+    let reachable = 0;
+    for (const k of commentKeys) {
+      const snap = await db.collection('showComments')
+        .where('concertKey', '==', k).orderBy('createdAt', 'asc').get();
+      reachable += snap.size;
+    }
+    reachable === allComments.size
+      ? pass('comments query (ordered)', `${reachable} across ${commentKeys.length} show(s)`)
+      : fail('comments query (ordered)', `${reachable} of ${allComments.size} came back`);
   });
 
-  const allComments = await db.collection('showComments').where('authorUid', 'in', [reviewUid, friendUid].filter(Boolean)).get();
-  pass('comments seeded', `${allComments.size} total across both accounts`);
+  // Every comment must hang off a show the reviewer can actually open, or it
+  // is invisible no matter how well the query works.
+  const orphaned = commentKeys.filter(k => !showKeys.has(k));
+  orphaned.length === 0
+    ? pass('comments reachable from the reviewer\'s shows', `${commentKeys.length} show(s) carry comments`)
+    : fail('comments reachable', `${orphaned.length} comment thread(s) sit on shows the reviewer has not logged`);
 
   // ── media ──
   await guarded('media query', async () => {
