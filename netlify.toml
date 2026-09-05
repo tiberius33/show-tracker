@@ -65,6 +65,40 @@
   to = "/.netlify/functions/unsubscribe"
   status = 200
 
+# Moderation (Guideline 1.2). moderate-content is the write path for every
+# piece of free text a user can publish — the client no longer writes
+# comments, meetup messages or captions to Firestore directly, so the
+# content filter cannot be skipped. See netlify/functions/moderate-content.js.
+[[redirects]]
+  from = "/api/moderate-content"
+  to = "/.netlify/functions/moderate-content"
+  status = 200
+
+[[redirects]]
+  from = "/api/moderate-content/"
+  to = "/.netlify/functions/moderate-content"
+  status = 200
+
+[[redirects]]
+  from = "/api/report-content"
+  to = "/.netlify/functions/report-content"
+  status = 200
+
+[[redirects]]
+  from = "/api/report-content/"
+  to = "/.netlify/functions/report-content"
+  status = 200
+
+[[redirects]]
+  from = "/api/moderate-report"
+  to = "/.netlify/functions/moderate-report"
+  status = 200
+
+[[redirects]]
+  from = "/api/moderate-report/"
+  to = "/.netlify/functions/moderate-report"
+  status = 200
+
 # Public, indexable pages — server-rendered HTML from Netlify Functions, not
 # the SPA shell, so crawlers see real content without executing JavaScript.
 # Order matters: the more specific /u/:handle/shows/:showId rules are listed

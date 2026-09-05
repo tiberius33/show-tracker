@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, Megaphone, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, Megaphone, ShieldCheck, Flag } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import SetlistEditor from '@/components/SetlistEditor';
 import Tip from '@/components/ui/Tip';
@@ -13,12 +13,13 @@ import { formatDate, parseDate, artistColor, avgSongRating, parseCSV, parseImpor
 import { ROADMAP_CATEGORIES, IMPORT_FIELDS } from '@/lib/constants';
 import { apiUrl } from '@/lib/api';
 import AdminPopups from '@/components/AdminPopups';
+import ModerationQueue from '@/components/admin/ModerationQueue';
 import { PageHeader, Button } from '@/components/ui';
 
 export default
 function AdminView() {
   const { shows, scanForMissingSetlists, setlistScanning, setlistScanProgress } = useApp();
-  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap' | 'tools'
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap' | 'bulkImport' | 'tools' | 'popups' | 'moderation'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1414,6 +1415,20 @@ function AdminView() {
               <Users className="w-4 h-4" />
               Users
             </button>
+            {/* Moderation sits directly after Users, ahead of everything
+                else, because it is the only tab with a deadline attached:
+                Guideline 1.2 commits to a 24-hour review. */}
+            <button
+              onClick={() => setAdminTab('moderation')}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'moderation'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
+              }`}
+            >
+              <Flag className="w-4 h-4" />
+              Moderation
+            </button>
             <button
               onClick={() => setAdminTab('guestTrials')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
@@ -1505,6 +1520,9 @@ function AdminView() {
               Venue Verifications
             </Link>
           </div>
+
+          {/* Moderation Tab */}
+          {adminTab === 'moderation' && <ModerationQueue />}
 
           {/* Users Tab */}
           {adminTab === 'users' && (

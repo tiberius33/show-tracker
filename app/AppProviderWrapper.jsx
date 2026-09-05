@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { AppProvider, useApp } from '@/context/AppContext';
 import Sidebar from '@/components/layout/Sidebar';
@@ -25,6 +26,31 @@ import { Music, Check, Sparkles } from 'lucide-react';
 const LandingPage = dynamic(() => import('@/components/LandingPage'), { ssr: false });
 const AuthModal = dynamic(() => import('@/components/auth/AuthModal'), { ssr: false });
 const VenueRatingModal = dynamic(() => import('@/components/VenueRatingModal'), { ssr: false });
+
+// Routes that render their own content for a signed-out visitor instead of
+// being replaced by the landing page.
+//
+// WHY THIS LIST EXISTS. The signed-out branch below returned <LandingPage>
+// for EVERY path, which meant /terms, /privacy and /cookies were
+// unreachable without an account — following the footer link to the Terms
+// while logged out landed you back on the landing page. That is a problem
+// on its own, and a blocking one for App Store Guideline 1.2, which
+// requires published contact information and (for an app with
+// user-generated content) community guidelines that a person can find
+// WITHOUT signing up. The support address and the Community Guidelines
+// live on /terms.
+//
+// Deliberately a small allowlist of static, self-contained legal pages:
+// every other route needs the signed-in shell (sidebar, header, user
+// data), and the landing page is the right answer for those.
+const PUBLIC_PATHS = ['/terms', '/privacy', '/cookies'];
+
+function isPublicPath(pathname) {
+  if (!pathname) return false;
+  // The static export serves these with and without a trailing slash.
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return PUBLIC_PATHS.includes(normalized);
+}
 
 export default function AppProviderWrapper({ children }) {
   return (
@@ -51,6 +77,8 @@ function AppShell({ children }) {
     handleAuthSuccess,
   } = useApp();
 
+  const pathname = usePathname();
+
   // Initialize Capacitor native plugins and the offline service worker on mount
   useEffect(() => {
     initCapacitorPlugins();
@@ -64,6 +92,13 @@ function AppShell({ children }) {
         <div className="text-muted text-lg">Loading...</div>
       </div>
     );
+  }
+
+  // The legal pages render themselves for a signed-out visitor. They carry
+  // their own header and footer (see components/TermsOfService.jsx), so
+  // they need none of the shell below.
+  if (!user && !guestMode && isPublicPath(pathname)) {
+    return <>{children}</>;
   }
 
   // Show landing page with optional auth modal overlay when logged out

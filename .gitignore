@@ -54,3 +54,7 @@ GoogleService-Info*.plist
 
 # Playwright auth state captured by e2e/auth.setup.js (contains a live session)
 e2e/.auth/
+
+# Firestore emulator debug log, written by `npm run test:rules`
+firestore-debug.log
+firebase-debug.log

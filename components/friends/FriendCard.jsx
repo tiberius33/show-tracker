@@ -1,9 +1,16 @@
 // components/friends/FriendCard.jsx
 //
 // Card for the /friends grid. Centered avatar, name, handle, two numeric
-// stats ("Together" / "Their shows") and two action buttons.
+// stats ("Together" / "Their shows") and two action buttons — three when
+// `onBlock` is supplied.
+//
+// Block is here as well as on the report modal because the friends grid
+// is where someone goes when they have decided they want a person out of
+// their app, and Guideline 1.2 expects blocking to be reachable without
+// first finding something of theirs to report.
 
 import React from 'react';
+import { ShieldOff } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import Button from '../ui/Button';
 
@@ -16,6 +23,7 @@ export default function FriendCard({
   theirShowsLabel = 'Their shows',
   onMessage,
   onView,
+  onBlock,
 }) {
   return (
     <div className="bg-surface border border-subtle rounded-2xl p-6 text-center">
@@ -35,6 +43,16 @@ export default function FriendCard({
       <div className="flex gap-1.5 justify-center">
         <Button size="sm" variant="secondary" onClick={onMessage}>Message</Button>
         <Button size="sm" variant="ghost" onClick={onView}>View</Button>
+        {onBlock && (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={ShieldOff}
+            onClick={onBlock}
+            className="text-muted hover:text-danger"
+            aria-label={`Block ${name}`}
+          />
+        )}
       </div>
     </div>
   );

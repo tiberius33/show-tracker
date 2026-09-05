@@ -2,6 +2,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Moderation helpers (v5.32.0, App Store Guideline 1.2) ─────────
+    //
+    // The admin address is duplicated from ADMIN_EMAILS in
+    // lib/constants.js — rules can't import app code, which is the same
+    // reason the literal already appears inline throughout this file.
+    // These helpers replace those literals where a moderation check needs
+    // them, so a future change to the list has fewer places to reach.
+    //
+    // `.get('email', '')` rather than a bare `request.auth.token.email`:
+    // a token without an email claim makes the bare read an evaluation
+    // error rather than a clean false. Both end in a denial, so this is
+    // not a hole — but an error is harder to read in the emulator logs
+    // than a false, and it means a rule that ORs this with another
+    // condition would fail instead of falling through to it.
+    function isAdmin() {
+      return request.auth != null
+             && request.auth.token.get('email', '') == 'phillip.leonard@gmail.com';
+    }
+
+    // A banned account keeps its data and its reads; what it loses is the
+    // ability to add anything new. `banned` lives on userProfiles (rather
+    // than with the block list in userBlocks) precisely so a rule can read
+    // it — userBlocks is owner-only by design and get() here would fail.
+    //
+    // COST. Each call is a document read charged to the project. It is
+    // applied only to the collections that carry user-generated content
+    // shown to other people, not to a user's own private shows and
+    // festivals, so the ordinary logging path is unaffected.
+    //
+    // A missing profile is not banned: get() returns null for a document
+    // that does not exist, and a user whose profile has not been written
+    // yet must still be able to take part.
+    function isNotBanned() {
+      return request.auth != null
+             && !(exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid))
+                  && get(/databases/$(database)/documents/userProfiles/$(request.auth.uid))
+                       .data.get('banned', false) == true);
+    }
+
     // User shows — owner writes, any authenticated user reads (for Shows Together)
     match /users/{userId}/shows/{showId} {
       allow read: if request.auth != null;
@@ -28,10 +67,89 @@ service cloud.firestore {
         && (request.auth.uid == userId || request.auth.uid == friendId);
     }
 
-    // Public profiles
+    // Public profiles.
+    //
+    // The `banned` flag lives here so isNotBanned() above can read it, and
+    // that makes the write rule load-bearing: the previous
+    // `allow write: if request.auth.uid == userId` would have let a banned
+    // user clear their own ban with one updateDoc, which would have made
+    // the whole ban action decorative. Only the admin flow (through the
+    // Admin SDK, which bypasses these rules) may set it; a user's own
+    // write must leave it exactly as it is.
+    //
+    // `.get(key, default)` rather than a bare field read: almost every
+    // existing profile predates this field, and a bare read of a missing
+    // field fails rule evaluation outright — which would lock every
+    // current user out of editing their own profile.
     match /userProfiles/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.get('banned', false) == false;
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.get('banned', false)
+                       == resource.data.get('banned', false);
+      allow delete: if false;
+    }
+
+    // ── Blocked accounts (v5.32.0) ─────────────────────────────────────
+    // One document per user (id = uid) holding the uids they have blocked.
+    //
+    // NOT stored on userProfiles, deliberately. That document is readable
+    // by every signed-in user, so a block list on it would tell the person
+    // you blocked that you blocked them — the one thing a block must never
+    // do. Private, owner-only, same uid-keyed shape as favoriteTours
+    // above, including the docId pin: matching on the userId field alone
+    // would let any signed-in user overwrite someone else's block list by
+    // writing to userBlocks/<their-uid> with their own userId in the body.
+    match /userBlocks/{docId} {
+      allow read: if request.auth != null
+                  && docId == request.auth.uid;
+      allow create, update: if request.auth != null
+                  && docId == request.auth.uid
+                  && request.resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ── Reports (v5.32.0) ──────────────────────────────────────────────
+    // Guideline 1.2's "mechanism for users to report offensive content".
+    //
+    // Reports are created by netlify/functions/report-content.js through
+    // the Admin SDK, which is what makes the auto-hide count trustworthy —
+    // a client that could write these directly could file three reports
+    // under three ids and hide anything it liked. The create rule below
+    // still exists and still pins reporterId to the caller: it is the
+    // fallback if the function is ever unavailable, and it is what the
+    // rules test asserts.
+    //
+    // Reads are admin-only. A report names its reporter, and a reporter
+    // whose name is visible to the person they reported is a reporter who
+    // stops reporting.
+    match /reports/{reportId} {
+      allow create: if request.auth != null
+                    && request.resource.data.reporterId == request.auth.uid
+                    && request.resource.data.status == 'open';
+      allow read:   if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Content pulled out of circulation by three reports, pending review.
+    // Written and restored only by the moderation functions; readable only
+    // by an admin, which is what "hidden content is not readable by third
+    // parties" means in practice. See the long note in lib/moderation.js
+    // for why hiding moves the document instead of flagging it in place.
+    match /moderationHidden/{docId} {
+      allow read:  if isAdmin();
+      allow write: if false;
+    }
+
+    // The distinct-reporter count behind the auto-hide threshold. Never
+    // client-writable — the count is the whole mechanism.
+    match /moderationCounters/{docId} {
+      allow read:  if isAdmin();
+      allow write: if false;
     }
 
     // Community leaderboard stats
@@ -144,17 +262,24 @@ service cloud.firestore {
     // caller's own uid — not anyone else's, and not any other field.
     // Delete is limited to the comment's own author or the admin account
     // (kept in sync with ADMIN_EMAILS in lib/constants.js).
+    // CREATE IS CLOSED TO CLIENTS (v5.32.0). Comments are written by
+    // netlify/functions/moderate-content.js, which runs the content filter
+    // first. This rule used to allow any signed-in user to add a document
+    // with their own authorUid, which meant the filter was a suggestion:
+    // anyone with the Firebase SDK could post straight past it. Guideline
+    // 1.2 asks for objectionable material to be filtered BEFORE it is
+    // published, and that is only true if there is exactly one way in.
+    // The Admin SDK bypasses these rules, so the function is unaffected.
     match /showComments/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.authorUid == request.auth.uid;
+      allow create: if false;
       allow update: if request.auth != null
+        && isNotBanned()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy'])
         && request.resource.data.likedBy.removeAll(resource.data.likedBy).hasOnly([request.auth.uid])
         && resource.data.likedBy.removeAll(request.resource.data.likedBy).hasOnly([request.auth.uid]);
       allow delete: if request.auth != null
-        && (resource.data.authorUid == request.auth.uid
-            || request.auth.token.email == 'phillip.leonard@gmail.com');
+        && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
 
     // "New since your last visit" comment highlighting — private
@@ -176,12 +301,19 @@ service cloud.firestore {
     // creator; joining/leaving afterward is restricted to adding or
     // removing only the caller's own uid, mirroring showComments' likedBy
     // pattern. The organizer alone may edit the pinned `description`.
+    // Unlike the two comment collections, meetup documents themselves
+    // carry only one piece of free text (the organizer's `description`,
+    // which the organizer alone may edit and which is filtered
+    // client-side), so creating and joining stay direct writes. What they
+    // gain here is the ban check: a banned account cannot start a meetup,
+    // join one, or edit its pinned details.
     match /meetups/{meetupId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
+        && isNotBanned()
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.attendeeUids == [request.auth.uid];
-      allow update: if request.auth != null && (
+      allow update: if request.auth != null && isNotBanned() && (
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendeeUids', 'attendeeNames'])
           && request.resource.data.attendeeUids.removeAll(resource.data.attendeeUids).hasOnly([request.auth.uid])
           && resource.data.attendeeUids.removeAll(request.resource.data.attendeeUids).hasOnly([request.auth.uid]))
@@ -194,13 +326,14 @@ service cloud.firestore {
 
     // Meetup discussion thread — flat (no replies/likes), same
     // author-owns-their-own-comment shape as showComments.
+    // Create closed to clients for the same reason as showComments above
+    // — a meetup thread is user-generated text other attendees read, so it
+    // goes through moderate-content.js and its filter.
     match /meetupComments/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.authorUid == request.auth.uid;
+      allow create: if false;
       allow delete: if request.auth != null
-        && (resource.data.authorUid == request.auth.uid
-            || request.auth.token.email == 'phillip.leonard@gmail.com');
+        && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
 
     // Concert photos/videos — metadata doc for each upload (see
@@ -209,17 +342,22 @@ service cloud.firestore {
     // toggle-your-own-uid update allowed, delete is uploader-or-admin.
     // The actual file bytes live in Cloud Storage — see storage.rules for
     // the size/content-type limits enforced there.
+    // Create closed to clients (v5.32.0): the metadata document carries
+    // the caption, which is free text, so it is written by
+    // moderate-content.js after the filter. The FILE still uploads
+    // straight to Cloud Storage from the browser under storage.rules —
+    // bytes are not text a wordlist can read, and routing tens of
+    // megabytes through a function would be slower and no safer.
     match /showPhotos/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.uploadedBy == request.auth.uid;
+      allow create: if false;
       allow update: if request.auth != null
+        && isNotBanned()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy'])
         && request.resource.data.likedBy.removeAll(resource.data.likedBy).hasOnly([request.auth.uid])
         && resource.data.likedBy.removeAll(request.resource.data.likedBy).hasOnly([request.auth.uid]);
       allow delete: if request.auth != null
-        && (resource.data.uploadedBy == request.auth.uid
-            || request.auth.token.email == 'phillip.leonard@gmail.com');
+        && (resource.data.uploadedBy == request.auth.uid || isAdmin());
     }
 
     // Ticket search cache

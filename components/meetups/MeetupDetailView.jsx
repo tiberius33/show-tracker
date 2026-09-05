@@ -3,6 +3,11 @@
 // Full meetup page: show details, attendee list, an organizer-pinned
 // description (where/when to meet), and a flat discussion thread. See
 // lib/meetups.js for the data model.
+//
+// Moderation (Guideline 1.2): the discussion is user-generated text on a
+// page other attendees see, so messages carry a report affordance,
+// messages from blocked users never render, and both the message box and
+// the organizer's pinned description are filtered before they are saved.
 
 'use client';
 
@@ -16,13 +21,21 @@ import {
 } from '@/lib/meetups';
 import { Card, Button, Textarea, Avatar, Spinner, EmptyState } from '@/components/ui';
 import { formatDate, timeAgo } from '@/lib/utils';
+import { contentProblem } from '@/lib/contentFilter';
+import { withoutBlocked } from '@/lib/moderation';
+import ReportButton from '@/components/moderation/ReportButton';
 
 function DiscussionThread({ meetupId }) {
-  const { user } = useApp();
+  const { user, blockedUserIds } = useApp();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [error, setError] = useState('');
+  const [reportedIds, setReportedIds] = useState([]);
+
+  const visibleComments = withoutBlocked(comments, blockedUserIds, 'authorUid')
+    .filter((c) => !reportedIds.includes(c.id));
 
   useEffect(() => {
     setLoading(true);
@@ -35,12 +48,24 @@ function DiscussionThread({ meetupId }) {
   const handlePost = async (e) => {
     e.preventDefault();
     if (!text.trim() || !user) return;
+
+    const problem = contentProblem(text);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setPosting(true);
+    setError('');
     try {
       await postMeetupComment(meetupId, user.uid, user.displayName || user.email || 'Someone', text);
       setText('');
     } catch (err) {
       console.error('[meetups] Failed to post comment:', err);
+      // The write path can reject the text on its own terms — say so
+      // under the box rather than failing silently, which is what this
+      // did before.
+      setError(err.message || "Couldn't post that. Please try again.");
     } finally {
       setPosting(false);
     }
@@ -52,11 +77,11 @@ function DiscussionThread({ meetupId }) {
 
       {loading ? (
         <Spinner size="sm" label="Loading discussion…" />
-      ) : comments.length === 0 ? (
+      ) : visibleComments.length === 0 ? (
         <p className="text-sm text-muted mb-4">No messages yet — say hello to whoever else is going.</p>
       ) : (
         <ul className="list-none p-0 m-0 space-y-4 mb-5">
-          {comments.map((c) => (
+          {visibleComments.map((c) => (
             <li key={c.id} className="flex items-start gap-3">
               <Avatar name={c.authorName} size="sm" />
               <div className="min-w-0 flex-1">
@@ -66,7 +91,7 @@ function DiscussionThread({ meetupId }) {
                 </div>
                 <p className="text-sm text-secondary mt-0.5 whitespace-pre-wrap break-words">{c.text}</p>
               </div>
-              {user?.uid === c.authorUid && (
+              {user?.uid === c.authorUid ? (
                 <button
                   type="button"
                   onClick={() => deleteMeetupComment(c.id)}
@@ -75,6 +100,18 @@ function DiscussionThread({ meetupId }) {
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
+              ) : (
+                <ReportButton
+                  contentType="meetupComment"
+                  contentId={c.id}
+                  contentSnapshot={c.text}
+                  reportedUserId={c.authorUid}
+                  reportedUserName={c.authorName}
+                  onReported={() => setReportedIds((prev) => (prev.includes(c.id) ? prev : [...prev, c.id]))}
+                  showLabel={false}
+                  className="p-1 flex-shrink-0"
+                  size={14}
+                />
               )}
             </li>
           ))}
@@ -88,7 +125,8 @@ function DiscussionThread({ meetupId }) {
             containerClassName="flex-1"
             placeholder="Where should we meet? What time?"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => { setText(e.target.value); if (error) setError(''); }}
+            error={error}
           />
           <Button type="submit" icon={Send} loading={posting} disabled={!text.trim()}>Send</Button>
         </form>
@@ -102,6 +140,7 @@ export default function MeetupDetailView({ meetup }) {
   const [description, setDescription] = useState(meetup.description || '');
   const [editingDescription, setEditingDescription] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [descriptionError, setDescriptionError] = useState('');
 
   useEffect(() => setDescription(meetup.description || ''), [meetup.description]);
 
@@ -110,6 +149,18 @@ export default function MeetupDetailView({ meetup }) {
   const attendeeUids = meetup.attendeeUids || [];
 
   const handleSaveDescription = async () => {
+    // The pinned description is shown to everyone who joins, so it goes
+    // through the same filter as a message. Unlike comments this one is
+    // still a direct Firestore write — the meetups rule already restricts
+    // it to the organizer, so there is no unauthenticated path to close,
+    // and routing an organizer-only field through a function would buy
+    // nothing.
+    const problem = contentProblem(description);
+    if (problem) {
+      setDescriptionError(problem);
+      return;
+    }
+    setDescriptionError('');
     setSaving(true);
     try {
       await updateMeetupDescription(meetup.concertKey, description);
@@ -180,11 +231,12 @@ export default function MeetupDetailView({ meetup }) {
               rows={3}
               placeholder="Where and when should the group meet? (e.g. 'Meeting at the merch tent 1hr before doors')"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => { setDescription(e.target.value); if (descriptionError) setDescriptionError(''); }}
+              error={descriptionError}
             />
             <div className="flex gap-2">
               <Button size="sm" loading={saving} onClick={handleSaveDescription}>Save</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setEditingDescription(false); setDescription(meetup.description || ''); }}>
+              <Button size="sm" variant="ghost" onClick={() => { setEditingDescription(false); setDescription(meetup.description || ''); setDescriptionError(''); }}>
                 Cancel
               </Button>
             </div>

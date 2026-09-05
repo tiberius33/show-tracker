@@ -5,6 +5,12 @@
 // Firestore listener, sortable, likeable, and moderated (author or admin
 // can delete). See lib/comments.js for the data model and why this is
 // keyed by concert identity rather than any one user's private show doc.
+//
+// Moderation (Guideline 1.2): every comment carries a report affordance
+// except your own, comments from blocked users never reach the list, and
+// the text is filtered before it is posted — client-side here so the
+// writer gets an inline error, and again in the Netlify function that is
+// now the only write path, so the check cannot be skipped.
 
 'use client';
 
@@ -16,6 +22,9 @@ import { subscribeComments, postComment, toggleCommentLike, deleteComment } from
 import { createEngagementNotification } from '@/lib/notifications';
 import { logActivity } from '@/lib/activityFeed';
 import { getLastViewed, markViewed } from '@/lib/commentViews';
+import { contentProblem } from '@/lib/contentFilter';
+import { withoutBlocked } from '@/lib/moderation';
+import ReportButton from '@/components/moderation/ReportButton';
 import { timeAgo } from '@/lib/utils';
 
 const SORTS = [
@@ -32,6 +41,7 @@ const MENTION_PATTERN = /(?:^|\s)@(\w*)$/;
 function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel, friends = [] }) {
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [error, setError] = useState('');
   const [mentionQuery, setMentionQuery] = useState(null); // null = no mention popup open
   const textareaRef = useRef(null);
 
@@ -46,6 +56,9 @@ function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel, friends =
   const handleChange = (e) => {
     const val = e.target.value;
     setText(val);
+    // Clear as they type rather than leaving a stale rejection under a
+    // box they have already fixed.
+    if (error) setError('');
     const cursor = e.target.selectionStart ?? val.length;
     const match = val.slice(0, cursor).match(MENTION_PATTERN);
     setMentionQuery(match ? match[1] : null);
@@ -66,11 +79,27 @@ function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel, friends =
   const submit = async (e) => {
     e.preventDefault();
     if (!text.trim() || posting) return;
+
+    // Checked here so the writer gets an inline error instead of a
+    // round trip that ends in a rejected write. The same check runs
+    // server-side; this one is for them, that one is the enforcement.
+    const problem = contentProblem(text);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setPosting(true);
+    setError('');
     try {
       await onSubmit(text);
       setText('');
       if (onCancel) onCancel();
+    } catch (err) {
+      // postComment now goes through a function that can reject the text
+      // on its own — surface that here rather than letting the post
+      // silently fail.
+      setError(err.message || "Couldn't post that. Please try again.");
     } finally {
       setPosting(false);
     }
@@ -86,6 +115,7 @@ function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel, friends =
           placeholder={placeholder}
           rows={2}
           autoFocus={autoFocus}
+          error={error}
         />
         {mentionMatches.length > 0 && (
           <div className="absolute z-10 left-0 right-0 mt-1 bg-surface border border-subtle rounded-xl shadow-theme-md overflow-hidden">
@@ -115,7 +145,7 @@ function CommentComposer({ onSubmit, placeholder, autoFocus, onCancel, friends =
   );
 }
 
-function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike, onDelete, replyOpen, onToggleReply, isNew, friends }) {
+function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike, onDelete, onReported, replyOpen, onToggleReply, isNew, friends }) {
   const liked = currentUid ? (comment.likedBy || []).includes(currentUid) : false;
   const likeCount = (comment.likedBy || []).length;
   const canDelete = currentUid && (comment.authorUid === currentUid || canModerate);
@@ -151,6 +181,17 @@ function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike
               <CornerDownRight size={13} /> Reply
             </button>
           )}
+          {/* Report sits in the same control row as like/reply/delete,
+              and hides itself on your own comment — see ReportButton. */}
+          <ReportButton
+            contentType="showComment"
+            contentId={comment.id}
+            contentSnapshot={comment.text}
+            reportedUserId={comment.authorUid}
+            reportedUserName={comment.authorName}
+            onReported={() => onReported?.(comment)}
+            className={canDelete ? '' : 'ml-auto'}
+          />
           {canDelete && (
             <button
               type="button"
@@ -178,10 +219,16 @@ function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike
 }
 
 export default function CommentsSection({ show }) {
-  const { user, isAdmin, guestMode, friends, setToast, normalizeShowKey } = useApp();
+  const { user, isAdmin, guestMode, visibleFriends: friends, blockedUserIds, setToast, normalizeShowKey } = useApp();
   const concertKey = useMemo(() => (show ? normalizeShowKey(show) : null), [show, normalizeShowKey]);
 
   const [comments, setComments] = useState([]);
+  // Items this user has just reported. The report may take a moment to
+  // reach the admin queue and three reports to auto-hide for everyone,
+  // but the person who reported it should stop seeing it immediately —
+  // held in state rather than written anywhere, since it only matters
+  // for this session and the block list covers the durable case.
+  const [reportedIds, setReportedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [sort, setSort] = useState('newest');
@@ -221,8 +268,17 @@ export default function CommentsSection({ show }) {
     return () => { cancelled = true; };
   }, [concertKey, user, guestMode]);
 
+  // Everything downstream — the thread, the replies, the count in the
+  // header — reads this rather than `comments`, so a blocked or
+  // just-reported comment cannot leak through one of them.
+  const visibleComments = useMemo(
+    () => withoutBlocked(comments, blockedUserIds, 'authorUid')
+      .filter((c) => !reportedIds.includes(c.id)),
+    [comments, blockedUserIds, reportedIds],
+  );
+
   const topLevel = useMemo(() => {
-    const roots = comments.filter((c) => !c.parentId);
+    const roots = visibleComments.filter((c) => !c.parentId);
     const sorted = [...roots];
     if (sort === 'oldest') {
       sorted.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
@@ -232,10 +288,10 @@ export default function CommentsSection({ show }) {
       sorted.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
     }
     return sorted;
-  }, [comments, sort]);
+  }, [visibleComments, sort]);
 
   const repliesFor = (commentId) =>
-    comments
+    visibleComments
       .filter((c) => c.parentId === commentId)
       .sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
 
@@ -266,7 +322,11 @@ export default function CommentsSection({ show }) {
       });
       notifyMentions(text, authorName);
     } catch (err) {
-      setToast?.("Couldn't post your comment. Please try again.");
+      // Rethrown rather than swallowed into a toast: postComment now
+      // goes through a function that can reject the text on its own
+      // terms, and "that word isn't allowed" belongs inline under the box
+      // the writer is still looking at, not in a toast that slides away.
+      throw err;
     }
   };
 
@@ -284,7 +344,7 @@ export default function CommentsSection({ show }) {
       });
       notifyMentions(text, authorName);
     } catch (err) {
-      setToast?.("Couldn't post your reply. Please try again.");
+      throw err;
     }
   };
 
@@ -306,6 +366,10 @@ export default function CommentsSection({ show }) {
     }
   };
 
+  const handleReported = (comment) => {
+    setReportedIds((prev) => (prev.includes(comment.id) ? prev : [...prev, comment.id]));
+  };
+
   const handleDelete = async (comment) => {
     if (!window.confirm('Delete this comment?')) return;
     try {
@@ -322,7 +386,7 @@ export default function CommentsSection({ show }) {
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
           <MessageSquare size={18} className="text-brand" />
-          Comments {comments.length > 0 && <span className="text-muted font-normal text-sm">({comments.length})</span>}
+          Comments {visibleComments.length > 0 && <span className="text-muted font-normal text-sm">({visibleComments.length})</span>}
         </h3>
         {topLevel.length > 1 && <Tabs value={sort} onChange={setSort} tabs={SORTS} className="border-b-0" />}
       </div>
@@ -355,6 +419,7 @@ export default function CommentsSection({ show }) {
                 canModerate={isAdmin}
                 onLike={handleLike}
                 onDelete={handleDelete}
+                onReported={handleReported}
                 onReply={handleReply}
                 replyOpen={replyOpenId === comment.id}
                 onToggleReply={() => setReplyOpenId(replyOpenId === comment.id ? null : comment.id)}
@@ -370,6 +435,7 @@ export default function CommentsSection({ show }) {
                   canModerate={isAdmin}
                   onLike={handleLike}
                   onDelete={handleDelete}
+                  onReported={handleReported}
                   isNew={lastViewedMs != null && reply.authorUid !== user.uid && (reply.createdAt?.toMillis?.() || 0) > lastViewedMs}
                   friends={friends}
                 />

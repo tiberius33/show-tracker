@@ -5,6 +5,10 @@
 // photo/poster/setlist photo. Designed to grow further the same way —
 // a new `action` value here plus a matching logActivity() call at the
 // write site, no schema change needed.
+//
+// Moderation (Guideline 1.2): blocking someone removes the friendship, so
+// their activity stops arriving at the source — the filter below covers
+// the gap between taking the block and the listener re-subscribing.
 
 'use client';
 
@@ -15,6 +19,7 @@ import { Card, EmptyState, Spinner, Tabs, Avatar } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { subscribeFriendActivity } from '@/lib/activityFeed';
 import { timeAgo } from '@/lib/utils';
+import { withoutBlocked } from '@/lib/moderation';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -63,7 +68,7 @@ function ActivityRow({ item }) {
 }
 
 export default function ActivityFeedView() {
-  const { user, friends } = useApp();
+  const { user, visibleFriends: friends, blockedUserIds } = useApp();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -81,9 +86,14 @@ export default function ActivityFeedView() {
   }, [user, friendUids]);
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return items;
-    return items.filter((i) => i.action === filter);
-  }, [items, filter]);
+    // friendUids already excludes blocked accounts, so nothing from one
+    // should arrive here in the first place — this is the belt to that
+    // brace, and it also covers the window between taking a block and the
+    // listener re-subscribing on the new uid list.
+    const visible = withoutBlocked(items, blockedUserIds, 'userId');
+    if (filter === 'all') return visible;
+    return visible.filter((i) => i.action === filter);
+  }, [items, filter, blockedUserIds]);
 
   if (friendUids.length === 0) {
     return (

@@ -7,7 +7,7 @@ import { useApp } from '@/context/AppContext';
 
 export default function FriendsPage() {
   const {
-    user, guestMode, friends, shows,
+    user, guestMode, visibleFriends: friends, shows,
     pendingFriendRequests, sentFriendRequests, pendingShowTags,
     sendFriendRequestByEmail, sendFriendRequest,
     acceptFriendRequest, declineFriendRequest, removeFriend,

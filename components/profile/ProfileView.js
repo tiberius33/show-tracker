@@ -8,6 +8,8 @@ import { db, auth } from '@/lib/firebase';
 import { apiUrl } from '@/lib/api';
 import { artistColor, parseDate } from '@/lib/utils';
 import { claimHandle, handleFormatError, normalizeHandle } from '@/lib/handles';
+import { contentProblem } from '@/lib/contentFilter';
+import BlockedAccountsSection from '@/components/moderation/BlockedAccountsSection';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
 import BustOutSettings from '@/components/profile/BustOutSettings';
 import TourInfoModal from '@/components/TourInfoModal';
@@ -121,6 +123,16 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
   const handleSave = async () => {
     if (!user?.uid) return;
+
+    // A display name is shown next to every comment, photo and activity
+    // item this user posts, so it is user-generated content in the sense
+    // Guideline 1.2 means and goes through the same filter as a comment.
+    const nameProblem = contentProblem(displayName);
+    if (nameProblem) {
+      setError(nameProblem);
+      return;
+    }
+
     setSaving(true);
     setError('');
 
@@ -333,7 +345,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
                 <Input
                   type="text"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => { setDisplayName(e.target.value); if (error) setError(''); }}
                   placeholder="Display name"
                 />
                 <Input
@@ -557,6 +569,34 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           </div>
         </div>
       </Card>
+
+      {/* Help & support. Guideline 1.2 requires published contact
+          information; the footer carries it on every page for people
+          without an account, and this is the signed-in equivalent, next to
+          the moderation controls it is most likely to be needed alongside. */}
+      <Card padding="md" className="mt-6">
+        <h3 className="text-lg font-semibold text-primary mb-2 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-brand" />
+          Help &amp; support
+        </h3>
+        <p className="text-sm text-secondary mb-3">
+          Something broken, or something you need to report that you can’t reach with the
+          flag icon? Email{' '}
+          <a href="mailto:support@mysetlists.net" className="text-brand underline">
+            support@mysetlists.net
+          </a>
+          . Moderation reports are answered within 24 hours.
+        </p>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <a href="/terms#community-guidelines" className="text-brand underline">Community Guidelines</a>
+          <a href="/how-to-use" className="text-brand underline">How to use MySetlists</a>
+          <a href="/feedback" className="text-brand underline">Send feedback</a>
+        </div>
+      </Card>
+
+      {/* Blocked accounts — the undo for a block, which Guideline 1.2
+          requires to exist somewhere the user can find it. */}
+      <BlockedAccountsSection />
 
       {/* Notification Settings */}
       <NotificationSettings userId={user?.uid} />

@@ -427,7 +427,12 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <h4>Company</h4>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
+            <Link href="/terms#community-guidelines">Community Guidelines</Link>
             <Link href="/cookies">Cookies</Link>
+            {/* Published contact information, on the signed-out landing
+                page — App Store Guideline 1.2 wants it findable by
+                someone who has not made an account. */}
+            <a href="mailto:support@mysetlists.net">support@mysetlists.net</a>
           </div>
         </div>
         <div className="lp-footer-bottom">

@@ -18,6 +18,10 @@ import { extractSongsFromSetlist } from '@/lib/setlistParser';
 import { buildExistingShowIndex, existingShowStatus } from '@/lib/tourBrowse';
 import { normalizeFestivalName, findFestivalMatches as matchFestivals } from '@/lib/festivalMatch';
 import { logActivity } from '@/lib/activityFeed';
+import {
+  subscribeBlocks, blockUser as blockUserDoc, unblockUser as unblockUserDoc,
+  withoutBlocked,
+} from '@/lib/moderation';
 import { sendEmailIfAllowed } from '@/lib/email';
 import {
   inviteEmail,
@@ -349,6 +353,12 @@ export function AppProvider({ children }) {
   // Pending email tags sent by this user (to non-members)
   const [sentPendingEmailTags, setSentPendingEmailTags] = useState([]);
 
+  // Blocked accounts (Guideline 1.2). Held here rather than read at each
+  // render site so that filtering blocked users out is something the
+  // selectors below do once, not something every new surface has to
+  // remember to do — see withoutBlocked() in lib/moderation.js.
+  const [blockedUserIds, setBlockedUserIds] = useState([]);
+
   // Favorite artists
   const [favoriteArtists, setFavoriteArtists] = useState([]);
 
@@ -358,8 +368,27 @@ export function AppProvider({ children }) {
   // Admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
-  // Derived friends data
-  const friendUids = useMemo(() => friends.map(f => f.friendUid), [friends]);
+  // Derived friends data. Blocked users are stripped here, at the one
+  // place friendUids is derived, so every consumer of it — the activity
+  // feed query, the tag picker, Shows Together — inherits the block
+  // without knowing blocks exist.
+  const friendUids = useMemo(
+    () => friends.map(f => f.friendUid).filter(uid => !blockedUserIds.includes(uid)),
+    [friends, blockedUserIds],
+  );
+
+  const isBlocked = useCallback(
+    (uid) => !!uid && blockedUserIds.includes(uid),
+    [blockedUserIds],
+  );
+
+  // Friend cards, tag suggestions and the friends grid all read this
+  // rather than `friends` directly, so a blocked account disappears from
+  // the UI without a separate filter at each site.
+  const visibleFriends = useMemo(
+    () => friends.filter(f => !blockedUserIds.includes(f.friendUid)),
+    [friends, blockedUserIds],
+  );
 
   // Derived suggestion state
   const myPendingSuggestions = showSuggestions.filter(s => s.responses?.[user?.uid] === 'pending' && s.overallStatus !== 'declined');
@@ -426,6 +455,47 @@ export function AppProvider({ children }) {
       setFriends(enriched);
     } catch (error) {
       console.error('Failed to load friends:', error);
+    }
+  }, [user]);
+
+  // ── Blocked accounts ────────────────────────────────────────────────
+  // A listener rather than a one-time read, so a block taken on a phone
+  // hides that user's content in an open desktop tab without a reload.
+  useEffect(() => {
+    if (!user || guestMode) {
+      setBlockedUserIds([]);
+      return;
+    }
+    return subscribeBlocks(user.uid, setBlockedUserIds);
+  }, [user, guestMode]);
+
+  const blockUser = useCallback(async (targetUid) => {
+    if (!user || !targetUid || targetUid === user.uid) return;
+    try {
+      await blockUserDoc(user.uid, targetUid);
+      // The listener above will catch up on its own; setting it here too
+      // means the content disappears on the same tick the button is
+      // pressed rather than after a Firestore round trip.
+      setBlockedUserIds(prev => (prev.includes(targetUid) ? prev : [...prev, targetUid]));
+      setFriends(prev => prev.filter(f => f.friendUid !== targetUid));
+      setToast('Blocked. You won\u2019t see their posts, and they\u2019ve been removed from your friends.');
+    } catch (error) {
+      console.error('Failed to block user:', error);
+      setToast({ message: 'Failed to block that account. Please try again.', type: 'error' });
+      throw error;
+    }
+  }, [user]);
+
+  const unblockUser = useCallback(async (targetUid) => {
+    if (!user || !targetUid) return;
+    try {
+      await unblockUserDoc(user.uid, targetUid);
+      setBlockedUserIds(prev => prev.filter(uid => uid !== targetUid));
+      setToast('Unblocked. You can send a friend request if you want to reconnect.');
+    } catch (error) {
+      console.error('Failed to unblock user:', error);
+      setToast({ message: 'Failed to unblock that account. Please try again.', type: 'error' });
+      throw error;
     }
   }, [user]);
 
@@ -3032,6 +3102,7 @@ export function AppProvider({ children }) {
 
     // Friends
     friends,
+    visibleFriends,
     setFriends,
     friendUids,
     loadFriends,
@@ -3093,6 +3164,13 @@ export function AppProvider({ children }) {
     // Toast
     toast,
     setToast,
+
+    // Moderation — blocked accounts (Guideline 1.2)
+    blockedUserIds,
+    isBlocked,
+    blockUser,
+    unblockUser,
+    withoutBlocked,
 
     // Favorite artists
     favoriteArtists,
