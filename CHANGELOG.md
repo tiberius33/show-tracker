@@ -6,6 +6,20 @@ All notable changes to mysetlists.net are documented here.
 
 ## [Unreleased]
 
+### Fixed: A Rules Denial Told You To "Try Again", Which Could Never Work
+- Blocking an account failed with "Failed to block that account. Please try again." Retrying a Firestore rules denial never clears it, and v5.30.1 already fixed exactly this wording for festival creation and wrote down why. `blockUser`/`unblockUser` now name what was actually refused when `error.code` is `permission-denied`, matching `createFestival`.
+- **The underlying cause is not in this repo's code.** `userBlocks` is a new collection in v5.32.0, and Firestore denies any path it has no matching rule for, so a correct rule that has not been *deployed* looks exactly like this from the UI.
+
+### Note: The Rules Auto-Deploy Workflow Has Never Actually Run
+- v5.30.1 added `.github/workflows/deploy-firestore-rules.yml` and its release note claimed "security rules now publish themselves whenever they change, so a feature can no longer ship with the permission it needs still missing." **That claim is not yet true.** The workflow has run twice — on v5.30.1 and on v5.32.0 — and failed both times, in about seven seconds, at its own credentials guard:
+
+      ##[error]FIREBASE_SERVICE_ACCOUNT_JSON is not set.
+
+- The guard is doing its job; the secret was simply never added, so the workflow has never deployed anything. Production runs whatever ruleset was last pushed by hand. That is why `userBlocks` has no rule, and it means the v5.32.0 `reports`, `moderationHidden` and `moderationCounters` rules, the closed `allow create` on the comment and photo collections, and the fix stopping a banned user lifting their own ban are all merged but **not live**.
+- To fix it, once: add `FIREBASE_SERVICE_ACCOUNT_JSON` under Settings → Secrets and variables → Actions (the service account needs `roles/firebaserules.admin` and `roles/datastore.indexAdmin`, as v5.30.1 noted), then run the workflow from the Actions tab — it has a `workflow_dispatch` trigger for exactly this. `npm run deploy:rules` does the same thing from a machine already logged into the Firebase CLI.
+- Worth saying plainly: a green release and a red deploy workflow sitting next to each other is the failure mode this note exists to make visible. The workflow fails loudly in its own run and silently everywhere else.
+
+
 ### Fixed: The Cookie Banner Never Unmounts, and the Authenticated Tests Hung on It
 - With sign-in finally working, all 8 `smoke-auth` tests failed in `beforeEach` with a 30s timeout in `dismissCookieBanner`. The call log shows it waiting on `…filter({ hasText: /cookie|accept/i }).getByRole('button').first()` — the container matched, the button never resolved.
 - `CookieConsentBanner` stays mounted by design (a freshly-inserted fixed element counts toward Cumulative Layout Shift; a transform on an existing one does not). Dismissed, it keeps its `fixed bottom-0` classes and slides away with `translate-y-full pointer-events-none`, setting `aria-hidden="true"`.

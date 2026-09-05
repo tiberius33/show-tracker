@@ -481,7 +481,17 @@ export function AppProvider({ children }) {
       setToast('Blocked. You won\u2019t see their posts, and they\u2019ve been removed from your friends.');
     } catch (error) {
       console.error('Failed to block user:', error);
-      setToast({ message: 'Failed to block that account. Please try again.', type: 'error' });
+      // "Please try again" is wrong for a rules denial — retrying never
+      // clears it. Same reasoning as createFestival below, and the same
+      // cause: `userBlocks` is a new collection in v5.32.0, and Firestore
+      // denies any path with no matching rule, so this is exactly what an
+      // undeployed firestore.rules looks like from the UI.
+      setToast({
+        message: error?.code === 'permission-denied'
+          ? "Couldn't block that account — the app doesn't have permission to save your block list."
+          : 'Failed to block that account. Please try again.',
+        type: 'error',
+      });
       throw error;
     }
   }, [user]);
@@ -494,7 +504,12 @@ export function AppProvider({ children }) {
       setToast('Unblocked. You can send a friend request if you want to reconnect.');
     } catch (error) {
       console.error('Failed to unblock user:', error);
-      setToast({ message: 'Failed to unblock that account. Please try again.', type: 'error' });
+      setToast({
+        message: error?.code === 'permission-denied'
+          ? "Couldn't unblock that account — the app doesn't have permission to save your block list."
+          : 'Failed to unblock that account. Please try again.',
+        type: 'error',
+      });
       throw error;
     }
   }, [user]);
