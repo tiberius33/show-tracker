@@ -20,6 +20,9 @@
  *
  *   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
  *
+ * A .env file in the repo root is read automatically if present (it is
+ * gitignored), so the private key never has to survive shell quoting.
+ *
  * Usage:
  *   node scripts/seed-review-account.js                 # dry run, prints the plan
  *   node scripts/seed-review-account.js --yes           # write
@@ -35,6 +38,31 @@
  * Idempotent: every document id is deterministic, so re-running overwrites
  * rather than duplicating.
  */
+
+// Load .env from the repo root if there is one, so the private key does not
+// have to survive a trip through shell quoting. Deliberately not a dependency:
+// this is the only script that needs it, and the format here is simple.
+(function loadDotEnv() {
+  const fs = require('fs');
+  const path = require('path');
+  const file = path.join(__dirname, '..', '.env');
+  if (!fs.existsSync(file)) return;
+  for (const raw of fs.readFileSync(file, 'utf8').split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"') && value.length > 1) ||
+      (value.startsWith("'") && value.endsWith("'") && value.length > 1)
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+})();
 
 const { getApps, initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
