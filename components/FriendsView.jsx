@@ -8,6 +8,7 @@ import Input from '@/components/ui/Input';
 import Tip from '@/components/ui/Tip';
 import FriendCard from '@/components/friends/FriendCard';
 import ShowsTogetherView from '@/components/ShowsTogetherView';
+import { useApp } from '@/context/AppContext';
 
 function FriendsView({
   user, friends, pendingFriendRequests, sentFriendRequests, pendingShowTags,
@@ -29,6 +30,26 @@ function FriendsView({
   const [bulkConfirm, setBulkConfirm] = useState(null); // null | { type: 'all' } | { type: 'friend', friendUid, friendName }
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [sharedCounts, setSharedCounts] = useState({}); // friendUid -> together count
+  const [blockConfirm, setBlockConfirm] = useState(null); // null | { uid, name }
+  const [blocking, setBlocking] = useState(false);
+
+  // Pulled from context rather than threaded through this component's
+  // already long prop list — blocking is not part of the friends feature
+  // it would otherwise belong to.
+  const { blockUser } = useApp();
+
+  const handleBlock = async () => {
+    if (!blockConfirm) return;
+    setBlocking(true);
+    try {
+      await blockUser(blockConfirm.uid);
+      setBlockConfirm(null);
+    } catch {
+      // AppContext has already shown the toast.
+    } finally {
+      setBlocking(false);
+    }
+  };
 
   const inviteList = pendingInvites || [];
 
@@ -182,6 +203,7 @@ function FriendsView({
                     theirShowsLabel="Their shows"
                     onMessage={() => {}}
                     onView={() => setShowingTogetherWith({ uid: friend.friendUid, name: friend.friendName || 'Friend' })}
+                    onBlock={() => setBlockConfirm({ uid: friend.friendUid, name: friend.friendName || 'this person' })}
                   />
                 );
               })}
@@ -595,6 +617,35 @@ function FriendsView({
               ? `Accept all ${totalPendingItems} pending show${totalPendingItems !== 1 ? 's' : ''}? They'll be added to your collection.`
               : `Accept all ${(friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)} pending show${((friendGroups[bulkConfirm.friendUid]?.tags.length || 0) + (friendGroups[bulkConfirm.friendUid]?.suggestions.length || 0)) !== 1 ? 's' : ''} from ${bulkConfirm.friendName}?`
             }
+          </p>
+        )}
+      </Modal>
+
+      {/* Block confirmation. Blocking removes the friendship in both
+          directions, so it is worth one deliberate step rather than a
+          single stray tap on a small icon. */}
+      <Modal
+        open={!!blockConfirm}
+        onClose={() => !blocking && setBlockConfirm(null)}
+        title={blockConfirm ? `Block ${blockConfirm.name}?` : 'Block'}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setBlockConfirm(null)} disabled={blocking}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleBlock} loading={blocking}>
+              Block
+            </Button>
+          </>
+        }
+      >
+        {blockConfirm && (
+          <p className="text-secondary text-sm">
+            You won’t see {blockConfirm.name}’s comments, photos, meetup messages or
+            activity, and you’ll be removed from each other’s friends list. Shows you’ve
+            already logged together are kept. You can undo this in Profile → Blocked
+            accounts.
           </p>
         )}
       </Modal>

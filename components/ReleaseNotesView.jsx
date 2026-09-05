@@ -6,6 +6,19 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.32.0',
+      date: 'September 5, 2026',
+      title: 'Report, Block, and Safer Comments',
+      changes: [
+        'New: every comment, photo, video, setlist photo and meetup message now has a flag icon to report it. Reports are anonymous to the person you report, and we review every one within 24 hours \u2014 anything reported by three or more people is hidden straight away while it waits',
+        'New: you can block anyone. Their comments, photos, meetup messages and activity disappear for you, and you\u2019re removed from each other\u2019s friends list. Block from the report box, from a friend\u2019s card, or from the friends page \u2014 and undo it any time under Profile \u2192 Blocked accounts',
+        'New: comments, captions, meetup messages, display names and handles are now checked before they\u2019re posted, and anything with slurs, threats or spam is refused with a message under the box rather than posted and taken down later',
+        'The check is deliberately built not to trip over live music \u2014 \u201cCum On Feel the Noize\u201d, \u201cHo Hey\u201d, Dick Dale and David Lynch all post fine, and a show date is never mistaken for a phone number',
+        'Fixed: the Terms of Service, Privacy Policy and Cookie Policy pages showed \u201cApplication error\u201d instead of loading, and couldn\u2019t be opened at all unless you were signed in. All three now work, signed in or not',
+        'New: a Community Guidelines section in the Terms setting out what isn\u2019t allowed, how to report it, and what happens next \u2014 plus a support email address on every page, so you can reach us without an account',
+      ]
+    },
+    {
       version: '5.31.0',
       date: 'September 4, 2026',
       title: 'Duplicate Festivals Can Now Be Merged',

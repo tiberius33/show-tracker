@@ -12,14 +12,14 @@ export default function PrivacyPolicy() {
       <div className="bg-black/20 backdrop-blur-xl border-b border-subtle">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="w-11 h-11 bg-gradient-to-br from-brand to-amber rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
                 <Music className="w-6 h-6 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight">MySetlists</h1>
             </Link>
             <Link
-              to="/"
+              href="/"
               className="flex items-center gap-2 px-4 py-2 bg-hover hover:bg-hover text-secondary rounded-xl font-medium transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />

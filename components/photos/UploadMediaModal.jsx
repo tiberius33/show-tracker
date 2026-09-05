@@ -6,6 +6,12 @@
 // YouTube tab), since a poster or a setlist isn't a video by definition.
 // Each selected file gets its own caption field — a batch of 5 photos
 // from one night usually isn't 5 copies of the same caption.
+//
+// Captions are free text and so go through the content filter before
+// anything is uploaded (Guideline 1.2). Checked here per caption, so the
+// error points at the offending one rather than failing the whole batch
+// anonymously — and checked again in the Netlify function that writes the
+// metadata document, which is the actual enforcement.
 
 'use client';
 
@@ -13,6 +19,7 @@ import React, { useState } from 'react';
 import { Upload, Youtube, X as XIcon } from 'lucide-react';
 import { Modal, Button, Input, Textarea, Tabs } from '@/components/ui';
 import { checkUploadAllowed, uploadShowMedia, addYoutubeLink, allowedTypesFor } from '@/lib/photos';
+import { contentProblem } from '@/lib/contentFilter';
 
 export default function UploadMediaModal({
   open, onClose, concertKey, uid, uploaderName, show, existingPhotos,
@@ -63,6 +70,7 @@ export default function UploadMediaModal({
 
   const updateCaption = (index, caption) => {
     setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, caption } : e)));
+    if (validationError) setValidationError('');
   };
 
   const removeEntry = (index) => {
@@ -71,6 +79,19 @@ export default function UploadMediaModal({
 
   const handleUploadFiles = async () => {
     if (entries.length === 0) return;
+
+    // Before the first byte goes to Storage: a caption rejected after
+    // three of five photos have uploaded leaves a half-done batch and an
+    // error that doesn't say which one.
+    for (let i = 0; i < entries.length; i++) {
+      const problem = contentProblem(entries[i].caption);
+      if (problem) {
+        setValidationError(`Caption for “${entries[i].file.name}”: ${problem}`);
+        return;
+      }
+    }
+    setValidationError('');
+
     setUploading(true);
     setProgress({ index: 0, total: entries.length, pct: 0 });
     try {
@@ -86,7 +107,10 @@ export default function UploadMediaModal({
       onClose();
     } catch (err) {
       console.error('[photos] Upload failed:', err.code || err.message, err);
-      onError?.("Couldn't upload — please try again.");
+      // The server runs the caption filter too, and its rejection names
+      // what is wrong — show that inline rather than replacing it with a
+      // generic "try again" the user cannot act on.
+      setValidationError(err.message || "Couldn't upload — please try again.");
     } finally {
       setUploading(false);
     }
@@ -95,6 +119,14 @@ export default function UploadMediaModal({
   const handleAddYoutube = async (e) => {
     e.preventDefault();
     if (!youtubeUrl.trim()) return;
+
+    const problem = contentProblem(youtubeCaption);
+    if (problem) {
+      setValidationError(problem);
+      return;
+    }
+    setValidationError('');
+
     setUploading(true);
     try {
       await addYoutubeLink({ url: youtubeUrl, concertKey, uid, uploaderName, caption: youtubeCaption, show });
@@ -200,9 +232,10 @@ export default function UploadMediaModal({
           <Textarea
             placeholder="Add a caption (optional)"
             value={youtubeCaption}
-            onChange={(e) => setYoutubeCaption(e.target.value)}
+            onChange={(e) => { setYoutubeCaption(e.target.value); setValidationError(''); }}
             rows={2}
             disabled={uploading}
+            error={validationError}
           />
           <Button type="submit" full loading={uploading} disabled={!youtubeUrl.trim()}>
             Add Video

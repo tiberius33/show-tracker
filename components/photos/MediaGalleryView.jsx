@@ -6,6 +6,10 @@
 // see ShowMediaSection.jsx, which subscribes once for all three
 // categories so a show page doesn't run three near-identical Firestore
 // listeners against the same concertKey.
+//
+// Moderation (Guideline 1.2): the lightbox carries a report affordance
+// alongside like and delete, and uploads from blocked users never reach
+// the grid. Captions are filtered before upload — see UploadMediaModal.
 
 'use client';
 
@@ -17,6 +21,8 @@ import { togglePhotoLike, deletePhoto, extractYoutubeId } from '@/lib/photos';
 import { createEngagementNotification } from '@/lib/notifications';
 import { logActivity } from '@/lib/activityFeed';
 import { timeAgo } from '@/lib/utils';
+import { withoutBlocked } from '@/lib/moderation';
+import ReportButton from '@/components/moderation/ReportButton';
 
 import UploadMediaModal from './UploadMediaModal';
 
@@ -59,7 +65,7 @@ function Thumbnail({ item, onClick }) {
   );
 }
 
-function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerate, onLike, onDelete, zoomable }) {
+function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerate, onLike, onDelete, onReported, zoomable }) {
   const item = items[index];
   const [zoomed, setZoomed] = useState(false);
 
@@ -152,6 +158,16 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerat
               <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
               {(item.likedBy || []).length > 0 && (item.likedBy || []).length}
             </button>
+            <ReportButton
+              contentType="showMedia"
+              contentId={item.id}
+              contentSnapshot={item.caption || item.url}
+              reportedUserId={item.uploadedBy}
+              reportedUserName={item.uploaderName}
+              onReported={() => onReported?.(item)}
+              showLabel={false}
+              size={16}
+            />
             {canDelete && (
               <button type="button" onClick={() => onDelete(item)} className="text-muted hover:text-danger">
                 <Trash2 size={16} />
@@ -168,17 +184,34 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerat
 }
 
 export default function MediaGalleryView({ show, concertKey, category, title, icon: Icon, emptyText, signInText, zoomable, items, allItems, loading }) {
-  const { user, isAdmin, guestMode, setToast } = useApp();
+  const { user, isAdmin, guestMode, setToast, blockedUserIds } = useApp();
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  // Reported this session — hidden for the reporter straight away, before
+  // the third report auto-hides it for everyone. See ReportModal.
+  const [reportedIds, setReportedIds] = useState([]);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [sort, setSort] = useState('newest');
 
   // subscribePhotos already orders by createdAt desc — 'liked' is the
   // only case that needs a client-side re-sort.
+  // Everything below reads visibleItems, not the `items` prop, so the
+  // count in the header, the grid and the lightbox cannot disagree about
+  // what is on screen.
+  const visibleItems = useMemo(
+    () => withoutBlocked(items, blockedUserIds, 'uploadedBy')
+      .filter((item) => !reportedIds.includes(item.id)),
+    [items, blockedUserIds, reportedIds],
+  );
+
   const sortedItems = useMemo(() => {
-    if (sort !== 'liked') return items;
-    return [...items].sort((a, b) => (b.likedBy?.length || 0) - (a.likedBy?.length || 0));
-  }, [items, sort]);
+    if (sort !== 'liked') return visibleItems;
+    return [...visibleItems].sort((a, b) => (b.likedBy?.length || 0) - (a.likedBy?.length || 0));
+  }, [visibleItems, sort]);
+
+  const handleReported = (item) => {
+    setReportedIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
+    setLightboxIndex(null);
+  };
 
   const handleLike = async (item) => {
     if (!user) return;
@@ -214,10 +247,10 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
           <Icon size={18} className="text-brand" />
-          {title} {items.length > 0 && <span className="text-muted font-normal text-sm">({items.length})</span>}
+          {title} {visibleItems.length > 0 && <span className="text-muted font-normal text-sm">({visibleItems.length})</span>}
         </h3>
         <div className="flex items-center gap-2 flex-wrap">
-          {items.length > 1 && <Tabs value={sort} onChange={setSort} tabs={SORTS} className="border-b-0" />}
+          {visibleItems.length > 1 && <Tabs value={sort} onChange={setSort} tabs={SORTS} className="border-b-0" />}
           {user && !guestMode && (
             <Button size="sm" variant="secondary" icon={Plus} onClick={() => setUploadOpen(true)}>
               Add {category === 'photo' ? 'Photos' : title}
@@ -230,7 +263,7 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
         <p className="text-sm text-muted">{signInText}</p>
       ) : loading ? (
         <div className="py-8"><Spinner size="sm" label={`Loading ${title.toLowerCase()}…`} /></div>
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <p className="text-sm text-muted text-center py-8">{emptyText}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -250,6 +283,7 @@ export default function MediaGalleryView({ show, concertKey, category, title, ic
           canModerate={isAdmin}
           onLike={handleLike}
           onDelete={handleDelete}
+          onReported={handleReported}
           zoomable={zoomable}
         />
       )}

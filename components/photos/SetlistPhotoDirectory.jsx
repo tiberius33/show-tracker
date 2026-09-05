@@ -10,6 +10,10 @@
 // than a real-time listener — Firestore has no free-text search, and a
 // global cross-concert feed doesn't need to be live the way one show's
 // gallery does.
+//
+// Moderation (Guideline 1.2): this page is a cross-concert feed of other
+// people's uploads, so it carries the same report affordance and the same
+// blocked-uploader filtering as a show's own gallery.
 
 'use client';
 
@@ -20,8 +24,10 @@ import { useApp } from '@/context/AppContext';
 import { listAllSetlistPhotos, togglePhotoLike } from '@/lib/photos';
 import { createEngagementNotification } from '@/lib/notifications';
 import { timeAgo } from '@/lib/utils';
+import { withoutBlocked } from '@/lib/moderation';
+import ReportButton from '@/components/moderation/ReportButton';
 
-function Lightbox({ items, index, onIndexChange, onClose, currentUid, onLike }) {
+function Lightbox({ items, index, onIndexChange, onClose, currentUid, onLike, onReported }) {
   const item = items[index];
   const [zoomed, setZoomed] = useState(false);
 
@@ -84,6 +90,16 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, onLike }) 
               <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
               {(item.likedBy || []).length > 0 && (item.likedBy || []).length}
             </button>
+            <ReportButton
+              contentType="showMedia"
+              contentId={item.id}
+              contentSnapshot={item.caption || item.url}
+              reportedUserId={item.uploadedBy}
+              reportedUserName={item.uploaderName}
+              onReported={() => onReported?.(item)}
+              showLabel={false}
+              size={16}
+            />
             <button type="button" onClick={onClose} className="text-muted hover:text-primary text-sm font-medium">Close</button>
           </div>
         </div>
@@ -93,11 +109,12 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, onLike }) 
 }
 
 export default function SetlistPhotoDirectory() {
-  const { user, setToast } = useApp();
+  const { user, setToast, blockedUserIds } = useApp();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [reportedIds, setReportedIds] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,14 +134,19 @@ export default function SetlistPhotoDirectory() {
   }, [setToast]);
 
   const filtered = useMemo(() => {
+    // Blocked uploaders and anything reported this session come out
+    // before the search runs, so a blocked user's photo cannot be
+    // surfaced by searching for the artist.
+    const visible = withoutBlocked(photos, blockedUserIds, 'uploadedBy')
+      .filter((p) => !reportedIds.includes(p.id));
     const q = search.trim().toLowerCase();
-    if (!q) return photos;
-    return photos.filter((p) =>
+    if (!q) return visible;
+    return visible.filter((p) =>
       (p.artist || '').toLowerCase().includes(q) ||
       (p.date || '').includes(q) ||
       (p.venue || '').toLowerCase().includes(q)
     );
-  }, [photos, search]);
+  }, [photos, search, blockedUserIds, reportedIds]);
 
   const handleLike = async (item) => {
     if (!user) return;
@@ -201,6 +223,10 @@ export default function SetlistPhotoDirectory() {
           onClose={() => setLightboxIndex(null)}
           currentUid={user?.uid}
           onLike={handleLike}
+          onReported={(item) => {
+            setReportedIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
+            setLightboxIndex(null);
+          }}
         />
       )}
     </div>
