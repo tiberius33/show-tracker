@@ -236,8 +236,15 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
   const handleDeleteAccount = async () => {
     if (!user?.uid) return;
-    if (deleteConfirmEmail.toLowerCase() !== (user.email || '').toLowerCase()) {
-      setDeleteError('Email address does not match your account.');
+    // Either confirmation is accepted. A Sign in with Apple user on Hide My
+    // Email has a 30-character @privaterelay.appleid.com address they never
+    // chose and cannot reasonably thumb in on a phone; making them type it is
+    // friction that protects nobody. The ID token is what authorises this.
+    const typed = deleteConfirmEmail.trim();
+    const emailMatches = typed.toLowerCase() === (user.email || '').toLowerCase();
+    const textMatches = typed.toUpperCase() === 'DELETE';
+    if (!emailMatches && !textMatches) {
+      setDeleteError('Type your email address, or the word DELETE, to confirm.');
       return;
     }
 
@@ -249,7 +256,9 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
       const res = await fetch(apiUrl('/api/delete-account'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ confirmEmail: deleteConfirmEmail }),
+        body: emailMatches
+          ? JSON.stringify({ confirmEmail: typed })
+          : JSON.stringify({ confirmText: 'DELETE' }),
       });
 
       if (!res.ok) {
@@ -783,13 +792,16 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           This will permanently delete your account, all your shows, friend connections, tags, and any other data. This cannot be undone.
         </p>
         <p className="text-secondary text-sm mb-4">
-          Type your email address <strong className="text-primary">{user?.email}</strong> to confirm:
+          Type <strong className="text-primary">DELETE</strong>, or your email
+          address <strong className="text-primary">{user?.email}</strong>, to confirm:
         </p>
         <Input
-          type="email"
+          type="text"
+          autoCapitalize="none"
+          autoCorrect="off"
           value={deleteConfirmEmail}
           onChange={(e) => setDeleteConfirmEmail(e.target.value)}
-          placeholder="Enter your email to confirm"
+          placeholder="DELETE"
           disabled={deleteLoading}
           className="mb-4"
         />

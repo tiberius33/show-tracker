@@ -1,24 +1,21 @@
 /**
- * delete-user — Admin-only endpoint that permanently removes a user and all their data.
+ * delete-user — admin-only endpoint that permanently removes a user and all
+ * their data.
  *
- * Collections / documents deleted:
- *   adminAuditLog/{docId}                  — written FIRST as immutable record
- *   users/{uid}/shows/*                    — all show documents
- *   users/{uid}/friends/*                  — all friend subcollection documents
- *   friendRequests where from==uid         — outgoing friend requests
- *   friendRequests where to==uid           — incoming friend requests
- *   showTags where fromUid==uid            — tags this user sent
- *   showTags where toUid==uid             — tags sent to this user
- *   invites where inviterUid==uid          — email invites this user sent
- *   pendingEmailTags where fromUid==uid    — non-user email tags this user sent
- *   userProfiles/{uid}                     — profile document
- *   Firebase Auth account for uid          — deleted last
+ * What gets deleted is defined once, in netlify/functions/lib/userDataPurge.js,
+ * and shared with delete-account.js (the self-service path). Do not re-add a
+ * hand-written list here: the two functions drifting apart is exactly how
+ * comments, photos, Storage objects, handles and the users/{uid}/festivals
+ * subcollection ended up surviving deletion.
  *
  * POST body:   { targetUid: string }
  * Auth header: Authorization: Bearer {idToken}   (admin account only)
  */
 
+const { purgeUserData } = require('./lib/userDataPurge');
+
 const ADMIN_EMAILS = ['phillip.leonard@gmail.com'];
+const STORAGE_BUCKET = process.env.FIREBASE_STORAGE_BUCKET || 'show-tracker-d7a4d.firebasestorage.app';
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
@@ -33,7 +30,11 @@ function initFirebase() {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const projectId = process.env.FIREBASE_PROJECT_ID;
   if (!privateKey || !clientEmail || !projectId) throw new Error('Firebase env vars not configured');
-  initializeApp({ credential: cert({ privateKey, clientEmail, projectId }), projectId });
+  initializeApp({
+    credential: cert({ privateKey, clientEmail, projectId }),
+    projectId,
+    storageBucket: STORAGE_BUCKET,
+  });
 }
 
 async function verifyAdmin(token) {
@@ -42,30 +43,6 @@ async function verifyAdmin(token) {
   const decoded = await getAuth().verifyIdToken(token);
   if (!ADMIN_EMAILS.includes(decoded.email)) throw new Error('Forbidden');
   return decoded;
-}
-
-// Batch-delete an array of Firestore DocumentReferences (max 500 per batch).
-async function batchDelete(db, refs) {
-  if (refs.length === 0) return;
-  const CHUNK = 500;
-  for (let i = 0; i < refs.length; i += CHUNK) {
-    const batch = db.batch();
-    refs.slice(i, i + CHUNK).forEach(ref => batch.delete(ref));
-    await batch.commit();
-  }
-}
-
-// Get all document refs from a subcollection.
-async function getSubcollectionRefs(db, ...pathSegments) {
-  const colRef = db.collection(pathSegments.join('/'));
-  const snap = await colRef.get();
-  return snap.docs.map(d => d.ref);
-}
-
-// Query a top-level collection by a single field and return all matching refs.
-async function queryRefs(db, collection, field, value) {
-  const snap = await db.collection(collection).where(field, '==', value).get();
-  return snap.docs.map(d => d.ref);
 }
 
 exports.handler = async function (event) {
@@ -134,57 +111,26 @@ exports.handler = async function (event) {
       performedAt: FieldValue.serverTimestamp(),
     });
 
-    // ── Step 2: Delete subcollections ─────────────────────────────────────────
-    const showRefs    = await getSubcollectionRefs(db, 'users', targetUid, 'shows');
-    const friendRefs  = await getSubcollectionRefs(db, 'users', targetUid, 'friends');
-
-    await Promise.all([
-      batchDelete(db, showRefs),
-      batchDelete(db, friendRefs),
-    ]);
-
-    // ── Step 3: Delete cross-user collections ─────────────────────────────────
-    const [
-      frFromRefs,
-      frToRefs,
-      tagsFromRefs,
-      tagsToRefs,
-      inviteRefs,
-      emailTagRefs,
-    ] = await Promise.all([
-      queryRefs(db, 'friendRequests', 'from', targetUid),
-      queryRefs(db, 'friendRequests', 'to', targetUid),
-      queryRefs(db, 'showTags', 'fromUid', targetUid),
-      queryRefs(db, 'showTags', 'toUid', targetUid),
-      queryRefs(db, 'invites', 'inviterUid', targetUid),
-      queryRefs(db, 'pendingEmailTags', 'fromUid', targetUid),
-    ]);
-
-    await Promise.all([
-      batchDelete(db, [...frFromRefs, ...frToRefs]),
-      batchDelete(db, [...tagsFromRefs, ...tagsToRefs]),
-      batchDelete(db, inviteRefs),
-      batchDelete(db, emailTagRefs),
-    ]);
-
-    // ── Step 4: Delete profile document and users/{uid} parent ────────────────
-    await Promise.all([
-      db.doc(`userProfiles/${targetUid}`).delete(),
-      db.doc(`users/${targetUid}`).delete().catch(() => {}),
-    ]);
-
-    // ── Step 5: Delete Firebase Auth account (must be last) ───────────────────
+    // ── Step 2: Purge everything the user owns ───────────────────────────────
+    // Collections, array memberships, tombstones, Storage objects and the
+    // Auth record — see lib/userDataPurge.js for the map.
+    let bucket = null;
     try {
-      await getAuth().deleteUser(targetUid);
-    } catch (authErr) {
-      // If auth account doesn't exist, that's fine — Firestore is already cleaned up
-      if (authErr.code !== 'auth/user-not-found') throw authErr;
+      const { getStorage } = require('firebase-admin/storage');
+      bucket = getStorage().bucket();
+    } catch (e) {
+      console.warn('[delete-user] Storage bucket unavailable; files will not be removed:', e.message);
     }
+
+    const report = await purgeUserData({ db, auth: getAuth(), bucket }, targetUid);
+    console.log('[delete-user] purged', JSON.stringify({
+      targetUid, deleted: report.deleted, tombstoned: report.tombstoned, storage: report.storage,
+    }));
 
     return {
       statusCode: 200,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ success: true, deletedUid: targetUid }),
+      body: JSON.stringify({ success: true, deletedUid: targetUid, report }),
     };
   } catch (e) {
     console.error('delete-user error:', e);
