@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/utils';
 import ShowForm from '@/components/ShowForm';
 import TagFriendsModal from '@/components/TagFriendsModal';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatFigure } from '@/components/ui';
@@ -176,7 +177,7 @@ export default function ShowsPage() {
           onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
           festival={selectedShow.festivalId ? festivals.find(f => f.id === selectedShow.festivalId) || null : null}
           onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
-          onCreatePlaylist={!guestMode ? (show) => setPlaylistShow(show) : undefined}
+          onCreatePlaylist={PLAYLIST_CREATION_ENABLED && !guestMode ? (show) => setPlaylistShow(show) : undefined}
           onDeleteShow={deleteShow}
           onAddSong={!guestMode ? addSongToShow : undefined}
           onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}

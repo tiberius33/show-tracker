@@ -6,6 +6,7 @@ import { useApp } from '@/context/AppContext';
 import ShowDetailView from '@/components/shows/ShowDetailView';
 import TagFriendsModal from '@/components/TagFriendsModal';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 import { Button } from '@/components/ui';
 import { ArrowLeft } from 'lucide-react';
 
@@ -48,7 +49,7 @@ export default function ShowDetailClient({ id }) {
         onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
         festival={show.festivalId ? festivals.find(f => f.id === show.festivalId) || null : null}
         onTagFriends={!guestMode ? (s) => setTagFriendsShow(s) : undefined}
-        onCreatePlaylist={!guestMode ? (s) => setPlaylistShow(s) : undefined}
+        onCreatePlaylist={PLAYLIST_CREATION_ENABLED && !guestMode ? (s) => setPlaylistShow(s) : undefined}
         onDeleteShow={deleteShow}
         onAddSong={!guestMode ? addSongToShow : undefined}
         onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}

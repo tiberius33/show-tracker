@@ -6,6 +6,7 @@ import { formatDate, parseDate, artistColor, normalizeSongTitle } from '@/lib/ut
 import { attachSetBoundaryLabels } from '@/lib/setlistGrouping';
 import SetlistEditor from '@/components/SetlistEditor';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
@@ -248,7 +249,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
             onTagFriends={onTagFriends}
             onRateVenue={onRateVenue}
             friendAnnotations={friendShow ? { friendName: friend.name, friendShow } : null}
-            onCreatePlaylist={(show) => setPlaylistShow(show)}
+            onCreatePlaylist={PLAYLIST_CREATION_ENABLED ? (show) => setPlaylistShow(show) : undefined}
           />
         );
       })()}
