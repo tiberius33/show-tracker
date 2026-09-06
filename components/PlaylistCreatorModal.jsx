@@ -16,11 +16,12 @@ import {
 } from '@/lib/playlistCreator';
 import { apiUrl } from '@/lib/api';
 import { isNativePlatform } from '@/lib/native-auth';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 
 // States: select | authenticating | searching | creating | results | error
 const SPOTIFY_GREEN = '#1DB954';
 
-function PlaylistCreatorModal({ show, onClose }) {
+function PlaylistCreatorModalInner({ show, onClose }) {
   const [step, setStep] = useState('select');
   const [platform, setPlatform] = useState(null);
   const [progress, setProgress] = useState({ current: 0, total: 0, matches: [] });
@@ -550,4 +551,15 @@ function PlaylistCreatorModal({ show, onClose }) {
   );
 }
 
-export default PlaylistCreatorModal;
+/**
+ * Second lock on the disabled feature. Every call site is gated as well, but a
+ * new one added later would otherwise reintroduce it silently.
+ *
+ * The check lives in a wrapper rather than inside the component: returning
+ * early from a component that calls hooks changes how many hooks run between
+ * renders, which React forbids.
+ */
+export default function PlaylistCreatorModal(props) {
+  if (!PLAYLIST_CREATION_ENABLED) return null;
+  return <PlaylistCreatorModalInner {...props} />;
+}
