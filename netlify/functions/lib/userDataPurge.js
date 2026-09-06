@@ -176,77 +176,115 @@ function collectStoragePaths(spec, data) {
  * @returns {object} a per-collection report, suitable for logging and for the
  *                   completeness test to assert against.
  */
+/**
+ * Run one phase of the purge. A phase that throws must not abort the ones
+ * after it: by the time purgeUserData is called the account has already been
+ * disabled and the user signed out, so aborting halfway leaves them locked out
+ * of an account that still exists, with their data still in place — the worst
+ * of both outcomes, and an App Store Guideline 5.1.1(v) failure.
+ *
+ * This is not hypothetical. Step 9 is a collection-group query, and Firestore
+ * does not create collection-group indexes automatically; without the
+ * fieldOverride in firestore.indexes.json it throws FAILED_PRECONDITION and
+ * every step after it — including deleting users/{uid} and the auth record —
+ * never ran.
+ *
+ * Failures are recorded, not swallowed: they land in report.errors, are logged
+ * by the caller, and scripts/purge-user.js can finish the remainder by uid
+ * because purgeUserData is idempotent.
+ */
+async function runStep(report, label, fn) {
+  try {
+    await fn();
+  } catch (e) {
+    report.errors.push(`${label}: ${e.message}`);
+  }
+}
+
 async function purgeUserData({ db, auth, bucket }, uid, opts = {}) {
   const { FieldValue } = require('firebase-admin/firestore');
   const { deleteAuthUser = true } = opts;
-  const report = { uid, deleted: {}, tombstoned: {}, storage: { deleted: 0, failed: 0 }, errors: [] };
+  const report = {
+    uid,
+    deleted: {},
+    tombstoned: {},
+    storage: { deleted: 0, failed: 0 },
+    errors: [],
+    authUserDeleted: false,
+  };
 
   // 1. Storage paths must be read BEFORE the documents that record them go.
   const storagePaths = [];
 
   // 2. Owned documents.
   for (const spec of OWNED_DOCUMENTS) {
-    const seen = new Map();
-    for (const field of spec.fields) {
-      for (const doc of await queryDocs(db, spec.collection, field, uid)) {
-        if (!seen.has(doc.ref.path)) {
-          seen.set(doc.ref.path, doc.ref);
-          storagePaths.push(...collectStoragePaths(spec, doc.data() || {}));
+    await runStep(report, `owned:${spec.collection}`, async () => {
+      const seen = new Map();
+      for (const field of spec.fields) {
+        for (const doc of await queryDocs(db, spec.collection, field, uid)) {
+          if (!seen.has(doc.ref.path)) {
+            seen.set(doc.ref.path, doc.ref);
+            storagePaths.push(...collectStoragePaths(spec, doc.data() || {}));
+          }
         }
       }
-    }
-    if (seen.size) {
-      await commitDeletes(db, [...seen.values()]);
-      report.deleted[spec.collection] = seen.size;
-    }
+      if (seen.size) {
+        await commitDeletes(db, [...seen.values()]);
+        report.deleted[spec.collection] = seen.size;
+      }
+    });
   }
 
   // 3. showSuggestions — the user is one of two participants; the suggestion
   //    is meaningless without them.
-  {
+  await runStep(report, 'showSuggestions', async () => {
     const snap = await db.collection('showSuggestions').where('participants', 'array-contains', uid).get();
     if (!snap.empty) {
       await commitDeletes(db, snap.docs.map(d => d.ref));
       report.deleted.showSuggestions = snap.size;
     }
-  }
+  });
 
   // 4. Array memberships on shared documents.
   for (const spec of ARRAY_MEMBERSHIPS) {
-    const snap = await db.collection(spec.collection).where(spec.field, 'array-contains', uid).get();
-    if (snap.empty) continue;
-    for (let i = 0; i < snap.docs.length; i += BATCH_LIMIT) {
-      const batch = db.batch();
-      for (const doc of snap.docs.slice(i, i + BATCH_LIMIT)) {
-        const update = { [spec.field]: FieldValue.arrayRemove(uid) };
-        if (spec.mapField) update[`${spec.mapField}.${uid}`] = FieldValue.delete();
-        batch.update(doc.ref, update);
+    await runStep(report, `array:${spec.collection}.${spec.field}`, async () => {
+      const snap = await db.collection(spec.collection).where(spec.field, 'array-contains', uid).get();
+      if (snap.empty) return;
+      for (let i = 0; i < snap.docs.length; i += BATCH_LIMIT) {
+        const batch = db.batch();
+        for (const doc of snap.docs.slice(i, i + BATCH_LIMIT)) {
+          const update = { [spec.field]: FieldValue.arrayRemove(uid) };
+          if (spec.mapField) update[`${spec.mapField}.${uid}`] = FieldValue.delete();
+          batch.update(doc.ref, update);
+        }
+        await batch.commit();
       }
-      await batch.commit();
-    }
-    report.tombstoned[`${spec.collection}.${spec.field}`] = snap.size;
+      report.tombstoned[`${spec.collection}.${spec.field}`] = snap.size;
+    });
   }
 
   // 5. Tombstones.
   for (const spec of TOMBSTONES) {
-    const docs = await queryDocs(db, spec.collection, spec.field, uid);
-    if (!docs.length) continue;
-    for (let i = 0; i < docs.length; i += BATCH_LIMIT) {
-      const batch = db.batch();
-      for (const doc of docs.slice(i, i + BATCH_LIMIT)) {
-        const update = { [spec.field]: spec.to };
-        for (const f of spec.alsoNull || []) update[f] = null;
-        batch.update(doc.ref, update);
+    await runStep(report, `tombstone:${spec.collection}.${spec.field}`, async () => {
+      const docs = await queryDocs(db, spec.collection, spec.field, uid);
+      if (!docs.length) return;
+      for (let i = 0; i < docs.length; i += BATCH_LIMIT) {
+        const batch = db.batch();
+        for (const doc of docs.slice(i, i + BATCH_LIMIT)) {
+          const update = { [spec.field]: spec.to };
+          for (const f of spec.alsoNull || []) update[f] = null;
+          batch.update(doc.ref, update);
+        }
+        await batch.commit();
       }
-      await batch.commit();
-    }
-    report.tombstoned[`${spec.collection}.${spec.field}`] = docs.length;
+      report.tombstoned[`${spec.collection}.${spec.field}`] = docs.length;
+    });
   }
 
   // 6. Roadmap votes. The doc id is the uid and there is no uid field, so this
   //    cannot be queried — enumerate the items. Each removed vote decrements
   //    the denormalized count, or the roadmap shows phantom votes forever.
-  {
+  await runStep(report, 'roadmapVotes', async () => {
     let votes = 0;
     const items = await db.collection('roadmapItems').get();
     for (const item of items.docs) {
@@ -258,44 +296,48 @@ async function purgeUserData({ db, auth, bucket }, uid, opts = {}) {
       votes++;
     }
     if (votes) report.deleted.roadmapVotes = votes;
-  }
+  });
 
   // 7. The handle. Not releasing it leaves the name squatted by an account
   //    that no longer exists, permanently unclaimable by anyone else.
-  {
+  await runStep(report, 'handles', async () => {
     const handles = await queryDocs(db, 'handles', 'uid', uid);
     if (handles.length) {
       await commitDeletes(db, handles.map(d => d.ref));
       report.deleted.handles = handles.length;
     }
-  }
+  });
 
-  // 8. Their own block list, and their presence in everyone else's.
+  // 8. Their own block list.
   await db.doc(`userBlocks/${uid}`).delete().catch(() => {});
 
   // 9. Friend edges pointing at this user from other people's subcollections.
-  {
+  //    Collection-group query — requires the friends.friendUid COLLECTION_GROUP
+  //    fieldOverride in firestore.indexes.json.
+  await runStep(report, 'inboundFriendEdges', async () => {
     const snap = await db.collectionGroup('friends').where('friendUid', '==', uid).get();
     if (!snap.empty) {
       await commitDeletes(db, snap.docs.map(d => d.ref));
       report.deleted.inboundFriendEdges = snap.size;
     }
-  }
+  });
 
   // 10. The users/{uid} subtree. Firestore does NOT cascade, so a plain
   //     delete() on the parent would strand every subcollection under it.
-  try {
-    await db.recursiveDelete(db.doc(`users/${uid}`));
-    report.deleted.userSubtree = USER_SUBTREE.join(',');
-  } catch (e) {
-    // Older admin SDKs, or a permissions edge — fall back to the known list.
-    for (const sub of USER_SUBTREE) {
-      const snap = await db.collection(`users/${uid}/${sub}`).get();
-      await commitDeletes(db, snap.docs.map(d => d.ref));
+  await runStep(report, 'userSubtree', async () => {
+    try {
+      await db.recursiveDelete(db.doc(`users/${uid}`));
+      report.deleted.userSubtree = USER_SUBTREE.join(',');
+    } catch (e) {
+      // Older admin SDKs, or a permissions edge — fall back to the known list.
+      for (const sub of USER_SUBTREE) {
+        const snap = await db.collection(`users/${uid}/${sub}`).get();
+        await commitDeletes(db, snap.docs.map(d => d.ref));
+      }
+      await db.doc(`users/${uid}`).delete().catch(() => {});
+      report.errors.push(`recursiveDelete unavailable (${e.message}); used the explicit subtree list`);
     }
-    await db.doc(`users/${uid}`).delete().catch(() => {});
-    report.errors.push(`recursiveDelete unavailable (${e.message}); used the explicit subtree list`);
-  }
+  });
 
   // 11. The profile.
   await db.doc(`userProfiles/${uid}`).delete().catch(() => {});
@@ -303,25 +345,35 @@ async function purgeUserData({ db, auth, bucket }, uid, opts = {}) {
   // 12. Storage. Best-effort per object: one missing file must not abort the
   //     deletion and strand the account half-removed.
   if (bucket) {
-    for (const path of [...new Set(storagePaths)]) {
-      try {
-        await bucket.file(path).delete();
-        report.storage.deleted++;
-      } catch (e) {
-        if (e.code === 404) continue;
-        report.storage.failed++;
-        report.errors.push(`storage ${path}: ${e.message}`);
+    await runStep(report, 'storage', async () => {
+      for (const path of [...new Set(storagePaths)]) {
+        try {
+          await bucket.file(path).delete();
+          report.storage.deleted++;
+        } catch (e) {
+          if (e.code === 404) continue;
+          report.storage.failed++;
+          report.errors.push(`storage ${path}: ${e.message}`);
+        }
       }
-    }
+    });
   }
 
   // 13. The auth record, last — up to here the user could still be signed in.
+  //     This runs even if a step above failed: the user asked to be deleted,
+  //     and leaving the login alive because a friend edge would not delete is
+  //     exactly the Guideline 5.1.1(v) failure we are fixing.
   if (deleteAuthUser && auth) {
-    try {
-      await auth.deleteUser(uid);
-    } catch (e) {
-      if (e.code !== 'auth/user-not-found') throw e;
-    }
+    await runStep(report, 'authUser', async () => {
+      try {
+        await auth.deleteUser(uid);
+      } catch (e) {
+        if (e.code !== 'auth/user-not-found') throw e;
+      }
+      report.authUserDeleted = true;
+    });
+  } else {
+    report.authUserDeleted = true; // caller owns the auth record
   }
 
   return report;
