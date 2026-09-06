@@ -9,6 +9,7 @@ import { formatDate, parseDate, artistColor, normalizeSongTitle } from '@/lib/ut
 import { Button, Card, Badge, Tabs, SectionHeader } from '@/components/ui';
 import SongStatsRow from '@/components/SongStatsRow';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 
 function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onRateShow, onCommentShow, onUpdateVenueRating, onDeleteShow, onAddSong, onReorderSetlist, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate, friends, user }) {
   const [tab, setTab] = useState(initialTab || 'years');
@@ -179,7 +180,7 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           onUpdateVenueRating={onUpdateVenueRating}
           onUpdateComment={onCommentShow}
           onTagFriends={onTagFriends}
-          onCreatePlaylist={(show) => setPlaylistShow(show)}
+          onCreatePlaylist={PLAYLIST_CREATION_ENABLED ? (show) => setPlaylistShow(show) : undefined}
           onDeleteShow={onDeleteShow}
           onAddSong={onAddSong}
           onReorderSetlist={onReorderSetlist}
