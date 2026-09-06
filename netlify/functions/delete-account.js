@@ -1,12 +1,34 @@
 /**
- * delete-account — Self-service account deletion endpoint.
+ * delete-account — self-service account deletion (App Store Guideline 5.1.1(v)).
  *
- * Allows authenticated users to permanently delete their own account and all data.
- * Reuses the same deletion logic as the admin delete-user function.
+ * Apple requires an app that lets you create an account to let you delete it,
+ * along with its data. "Its data" is the part that is easy to get wrong: this
+ * function used to carry its own list of collections, which fell behind the
+ * schema and left comments, photos, videos, meetup posts, activity items, the
+ * user's handle, ratings, wishlists, every Storage object and the
+ * users/{uid}/festivals subcollection alive in production.
  *
- * POST body:   { confirmEmail: string }  (must match the authenticated user's email)
+ * The list now lives in netlify/functions/lib/userDataPurge.js, shared with
+ * delete-user.js, and tests/deletion/completeness.test.js fails if a
+ * collection is added to the app but not to the map.
+ *
+ * Order matters. The account is disabled and its refresh tokens revoked
+ * BEFORE the purge starts, so the moment the user confirms they are locked
+ * out — even if the purge is still running, or times out and has to be
+ * re-run. Netlify functions have a wall clock; a heavy account can exceed it.
+ * purgeUserData is idempotent, so a retry finishes the job rather than
+ * starting over.
+ *
+ * POST body:   { confirmEmail: string }  — must match the account's email
+ *           or { confirmText: "DELETE" } — for Hide My Email users, who
+ *                                          cannot reasonably type a
+ *                                          @privaterelay.appleid.com address
  * Auth header: Authorization: Bearer {idToken}
  */
+
+const { purgeUserData } = require('./lib/userDataPurge');
+
+const STORAGE_BUCKET = process.env.FIREBASE_STORAGE_BUCKET || 'show-tracker-d7a4d.firebasestorage.app';
 
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
@@ -22,43 +44,21 @@ function initFirebase() {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const projectId = process.env.FIREBASE_PROJECT_ID;
   if (!privateKey || !clientEmail || !projectId) throw new Error('Firebase env vars not configured');
-  initializeApp({ credential: cert({ privateKey, clientEmail, projectId }), projectId });
+  initializeApp({
+    credential: cert({ privateKey, clientEmail, projectId }),
+    projectId,
+    storageBucket: STORAGE_BUCKET,
+  });
 }
 
-async function batchDelete(db, refs) {
-  if (refs.length === 0) return;
-  const CHUNK = 500;
-  for (let i = 0; i < refs.length; i += CHUNK) {
-    const batch = db.batch();
-    refs.slice(i, i + CHUNK).forEach(ref => batch.delete(ref));
-    await batch.commit();
-  }
-}
-
-async function getSubcollectionRefs(db, ...pathSegments) {
-  const colRef = db.collection(pathSegments.join('/'));
-  const snap = await colRef.get();
-  return snap.docs.map(d => d.ref);
-}
-
-async function queryRefs(db, collection, field, value) {
-  const snap = await db.collection(collection).where(field, '==', value).get();
-  return snap.docs.map(d => d.ref);
-}
+const json = (statusCode, body) => ({ statusCode, headers: CORS_HEADERS, body: JSON.stringify(body) });
 
 exports.handler = async function (event) {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS_HEADERS, body: '' };
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
   const token = (event.headers.authorization || '').replace('Bearer ', '').trim();
-  if (!token) {
-    return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Unauthorized' }) };
-  }
+  if (!token) return json(401, { error: 'Unauthorized' });
 
   let decoded;
   try {
@@ -66,24 +66,23 @@ exports.handler = async function (event) {
     const { getAuth } = require('firebase-admin/auth');
     decoded = await getAuth().verifyIdToken(token);
   } catch (e) {
-    return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Invalid token' }) };
+    return json(401, { error: 'Invalid token' });
   }
 
   let body;
   try {
     body = JSON.parse(event.body || '{}');
   } catch {
-    return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+    return json(400, { error: 'Invalid JSON body' });
   }
 
-  // Require email confirmation to prevent accidental deletion
-  const { confirmEmail } = body;
-  if (!confirmEmail || confirmEmail.toLowerCase() !== (decoded.email || '').toLowerCase()) {
-    return {
-      statusCode: 400,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ error: 'Email confirmation does not match your account email' }),
-    };
+  // Confirmation. Either form is deliberate friction, not security — the
+  // token above is what authorises this.
+  const { confirmEmail, confirmText } = body;
+  const emailMatches = confirmEmail && confirmEmail.toLowerCase() === (decoded.email || '').toLowerCase();
+  const textMatches = typeof confirmText === 'string' && confirmText.trim().toUpperCase() === 'DELETE';
+  if (!emailMatches && !textMatches) {
+    return json(400, { error: 'Type your email address, or the word DELETE, to confirm.' });
   }
 
   const uid = decoded.uid;
@@ -91,9 +90,12 @@ exports.handler = async function (event) {
   try {
     const { getFirestore, FieldValue } = require('firebase-admin/firestore');
     const { getAuth } = require('firebase-admin/auth');
+    const { getStorage } = require('firebase-admin/storage');
     const db = getFirestore();
+    const auth = getAuth();
 
-    // Write audit log first
+    // The immutable record that this happened, written first so it survives
+    // any failure in the purge itself.
     await db.collection('adminAuditLog').add({
       action: 'self_delete_account',
       targetUid: uid,
@@ -103,67 +105,36 @@ exports.handler = async function (event) {
       performedAt: FieldValue.serverTimestamp(),
     });
 
-    // Delete subcollections
-    const showRefs = await getSubcollectionRefs(db, 'users', uid, 'shows');
-    const friendRefs = await getSubcollectionRefs(db, 'users', uid, 'friends');
-    await Promise.all([
-      batchDelete(db, showRefs),
-      batchDelete(db, friendRefs),
-    ]);
+    // Lock the account out NOW. Everything after this point can be retried;
+    // this is the part the user is entitled to have happen immediately.
+    await auth.updateUser(uid, { disabled: true }).catch(() => {});
+    await auth.revokeRefreshTokens(uid).catch(() => {});
 
-    // Delete cross-user collections
-    const [frFromRefs, frToRefs, tagsFromRefs, tagsToRefs, inviteRefs, emailTagRefs, notificationRefs, suggestionRefs] = await Promise.all([
-      queryRefs(db, 'friendRequests', 'from', uid),
-      queryRefs(db, 'friendRequests', 'to', uid),
-      queryRefs(db, 'showTags', 'fromUid', uid),
-      queryRefs(db, 'showTags', 'toUid', uid),
-      queryRefs(db, 'invites', 'inviterUid', uid),
-      queryRefs(db, 'pendingEmailTags', 'fromUid', uid),
-      queryRefs(db, 'notifications', 'uid', uid),
-      // Also clean up suggestions where this user is a participant
-      (async () => {
-        const snap = await db.collection('showSuggestions').where('participants', 'array-contains', uid).get();
-        return snap.docs.map(d => d.ref);
-      })(),
-    ]);
-
-    await Promise.all([
-      batchDelete(db, [...frFromRefs, ...frToRefs]),
-      batchDelete(db, [...tagsFromRefs, ...tagsToRefs]),
-      batchDelete(db, inviteRefs),
-      batchDelete(db, emailTagRefs),
-      batchDelete(db, notificationRefs),
-      batchDelete(db, suggestionRefs),
-    ]);
-
-    // Also remove this user from other users' friend subcollections
-    const allUsersSnap = await db.collectionGroup('friends').where('friendUid', '==', uid).get();
-    await batchDelete(db, allUsersSnap.docs.map(d => d.ref));
-
-    // Delete profile document and users/{uid} parent
-    await Promise.all([
-      db.doc(`userProfiles/${uid}`).delete(),
-      db.doc(`users/${uid}`).delete().catch(() => {}),
-    ]);
-
-    // Delete Firebase Auth account (must be last)
+    let bucket = null;
     try {
-      await getAuth().deleteUser(uid);
-    } catch (authErr) {
-      if (authErr.code !== 'auth/user-not-found') throw authErr;
+      bucket = getStorage().bucket();
+    } catch (e) {
+      console.warn('[delete-account] Storage bucket unavailable; files will not be removed:', e.message);
     }
 
-    return {
-      statusCode: 200,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ success: true }),
-    };
+    const report = await purgeUserData({ db, auth, bucket }, uid);
+
+    if (report.errors.length) {
+      console.warn('[delete-account] completed with warnings:', JSON.stringify(report.errors));
+    }
+    console.log('[delete-account] purged', JSON.stringify({
+      uid, deleted: report.deleted, tombstoned: report.tombstoned, storage: report.storage,
+    }));
+
+    return json(200, { success: true });
   } catch (e) {
     console.error('delete-account error:', e);
-    return {
-      statusCode: 500,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ error: e.message }),
-    };
+    // The account is already disabled at this point, so the user is out even
+    // though the purge did not finish. Say so rather than implying nothing
+    // happened.
+    return json(500, {
+      error: 'Your account has been disabled and you have been signed out, but removing all of your data did not finish. Please contact support@mysetlists.net and it will be completed.',
+      detail: e.message,
+    });
   }
 };

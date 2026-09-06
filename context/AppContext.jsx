@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { nativeOAuthSignIn, isNativePlatform } from '@/lib/native-auth';
 import {
   collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc,
   serverTimestamp, onSnapshot, query, where, addDoc, writeBatch, limit,
@@ -996,7 +997,14 @@ export function AppProvider({ children }) {
   // ── Auth handlers ───────────────────────────────────────────────────
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+      // Same rule as the auth forms: on native the popup is a silent no-op,
+      // so go through the native sheet and never fall back to it.
+      if (isNativePlatform()) {
+        const result = await nativeOAuthSignIn('google');
+        if (!result) throw new Error('Sign in is unavailable on this device.');
+      } else {
+        await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+      }
     } catch (error) {
       console.error('Login failed:', error);
       if (error.code !== 'auth/popup-closed-by-user') {
