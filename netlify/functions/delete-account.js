@@ -60,9 +60,18 @@ exports.handler = async function (event) {
   const token = (event.headers.authorization || '').replace('Bearer ', '').trim();
   if (!token) return json(401, { error: 'Unauthorized' });
 
-  let decoded;
+  // initFirebase() used to sit inside the try below, so a missing or malformed
+  // FIREBASE_* env var surfaced to the user as 'Invalid token' — an auth error
+  // for what is actually a server misconfiguration. Keep them separate.
   try {
     initFirebase();
+  } catch (e) {
+    console.error('[delete-account] Firebase Admin not configured:', e.message);
+    return json(500, { error: 'Account deletion is temporarily unavailable. Please contact support@mysetlists.net.' });
+  }
+
+  let decoded;
+  try {
     const { getAuth } = require('firebase-admin/auth');
     decoded = await getAuth().verifyIdToken(token);
   } catch (e) {
@@ -119,14 +128,28 @@ exports.handler = async function (event) {
 
     const report = await purgeUserData({ db, auth, bucket }, uid);
 
-    if (report.errors.length) {
-      console.warn('[delete-account] completed with warnings:', JSON.stringify(report.errors));
-    }
     console.log('[delete-account] purged', JSON.stringify({
       uid, deleted: report.deleted, tombstoned: report.tombstoned, storage: report.storage,
+      authUserDeleted: report.authUserDeleted,
     }));
 
-    return json(200, { success: true });
+    // A step that failed no longer aborts the purge, so judge the outcome on
+    // the thing the user actually asked for: is the account gone? Residual
+    // documents are a cleanup job (scripts/purge-user.js, by uid) — they are
+    // not a reason to tell someone their deletion failed when their login has
+    // in fact been destroyed.
+    if (report.errors.length) {
+      console.error('[delete-account] completed with errors for uid', uid, JSON.stringify(report.errors));
+    }
+
+    if (!report.authUserDeleted) {
+      return json(500, {
+        error: 'Your account has been disabled and you have been signed out, but removing all of your data did not finish. Please contact support@mysetlists.net and it will be completed.',
+        detail: report.errors.join('; '),
+      });
+    }
+
+    return json(200, { success: true, warnings: report.errors.length });
   } catch (e) {
     console.error('delete-account error:', e);
     // The account is already disabled at this point, so the user is out even
