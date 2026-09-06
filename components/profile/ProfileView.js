@@ -787,6 +787,30 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
         }}
         title="Delete your account?"
         size="sm"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteConfirmEmail('');
+                setDeleteError('');
+              }}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              icon={Trash2}
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading || !deleteConfirmEmail}
+              loading={deleteLoading}
+            >
+              {deleteLoading ? 'Deleting...' : 'Permanently Delete'}
+            </Button>
+          </>
+        }
       >
         <p className="text-secondary text-sm mb-4">
           This will permanently delete your account, all your shows, friend connections, tags, and any other data. This cannot be undone.
@@ -799,8 +823,15 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           type="text"
           autoCapitalize="none"
           autoCorrect="off"
+          enterKeyHint="go"
           value={deleteConfirmEmail}
           onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !deleteLoading && deleteConfirmEmail) {
+              e.preventDefault();
+              handleDeleteAccount();
+            }
+          }}
           placeholder="DELETE"
           disabled={deleteLoading}
           className="mb-4"
@@ -808,29 +839,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
         {deleteError && (
           <p className="text-danger text-sm mb-4">{deleteError}</p>
         )}
-        <div className="flex gap-3">
-          <Button
-            variant="danger"
-            icon={Trash2}
-            full
-            onClick={handleDeleteAccount}
-            disabled={deleteLoading || !deleteConfirmEmail}
-            loading={deleteLoading}
-          >
-            {deleteLoading ? 'Deleting...' : 'Permanently Delete'}
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setShowDeleteModal(false);
-              setDeleteConfirmEmail('');
-              setDeleteError('');
-            }}
-            disabled={deleteLoading}
-          >
-            Cancel
-          </Button>
-        </div>
       </Modal>
 
       {/* Tour Info Modal */}
