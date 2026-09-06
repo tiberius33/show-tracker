@@ -8,7 +8,7 @@ import {
   browserSessionPersistence
 } from 'firebase/auth';
 import { auth, authProviders, browserPopupRedirectResolver } from '@/lib/firebase';
-import { nativeGoogleSignIn } from '@/lib/native-auth';
+import { nativeOAuthSignIn, isNativePlatform } from '@/lib/native-auth';
 import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
@@ -46,14 +46,16 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
       // Set persistence based on "Remember me" checkbox
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
 
-      // Try native sign-in first (returns null on web → fall through to popup)
-      let result = null;
-      if (providerName === 'google') {
-        result = await nativeGoogleSignIn();
-      }
-
-      // If native didn't handle it, use web popup
-      if (!result) {
+      // On native, the native sheet is the ONLY path. signInWithPopup() does
+      // not throw inside WKWebView, it silently does nothing — the button
+      // simply looks dead, which is what App Review reported on 2026-03-24.
+      // Falling back to it here would reintroduce that exact bug.
+      if (isNativePlatform()) {
+        const result = await nativeOAuthSignIn(providerName);
+        if (!result) {
+          throw new Error(`Sign in with ${providerName} is unavailable on this device.`);
+        }
+      } else {
         const provider = authProviders[providerName];
         await signInWithPopup(auth, provider, browserPopupRedirectResolver);
       }

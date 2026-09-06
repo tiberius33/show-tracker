@@ -10,8 +10,28 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// Provider configuration
+// Apple's mark, as required by the Sign in with Apple Human Interface
+// Guidelines: the button must carry it, use the exact wording "Sign in with
+// Apple" / "Sign up with Apple", and be black, white, or white-with-outline.
+// Do not restyle it.
+const AppleIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.05 12.53c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.61-1.7-3.18-1.72-1.35-.14-2.64.79-3.33.79-.69 0-1.75-.77-2.87-.75-1.48.02-2.84.86-3.6 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.25 2.74 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.7.71 2.86.69 1.18-.02 1.93-1.08 2.65-2.14.83-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.32-3.53zM14.9 5.6c.6-.74 1.01-1.76.9-2.78-.87.04-1.93.58-2.56 1.31-.56.65-1.05 1.69-.92 2.69.97.07 1.97-.49 2.58-1.22z" />
+  </svg>
+);
+
+// Provider configuration.
+//
+// Apple is listed first on purpose: on iOS the platform sign-in belongs at the
+// top, and Apple's guidelines say Sign in with Apple should be shown no lower
+// than the other options.
 const providers = [
+  {
+    id: 'apple',
+    name: 'Apple',
+    Icon: AppleIcon,
+    className: 'bg-black text-white hover:bg-neutral-800 border-black',
+  },
   {
     id: 'google',
     name: 'Google',
@@ -30,6 +50,7 @@ export default function OAuthButtons({ onProviderClick, disabled = false, action
           variant="secondary"
           full
           icon={provider.Icon}
+          className={provider.className}
           onClick={() => onProviderClick(provider.id)}
           disabled={disabled}
         >
