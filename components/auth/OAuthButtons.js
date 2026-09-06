@@ -1,5 +1,7 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
+import { isNativePlatform } from '@/lib/native-auth';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -31,6 +33,16 @@ const providers = [
     name: 'Apple',
     Icon: AppleIcon,
     className: 'bg-black text-white hover:bg-neutral-800 border-black',
+    // Native only, for now. Sign in with Apple on the web needs a Services ID
+    // registered in the Apple Developer portal, a verified domain, a return
+    // URL, and the OAuth code flow key — none of which are set up yet.
+    // Showing the button on mysetlists.net before that exists would just give
+    // people a button that fails. Native needs none of it: iOS authenticates
+    // with the bundle identifier and the entitlement.
+    //
+    // To turn it on for web: finish the Firebase Apple provider setup, then
+    // delete this flag.
+    nativeOnly: true,
   },
   {
     id: 'google',
@@ -42,9 +54,20 @@ const providers = [
 export default function OAuthButtons({ onProviderClick, disabled = false, action = 'signin' }) {
   const actionText = action === 'signup' ? 'Sign up' : 'Sign in';
 
+  // Resolved after mount rather than during render. The app is a static
+  // export, so this component is prerendered to HTML at build time on a
+  // machine that is not native; deciding during render would disagree with
+  // that HTML and trip a hydration mismatch inside the app's webview.
+  const [isNative, setIsNative] = useState(false);
+  useEffect(() => {
+    setIsNative(isNativePlatform());
+  }, []);
+
+  const visibleProviders = providers.filter((p) => !p.nativeOnly || isNative);
+
   return (
     <div className="space-y-3">
-      {providers.map((provider) => (
+      {visibleProviders.map((provider) => (
         <Button
           key={provider.id}
           variant="secondary"
