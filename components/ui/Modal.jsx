@@ -14,7 +14,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 
 const SIZES = {
@@ -35,6 +35,38 @@ export default function Modal({
   showClose = true,
   footer,
 }) {
+  // How much of the layout viewport is covered by the on-screen keyboard.
+  //
+  // This modal is `position: fixed; inset: 0`, so it is laid out against the
+  // *layout* viewport. Capacitor's `Keyboard: { resize: 'body' }` resizes the
+  // body element, which a fixed-position element is not affected by — so on
+  // iOS the sheet stayed anchored to the bottom of the screen, behind the
+  // keyboard, and its buttons could not be tapped at all. visualViewport is
+  // the only thing that reports the keyboard's true height to the web layer.
+  const [keyboardInset, setKeyboardInset] = useState(0);
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      // A browser chrome bar is tens of pixels; a keyboard is hundreds. Ignore
+      // the former so the sheet does not twitch while scrolling in Safari.
+      setKeyboardInset(inset > 120 ? Math.round(inset) : 0);
+    };
+
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      setKeyboardInset(0);
+    };
+  }, [open]);
+
   // Escape to close + scroll lock
   useEffect(() => {
     if (!open) return;
@@ -53,6 +85,7 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 z-[9000] flex items-end md:items-center justify-center p-0 md:p-4 bg-sidebar/60 backdrop-blur-sm animate-fade-in"
+      style={keyboardInset ? { paddingBottom: keyboardInset } : undefined}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -60,6 +93,11 @@ export default function Modal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        style={
+          keyboardInset
+            ? { maxHeight: `calc(100vh - ${keyboardInset}px - 0.5rem)` }
+            : undefined
+        }
         className={[
           'bg-surface w-full shadow-theme-xl flex flex-col max-h-[92vh] animate-slide-up',
           'rounded-t-2xl md:rounded-2xl',
