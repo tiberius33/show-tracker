@@ -43,7 +43,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
   // Account deletion state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
@@ -236,18 +235,13 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
   const handleDeleteAccount = async () => {
     if (!user?.uid) return;
-    // Either confirmation is accepted. A Sign in with Apple user on Hide My
-    // Email has a 30-character @privaterelay.appleid.com address they never
-    // chose and cannot reasonably thumb in on a phone; making them type it is
-    // friction that protects nobody. The ID token is what authorises this.
-    const typed = deleteConfirmEmail.trim();
-    const emailMatches = typed.toLowerCase() === (user.email || '').toLowerCase();
-    const textMatches = typed.toUpperCase() === 'DELETE';
-    if (!emailMatches && !textMatches) {
-      setDeleteError('Type your email address, or the word DELETE, to confirm.');
-      return;
-    }
-
+    // No typed confirmation. Opening this modal from Profile is already a
+    // deliberate two-step act, and the Firebase ID token is what actually
+    // authorises the deletion server-side — the typing only ever added
+    // friction. It also required an on-screen keyboard, which on iOS covered
+    // the confirm button and made deletion impossible to complete at all. A
+    // destructive action nobody can finish is worse than one that is easy to
+    // finish deliberately.
     setDeleteLoading(true);
     setDeleteError('');
 
@@ -256,9 +250,7 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
       const res = await fetch(apiUrl('/api/delete-account'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: emailMatches
-          ? JSON.stringify({ confirmEmail: typed })
-          : JSON.stringify({ confirmText: 'DELETE' }),
+        body: JSON.stringify({ confirmText: 'DELETE' }),
       });
 
       if (!res.ok) {
@@ -782,7 +774,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
         open={showDeleteModal}
         onClose={() => {
           setShowDeleteModal(false);
-          setDeleteConfirmEmail('');
           setDeleteError('');
         }}
         title="Delete your account?"
@@ -793,7 +784,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               variant="ghost"
               onClick={() => {
                 setShowDeleteModal(false);
-                setDeleteConfirmEmail('');
                 setDeleteError('');
               }}
               disabled={deleteLoading}
@@ -804,38 +794,25 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
               variant="danger"
               icon={Trash2}
               onClick={handleDeleteAccount}
-              disabled={deleteLoading || !deleteConfirmEmail}
+              disabled={deleteLoading}
               loading={deleteLoading}
             >
-              {deleteLoading ? 'Deleting...' : 'Permanently Delete'}
+              {deleteLoading ? 'Deleting...' : 'Yes, delete everything'}
             </Button>
           </>
         }
       >
         <p className="text-secondary text-sm mb-4">
-          This will permanently delete your account, all your shows, friend connections, tags, and any other data. This cannot be undone.
+          This permanently deletes the account for{' '}
+          <strong className="text-primary">{user?.email}</strong> — every show,
+          rating and note you have logged, your comments, photos and videos,
+          your lists, and your username. It is not a deactivation and it cannot
+          be undone.
         </p>
         <p className="text-secondary text-sm mb-4">
-          Type <strong className="text-primary">DELETE</strong>, or your email
-          address <strong className="text-primary">{user?.email}</strong>, to confirm:
+          You will be signed out immediately and will not be able to sign back
+          in with this account.
         </p>
-        <Input
-          type="text"
-          autoCapitalize="none"
-          autoCorrect="off"
-          enterKeyHint="go"
-          value={deleteConfirmEmail}
-          onChange={(e) => setDeleteConfirmEmail(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !deleteLoading && deleteConfirmEmail) {
-              e.preventDefault();
-              handleDeleteAccount();
-            }
-          }}
-          placeholder="DELETE"
-          disabled={deleteLoading}
-          className="mb-4"
-        />
         {deleteError && (
           <p className="text-danger text-sm mb-4">{deleteError}</p>
         )}
