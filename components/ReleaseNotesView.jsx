@@ -6,6 +6,15 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.34.4',
+      date: 'September 12, 2026',
+      title: 'Shows Added By Scanning A Ticket',
+      changes: [
+        'Fixed: shows you added by scanning a ticket stored their date in a different format from the rest, which the setlist archives could not be asked about \u2014 so \u201cGet setlist from El Goose\u201d did nothing on exactly those shows, with no explanation. They work now',
+        'New tickets you scan save the date the same way every other screen does',
+      ]
+    },
+    {
       version: '5.34.3',
       date: 'September 12, 2026',
       title: 'The Shows El Goose Still Missed',

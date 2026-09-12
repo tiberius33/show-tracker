@@ -111,6 +111,26 @@ function getDb() {
   }
 }
 
+// ── toIsoDate, mirrored from lib/utils.js ─────────────────────────────
+// Same two accepted spellings and the same reading of an ambiguous
+// DD-MM-YYYY (setlist.fm's format, which is where these come from), so the
+// date this function asks an archive about is the date the app displays.
+function toIsoDate(value) {
+  const str = String(value == null ? '' : value).trim();
+  if (!str) return '';
+
+  const ddmmyyyy = str.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return str;
+
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 // --- Cache helpers ---
 
 // ── Why the cache key carries a version ───────────────────────────────
@@ -171,8 +191,6 @@ function determineTtlHours(showDate) {
   return MAX_TTL_HOURS;
 }
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
 // --- Handler ---
 
 exports.handler = async function (event) {
@@ -180,7 +198,8 @@ exports.handler = async function (event) {
     return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { source, artist, date, venue, artistId, debug } = event.queryStringParameters || {};
+  const { source, artist, venue, artistId, debug } = event.queryStringParameters || {};
+  let { date } = event.queryStringParameters || {};
 
   if (!source || !ADAPTERS[source]) {
     return {
@@ -189,9 +208,22 @@ exports.handler = async function (event) {
       body: JSON.stringify({ error: `Unknown source. Expected one of: ${Object.keys(ADAPTERS).join(', ')}` }),
     };
   }
-  if (!date || !DATE_RE.test(date)) {
-    return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'A date in YYYY-MM-DD form is required' }) };
+  // Accepts DD-MM-YYYY as well as YYYY-MM-DD, and works in the latter from
+  // here down. setlist.fm's own format is DD-MM-YYYY and it reached show
+  // documents through the ticket scanner, so a caller holding one of those
+  // dates got a 400 from this endpoint — a well-formed refusal that read,
+  // from the app, as "El Goose doesn't have this show". Normalizing here
+  // rather than only in the callers means every deployed client is fixed,
+  // including app versions already installed.
+  const isoDate = toIsoDate(date);
+  if (!isoDate) {
+    return {
+      statusCode: 400,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'A date in YYYY-MM-DD form is required', received: date || '' }),
+    };
   }
+  date = isoDate;
 
   const adapter = ADAPTERS[source];
 
@@ -481,3 +513,4 @@ exports.buildCacheKey = buildCacheKey;
 exports.MAX_TTL_HOURS = MAX_TTL_HOURS;
 exports.CACHE_VERSION = CACHE_VERSION;
 exports.venueKey = venueKey;
+exports.toIsoDate = toIsoDate;

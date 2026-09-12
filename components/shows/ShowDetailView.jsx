@@ -63,6 +63,9 @@ function describeResync(result, sourceName, date) {
       return `${sourceName} lists a show on ${date} but returned no songs — that's a problem on our end, not theirs. Nothing was changed.`;
     case 'nothing-to-change':
       return `Already matches ${sourceName} — nothing to change.`;
+    case 'bad-date':
+      // The stored date could not be read at all, so nothing was asked for.
+      return `This show's date (${result.detail || 'blank'}) isn't in a form the archive can be asked about. Nothing was changed.`;
     case 'http-error':
       return `The setlist service answered with ${result.detail || 'an error'}. Nothing was changed.`;
     case 'fetch-failed':

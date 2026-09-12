@@ -152,6 +152,29 @@ function artistNameKeyLoose(name) {
   );
 }
 
+// ── toIsoDate, mirrored from lib/utils.js ─────────────────────────────
+// Show documents do not all store dates the same way: the ticket scanner
+// saved setlist.fm's DD-MM-YYYY verbatim while every other add path
+// reversed it into YYYY-MM-DD. parseDate reads both, so such a show
+// displays correctly in the app — and then this walk asked the archive
+// about "28-05-2025", which no archive has. Normalized before the request,
+// with the same reading of an ambiguous DD-MM-YYYY the app uses.
+function toIsoDate(value) {
+  const str = String(value == null ? '' : value).trim();
+  if (!str) return '';
+
+  const ddmmyyyy = str.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return str;
+
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function resolveBandSource(artist) {
   const key = artistNameKey(artist);
   if (BAND_SOURCE_NAME_KEYS[key]) return { ...BAND_SOURCE_NAME_KEYS[key], matchedOn: 'name', nameKey: key };
@@ -470,10 +493,15 @@ exports.handler = async function (event) {
         processed++;
         report.considered++;
 
+        const isoDate = toIsoDate(show.date);
+
         const row = {
           userId,
           showId: showDoc.id,
           date: show.date,
+          // Only present when the stored spelling was not already ISO, so
+          // the report shows the conversion rather than hiding it.
+          askedDate: isoDate && isoDate !== show.date ? isoDate : undefined,
           venue: show.venue || '',
           artist: show.artist,
           currentSource: show.setlistSource || 'setlistfm',
@@ -486,11 +514,19 @@ exports.handler = async function (event) {
         };
 
         try {
+          if (!isoDate) {
+            row.note = `unreadable date "${show.date}" — nothing was asked for`;
+            report.sourceReturnedNothing.push({ ...row });
+            report.errors.push({ userId, showId: showDoc.id, date: show.date, message: 'Unreadable date' });
+            report.shows.push(row);
+            continue;
+          }
+
           const { statusCode, cache, data } = await fetchViaBandSetlistFunction({
             baseUrl,
             source: resolved.source,
             artist: show.artist,
-            date: show.date,
+            date: isoDate,
             venue: show.venue,
             artistId: resolved.artistId,
           });
