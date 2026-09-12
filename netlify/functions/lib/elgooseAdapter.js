@@ -18,34 +18,60 @@
  * three-name-variant match loop scanForMissingSetlists has to run against
  * setlist.fm's search to find a single night.
  *
- * ── Field mapping: verified against a live response, with two gaps ───
+ * ── Field mapping: verified against the archive's real keys ──────────
  *
- * Checked against elgoose.net's real response for Goose at Frost
- * Amphitheater, 2026-08-15 (15 songs, two sets). CONFIRMED CORRECT:
- * songname, settype, setnumber, position, transition (both '>' and '->'
- * came through and stayed distinct), footnote, venuename, city, state,
- * country, tourname, show_id, uniqueid, slug, and the error/data envelope.
+ * Checked against elgoose.net's response for Goose at Ascend Amphitheater,
+ * 2024-10-24 (16 songs, two sets), using ?debug=1 to read back every key
+ * the archive actually sends on a setlist row. Four corrections came out
+ * of that, all of them things the earlier guessed mapping got wrong:
  *
- * STILL UNRESOLVED — every song on that response came back with no `gap`,
- * no `isjamchart` and no `opener`, so `sourceGap` was absent throughout.
- * Either those keys are spelled differently on this endpoint, or the
- * showdate endpoint does not carry them at all and they live on another
- * one. `sourceGap` is a headline feature (the archive's own gap count, the
- * thing that needs no backfill), so it is worth resolving — but it is
- * genuinely unknown, not assumed. Do not guess: run
+ *   jamchart_description -> jamchart_notes   the flag arrived, the text did
+ *                                            not, so a jam-charted song had
+ *                                            a badge and nothing behind it
+ *   uniqueid             -> song_id          for songId. `uniqueid` is one
+ *                                            rendition (the same song twice
+ *                                            in a set has two); `song_id`
+ *                                            is the song
+ *   original_artist                          the covered artist IS provided;
+ *                                            this adapter used to set
+ *                                            cover: null and claim it wasn't
+ *   shownotes                                show-level prose IS provided;
+ *                                            this adapter used to hardcode
+ *                                            setlistNotes: '' and call it a
+ *                                            phish.net-only field
  *
- *   /api/band-setlist?source=elgoose&artist=Goose&date=<a-date>&debug=1
+ * ── There is no gap data on this endpoint ────────────────────────────
  *
- * and read `upstream.firstRowKeys`, which names every key the archive
- * really sends. A jam chart being absent on a four-week-old show may also
- * simply mean nobody has charted it yet, so prefer an older date.
+ * Not mis-spelled — absent. The full key list is showtime, showtitle,
+ * artist, song_id, set_label, tracktime, transition_id, footnotes,
+ * jamchart_notes, venue_id, shownotes, showyear, showorder, tour_id,
+ * isverified, original_artist, timezone, isreprise, isjam, css_class,
+ * isrecommended, plus the ones read below. Nothing resembling a gap count.
+ *
+ * So `sourceGap` cannot be populated from /setlists/showdate/, and the
+ * former `gap: 'gap'` entry mapped a key that has never existed — which is
+ * why every song came back without it while the mapping looked complete.
+ * A mapping that cannot resolve is worse than no mapping: it reads as a
+ * working feature. The entry is gone.
+ *
+ * Getting the official gap count therefore needs a different Songfish
+ * endpoint and a second request per song or per show, which is a real
+ * design decision (how to batch it, how to cache it) rather than a field
+ * rename. Deliberately not attempted here.
  *
  * Every upstream key this adapter reads is named exactly once, in FIELDS
- * below, so a correction stays a one-line edit.
+ * below, so a correction stays a one-line edit. To re-check it against the
+ * archive at any time:
+ *
+ *   /api/band-setlist?source=elgoose&artist=Goose&date=<date>&debug=1
+ *
+ * and read `upstream.firstRowKeys`.
  */
 
 const https = require('https');
-const { buildSetlist, pickSetLabel, setSortKey, toBool, toIntOrNull } = require('./bandSetlistShape');
+const {
+  buildSetlist, cleanStr, pickSetLabel, setSortKey, stripHtml, toBool, toIntOrNull,
+} = require('./bandSetlistShape');
 
 const HOSTNAME = 'elgoose.net';
 const API_PATH = '/api/v2/setlists/showdate';
@@ -74,14 +100,21 @@ const FIELDS = {
   transition: 'transition',
   footnote: 'footnote',
   jamchart: 'isjamchart',
-  jamchartNote: 'jamchart_description',
+  jamchartNote: 'jamchart_notes',
   soundcheck: 'soundcheck',
   opener: 'opener',
   isOriginal: 'isoriginal',
-  gap: 'gap',
+  originalArtist: 'original_artist',
+  showNotes: 'shownotes',
+  // NO `gap` ENTRY. The showdate endpoint does not carry gap data at all —
+  // confirmed by reading every key it sends (see the header). It was
+  // mapped to a 'gap' key that has never existed, which is why sourceGap
+  // was silently absent from every song. Mapping a key that cannot resolve
+  // is worse than not mapping it: it looks like the feature works.
   tourName: 'tourname',
   showId: 'show_id',
-  uniqueId: 'uniqueid', // per-performance, NOT a stable song id — see mapShow
+  songId: 'song_id',    // stable across performances — use for song-page links
+  uniqueId: 'uniqueid', // identifies ONE rendition, not the song
   artistId: 'artist_id',
   slug: 'slug',
 };
@@ -230,7 +263,6 @@ function mapShow(rows) {
     // The row-level soundcheck flag and a 'Soundcheck' settype are two
     // spellings of the same thing; either one drops the row.
     const isSoundcheck = toBool(get(row, 'soundcheck'));
-    const gap = toIntOrNull(get(row, 'gap'));
 
     return {
       set: isSoundcheck ? null : pickSetLabel(setType, setNumber),
@@ -241,13 +273,13 @@ function mapShow(rows) {
       footnote: get(row, 'footnote'),
       jamchart: get(row, 'jamchart'),
       jamchartNote: get(row, 'jamchartNote'),
-      gap,
+      // gap intentionally omitted — this endpoint has no gap field.
       // `isoriginal` is about authorship, not about this performance being a
       // cover *of someone else*, and elgoose.net does not name the covered
       // artist on the setlist row — so `cover` stays null rather than being
       // filled with a guess. A Goose show's covers are still visible in the
       // footnote, which is where the archive puts that detail.
-      cover: null,
+      cover: toBool(get(row, 'isOriginal')) ? null : (cleanStr(get(row, 'originalArtist')) || null),
       // No `debut` from this source. elgoose.net's setlist row carries no
       // debut flag, and the obvious inference from `gap` does not hold: a
       // gap of 0 means "played at the previous show", which is the exact
@@ -264,7 +296,7 @@ function mapShow(rows) {
       // `slug` was "hot-love" both times. So songSlug is the identifier
       // that can address the archive's song page; songId identifies this
       // one rendition. Both are kept, labelled for what they actually are.
-      songId: get(row, 'uniqueId'),
+      songId: get(row, 'songId'),
       songSlug: get(row, 'slug'),
     };
   });
@@ -287,10 +319,12 @@ function mapShow(rows) {
     tour: String(get(first, 'tourName') || ''),
     sourceShowId: String(get(first, 'showId') || ''),
     sourcePermalink: absolutePermalink(get(first, 'permalink')),
-    // elgoose.net has no show-level prose field on the setlist row — that
-    // is a phish.net feature. Empty rather than absent so both adapters
-    // return the same shape.
-    setlistNotes: '',
+    // `shownotes` IS a show-level prose field, so elgoose shows get notes
+    // under the setlist just as phish.net ones do. An earlier version of
+    // this adapter hardcoded '' and said the archive had no equivalent,
+    // which was wrong. Tags are stripped because the archive writes HTML
+    // here and the UI renders it as text.
+    setlistNotes: stripHtml(get(first, 'showNotes')),
     sourceArtistId: String(get(first, 'artistId') || ''),
   };
 }

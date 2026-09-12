@@ -4,6 +4,25 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.33.5] — 2026-09-12
+
+### Fixed: Four Guessed El Goose Field Names, Now Read Off The Archive Itself
+
+The `?debug=1` diagnostic added in 5.33.4 did its job on its first real use. Pointed at Goose at Ascend Amphitheater, 2024-10-24, it reported every key elgoose.net actually puts on a setlist row — and four of the guessed mappings were wrong. The El Goose test fixtures now use those real key names, so the adapter tests check the mapping instead of merely confirming the guess they were written from.
+
+- **`jamchart_description` → `jamchart_notes`.** The flag was arriving and the text was not, so a jam-charted song rendered a badge with nothing behind it — visible in the live response, where "Into the Myst" came back flagged but with no note.
+- **`songId` now reads `song_id`, not `uniqueid`.** `uniqueid` identifies one *rendition*: on that show "Echo of a Rose" and "Time to Flee" were each played twice and came back with two different values apiece, while `slug` was identical. `song_id` is the song. The field claiming to be "the source's stable song identifier" was the one that could never be.
+- **Covers are real data, not a guess.** The adapter used to set `cover: null` and state that elgoose does not name the covered artist on a setlist row. It does, in `original_artist`. Goose plays a lot of covers — that one show had Creedence, Sergio Mendes and Bob Marley in it — so this is a visible gain: they render with the existing cover badge now. Guarded on `isoriginal` so a Goose original is never labelled a cover of itself.
+- **Show notes are real data too.** The adapter hardcoded `setlistNotes: ''` and called show-level prose a phish.net-only field. elgoose sends `shownotes`. Both archives write HTML in that field, so it is stripped to plain text — block tags becoming newlines so paragraph breaks survive — rather than rendered as literal `<a href=…>` markup. Applied to phish.net's `setlistnotes` as well.
+
+### Note: There Is No Gap Data On This Endpoint At All
+
+- `sourceGap` was absent from every song, and the reason is not a misspelling. `/setlists/showdate/` sends no gap field of any kind — confirmed against the complete key list. The former `gap: 'gap'` entry mapped a key that has never existed, which is exactly why the feature looked wired up and silently produced nothing. **A mapping that cannot resolve is worse than no mapping**, so the entry is gone and a test asserts the absence, to stop it being re-added on the strength of the documentation that suggested it.
+- Getting the archive's official gap count therefore needs a different Songfish endpoint and a second request per show or per song — how to batch and cache that is a real design decision rather than a field rename, and it is deliberately not attempted here. The "what this unlocks" note from 5.33.0 stands, but the prerequisite is larger than a one-line fix.
+- Everything else checked out: song titles, set and encore structure, transition marks with `>` and `->` staying distinct, footnotes, venue, city, state, country, tour name, show id, slug, soundcheck handling and the response envelope — all confirmed correct against the live response. The envelope's `error` node also turned out to be a boolean `false` rather than the numeric `0` the docs implied, which the existing explicit check already handled.
+
+---
+
 ## [5.33.4] — 2026-09-12
 
 ### Fixed: The El Goose Attribution Link Pointed At Our Own Site
