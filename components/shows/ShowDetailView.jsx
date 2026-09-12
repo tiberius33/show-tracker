@@ -9,7 +9,7 @@ import { buildRunIndex, buildTourIndex, tourKeyFor, tourHref } from '@/lib/runIn
 import { normalizeSongTitle, formatDate } from '@/lib/utils';
 import { festivalHref } from '@/lib/festivalGrouping';
 import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
-import { sourceLabel, sourceHomeUrl } from '@/lib/setlistSources';
+import { sourceLabel, sourceHomeUrl, resolveSource } from '@/lib/setlistSources';
 import useBustOutAnalysis from '@/hooks/useBustOutAnalysis';
 import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SetlistView from './SetlistView';
@@ -20,7 +20,7 @@ import ArchivalAudioSection from './ArchivalAudioSection';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
   Trash2, X, Tag, MessageSquare, ArrowLeft, Plus,
-  Pencil, Check, ChevronUp, ChevronDown, Flame, Tent,
+  Pencil, Check, ChevronUp, ChevronDown, Flame, Tent, RefreshCw,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 import CommentsSection from '@/components/comments/CommentsSection';
@@ -32,6 +32,44 @@ function formatShowDate(dateStr) {
   const d = parseDate(dateStr);
   if (!d || d.getFullYear() < 1900) return dateStr || '';
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+}
+
+// ── What to say after a re-fetch ───────────────────────────────────────
+//
+// Every branch names the archive and says what it did or did not have. The
+// outcomes that matter most here are the ones where nothing changed: the
+// first version of this feature reported those as silence, which is
+// indistinguishable from a broken button and cost a day of guessing.
+function describeResync(result, sourceName, date) {
+  if (!result) return '';
+
+  if (result.ok) {
+    const s = result.summary || {};
+    const carried = Object.values(s.carriedOver || {}).reduce((a, b) => a + b, 0);
+    const parts = [`${s.existingCount} → ${s.resultCount} songs`];
+    if (s.added?.length) parts.push(`${s.added.length} added`);
+    if (s.removed?.length) parts.push(`${s.removed.length} removed`);
+    if (s.keptManual?.length) parts.push(`${s.keptManual.length} of yours kept`);
+    if (carried) parts.push(`${carried} rating/note${carried === 1 ? '' : 's'} kept`);
+    return `Updated from ${sourceName} — ${parts.join(', ')}.`;
+  }
+
+  switch (result.reason) {
+    case 'no-show':
+      return `${sourceName} has no show listed on ${date}. Your setlist is unchanged.`;
+    case 'no-songs':
+      // The one case that means this app has a bug rather than the archive
+      // having a gap, so it says so instead of blaming the archive.
+      return `${sourceName} lists a show on ${date} but returned no songs — that's a problem on our end, not theirs. Nothing was changed.`;
+    case 'nothing-to-change':
+      return `Already matches ${sourceName} — nothing to change.`;
+    case 'http-error':
+      return `The setlist service answered with ${result.detail || 'an error'}. Nothing was changed.`;
+    case 'fetch-failed':
+      return `Couldn't reach the setlist service${result.detail ? ` (${result.detail})` : ''}. Nothing was changed.`;
+    default:
+      return `Nothing was changed${result.reason ? ` (${result.reason})` : ''}.`;
+  }
 }
 
 // Finds the internal show id for a bust-out's previous performance, when
@@ -221,6 +259,10 @@ export default function ShowDetailView({
   onDeleteShow,
   onAddSong,
   onReorderSetlist,
+  // Re-fetches this show's setlist from its band source (El Goose,
+  // phish.net) and returns a result object saying what happened. Undefined
+  // for a guest session, and never rendered for an artist setlist.fm owns.
+  onResyncSetlist,
   toggleFavoriteArtist,
   isArtistFavorite,
   allShows = [],
@@ -240,6 +282,11 @@ export default function ShowDetailView({
   const [newSongName, setNewSongName] = useState('');
   const [newSongSet, setNewSongSet] = useState('');
   const [editMode, setEditMode] = useState(false);
+  // { loading } | { result } from onResyncSetlist. Held here rather than in
+  // a toast because the interesting outcomes are the ones where nothing
+  // changed, and those deserve to stay on screen next to the setlist they
+  // are about.
+  const [resyncState, setResyncState] = useState(null);
 
   const artistShowCount = useMemo(
     () => allShows.filter(s => s.artist === show?.artist).length,
@@ -317,6 +364,11 @@ export default function ShowDetailView({
   // every show document written before v5.33.0 has no such field, and the
   // default is what they'd say anyway.
   const isBandSourced     = !!show.setlistSource && show.setlistSource !== 'setlistfm';
+  // Where this artist's setlists SHOULD come from, which is not the same
+  // question as where this show's setlist DID come from. A Goose show
+  // logged before 5.33.0 has a setlist.fm setlist and a band source that
+  // has never been asked — that gap is what the re-fetch below closes.
+  const artistSource      = resolveSource({ name: show.artist, mbid: show.artistMbid });
   const taggedFriendIds   = new Set(show.taggedFriendUids || []);
   const taggedFriends     = friends.filter(f => taggedFriendIds.has(f.friendUid));
   const isFavorite        = isArtistFavorite?.(show.artist) || false;
@@ -330,6 +382,16 @@ export default function ShowDetailView({
   const saveNote = () => {
     onUpdateComment?.(show.id, noteText.trim());
     setEditingNote(false);
+  };
+
+  const handleResync = async () => {
+    setResyncState({ loading: true });
+    try {
+      const result = await onResyncSetlist(show.id);
+      setResyncState({ result });
+    } catch (err) {
+      setResyncState({ result: { ok: false, reason: 'fetch-failed', detail: err?.message || String(err) } });
+    }
   };
 
   const handleAddSong = (e) => {
@@ -655,6 +717,53 @@ export default function ShowDetailView({
                 {sourceLabel(show.setlistSource)}
               </a>
             </p>
+          )}
+
+          {/* ── Re-fetch from the band source ──────────────────────────
+              Rendered for any show whose ARTIST has a band source, not just
+              for shows already sourced from one — a Goose show logged
+              before 5.33.0 carries a setlist.fm setlist, and
+              scanForMissingSetlists deliberately won't touch it because it
+              only fills empty setlists. Without this there is no way, from
+              the app, to ask for the swap on a show that already has
+              something in it.
+
+              The wording changes with the current source because the two
+              cases are genuinely different: a swap away from setlist.fm,
+              versus refreshing from the archive this setlist already came
+              from (which is worth doing — these archives correct setlists
+              after review, which is why the cache TTL is capped at 24h). */}
+          {!editMode && onResyncSetlist && artistSource.isBandSource && (
+            <div className="mt-3">
+              <button
+                onClick={handleResync}
+                disabled={resyncState?.loading}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-hover text-primary hover:bg-elevated transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${resyncState?.loading ? 'animate-spin' : ''}`} />
+                {resyncState?.loading
+                  ? `Asking ${artistSource.label}...`
+                  : isBandSourced
+                    ? `Re-fetch from ${artistSource.label}`
+                    : `Get setlist from ${artistSource.label}`}
+              </button>
+
+              {!isBandSourced && !resyncState && (
+                <p className="mt-1.5 text-[11px] text-muted">
+                  This setlist came from setlist.fm. {artistSource.label} is the band&apos;s own archive — it has
+                  segues, footnotes and jam charts. Your ratings and any songs you added are kept.
+                </p>
+              )}
+
+              {resyncState?.result && (
+                <p className={`mt-1.5 text-[11px] ${resyncState.result.ok ? 'text-success' : 'text-muted'}`}>
+                  {describeResync(resyncState.result, artistSource.label, formatShowDate(show.date))}
+                  {resyncState.result.ok && resyncState.result.ambiguous && resyncState.result.message
+                    ? ` ${resyncState.result.message}`
+                    : ''}
+                </p>
+              )}
+            </div>
           )}
 
           {onAddSong && (

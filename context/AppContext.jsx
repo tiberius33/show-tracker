@@ -16,7 +16,7 @@ import { apiUrl } from '@/lib/api';
 import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
-import { enrichShowDataWithBandSetlist, fetchBandSetlist, bandSetlistShowFields } from '@/lib/bandSetlist';
+import { enrichShowDataWithBandSetlist, fetchBandSetlist, fetchBandSetlistWithReason, bandSetlistShowFields } from '@/lib/bandSetlist';
 import { mergeBandSetlist, describeSummary } from '@/lib/bandSetlistMerge';
 import { resolveSource } from '@/lib/setlistSources';
 import { buildExistingShowIndex, existingShowStatus } from '@/lib/tourBrowse';
@@ -1529,6 +1529,68 @@ export function AppProvider({ children }) {
     } else {
       alert('No new setlists found. Some shows may not have setlists on setlist.fm yet.');
     }
+  };
+
+  // ── Re-fetch one show's setlist from its band source ────────────────
+  //
+  // The per-show counterpart to scanForMissingSetlists, and the answer to
+  // the case that one cannot reach: a show that ALREADY has a setlist.fm
+  // setlist. scanForMissingSetlists only looks at shows where
+  // `!s.setlist || s.setlist.length === 0`, which is right — it is a
+  // backfill for gaps, and re-running it must not rewrite setlists people
+  // have been rating for months. But it means a Goose show logged before
+  // 5.33.0 keeps its setlist.fm setlist forever unless something asks for
+  // the swap explicitly. This is that ask, one show at a time, initiated by
+  // the user from the show itself.
+  //
+  // Returns a result object rather than a boolean, because the button that
+  // calls it has to say what happened — including, especially, what
+  // happened when nothing did. Never throws and never leaves the show
+  // worse: every failure path returns `{ ok: false, reason }` with the
+  // stored setlist untouched.
+  const resyncSetlistFromSource = async (showId) => {
+    const show = shows.find(s => s.id === showId);
+    if (!show) return { ok: false, reason: 'show-not-found' };
+
+    const source = resolveSource({ name: show.artist, mbid: show.artistMbid });
+    if (!source.isBandSource) return { ok: false, reason: 'not-a-band-source', source };
+
+    const { result, reason, detail } = await fetchBandSetlistWithReason({
+      artist: show.artist,
+      artistMbid: show.artistMbid,
+      date: show.date,
+      venue: show.venue,
+    });
+
+    if (!result) return { ok: false, reason, detail, source };
+
+    // The same merge rule every other write goes through, so a rating or a
+    // hand-added song cannot be lost by pressing this button. `changed` is
+    // false only when the incoming setlist is empty or entirely untitled,
+    // both of which are handled above — kept anyway, because the rule owns
+    // that decision and this should not second-guess it.
+    const { setlist, changed, summary } = mergeBandSetlist(show.setlist || [], result.songs);
+    if (!changed) return { ok: false, reason: 'nothing-to-change', summary, source };
+
+    console.log(`[RESYNC] ${show.artist} ${show.date} via ${result.source}: ${describeSummary(summary)}`);
+
+    const fields = {
+      ...bandSetlistShowFields(result, setlist),
+      // Same rule as the add path: take the source's tour name only where
+      // the show hasn't got one already.
+      ...(show.tour ? {} : (result.tour ? { tour: result.tour } : {})),
+    };
+
+    await updateShowData(showId, fields);
+    // updateShowData refreshes the `shows` array but not `selectedShow`,
+    // and /shows renders the detail view from `selectedShow` — so without
+    // this the setlist changes in Firestore and on the shows list while
+    // the open show keeps showing the old one.
+    if (selectedShow?.id === showId) {
+      setSelectedShow(prev => (prev && prev.id === showId ? { ...prev, ...fields } : prev));
+    }
+
+    return { ok: true, summary, source, result, ambiguous: !!result.ambiguous, message: result.message };
   };
 
   // ── Delete show ─────────────────────────────────────────────────────
@@ -3317,6 +3379,7 @@ export function AppProvider({ children }) {
     addShowsFromTour,
     bulkAdd,
     updateShowData,
+    resyncSetlistFromSource,
     deleteShow,
     backfillArtistImages,
     updateShowRating,

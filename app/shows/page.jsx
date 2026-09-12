@@ -36,7 +36,7 @@ export default function ShowsPage() {
     filterYear, setFilterYear, filterDate, setFilterDate, availableYears,
     sortBy, setSortBy,
     addShow, updateShowRating, updateShowComment, deleteShow, updateShowData, backfillArtistImages,
-    addSongToShow, updateSetlistOrder,
+    addSongToShow, updateSetlistOrder, resyncSetlistFromSource,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow,
     friends, festivals,
@@ -181,6 +181,7 @@ export default function ShowsPage() {
           onDeleteShow={deleteShow}
           onAddSong={!guestMode ? addSongToShow : undefined}
           onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}
+          onResyncSetlist={!guestMode ? resyncSetlistFromSource : undefined}
           toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
           isArtistFavorite={isArtistFavorite}
           allShows={shows}

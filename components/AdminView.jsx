@@ -1346,6 +1346,7 @@ function AdminView() {
             {resyncPlan && !resyncPlan.error && (
               <div className="mt-3 space-y-3">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                  <span className="text-muted">{resyncPlan.scannedShows} scanned</span>
                   <span className="text-secondary">{resyncPlan.bandSourceShows} Goose show{resyncPlan.bandSourceShows === 1 ? '' : 's'}</span>
                   <span className="text-brand font-medium">{resyncPlan.wouldChange} would change</span>
                   <span className="text-secondary">{resyncPlan.unchanged} unchanged</span>
@@ -1422,9 +1423,50 @@ function AdminView() {
                   </button>
                 )}
 
+                {/* The zero states, kept apart. "Nothing would change" has
+                    three completely different causes and the first version
+                    reported all of them as "already in sync", which is only
+                    true for one of them — and is actively misleading for the
+                    case where no show ever resolved to El Goose at all. */}
                 {resyncPlan.wouldChange === 0 && !resyncPlan.truncated && (
-                  <p className="text-brand text-xs font-medium">Nothing to change — already in sync with elgoose.net.</p>
+                  resyncPlan.bandSourceShows === 0 ? (
+                    <p className="text-amber text-xs font-medium">
+                      No Goose shows found — {resyncPlan.scannedShows} show{resyncPlan.scannedShows === 1 ? '' : 's'} scanned
+                      and none had an artist that resolves to El Goose. The artist name has to normalize to
+                      &ldquo;goose&rdquo;; anything else (a side project, a typo, a suffix) goes to setlist.fm.
+                    </p>
+                  ) : resyncPlan.sourceReturnedNothing.length === resyncPlan.considered ? (
+                    <p className="text-amber text-xs font-medium">
+                      El Goose returned nothing for any of the {resyncPlan.considered} show
+                      {resyncPlan.considered === 1 ? '' : 's'} — see the per-show notes above. Nothing was changed.
+                    </p>
+                  ) : (
+                    <p className="text-brand text-xs font-medium">Nothing to change — already in sync with elgoose.net.</p>
+                  )
                 )}
+
+                {/* Errors verbatim. A failed fetch from inside the function
+                    is otherwise invisible from the browser: the row lands in
+                    sourceReturnedNothing and the count is the only clue. */}
+                {resyncPlan.errors?.length > 0 && (
+                  <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-xl space-y-1">
+                    {resyncPlan.errors.slice(0, 5).map((e, i) => (
+                      <p key={i} className="text-red-400 text-[11px]">{e.date}: {e.message}</p>
+                    ))}
+                    {resyncPlan.errors.length > 5 && (
+                      <p className="text-red-400/70 text-[11px]">and {resyncPlan.errors.length - 5} more</p>
+                    )}
+                  </div>
+                )}
+
+                {/* The whole report, for when the summary above doesn't
+                    explain it. Collapsed, so it costs nothing to have. */}
+                <details className="text-[11px]">
+                  <summary className="text-muted cursor-pointer hover:text-secondary">Raw report</summary>
+                  <pre className="mt-2 p-2 bg-surface border border-subtle rounded-lg overflow-x-auto whitespace-pre text-[10px] text-secondary max-h-64">
+{JSON.stringify(resyncPlan, null, 2)}
+                  </pre>
+                </details>
               </div>
             )}
 
