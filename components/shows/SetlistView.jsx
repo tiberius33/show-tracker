@@ -31,6 +31,26 @@ import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 // ({ lastPlayedLabel, lastVenue, lastCity, href }) — tapping the bust-out
 // badge expands a row with that detail. A track with `bustout: true` but no
 // severity (a manually-tagged one) still renders the plain pill.
+//
+// ── Band-source fields (El Goose, Phish.net) ──────────────────────────
+//
+// A track from a band source can additionally carry:
+//
+//   transitionMark – the literal mark the archive recorded ('>' or '->'),
+//                    rendered in place of the generic "> segue" line.
+//   footnote       – per-song prose (teases, guests, "first since…").
+//   jamchart       – flagged in the source's jam charts.
+//   jamchartNote   – why it was flagged.
+//
+// All optional and all absent on setlist.fm-sourced shows, which still get
+// the generic segue indicator off `tape` exactly as before.
+//
+// Footnotes and jam-chart notes expand on TAP, reusing the same
+// expandedKey disclosure the bust-out badge has always used rather than
+// inventing a second pattern. Deliberately not hover-only: on a phone
+// there is no hover, and these notes are most of what makes a band source
+// worth having. One detail row is open at a time, across the whole list,
+// which is the behaviour the bust-out badge already had.
 export default function SetlistView({ sets = [], showPlayCounts = false, playCounts = {}, onSongClick, getSongHref }) {
   const [expandedKey, setExpandedKey] = useState(null);
   return (
@@ -48,7 +68,12 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
             {set.tracks.map((t, ti) => {
               const trackKey = `${si}-${ti}`;
               const meta = t.bustoutSeverity ? BUSTOUT_SEVERITY_META[t.bustoutSeverity] : null;
+              // Three things can expand on one row now, so the key names
+              // which — one open at a time, as before.
               const expanded = expandedKey === trackKey;
+              const footnoteOpen = expandedKey === `${trackKey}:footnote`;
+              const jamchartOpen = expandedKey === `${trackKey}:jamchart`;
+              const toggle = (key) => setExpandedKey(expandedKey === key ? null : key);
               return (
               <React.Fragment key={ti}>
                 <li className="grid grid-cols-[28px_1fr_auto] gap-3 items-center px-2.5 py-2 rounded-lg hover:bg-hover cursor-pointer transition-colors">
@@ -96,6 +121,36 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                         bust-out{t.bustoutNote ? ` · ${t.bustoutNote}` : ''}
                       </span>
                     )}
+                    {t.jamchart && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggle(`${trackKey}:jamchart`); }}
+                        title={t.jamchartNote || 'Jam chart'}
+                        aria-expanded={jamchartOpen}
+                        className="ml-2 inline-flex items-center gap-1 text-[9px] font-extrabold tracking-[0.1em] uppercase text-accent bg-accent/10 px-1.5 py-0.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                      >
+                        jam chart
+                      </button>
+                    )}
+                    {t.footnote && (
+                      // A deliberately quiet marker — a footnote is on a
+                      // large share of a Goose or Phish setlist's rows, and
+                      // a full badge on each would drown the titles. The
+                      // hit area is padded out to stay tappable on a phone
+                      // even though the glyph is small.
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggle(`${trackKey}:footnote`); }}
+                        title={t.footnote}
+                        aria-label={footnoteOpen ? 'Hide note' : 'Show note'}
+                        aria-expanded={footnoteOpen}
+                        className={`ml-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[11px] font-bold align-middle transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+                          footnoteOpen ? 'bg-brand-subtle text-brand' : 'text-muted hover:bg-hover hover:text-secondary'
+                        }`}
+                      >
+                        †
+                      </button>
+                    )}
                     {t.manual && (
                       <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-secondary bg-hover px-1.5 py-0.5 rounded">
                         added by you
@@ -125,10 +180,32 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                     </span>
                   )}
                 </li>
+                {footnoteOpen && (
+                  <li className="grid grid-cols-[28px_1fr] gap-3 px-2.5 pb-2">
+                    <span />
+                    <p className="text-[12px] text-secondary bg-hover rounded-lg px-3 py-2">{t.footnote}</p>
+                  </li>
+                )}
+                {jamchartOpen && (
+                  <li className="grid grid-cols-[28px_1fr] gap-3 px-2.5 pb-2">
+                    <span />
+                    <div className="text-[12px] text-secondary bg-hover rounded-lg px-3 py-2">
+                      <p className="font-medium text-primary">Jam chart</p>
+                      {t.jamchartNote && <p className="mt-0.5">{t.jamchartNote}</p>}
+                    </div>
+                  </li>
+                )}
                 {t.tape && (
                   <li className="grid grid-cols-[28px_1fr] gap-3 px-2.5 py-0.5 pointer-events-none">
                     <span />
-                    <span className="text-[11px] text-muted font-medium tracking-wide">&gt; segue</span>
+                    {/* The literal mark where a band source recorded one —
+                        '>' and '->' mean different things to the people who
+                        maintain these archives, so the distinction is kept
+                        rather than flattened. A setlist.fm-sourced show has
+                        only the boolean, and still gets "> segue". */}
+                    <span className="text-[11px] text-muted font-medium tracking-wide">
+                      {t.transitionMark ? t.transitionMark : '> segue'}
+                    </span>
                   </li>
                 )}
                 {expanded && t.bustoutDetail && (

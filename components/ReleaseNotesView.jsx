@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.33.0',
+      date: 'September 12, 2026',
+      title: 'Better Setlists for Goose and Phish',
+      changes: [
+        'New: Goose setlists now come from elgoose.net and Phish setlists from phish.net — the archives the communities around those bands actually maintain — instead of from setlist.fm. Every other artist is unchanged',
+        'New: segues show the real mark the archive recorded, so a “>” and a “->” no longer look the same',
+        'New: tap the † next to a song to read its footnote — teases, guests, “first since 2019”, all the detail setlist.fm throws away',
+        'New: songs the archive has flagged in its jam charts carry a “jam chart” badge, and tapping it tells you why it was flagged',
+        'New: Phish shows display the archive’s own notes about the show underneath the setlist, and every band-sourced setlist credits the archive it came from with a link back to it',
+        'Your ratings, your comments and any songs you added by hand are kept when a setlist is refreshed — and if an archive is unreachable or has nothing for a date, your existing setlist is left exactly as it was',
+        'Scanning for missing setlists is much faster for Goose and Phish shows: one lookup per show instead of up to nine',
+      ]
+    },
+    {
       version: '5.32.0',
       date: 'September 5, 2026',
       title: 'Report, Block, and Safer Comments',

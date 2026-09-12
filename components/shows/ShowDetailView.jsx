@@ -9,6 +9,7 @@ import { buildRunIndex, buildTourIndex, tourKeyFor, tourHref } from '@/lib/runIn
 import { normalizeSongTitle, formatDate } from '@/lib/utils';
 import { festivalHref } from '@/lib/festivalGrouping';
 import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
+import { sourceLabel, sourceHomeUrl } from '@/lib/setlistSources';
 import useBustOutAnalysis from '@/hooks/useBustOutAnalysis';
 import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SetlistView from './SetlistView';
@@ -71,6 +72,14 @@ function buildSets(setlist = [], bustOuts, allShows, artist) {
         duration: song.duration || null,
         tape: song.tape || false,
         manual: !!song.manuallyAdded,
+        // Band-source extras (El Goose, Phish.net). Undefined on a
+        // setlist.fm-sourced show, which is what SetlistView expects — it
+        // falls back to the generic segue indicator and renders no
+        // footnote or jam-chart affordance at all.
+        transitionMark: song.transitionMark || null,
+        footnote: song.footnote || null,
+        jamchart: !!song.jamchart,
+        jamchartNote: song.jamchartNote || null,
       };
     }),
   }));
@@ -303,6 +312,11 @@ export default function ShowDetailView({
   const debuts            = (show.setlist || []).filter(s => s.debut || s.tags?.includes('debut')).length;
   const bustouts          = sets.flatMap(s => s.tracks).filter(t => t.bustout);
   const epicOrMajorCount  = bustouts.filter(t => t.bustoutSeverity === 'epic' || t.bustoutSeverity === 'major').length;
+  // Whether this show's setlist came from a band source rather than from
+  // setlist.fm or the user. An absent `setlistSource` means setlist.fm —
+  // every show document written before v5.33.0 has no such field, and the
+  // default is what they'd say anyway.
+  const isBandSourced     = !!show.setlistSource && show.setlistSource !== 'setlistfm';
   const taggedFriendIds   = new Set(show.taggedFriendUids || []);
   const taggedFriends     = friends.filter(f => taggedFriendIds.has(f.friendUid));
   const isFavorite        = isArtistFavorite?.(show.artist) || false;
@@ -611,6 +625,36 @@ export default function ShowDetailView({
             />
           ) : (
             <p className="text-muted text-sm py-10 text-center">No setlist recorded yet.</p>
+          )}
+
+          {/* Show-level prose from the source. phish.net keeps this
+              ("setlistnotes"); setlist.fm has no equivalent, so this is
+              absent for everyone else. */}
+          {!editMode && show.setlistNotes && (
+            <p className="mt-5 text-[13px] leading-relaxed text-secondary bg-hover rounded-lg px-3.5 py-3 whitespace-pre-line">
+              {show.setlistNotes}
+            </p>
+          )}
+
+          {/* Credit where it is due. These are volunteer-run archives and
+              the link back to the show's own page on them is the least this
+              app owes them. Rendered off the stored `setlistSource` rather
+              than by sniffing for band-source fields, and only for a band
+              source — setlist.fm attribution already lives elsewhere on
+              this page, and a show predating this release has no
+              setlistSource at all. */}
+          {!editMode && sets.length > 0 && isBandSourced && (
+            <p className="mt-3 text-[11px] text-muted">
+              Setlist from{' '}
+              <a
+                href={show.sourcePermalink || sourceHomeUrl(show.setlistSource)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted underline decoration-dotted hover:text-brand transition-colors"
+              >
+                {sourceLabel(show.setlistSource)}
+              </a>
+            </p>
           )}
 
           {onAddSong && (

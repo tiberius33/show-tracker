@@ -4,7 +4,36 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
-## [Unreleased]
+## [5.33.0] — 2026-09-12
+
+### Added: The Setlist Source Is Now a Function of the Artist
+
+- For Goose and Phish, setlists now come from the archives the people who care about those bands actually maintain — [elgoose.net](https://elgoose.net) and [phish.net](https://phish.net) — instead of from setlist.fm's lossier mirror of them. Every other artist is untouched: setlist.fm stays the default, and a source is opt-in per artist rather than ever inferred.
+- What those archives carry that setlist.fm does not: **per-song transition marks**, so a segue renders as the actual `>` or `->` rather than a generic "segue" line; **footnotes** ("with a Tom Sawyer tease", "guest: Marcus King on guitar"); **jam-chart flags with descriptions**; and **official band-wide gap counts** — the real number of shows since a song was last played, from the archive, rather than a figure reconstructed from a ~200-show setlist.fm window or from your own logged shows. Phish.net also carries show-level setlist notes, which now render under the setlist.
+- The registry lives in `lib/setlistSources.js` and is **data, not a switch statement**. Adding Grateful Dead later is one new entry plus one new adapter file under `netlify/functions/lib/`, not a refactor. That was the point of building it this way, since dead.net publishes HTML rather than JSON and needs a parser and caching strategy of its own — deliberately not in this release. Dead shows keep using setlist.fm.
+- One new function, `netlify/functions/band-setlist.js`, with one adapter per source. It mirrors `search-setlists.js` exactly — Firestore-backed cache, `X-Cache: HIT|MISS|STALE`, stale-on-upstream-failure fallback, hit counting, the same lazy Firebase init that degrades to "works, just uncached" when the env vars are missing — in a separate `bandSetlistCache` collection so it cannot collide with `setlistCache`.
+- **Both APIs are addressable by show date, which is the whole win.** `scanForMissingSetlists` currently finds one night on setlist.fm by walking up to three pages of twenty results under up to three artist-name variants, reversing setlist.fm's `DD-MM-YYYY` into `YYYY-MM-DD` to compare each candidate — up to nine requests to answer one question. For a Goose or Phish show it is now a single request. That loop exists for no reason other than setlist.fm's search having no date endpoint, and every other artist keeps it unchanged.
+- Cache TTL is capped at **24 hours** for both sources rather than reusing the 7-day tier `determineTtlHours` gives old setlist.fm shows. Phish.net's docs are explicit about this: cache locally, but not longer than a day, because setlists get corrected after review. A corrected Phish setlist should reach the app the next day, not the next week. The only thing ever served older than that is the explicit `STALE` fallback when the upstream is down, and it says so in the header.
+
+### Added: A Re-Fetch Can No Longer Discard Your Ratings
+
+- A show's setlist array was never purely source data — your per-song ratings and comments live in it, so do songs you added by hand, and so do set and order edits from the setlist editor. Re-fetching a setlist had to be taught the difference, because a re-fetch that silently dropped any of that would be worse than not re-fetching at all: there is no undo and no way to notice.
+- So the new merge rule in `lib/bandSetlistMerge.js` is conservative in one direction only. The incoming setlist decides **what was played and in what structure**; the existing setlist decides **everything you authored about it**. Ratings, comments and your hand-added songs are carried across; a song you added that the archive has never heard of is kept and stays in the set you put it in, rather than being deleted because the source disagrees.
+- **An empty or failed fetch writes nothing at all.** That single rule is what makes the rest of this safe, including the artist-name matching described below — a source with no data for a date, a mistyped date and a wrong-band false positive are all indistinguishable to the app, and all three leave the existing setlist exactly where it was.
+- A matched song also keeps its existing `id`, because the id is identity everywhere downstream — `groupSongsBySet`, the song index's per-song set lookup, and the editor's reorder and rating controls all address songs by it. Minting a fresh one for a song that is demonstrably the same performance would invalidate all of that for nothing.
+
+### Added: A Backfill for Existing Shows, Which Dry-Runs by Default
+
+- `netlify/functions/admin-resync-setlists.js` walks every user's shows, finds the ones whose artist resolves to a band source, and re-fetches them. Admin-only and shaped after `admin-populate-setlist.js`.
+- **`dryRun` defaults to true**, and only the literal `dryRun: false` turns writing on — a missing field, a null, or the string `"false"` all leave it a dry run. This is a migration over show documents people care about, so the default has to be the harmless one; forgetting a parameter reports a plan instead of rewriting a few thousand setlists. The plan is generated by the same merge rule a real run uses, so it is not an approximation of what would happen.
+- It reports the shows where **the source returned nothing** as their own list rather than lumping them in with "unchanged", because those are the interesting ones: a bad date, a side project the registry doesn't cover, or an artist-name false positive. Dates carrying more than one show are reported too, with every candidate.
+- Requests are spaced 1200ms apart — under one per second sustained, slower than correctness requires and deliberately so. These are small volunteer-run projects and there is no deadline on a backfill. The cache means each distinct date is fetched upstream once however many users attended that night, and the delay is skipped entirely on a cache hit since that never touches the archive.
+
+### Note: `tape` Still Means "Segue", and Still Should Not
+
+- Worth writing down since this release touches every consumer of it. setlist.fm's `tape` flag means "played over the PA, not performed". This codebase has never used it that way — since the transitions work it has meant "this song segues into the next one", `lib/songIndex.js` derives `segueOut: !!song.tape` from it, and `lib/__tests__/songIndex.test.js` asserts exactly that.
+- Band sources keep writing `tape` with the codebase's meaning, and add `transitionMark` alongside it carrying the literal `>` or `->`. So the boolean every existing consumer reads is unchanged, and the UI can render the real mark where there is one.
+- **Renaming `tape` to `segue` is the right end state and is not in this release.** It touches seven files and every stored show document, and it deserves its own change rather than riding along inside a data-source migration.
 
 ### Fixed: A Rules Denial Told You To "Try Again", Which Could Never Work
 - Blocking an account failed with "Failed to block that account. Please try again." Retrying a Firestore rules denial never clears it, and v5.30.1 already fixed exactly this wording for festival creation and wrote down why. `blockUser`/`unblockUser` now name what was actually refused when `error.code` is `permission-denied`, matching `createFestival`.
@@ -48,10 +77,14 @@ All notable changes to mysetlists.net are documented here.
 - That helper, `dismissCookieBanner`, is factored out of `dismissOverlays` in `e2e/utils/test-helpers.js` (which already contained this exact block) and exported, so there is one definition rather than a third copy. `dismissOverlays` calls it; behaviour there is unchanged. It no-ops when the banner is absent, so it is safe to call unconditionally.
 - After: `enter guest mode and navigate pages` goes from a 30s timeout to passing in 4.8s, and `core.smoke.spec.js` runs 15 passed / 3 failed. The three are the API Health checks, which need Netlify functions a static local server cannot route to; they pass in CI.
 
-Nothing user-facing — CI and test-harness only, so there is no version bump
-and no Release Notes entry. A patch bump would restamp the service worker
-and needlessly invalidate every user's cache for a change that ships no app
-code.
+The CI and test-harness fixes above this line were written when there was
+nothing user-facing to ship with them, and the note here said so — no
+version bump, on the grounds that a patch bump restamps the service worker
+and invalidates every user's cache for a change that ships no app code.
+That reasoning still holds; what changed is that there is now app code to
+ship. They ride along with 5.33.0 rather than getting a bump of their own,
+and they still get no Release Notes entry, because none of them is
+something a user can see.
 
 ---
 

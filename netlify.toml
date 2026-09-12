@@ -99,6 +99,29 @@
   to = "/.netlify/functions/moderate-report"
   status = 200
 
+# Band-source setlists (El Goose, Phish.net) — see
+# netlify/functions/band-setlist.js and lib/setlistSources.js.
+#
+# Worth knowing while you're here: the "Rewrite /api/* to Netlify functions"
+# comment at the top of this section describes an intent, not a wildcard.
+# Every /api/… path is spelled out individually and only seven functions
+# have one, so a new function does NOT get an /api/ alias for free — it
+# needs an entry like this pair or it 404s. (Three of the four callers of
+# search-setlists.js sidestep the question entirely by requesting
+# /.netlify/functions/search-setlists directly; the fourth, in
+# scanForMissingSetlists, asks for /api/search-setlists, which has no
+# rewrite here. That one is pre-existing and left alone deliberately — it
+# is not this change's to fix, but it is flagged in the PR.)
+[[redirects]]
+  from = "/api/band-setlist"
+  to = "/.netlify/functions/band-setlist"
+  status = 200
+
+[[redirects]]
+  from = "/api/band-setlist/"
+  to = "/.netlify/functions/band-setlist"
+  status = 200
+
 # Public, indexable pages — server-rendered HTML from Netlify Functions, not
 # the SPA shell, so crawlers see real content without executing JavaScript.
 # Order matters: the more specific /u/:handle/shows/:showId rules are listed

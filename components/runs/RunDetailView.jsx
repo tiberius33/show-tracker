@@ -28,6 +28,12 @@ function buildSets(setlist = []) {
       duration: song.duration || null,
       tape: song.tape || false,
       manual: !!song.manuallyAdded,
+      // Same band-source extras the show detail passes through, so a run
+      // night renders identically to that night's own show page.
+      transitionMark: song.transitionMark || null,
+      footnote: song.footnote || null,
+      jamchart: !!song.jamchart,
+      jamchartNote: song.jamchartNote || null,
     })),
   }));
 }
