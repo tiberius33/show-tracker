@@ -75,7 +75,12 @@ const MAX_TTL_HOURS = 24;
 const ADAPTERS = {
   elgoose: {
     requiresApiKey: false,
-    fetch: (date) => elgooseAdapter.fetchSetlists(date),
+    // artistId is the registry's sourceArtistFilter ('goose'). It matters
+    // because this archive is addressed by date and carries more than one
+    // act: without it, a date where Orebolo also played is a coin flip
+    // between two bands' setlists. The adapter fails open if it cannot
+    // recognize the value, so passing it can only help.
+    fetch: (date, { artistId } = {}) => elgooseAdapter.fetchSetlists(date, { artistFilter: artistId }),
   },
   phishnet: {
     requiresApiKey: true,
@@ -108,12 +113,42 @@ function getDb() {
 
 // --- Cache helpers ---
 
-function buildCacheKey(source, artist, date, venue) {
+// ── Why the cache key carries a version ───────────────────────────────
+//
+// A cached response is a snapshot of what the ADAPTER produced, not of what
+// the archive sent, so every correction to a field mapping changes the
+// meaning of every entry already stored. Without a version in the key those
+// stale entries keep being served for up to MAX_TTL_HOURS after the fix
+// ships — which looks exactly like "the fix works on some shows and not
+// others", because whether a given date is stale depends on whether anyone
+// happened to ask for it before the deploy.
+//
+// That is not hypothetical: this feature shipped four adapter corrections
+// in one afternoon (5.33.4 and 5.33.5 between them fixed the permalink and
+// four wrong field names), and any date fetched between them is cached
+// wrong until tomorrow.
+//
+// BUMP THIS whenever the adapters' output changes shape or meaning. It
+// costs one re-fetch per date and it is the difference between a fix being
+// live and a fix being live eventually.
+//
+//   1 — 5.33.0, the original mapping
+//   2 — 5.34.3: elgoose rows are filtered by artist, and everything the
+//       5.33.4/5.33.5 corrections changed (permalink, jamchart_notes,
+//       song_id, original_artist, shownotes)
+const CACHE_VERSION = 2;
+
+function buildCacheKey(source, artist, date, venue, artistId) {
   const normalized = JSON.stringify({
+    ver: CACHE_VERSION,
     s: (source || '').toLowerCase().trim(),
     a: (artist || '').toLowerCase().trim(),
     d: (date || '').trim(),
     v: (venue || '').toLowerCase().trim(),
+    // Part of the key because it is now part of what the response contains:
+    // the elgoose adapter filters rows by it, so two artists on one date no
+    // longer share an answer.
+    i: (artistId || '').toLowerCase().trim(),
   });
   return crypto.createHash('md5').update(normalized).digest('hex');
 }
@@ -180,7 +215,7 @@ exports.handler = async function (event) {
   }
 
   const label = `${source} ${artist || '?'} ${date}`;
-  const cacheKey = buildCacheKey(source, artist, date, venue);
+  const cacheKey = buildCacheKey(source, artist, date, venue, artistId);
   const db = getDb();
   let staleDoc = null;
 
@@ -344,6 +379,32 @@ exports.handler = async function (event) {
  * a caller that got the wrong one can tell, and a human reading the
  * backfill's dry-run output can see it happened.
  */
+// ── Comparing two spellings of one venue ──────────────────────────────
+//
+// The stored venue comes from setlist.fm (or from whatever the user typed)
+// and the candidate's comes from the archive, so an exact comparison fails
+// on differences that are not differences: "Ascend Amphitheater" against
+// "Ascend Amphitheatre", "The Capitol Theatre" against "Capitol Theatre",
+// "Hill Auditorium, Ann Arbor" against "Hill Auditorium". When that
+// comparison fails on a date with two shows, the wrong setlist is returned
+// — which is a data-shaped bug reached through a spelling.
+//
+// British/American spellings folded, punctuation and articles dropped,
+// whitespace collapsed. Deliberately NOT fuzzy beyond that: two genuinely
+// different venues must still not match, because the fallback (the fullest
+// setlist, reported as ambiguous) is safer than a confident wrong answer.
+function venueKey(value) {
+  return String(value == null ? '' : value)
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/theatre/g, 'theater')
+    .replace(/centre/g, 'center')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\bthe\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function selectShow(shows, { source, date, venue }) {
   const base = { ok: true, source, date, ambiguous: false, candidates: [], message: '' };
 
@@ -366,10 +427,10 @@ function selectShow(shows, { source, date, venue }) {
 
   if (shows.length > 1) {
     ambiguous = true;
-    const wanted = (venue || '').toLowerCase().trim();
+    const wanted = venueKey(venue);
     const matched = wanted
       ? shows.find((s) => {
-          const v = (s.venue || '').toLowerCase().trim();
+          const v = venueKey(s.venue);
           return v && (v === wanted || v.includes(wanted) || wanted.includes(v));
         })
       : null;
@@ -378,9 +439,16 @@ function selectShow(shows, { source, date, venue }) {
       chosen = matched;
       message = `${shows.length} shows on ${date}; matched on venue "${chosen.venue}"`;
     } else {
+      // No venue match. Array order is not evidence of anything, so the
+      // fullest setlist is the better guess than the first one: on a
+      // festival day the two entries are usually a full set and a sit-in or
+      // a late-night guest spot, and returning the three-song one over the
+      // sixteen-song one is the worse failure. Still reported as ambiguous
+      // with every candidate attached, because it IS a guess.
+      chosen = shows.reduce((best, s) => (s.songs.length > best.songs.length ? s : best), shows[0]);
       message = wanted
-        ? `${shows.length} shows on ${date} and none matched venue "${venue}" — returning "${chosen.venue}". Check candidates.`
-        : `${shows.length} shows on ${date} and no venue was supplied — returning "${chosen.venue}". Check candidates.`;
+        ? `${shows.length} shows on ${date} and none matched venue "${venue}" — returning "${chosen.venue}" (the fullest setlist). Check candidates.`
+        : `${shows.length} shows on ${date} and no venue was supplied — returning "${chosen.venue}" (the fullest setlist). Check candidates.`;
     }
   }
 
@@ -411,3 +479,5 @@ exports.selectShow = selectShow;
 exports.determineTtlHours = determineTtlHours;
 exports.buildCacheKey = buildCacheKey;
 exports.MAX_TTL_HOURS = MAX_TTL_HOURS;
+exports.CACHE_VERSION = CACHE_VERSION;
+exports.venueKey = venueKey;
