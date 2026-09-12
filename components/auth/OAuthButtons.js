@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { isNativePlatform } from '@/lib/native-auth';
+import { warmAuthPopupResolver } from '@/lib/firebase';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -61,6 +62,16 @@ export default function OAuthButtons({ onProviderClick, disabled = false, action
   const [isNative, setIsNative] = useState(false);
   useEffect(() => {
     setIsNative(isNativePlatform());
+  }, []);
+
+  // Pre-initialize Firebase's popup resolver as soon as the sign-in buttons
+  // are on screen. Without this the first click pays for that initialization
+  // (a network fetch of the auth iframe) before window.open() is reached, by
+  // which point the click's user activation has expired and the browser
+  // blocks the popup. Native never uses the popup path, so skip it there.
+  useEffect(() => {
+    if (isNativePlatform()) return;
+    warmAuthPopupResolver();
   }, []);
 
   const visibleProviders = providers.filter((p) => !p.nativeOnly || isNative);
