@@ -187,12 +187,16 @@ function mapShow(rows) {
     };
   });
 
-  const { songs, droppedSoundcheckCount } = buildSetlist(mapped);
+  const { songs, droppedSoundcheckCount, droppedUntitledCount } = buildSetlist(mapped);
 
   return {
     source: 'elgoose',
     songs,
     droppedSoundcheckCount,
+    // Non-zero means a FIELDS key is almost certainly wrong — see the
+    // note in bandSetlistShape.js's buildSetlist. Carried on the
+    // response so a mapping error is diagnosable rather than silent.
+    droppedUntitledCount,
     showDate: String(get(first, 'showDate') || ''),
     venue: String(get(first, 'venue') || ''),
     city: String(get(first, 'city') || ''),
@@ -228,7 +232,13 @@ async function fetchSetlists(date) {
 
   const shows = groupRowsByShow(envelope.rows)
     .map(mapShow)
-    .filter((show) => show.songs.length > 0 || show.droppedSoundcheckCount > 0);
+    // A show kept only because rows were dropped still comes through, so
+    // the counts reach the caller and a mapping error is visible. It
+    // carries no songs, which is what makes the merge rules leave the
+    // existing setlist alone.
+    .filter((show) => show.songs.length > 0
+      || show.droppedSoundcheckCount > 0
+      || show.droppedUntitledCount > 0);
 
   return { ok: true, message: '', shows };
 }

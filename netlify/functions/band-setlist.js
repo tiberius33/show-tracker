@@ -217,6 +217,22 @@ exports.handler = async function (event) {
     }
 
     const payload = selectShow(result.shows, { source, date, venue });
+
+    // A row the archive returned that came out with no song title means an
+    // upstream key in this adapter's FIELDS map is wrong — get `songName`
+    // wrong and every row still has a valid set, position and gap, so the
+    // setlist looks structurally perfect and is entirely nameless. The rows
+    // are dropped (see buildSetlist in lib/bandSetlistShape.js), which is
+    // what stops them being written over a good setlist. This is the line
+    // that says so out loud, because otherwise the symptom is only ever
+    // "the feature quietly does nothing".
+    if (payload.droppedUntitledCount > 0) {
+      console.warn(
+        `[BAND-SETLIST] ${label} — dropped ${payload.droppedUntitledCount} row(s) with no song title. ` +
+        `A FIELDS key in ${source}Adapter.js is probably wrong; nothing was written.`
+      );
+    }
+
     const responseBody = JSON.stringify(payload);
 
     // 3. Write to cache on success.
@@ -326,6 +342,7 @@ function selectShow(shows, { source, date, venue }) {
     // The normalized setlist, which is what callers actually want.
     songs: chosen.songs,
     droppedSoundcheckCount: chosen.droppedSoundcheckCount,
+    droppedUntitledCount: chosen.droppedUntitledCount,
     // Show-level fields, stored on the show document.
     venue: chosen.venue,
     city: chosen.city,
