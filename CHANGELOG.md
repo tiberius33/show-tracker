@@ -4,6 +4,23 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.33.3] — 2026-09-12
+
+### Fixed: Two Error Messages That Sent You Looking In The Wrong Place
+
+Both of these are the same mistake in different files — several genuinely different causes collapsed into one message, so the message told you nothing. Both turned up while actually trying to use 5.33.2.
+
+**A band-source lookup that found nothing could not say why.** Verifying the El Goose field mapping against production returned `{ "ok": true, "message": "No show on 2023-12-30", "songs": [], "shows": [] }`. That proves the URL, the `/api/` rewrite and the envelope check all work — elgoose returned a 200 and its error node was not 1 — and then stops being useful, because `readEnvelope` did `Array.isArray(payload.data) ? payload.data : []`. "The archive has no show on that date" and "the `data` node is not shaped the way this adapter assumes" produced byte-identical output, which is precisely the distinction that matters while the field names are unverified.
+- A 200 whose `data` is not a list is now a **shape failure**, not an empty result. The merge rules treat that identically to an empty setlist, so it is no less safe — just no longer silent.
+- Any response that comes back with no songs now carries what the upstream actually sent: the envelope's top-level keys, the type of `data`, the row count, the error value and message, and the keys of the first row. **That last field is the whole diagnosis** — rows present but none of them carrying the keys the adapter reads means the mapping is wrong, and it names the spelling that is really there. A row count above zero with no songs produced also logs a warning naming the adapter file to check.
+
+**The admin backfill said "Forbidden" when it meant "you have no token".** Running the dry run with an unset `$ID_TOKEN` shell variable returned `{"error": "Forbidden"}`, which reads as a permissions problem and is not one. `curl` sent `Authorization: Bearer` with the trailing space trimmed; the parser was `.replace('Bearer ', '')`, which only strips the prefix when exactly one space follows it, so nothing was stripped and **the literal string `"Bearer"` became the token** — non-empty, so it passed the missing-token check and failed verification instead.
+- Parsed with a regex now, accepting a lowercase scheme and extra whitespace, both of which are legal. The unset-variable case yields an empty token and a **401** that says to check whether the shell variable is actually set.
+- `verifyAdmin`'s bare `catch` reported all three of its failure modes as "Forbidden", including a missing `FIREBASE_*` env var. Now: **500** for a server misconfiguration (naming the variables, and saying it is not an authorization problem), **403** only when a verified account genuinely is not on `ADMIN_EMAILS`, and **401** for a malformed or expired token — with the reminder that Firebase ID tokens last an hour, which is the usual answer.
+- `admin-populate-setlist.js` has the same bare-catch pattern; it is shipped working code and is left alone, but it will mislead the same way.
+
+---
+
 ## [5.33.2] — 2026-09-12
 
 ### Fixed: The Setlist Backfill Could Never Have Finished a Single Run

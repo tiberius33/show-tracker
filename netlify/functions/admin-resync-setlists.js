@@ -207,15 +207,75 @@ exports.handler = async function (event) {
     return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const token = (event.headers.authorization || '').replace('Bearer ', '').trim();
+  // ── Parsing the bearer token ──────────────────────────────────────
+  // A regex rather than .replace('Bearer ', ''), which only strips the
+  // prefix when exactly one space follows it. That cost real debugging
+  // time: a caller whose $ID_TOKEN was unset sent `Authorization: Bearer`
+  // with the trailing space trimmed, the prefix therefore did not match,
+  // and the literal string "Bearer" became the token — non-empty, so it
+  // passed the check below and failed verification instead, reporting
+  // "Forbidden" for what was really a missing token. Also accepts a
+  // lowercase scheme and extra whitespace, which are both legal.
+  const rawAuth = (event.headers.authorization || '').trim();
+  const token = /^Bearer\s+/i.test(rawAuth) ? rawAuth.replace(/^Bearer\s+/i, '').trim() : '';
+
   if (!token) {
-    return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Unauthorized' }) };
+    return {
+      statusCode: 401,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({
+        error: 'Unauthorized',
+        // Named explicitly, because the two ways to get here look the same
+        // from a shell and one of them is a typo.
+        details: rawAuth
+          ? 'The Authorization header carried no token after the Bearer scheme. If you are using a shell variable, check it is actually set.'
+          : 'No Authorization header. Expected: Authorization: Bearer <firebase-id-token>',
+      }),
+    };
   }
 
+  // ── Why this is not one bare catch ────────────────────────────────
+  // verifyAdmin can fail three genuinely different ways, and collapsing
+  // them into "Forbidden" sends you looking for a permissions problem when
+  // the real one is a missing env var or an expired token. Same conflation
+  // this file's readEnvelope sibling had, and just as misleading.
   try {
     await verifyAdmin(token);
-  } catch {
-    return { statusCode: 403, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Forbidden' }) };
+  } catch (err) {
+    const message = err?.message || '';
+
+    if (message.includes('Firebase env vars not configured')) {
+      return {
+        statusCode: 500,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({
+          error: 'Server misconfigured',
+          details: 'FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL and FIREBASE_PROJECT_ID must be set on this deployment. This is not an authorization problem.',
+        }),
+      };
+    }
+
+    if (message === 'Forbidden') {
+      // Verified successfully, but the email is not on ADMIN_EMAILS. The
+      // only case that genuinely deserves a 403.
+      return {
+        statusCode: 403,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Forbidden', details: 'That account is signed in but is not an admin.' }),
+      };
+    }
+
+    // Anything else is the token itself: malformed, expired (Firebase ID
+    // tokens last an hour), or issued for a different project.
+    return {
+      statusCode: 401,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({
+        error: 'Invalid or expired token',
+        details: 'Firebase ID tokens expire after an hour — fetch a fresh one and retry.',
+        firebaseError: message,
+      }),
+    };
   }
 
   const body = JSON.parse(event.body || '{}');
