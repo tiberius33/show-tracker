@@ -4,6 +4,23 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.34.2] — 2026-09-12
+
+### Fixed: An Artist Name With A Qualifier On It Never Reached El Goose
+
+- The registry matched artist names **exactly**, and that is the most likely reason three releases of El Goose work have produced nothing visible. A show stored as `Goose (US)` normalizes to the key `goose-us`, matches no entry, and resolves to setlist.fm — after which every part of the band-source path correctly does nothing. No button on the show, no rows in the admin re-sync, and **no error anywhere**, because resolving to setlist.fm is a legitimate answer rather than a failure. The same is true of `The Goose`.
+- Artist strings pick up qualifiers by entirely ordinary means: setlist.fm disambiguates same-named acts with a parenthetical, imports and ticket scans carry "The" inconsistently, and a hand-typed show carries whatever was typed. So a second, looser key is tried **after** the exact one fails — bracketed qualifiers and a leading article removed, `Goose (US)` → `goose` — and it reports itself as `name-loose` rather than passing as an exact hit.
+- Deliberately narrow. It strips qualifiers; it does not go fuzzy. `Goose Island`, `Mother Goose`, `Gooseberry`, `Goose & Friends` and `Phish Food` all still resolve to setlist.fm, and a **denied mbid still overrules a loose name match** — the loosening applies to the name heuristic only, never to the one piece of evidence that is trustworthy.
+- One existing test changed: `The Phish` used to be asserted as a non-match. A leading article is a spelling difference rather than a different band — `scanForMissingSetlists` has always retried setlist.fm under both `X` and `The X` for exactly that reason — so it now matches, and the test says why it moved.
+
+### Added: The Admin Re-Sync Names The Artist Strings It Scanned
+
+- 5.34.1 made the re-sync distinguish "no Goose shows found" from "already in sync". That was the right distinction and still left the useful half unsaid: *which* artist strings were scanned, and what did each one normalize to?
+- The report now carries every distinct artist string the walk saw, with its exact key, its loose key, whether it reached a band source and how it matched. When no show resolves, the panel prints that list — so `Goose (US) → goose-us / goose · setlist.fm · 7 shows` is a diagnosis you can read in one click instead of a zero you have to guess at.
+- Capped at 40 distinct artists, so a large account reports its spellings rather than its whole library.
+
+---
+
 ## [5.34.1] — 2026-09-12
 
 ### Added: A Re-Fetch Button On The Show Itself
