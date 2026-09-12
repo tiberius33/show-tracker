@@ -4,6 +4,17 @@
  *
  *   GET /api/band-setlist?source=elgoose&artist=Goose&date=2025-07-18
  *   GET /api/band-setlist?source=phishnet&artist=Phish&date=1997-11-22&venue=Hampton%20Coliseum
+ *   GET /api/band-setlist?source=elgoose&artist=Goose&date=2026-08-15&debug=1
+ *
+ * `debug=1` adds an `upstream` object reporting the envelope's top-level
+ * keys, the type of `data`, the row count and the first row's key names.
+ * That is how you check this adapter's FIELDS map against what the
+ * archive actually sends — particularly the case where songs come back
+ * fine but one field is missing from every one of them.
+ *
+ * It bypasses the cache in both directions, so it always reflects what
+ * the archive is sending right now and never leaves a debug-shaped
+ * response in the cache for other callers.
  *
  * `source` is a band-source id from lib/setlistSources.js ('elgoose' or
  * 'phishnet'). The per-source fetch and field mapping live in
@@ -134,7 +145,7 @@ exports.handler = async function (event) {
     return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { source, artist, date, venue, artistId } = event.queryStringParameters || {};
+  const { source, artist, date, venue, artistId, debug } = event.queryStringParameters || {};
 
   if (!source || !ADAPTERS[source]) {
     return {
@@ -173,8 +184,17 @@ exports.handler = async function (event) {
   const db = getDb();
   let staleDoc = null;
 
+  // ── debug bypasses the cache, in both directions ──────────────────
+  // The cache key is source + artist + date + venue, deliberately not
+  // `debug` — so without this, `debug=1` on any date already in the cache
+  // would return the stored body with no diagnostics attached, which is
+  // exactly the date you are most likely to be investigating. It must also
+  // not WRITE, or a debug-shaped response would be served to everyone for
+  // the rest of the TTL.
+  const bypassCache = debug === '1';
+
   // 1. Check cache
-  if (db) {
+  if (db && !bypassCache) {
     try {
       const snap = await db.collection(CACHE_COLLECTION).doc(cacheKey).get();
       if (snap.exists) {
@@ -226,6 +246,17 @@ exports.handler = async function (event) {
     // `firstRowKeys` is the payoff: rows present but none of them carrying
     // the keys FIELDS reads means the mapping is wrong, and it names the
     // real spelling.
+    // `?debug=1` attaches the same diagnostics to a SUCCESSFUL fetch. The
+    // no-songs case below covers "why did I get nothing", but the other
+    // half of checking a FIELDS map is "I got songs, yet one field is
+    // missing from every one of them" — which needs the real row keys and
+    // is otherwise invisible. It reports key NAMES and counts only, never
+    // row values, and everything it exposes is already public on the
+    // archive's own API.
+    if (debug === '1' && result.upstream) {
+      payload.upstream = result.upstream;
+    }
+
     if (payload.songs.length === 0 && result.upstream) {
       payload.upstream = result.upstream;
       if (result.upstream.rowCount > 0) {
@@ -260,7 +291,7 @@ exports.handler = async function (event) {
     // result for 24h would mean a show added to the archive tomorrow stays
     // invisible to the app for a day — and an empty result is cheap to
     // re-ask for, being one request rather than a nine-request search loop.
-    if (db && payload.songs.length > 0) {
+    if (db && !bypassCache && payload.songs.length > 0) {
       const ttlHours = determineTtlHours(date);
       const { Timestamp } = require('firebase-admin/firestore');
       db.collection(CACHE_COLLECTION).doc(cacheKey).set({

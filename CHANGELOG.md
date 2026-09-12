@@ -4,6 +4,27 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.33.4] — 2026-09-12
+
+### Fixed: The El Goose Attribution Link Pointed At Our Own Site
+
+- The first successful live lookup (Goose at Frost Amphitheater, 2026-08-15 — 15 songs, two sets) confirmed most of the field mapping: song titles, set structure, transition marks with `>` and `->` staying distinct, footnotes, venue, city, state, country, tour name, show id and song slug all came through correctly.
+- It also showed that elgoose.net returns `permalink` as a **bare filename** rather than a URL — `goose-august-15-2026-frost-amphitheater-stanford-ca-usa.html`, no scheme and no host. Stored and rendered as-is that is a *relative* href, so the "Setlist from El Goose" credit on a show page resolved against mysetlists.net and 404'd on our own site instead of reaching the archive. These are volunteer-run archives and the link back is the least the app owes them, so a broken one is worse than none.
+- Resolved in the adapter now, at the edge of the system, so nothing downstream needs to know: a relative permalink is joined to the archive's setlist path, and an already-absolute one (which is what phish.net sends) passes through untouched.
+
+### Added: A Way To Check A Field Mapping Against What The Archive Actually Sends
+
+- 5.33.3 made a lookup that returned *nothing* explain itself. The same live response showed the other half of the problem: songs came back fine and yet **every one of them was missing `sourceGap`**, along with the jam-chart flag and the opener flag. Songs present but one field absent throughout is invisible to a diagnostic that only fires on an empty result.
+- `?debug=1` now attaches the same upstream report to a **successful** fetch — the envelope's top-level keys, the type of `data`, the row count, and the first row's key names. That last one is the answer to "which key is this actually called", and it reports key names and counts only, never row values; everything it exposes is already public on the archive's own API.
+- It **bypasses the cache in both directions**. The cache key is source + artist + date + venue and deliberately not `debug`, so without the bypass the flag would return a stored body with no diagnostics on exactly the date you were investigating — and a debug-shaped response would then be served to every other caller for the rest of the TTL.
+
+### Note: `sourceGap` Is Not Arriving, And Two Things Were Mislabelled
+
+- **`sourceGap` is absent on every song** the live response returned. Either `gap`, `isjamchart` and `opener` are spelled differently on the showdate endpoint, or that endpoint does not carry them at all and they live on another one. This is a headline feature — the archive's own gap count is the number that needs no backfill — so the adapter's header now states plainly that it is unresolved rather than assumed, and names the `debug=1` call that will settle it. A jam chart being absent on a four-week-old show may simply mean nobody has charted it yet, so an older date is the better test.
+- **`uniqueid` is a per-performance id, not a stable song id.** On that response "Hot Love & The Lazy Poet" was played twice in one set and came back as `80312` and `80319`, while `slug` was `"hot-love"` both times. So `songSlug` is the field that can address the archive's song page and `songId` identifies one rendition; the comment claiming otherwise is corrected, and both fields are kept, now labelled for what they really are.
+
+---
+
 ## [5.33.3] — 2026-09-12
 
 ### Fixed: Two Error Messages That Sent You Looking In The Wrong Place
