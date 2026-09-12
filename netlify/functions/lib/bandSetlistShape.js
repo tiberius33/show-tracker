@@ -195,6 +195,9 @@ function buildSong(fields) {
   // and both sources say so explicitly where they know.
   if (fields.debut === true) song.debut = true;
 
+  // NOTE: on elgoose.net this is a per-performance id, not a stable song
+  // id — the same song played twice in one show comes back with two
+  // different values. `songSlug` is the one that addresses a song page.
   const songId = cleanStr(fields.songId);
   if (songId) song.songId = songId;
 

@@ -18,22 +18,30 @@
  * three-name-variant match loop scanForMissingSetlists has to run against
  * setlist.fm's search to find a single night.
  *
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │ THE FIELD NAMES BELOW ARE UNVERIFIED.                               │
- * │                                                                     │
- * │ They are transcribed from the documented row shape, NOT read off a  │
- * │ live response — the branch this was written on had no network route │
- * │ to elgoose.net (the egress proxy refused CONNECT with a 403), so no │
- * │ real response could be fetched and printed. Songfish's own docs are │
- * │ thin, so treat this map as a best-effort starting point.            │
- * │                                                                     │
- * │ Every upstream key this adapter reads is named exactly once, in     │
- * │ FIELDS just below, for precisely that reason: correcting a          │
- * │ mis-transcribed key is a one-line edit there and touches nothing    │
- * │ else. Check it against one real response before trusting the        │
- * │ mapping — elgoose.net/api/v2/setlists/showdate/2023-12-30.json      │
- * │ (Goose at Radio City) is a good one to eyeball.                     │
- * └─────────────────────────────────────────────────────────────────────┘
+ * ── Field mapping: verified against a live response, with two gaps ───
+ *
+ * Checked against elgoose.net's real response for Goose at Frost
+ * Amphitheater, 2026-08-15 (15 songs, two sets). CONFIRMED CORRECT:
+ * songname, settype, setnumber, position, transition (both '>' and '->'
+ * came through and stayed distinct), footnote, venuename, city, state,
+ * country, tourname, show_id, uniqueid, slug, and the error/data envelope.
+ *
+ * STILL UNRESOLVED — every song on that response came back with no `gap`,
+ * no `isjamchart` and no `opener`, so `sourceGap` was absent throughout.
+ * Either those keys are spelled differently on this endpoint, or the
+ * showdate endpoint does not carry them at all and they live on another
+ * one. `sourceGap` is a headline feature (the archive's own gap count, the
+ * thing that needs no backfill), so it is worth resolving — but it is
+ * genuinely unknown, not assumed. Do not guess: run
+ *
+ *   /api/band-setlist?source=elgoose&artist=Goose&date=<a-date>&debug=1
+ *
+ * and read `upstream.firstRowKeys`, which names every key the archive
+ * really sends. A jam chart being absent on a four-week-old show may also
+ * simply mean nobody has charted it yet, so prefer an older date.
+ *
+ * Every upstream key this adapter reads is named exactly once, in FIELDS
+ * below, so a correction stays a one-line edit.
  */
 
 const https = require('https');
@@ -73,10 +81,29 @@ const FIELDS = {
   gap: 'gap',
   tourName: 'tourname',
   showId: 'show_id',
-  uniqueId: 'uniqueid',
+  uniqueId: 'uniqueid', // per-performance, NOT a stable song id — see mapShow
   artistId: 'artist_id',
   slug: 'slug',
 };
+
+// elgoose.net returns `permalink` as a bare filename, not a URL:
+//
+//   "goose-august-15-2026-frost-amphitheater-stanford-ca-usa.html"
+//
+// Stored and rendered as-is, that is a RELATIVE href, so the attribution
+// link on a show page resolved against mysetlists.net and 404'd on our own
+// site instead of reaching the archive. Resolved against the archive's
+// setlist path here, at the edge of the system, so nothing downstream has
+// to know the difference — and an already-absolute permalink (which is
+// what phish.net sends) passes through untouched.
+const PERMALINK_BASE = 'https://elgoose.net/setlists/';
+
+function absolutePermalink(raw) {
+  const value = String(raw == null ? '' : raw).trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return PERMALINK_BASE + value.replace(/^\/+/, '');
+}
 
 function get(row, field) {
   return row ? row[FIELDS[field]] : undefined;
@@ -231,6 +258,12 @@ function mapShow(rows) {
       // Revisit once a live response shows how a genuine debut is marked.
       debut: false,
       opener: get(row, 'opener'),
+      // `uniqueid` is a per-PERFORMANCE id, not a stable song id —
+      // verified against a live response where "Hot Love & The Lazy Poet"
+      // played twice in one set and came back as 80312 and 80319, while
+      // `slug` was "hot-love" both times. So songSlug is the identifier
+      // that can address the archive's song page; songId identifies this
+      // one rendition. Both are kept, labelled for what they actually are.
       songId: get(row, 'uniqueId'),
       songSlug: get(row, 'slug'),
     };
@@ -253,7 +286,7 @@ function mapShow(rows) {
     country: String(get(first, 'country') || ''),
     tour: String(get(first, 'tourName') || ''),
     sourceShowId: String(get(first, 'showId') || ''),
-    sourcePermalink: String(get(first, 'permalink') || ''),
+    sourcePermalink: absolutePermalink(get(first, 'permalink')),
     // elgoose.net has no show-level prose field on the setlist row — that
     // is a phish.net feature. Empty rather than absent so both adapters
     // return the same shape.
