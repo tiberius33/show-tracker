@@ -6,6 +6,16 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.34.0',
+      date: 'September 12, 2026',
+      title: 'Goose Setlists From El Goose',
+      changes: [
+        'New: Goose setlists now come from elgoose.net \u2014 the archive the Goose community maintains \u2014 so segues show the real \u201c>\u201d or \u201c->\u201d, songs carry the archive\u2019s footnotes about teases and guests, covers are credited to the original artist, jam-chart picks are flagged, and the show\u2019s own notes appear under the setlist',
+        'Every band-sourced setlist credits the archive with a link back to that show\u2019s page there',
+        'Your ratings, your notes and any songs you added by hand are kept when a setlist is refreshed \u2014 and if the archive is unreachable or has nothing for a date, your existing setlist is left exactly as it was',
+      ]
+    },
+    {
       version: '5.33.0',
       date: 'September 12, 2026',
       title: 'Better Setlists for Goose and Phish',

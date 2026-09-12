@@ -50,6 +50,14 @@ function AdminView() {
   const [userScanResults, setUserScanResults] = useState(null);
   const [userPopulatingIds, setUserPopulatingIds] = useState(new Set());
   const [userPopulatedIds, setUserPopulatedIds] = useState(new Set());
+
+  // El Goose re-sync (admin-resync-setlists). `resyncPlan` holds the dry
+  // run's report; a write is only possible once a plan has been read, which
+  // is the whole point of the two-step flow below.
+  const [resyncLoading, setResyncLoading] = useState(false);
+  const [resyncPlan, setResyncPlan] = useState(null);
+  const [resyncWriting, setResyncWriting] = useState(false);
+  const [resyncResult, setResyncResult] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userShows, setUserShows] = useState([]);
   const [loadingShows, setLoadingShows] = useState(false);
@@ -1266,6 +1274,173 @@ function AdminView() {
                 {userScanResults.showsMissingSetlists === 0 && (
                   <p className="text-brand text-xs font-medium">All shows have setlists!</p>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Re-sync from El Goose ─────────────────────────────────
+              Wraps netlify/functions/admin-resync-setlists.js. Two steps on
+              purpose: the dry run writes nothing and returns a plan, and the
+              write button only appears once a plan has been read. That
+              mirrors the endpoint's own `dryRun: true` default — this is a
+              migration over setlists people care about, so "show me first"
+              is the path of least resistance rather than an extra step to
+              remember.
+
+              Scoped to `source: 'elgoose'`. Phish.net has no API key
+              configured, so including it would make every Phish show return
+              a 503 and bury the El Goose results in `sourceReturnedNothing`. */}
+          <div className="bg-hover backdrop-blur-xl border border-subtle rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div>
+                <h3 className="text-sm font-semibold text-primary">Re-sync from El Goose</h3>
+                <p className="text-xs text-muted">
+                  Replace this user&apos;s Goose setlists with elgoose.net&apos;s, keeping their ratings and hand-added songs
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  setResyncLoading(true);
+                  setResyncPlan(null);
+                  setResyncResult(null);
+                  try {
+                    const token = await auth.currentUser.getIdToken();
+                    const res = await fetch(apiUrl('/.netlify/functions/admin-resync-setlists'), {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      // dryRun omitted — the endpoint defaults to true, and
+                      // relying on that default is safer than restating it.
+                      body: JSON.stringify({ userId: selectedUser.id, source: 'elgoose' }),
+                    });
+                    const data = await res.json();
+                    setResyncPlan(res.ok ? data : { error: data.error || `HTTP ${res.status}`, details: data.details });
+                  } catch (e) {
+                    setResyncPlan({ error: e.message });
+                  }
+                  setResyncLoading(false);
+                }}
+                disabled={resyncLoading || resyncWriting}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand to-amber text-on-dark rounded-xl text-sm font-medium transition-all shadow-sm disabled:opacity-50 whitespace-nowrap"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${resyncLoading ? 'animate-spin' : ''}`} />
+                {resyncLoading ? 'Checking...' : 'Preview Changes'}
+              </button>
+            </div>
+
+            {resyncLoading && (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-secondary">Reading elgoose.net — nothing is being written...</span>
+              </div>
+            )}
+
+            {resyncPlan?.error && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <p className="text-red-400 text-xs">
+                  <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{resyncPlan.error}
+                </p>
+                {resyncPlan.details && <p className="text-red-400/80 text-[11px] mt-1">{resyncPlan.details}</p>}
+              </div>
+            )}
+
+            {resyncPlan && !resyncPlan.error && (
+              <div className="mt-3 space-y-3">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                  <span className="text-secondary">{resyncPlan.bandSourceShows} Goose show{resyncPlan.bandSourceShows === 1 ? '' : 's'}</span>
+                  <span className="text-brand font-medium">{resyncPlan.wouldChange} would change</span>
+                  <span className="text-secondary">{resyncPlan.unchanged} unchanged</span>
+                  {resyncPlan.sourceReturnedNothing?.length > 0 && (
+                    <span className="text-amber font-medium">{resyncPlan.sourceReturnedNothing.length} no data</span>
+                  )}
+                  {resyncPlan.truncated && (
+                    <span className="text-muted">partial — {resyncPlan.outOfTime ? 'hit the time budget' : 'hit the limit'}</span>
+                  )}
+                </div>
+
+                {/* Per-show plan. `carriedOver` against `removed` is the
+                    number that matters: a rating only survives when the
+                    normalized song title matches, and setlist.fm and
+                    elgoose do not always spell a song the same way. */}
+                {resyncPlan.shows?.length > 0 && (
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {resyncPlan.shows.map(row => {
+                      const sum = row.summary;
+                      const carried = sum ? Object.values(sum.carriedOver || {}).reduce((a, b) => a + b, 0) : 0;
+                      return (
+                        <div key={`${row.userId}-${row.showId}`} className="bg-surface border border-subtle rounded-xl p-2.5">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-xs font-medium text-primary">{row.date} · {row.venue || 'no venue'}</span>
+                            <span className="text-[11px] text-muted whitespace-nowrap">
+                              {row.currentSongCount} → {sum?.resultCount ?? row.currentSongCount}
+                            </span>
+                          </div>
+                          {sum?.skipped ? (
+                            <p className="text-[11px] text-amber mt-1">Skipped — source returned nothing, setlist left alone</p>
+                          ) : sum ? (
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
+                              {sum.added.length > 0 && <span className="text-brand">+{sum.added.length} added</span>}
+                              {sum.removed.length > 0 && <span className="text-danger">−{sum.removed.length} removed</span>}
+                              {sum.keptManual.length > 0 && <span className="text-secondary">{sum.keptManual.length} yours kept</span>}
+                              {carried > 0 && <span className="text-success">{carried} rating/note carried</span>}
+                              {sum.removed.length > 0 && carried === 0 && (
+                                <span className="text-amber">check: nothing carried over</span>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-muted mt-1">{row.note}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {resyncPlan.wouldChange > 0 && !resyncResult && (
+                  <button
+                    onClick={async () => {
+                      setResyncWriting(true);
+                      setResyncResult(null);
+                      try {
+                        const token = await auth.currentUser.getIdToken();
+                        const res = await fetch(apiUrl('/.netlify/functions/admin-resync-setlists'), {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: selectedUser.id, source: 'elgoose', dryRun: false }),
+                        });
+                        const data = await res.json();
+                        setResyncResult(res.ok ? data : { error: data.error || `HTTP ${res.status}` });
+                      } catch (e) {
+                        setResyncResult({ error: e.message });
+                      }
+                      setResyncWriting(false);
+                    }}
+                    disabled={resyncWriting}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand text-on-dark rounded-xl text-xs font-medium transition-all shadow-sm disabled:opacity-50"
+                  >
+                    <Check className={`w-3.5 h-3.5 ${resyncWriting ? 'animate-spin' : ''}`} />
+                    {resyncWriting ? 'Writing...' : `Apply to ${resyncPlan.wouldChange} show${resyncPlan.wouldChange === 1 ? '' : 's'}`}
+                  </button>
+                )}
+
+                {resyncPlan.wouldChange === 0 && !resyncPlan.truncated && (
+                  <p className="text-brand text-xs font-medium">Nothing to change — already in sync with elgoose.net.</p>
+                )}
+              </div>
+            )}
+
+            {resyncResult?.error && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <p className="text-red-400 text-xs"><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{resyncResult.error}</p>
+              </div>
+            )}
+
+            {resyncResult && !resyncResult.error && (
+              <div className="mt-3 p-3 bg-brand-subtle border border-brand/30 rounded-xl">
+                <p className="text-brand text-xs font-medium">
+                  <Check className="w-3.5 h-3.5 inline mr-1" />
+                  Updated {resyncResult.changed} show{resyncResult.changed === 1 ? '' : 's'}
+                  {resyncResult.truncated ? ' — partial run, preview again to continue' : ''}
+                </p>
               </div>
             )}
           </div>

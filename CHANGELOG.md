@@ -4,6 +4,24 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.34.0] — 2026-09-12
+
+### Added: A Re-sync From El Goose Button In The Admin Panel
+
+- `admin-resync-setlists` was only reachable by `curl`, which meant getting a Firebase ID token out of IndexedDB by hand and pasting a uid alongside it. That is how the endpoint returned `{"error":"Forbidden"}` on its first real use — an unset shell variable, not a permissions problem — and tokens expire after an hour, so the whole dance had to be repeated. Every other admin function in this app is a button that calls `auth.currentUser.getIdToken()` for itself; this one now is too.
+- It sits beside the existing **Find Missing Setlists** tool on the user detail panel and reuses that view's selected user, so there is no uid to copy and no console to open.
+- **Two steps, deliberately.** *Preview Changes* runs the dry run — which writes nothing, because the endpoint defaults to `dryRun: true` and the button relies on that default rather than restating it — and the *Apply* button only appears once a plan has come back and only when there is something to change. A migration over other people's setlists should make "show me first" the path of least resistance rather than an extra step to remember.
+- The per-show plan shows the count going in and out, songs added, songs removed, how many of the user's own hand-added songs were kept, and **how many ratings and notes carried over**. That last number is the one to read: a rating survives only when the normalized song title matches, and setlist.fm and elgoose.net do not always spell a song the same way — `Seekers on the Ridge pt I` against `Seekers on the Ridge, Pt. 1`, or `Mas Que Nada` against `Más Que Nada`, whose accent the app's normalizer does not fold. A show with songs removed and nothing carried over is flagged inline, because that is the shape of a lost rating.
+- Scoped to `source: 'elgoose'`. Phish.net has no API key configured, so including it would make every Phish show return a 503 and bury the El Goose results among them.
+- A partial run says so — the endpoint stops on its own 8-second budget well inside Netlify's 10-second window — and previewing again continues from where it stopped.
+
+### Note: Two Things This Button Does Not Solve
+
+- **The user walk is still unbounded.** `admin-resync-setlists` reads every user document with no limit when no `userId` is given, and its time budget is only checked inside the per-show loop, so a large user base could exhaust the window before a single show is processed. Running per user — which is all this button does — is unaffected, since that path reads one document. Sweeping every account still wants the user query paged first.
+- **`normalizeSongTitle` does not fold accents**, so `Más Que Nada` and `Mas Que Nada` are different songs to it. That normalizer is shared with the song index, the wishlist and bust-out detection, so changing it would silently merge entries those features currently keep apart — a deliberate change with its own migration, not a side effect of this one.
+
+---
+
 ## [5.33.5] — 2026-09-12
 
 ### Fixed: Four Guessed El Goose Field Names, Now Read Off The Archive Itself
