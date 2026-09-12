@@ -4,6 +4,22 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.34.1] — 2026-09-12
+
+### Added: A Re-Fetch Button On The Show Itself
+
+- A Goose show logged before 5.33.0 keeps its setlist.fm setlist **forever**, and until now there was nothing in the app that would change that. *Find Missing Setlists* only looks at shows where the setlist is empty — which is correct, since it is a backfill for gaps and re-running it must never rewrite setlists people have been rating for months — and the admin re-sync added in 5.34.0 works an entire account at a time from a panel only an admin sees. Neither answers "this one show is showing the wrong source; fix it."
+- So the setlist on a show page now carries a **Re-fetch from El Goose** button, for any show whose *artist* has a band source, whether or not that show's setlist came from one. Where the setlist is still setlist.fm's it reads *Get setlist from El Goose* and says what the swap gains — segues, footnotes, jam charts — and that ratings and hand-added songs are kept.
+- It goes through the same merge rule as every other write, so pressing it cannot cost a rating, a note or a song added by hand. Re-fetching a setlist that is *already* from El Goose is worth doing too: these are reviewed archives that correct setlists after the fact, which is why the cache is capped at 24 hours.
+
+### Fixed: "Nothing Happened" Now Says Which Nothing
+
+- The re-fetch reports its outcome inline, and the outcomes that matter are the ones where nothing changed. `fetchBandSetlist` collapses every failure onto `null`, which is exactly right for the add paths — a volunteer archive having a bad night must never turn into a failed show add — and exactly wrong for a button someone pressed on purpose. There is now a `fetchBandSetlistWithReason` alongside it, and the reasons are distinct: the archive has no show on that date, it has the show but returned no songs, the request failed, the service answered with an error, or the setlist already matches.
+- **"A show but no songs" is kept apart from "no show" on purpose.** The first means a field mapping in this app is wrong — it is the exact shape of the bug 5.33.5 fixed four of — and reporting it as the archive having a gap sends you to elgoose.net to look for a show that is sitting right there. The message says so: *that's a problem on our end, not theirs.*
+- The admin panel's re-sync had the same flaw one level up. It reported every zero as "already in sync with elgoose.net", which is true for exactly one of the three ways to get a zero and actively misleading for the case where **no show ever resolved to El Goose at all** — a plan of zero changes over zero Goose shows looked identical to a plan of zero changes over a synced account. It now distinguishes them, shows how many shows were scanned, prints the endpoint's own error messages verbatim instead of only counting them, and keeps the whole report behind a *Raw report* disclosure.
+
+---
+
 ## [5.34.0] — 2026-09-12
 
 ### Added: A Re-sync From El Goose Button In The Admin Panel

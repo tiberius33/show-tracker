@@ -6,6 +6,17 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.34.1',
+      date: 'September 12, 2026',
+      title: 'Re-Fetch A Setlist From El Goose',
+      changes: [
+        'New: a Goose show you logged before El Goose support shipped kept its old setlist.fm setlist, and nothing in the app would swap it. Open the show and there is now a button under the setlist to get it from El Goose \u2014 with the segues, footnotes, cover credits and jam-chart flags that come with it',
+        'Your ratings, your notes and any songs you added by hand are kept, exactly as when a setlist is refreshed anywhere else in the app',
+        'Worth pressing again on a show that already came from El Goose: the archive corrects setlists after review, and this picks up those corrections',
+        'If nothing changes, it now tells you why \u2014 the archive has no show on that date, it has the show but sent no songs, or your setlist already matches. \u201cNothing happened\u201d with no explanation is gone',
+      ]
+    },
+    {
       version: '5.34.0',
       date: 'September 12, 2026',
       title: 'Goose Setlists From El Goose',
