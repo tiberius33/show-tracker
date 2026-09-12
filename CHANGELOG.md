@@ -4,6 +4,21 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.33.2] — 2026-09-12
+
+### Fixed: The Setlist Backfill Could Never Have Finished a Single Run
+
+- Going to run the 5.33.0 dry run for the first time turned up the reason it would not have worked. `admin-resync-setlists.js` shipped with a 1200ms delay between requests and a default limit of 50 shows — **60 seconds of sleeping alone**, inside a Netlify function that is killed at 10 seconds. Nothing in `netlify.toml` raises that limit.
+- So every invocation would have been killed at 10s having processed about eight shows, and because the report is only assembled and returned at the very end, the caller would have got a 502 and **nothing at all**. The whole point of the endpoint is a plan you can read; it could not produce one. Worse, a real run (`dryRun: false`) would have written a partial set of changes and then died without reporting which ones — the single worst failure mode available to a migration.
+- The 1200ms was chosen on politeness grounds, and that reasoning was weaker than it looked. The real protection against hammering elgoose.net is the cache in `band-setlist.js`, which fetches each distinct date once however many users attended that night, and the delay only applies on a cache miss at all. It is now **300ms**, which is what every other admin function in this repo already uses, and the default limit is 25.
+- The walk now stops on **its own time budget** (8s, leaving headroom under Netlify's 10s) rather than being killed, so a truncated run still returns its report with everything it managed to look at.
+- **`nextCursor` was a dead field.** The header comment said a full backfill "runs as several `limit`-bounded invocations — that is what `limit` and the returned `nextCursor` are for", but the handler never accepted a cursor as input, so there was no way to resume. It does now: `cursor` takes the previous run's `nextCursor` and picks up at the exact show it stopped on, users and shows both walked in document-id order so the paging is deterministic.
+- The cursor also had to handle stopping on a user's *first* show, where nothing has been looked at yet. Reporting no cursor there would have restarted the whole walk — an infinite loop for any user with more band-source shows than one invocation's budget, which on a Phish tracker is an ordinary user. That case now returns a "start at this user, from the beginning" cursor.
+- Verified by running the real handler against a mocked Firestore and a mocked `/api/band-setlist`: paging through the whole fixture database one show at a time covers exactly the same shows as a single unbounded run, with no gaps and no duplicates. The `limit`, `userId`, `source` and `budgetMs` filters and the dry run's write-nothing guarantee were all exercised the same way.
+- If several invocations ever becomes tedious, the real fix is a background function — Netlify allows those 15 minutes instead of 10 seconds. Not done here, because a background function returns 202 immediately and puts its results only in the logs, and a dry run you can read the output of is the entire purpose of this endpoint.
+
+---
+
 ## [5.33.1] — 2026-09-12
 
 ### Fixed: A Mis-Mapped Field Name Could Have Blanked a Setlist and Taken the Ratings With It

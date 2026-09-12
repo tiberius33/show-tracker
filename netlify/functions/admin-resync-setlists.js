@@ -10,10 +10,12 @@
  * POST body:
  *   {
  *     dryRun?: boolean,   // DEFAULT TRUE. See below.
- *     limit?: number,     // max shows to consider (default 50, max 1000)
+ *     limit?: number,     // max shows to consider (default 25, max 1000)
  *     userId?: string,    // restrict to one account
  *     source?: string,    // restrict to one band source id
  *     delayMs?: number,   // override the inter-request delay
+ *     cursor?: string,    // resume token from a previous run's nextCursor
+ *     budgetMs?: number,  // override the time budget (see the constants)
  *   }
  *
  * ── dryRun defaults to TRUE, on purpose ──────────────────────────────
@@ -40,16 +42,16 @@
  *      fetched upstream once, however many users attended that night. On a
  *      jam-band tracker that is a big multiplier — a Goose run at the Cap
  *      might be logged by dozens of users and costs one request.
- *   2. DEFAULT_DELAY_MS between requests regardless. 1200ms, which is
- *      under one request per second sustained. That is slower than it needs
- *      to be for correctness and deliberately so: there is no deadline on a
- *      backfill, and the polite ceiling costs nothing but wall-clock time.
- *      The delay is skipped entirely on a cache hit, since that never
- *      touches the upstream host.
+ *   2. DEFAULT_DELAY_MS between requests, skipped entirely on a cache hit
+ *      since that never touches the upstream host. See the note on the
+ *      constants below for why this is 300ms and not the 1200ms the first
+ *      version used.
  *
- * A Netlify function's execution window means a full backfill runs as
- * several `limit`-bounded invocations rather than one. That is what `limit`
- * and the returned `nextCursor` are for.
+ * A Netlify function is killed at 10 seconds, so a full backfill runs as
+ * several invocations rather than one. Each returns `truncated: true` and a
+ * `nextCursor`; pass that back as `cursor` to resume exactly where it
+ * stopped. The walk stops on its own time budget before Netlify kills it,
+ * so a truncated run still returns its report.
  */
 
 const https = require('https');
@@ -65,10 +67,41 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Under one request per second sustained. See the header.
-const DEFAULT_DELAY_MS = 1200;
-const DEFAULT_LIMIT = 50;
+// ── Fitting inside a Netlify function's execution window ─────────────
+//
+// A Netlify synchronous function is killed at 10 seconds by default, and
+// nothing in netlify.toml raises it. That constraint dictates these
+// numbers, and the first version of this file got them badly wrong: a
+// 1200ms delay with a default limit of 50 meant 60 seconds of sleeping
+// alone, so the function was guaranteed to be killed at 10s having
+// processed about eight shows — and because the report is only returned at
+// the very end, the caller got a 502 and NOTHING. Every invocation was
+// wasted work, and a real run (dryRun:false) would have written a partial
+// set of changes and then died without reporting which ones.
+//
+// So: 300ms, which is what every other admin function in this repo uses
+// against setlist.fm, and a hard time budget that stops the walk cleanly
+// and returns the partial report with a resumable cursor. The politeness
+// argument for 1200ms was weaker than it looked — the real protection
+// against hammering elgoose.net is the cache in band-setlist.js, which
+// fetches each distinct date once however many users attended that night,
+// and the delay only applies on a cache miss.
+//
+// A full backfill is therefore several invocations, each resuming from the
+// previous one's `nextCursor`. If that becomes tedious, the proper fix is
+// to rename this to admin-resync-setlists-background.js: Netlify gives a
+// background function 15 minutes instead of 10 seconds. That changes how
+// it is invoked (202 immediately, results only in the logs), which is why
+// it is not done here — a dry run you can read the output of is the whole
+// point of this endpoint.
+const DEFAULT_DELAY_MS = 300;
+const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 1000;
+
+// Leaves ~2s of headroom under Netlify's 10s default to serialize and
+// return the report. Overridable for a deployment configured with a longer
+// timeout, or for local runs where there is no limit at all.
+const DEFAULT_BUDGET_MS = 8000;
 
 // ── The artist → source registry, mirrored for CommonJS ───────────────
 //
@@ -197,6 +230,16 @@ exports.handler = async function (event) {
   const onlyUserId = body.userId || null;
   const onlySource = body.source || null;
   const delayMs = Number.isFinite(Number(body.delayMs)) ? Math.max(0, Number(body.delayMs)) : DEFAULT_DELAY_MS;
+  const budgetMs = Number.isFinite(Number(body.budgetMs)) ? Math.max(1000, Number(body.budgetMs)) : DEFAULT_BUDGET_MS;
+
+  // Resume token from a previous run's `nextCursor`: "<userId>::<showId>",
+  // meaning "start at this user, after this show". Show ids are millisecond
+  // timestamps as strings and Firestore orders documents by id, so both
+  // halves page deterministically.
+  const [cursorUserId, cursorShowId] = String(body.cursor || '').split('::');
+
+  const startedAt = Date.now();
+  const outOfTime = () => Date.now() - startedAt > budgetMs;
 
   // Where to reach our own band-setlist function. Netlify sets URL/
   // DEPLOY_URL on the build; falls back to the production host.
@@ -226,34 +269,73 @@ exports.handler = async function (event) {
     errors: [],
     shows: [],
     truncated: false,
+    // True when the walk stopped on its time budget rather than on `limit`.
+    // Expected on a large database, not an error: resume with `nextCursor`.
+    outOfTime: false,
     nextCursor: null,
+    budgetMs,
   };
 
   try {
-    const userDocs = onlyUserId
-      ? [await db.collection('users').doc(onlyUserId).get()].filter((d) => d.exists)
-      : (await db.collection('users').get()).docs;
+    const { FieldPath } = require('firebase-admin/firestore');
+
+    // Users are walked in document-id order so a cursor means something.
+    // `startAt` rather than `startAfter`: a cursor can point into the
+    // middle of a user's shows, and that user still has shows left to do.
+    let userDocs;
+    if (onlyUserId) {
+      const snap = await db.collection('users').doc(onlyUserId).get();
+      userDocs = snap.exists ? [snap] : [];
+    } else {
+      let q = db.collection('users').orderBy(FieldPath.documentId());
+      if (cursorUserId) q = q.startAt(cursorUserId);
+      userDocs = (await q.get()).docs;
+    }
 
     let processed = 0;
 
-    for (const userDoc of userDocs) {
-      if (processed >= limit) {
-        report.truncated = true;
-        report.nextCursor = userDoc.id;
-        break;
-      }
+    // Records where to pick up: the last show actually looked at. Resuming
+    // from it re-examines nothing and skips nothing.
+    const markCursor = (userId, showId) => {
+      report.truncated = true;
+      report.nextCursor = `${userId}::${showId}`;
+    };
 
+    for (const userDoc of userDocs) {
       report.scannedUsers++;
       const userId = userDoc.id;
 
-      const showsSnap = await db.collection('users').doc(userId).collection('shows').get();
+      let showQuery = db.collection('users').doc(userId).collection('shows')
+        .orderBy(FieldPath.documentId());
+      // Only the user the cursor names resumes mid-way; every later user
+      // starts from their first show.
+      if (userId === cursorUserId && cursorShowId) {
+        showQuery = showQuery.startAfter(cursorShowId);
+      }
+      const showsSnap = await showQuery.get();
+
+      let lastShowId = null;
 
       for (const showDoc of showsSnap.docs) {
+        // Two independent stops. `limit` is what the caller asked for;
+        // the time budget is what Netlify's 10s window forces, and it is
+        // the one that usually fires. Either way the report is returned
+        // with a cursor rather than the function being killed mid-walk.
         if (processed >= limit) {
-          report.truncated = true;
-          report.nextCursor = userId;
+          // `lastShowId || ''` matters: breaking on a user's FIRST show
+          // leaves nothing looked at yet, and the cursor has to mean
+          // "start at this user, from the beginning" rather than being
+          // omitted — an omitted cursor restarts the whole walk, which
+          // would loop forever on a user with more shows than the budget.
+          markCursor(userId, lastShowId || '');
           break;
         }
+        if (outOfTime()) {
+          report.outOfTime = true;
+          markCursor(userId, lastShowId || '');
+          break;
+        }
+        lastShowId = showDoc.id;
 
         report.scannedShows++;
         const show = showDoc.data();
