@@ -6,6 +6,25 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.34.3',
+      date: 'September 12, 2026',
+      title: 'The Shows El Goose Still Missed',
+      changes: [
+        'Fixed: a show could keep showing the old setlist for up to a day after we corrected how we read the archive \u2014 cached answers are now retired the moment the reading changes',
+        'Fixed: on a date when Goose and one of the band\u2019s side projects both played, the wrong setlist could come back. The archive is asked by date, so it now filters by band as well',
+        'Fixed: \u201cAscend Amphitheater\u201d and \u201cAscend Amphitheatre\u201d are the same venue. Spelling differences like that used to pick the wrong show on a two-show day',
+      ]
+    },
+    {
+      version: '5.34.2',
+      date: 'September 12, 2026',
+      title: 'Goose Shows With A Qualifier In The Name',
+      changes: [
+        'Fixed: a show saved under a name like \u201cGoose (US)\u201d or \u201cThe Goose\u201d was never matched to El Goose, so none of the El Goose features reached it and nothing said why. Those names now match, and the re-fetch button appears on those shows',
+        'Still precise about it \u2014 Goose Island, Mother Goose and Phish Food are different artists and keep their setlist.fm setlists',
+      ]
+    },
+    {
       version: '5.34.1',
       date: 'September 12, 2026',
       title: 'Re-Fetch A Setlist From El Goose',

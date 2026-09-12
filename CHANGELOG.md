@@ -4,6 +4,45 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.34.3] — 2026-09-12
+
+### Fixed: A Corrected Field Mapping Was Served Stale For Up To A Day
+
+- The cache key was source + artist + date + venue, and a cached response is a snapshot of what the **adapter** produced rather than of what the archive sent. So every correction to a field mapping changed the meaning of every entry already stored — and those entries kept being served for up to 24 hours after the fix shipped.
+- This feature shipped four adapter corrections in one afternoon (5.33.4's permalink fix, then 5.33.5's `jamchart_notes`, `song_id`, `original_artist` and `shownotes`). Any date fetched between them is cached against the old mapping, and whether a given show looks fixed depends on nothing more than whether anyone happened to ask for that date before the deploy. **That is exactly the shape of "it works on some shows and not others."**
+- The key now carries a `CACHE_VERSION`, bumped whenever the adapters' output changes meaning. It costs one re-fetch per date and it is the difference between a fix being live and a fix being live eventually.
+
+### Fixed: One Date, Two Bands
+
+- `/setlists/showdate/<date>` is addressed by **date, not by artist**, and elgoose.net's Songfish instance carries Goose-adjacent projects alongside Goose itself. The adapter never filtered by artist, so a date where two of them played returned both, and the caller picked between them on venue alone — a coin flip between two different bands' setlists whenever the venue didn't disambiguate.
+- Rows carry the artist, so the filter sits in the adapter, before grouping. It **fails open**: if it recognizes nothing, every row is kept and the result is exactly what it was before. The archive's `artist` and `artist_id` values aren't verified against a live response, and a filter that can't recognize its own artist must not turn a working lookup into an empty one.
+- The artist filter is part of the cache key too, since it is now part of what the response contains.
+
+### Fixed: Venue Spellings That Are Not Differences
+
+- Disambiguating two shows on one date compared venue strings exactly. The stored venue comes from setlist.fm or from whatever the user typed; the candidate's comes from the archive. `Ascend Amphitheater` against `Ascend Amphitheatre`, `The Capitol Theatre` against `Capitol Theatre`, `Barclays Center` against `Barclays Centre` — all failures, and a failed venue match on a two-show date means the wrong setlist.
+- British and American spellings are folded now, with punctuation and articles dropped. Not fuzzy beyond that: two genuinely different venues must still not match.
+- And when no venue matches, the **fullest** setlist is returned rather than whichever the archive listed first. A festival day is usually one full set plus a sit-in, and returning the three-song guest spot over the sixteen-song set because of array order is the worse of the two wrong answers. It is still reported as ambiguous with every candidate attached, because it is still a guess.
+
+---
+
+## [5.34.2] — 2026-09-12
+
+### Fixed: An Artist Name With A Qualifier On It Never Reached El Goose
+
+- The registry matched artist names **exactly**, and that is the most likely reason three releases of El Goose work have produced nothing visible. A show stored as `Goose (US)` normalizes to the key `goose-us`, matches no entry, and resolves to setlist.fm — after which every part of the band-source path correctly does nothing. No button on the show, no rows in the admin re-sync, and **no error anywhere**, because resolving to setlist.fm is a legitimate answer rather than a failure. The same is true of `The Goose`.
+- Artist strings pick up qualifiers by entirely ordinary means: setlist.fm disambiguates same-named acts with a parenthetical, imports and ticket scans carry "The" inconsistently, and a hand-typed show carries whatever was typed. So a second, looser key is tried **after** the exact one fails — bracketed qualifiers and a leading article removed, `Goose (US)` → `goose` — and it reports itself as `name-loose` rather than passing as an exact hit.
+- Deliberately narrow. It strips qualifiers; it does not go fuzzy. `Goose Island`, `Mother Goose`, `Gooseberry`, `Goose & Friends` and `Phish Food` all still resolve to setlist.fm, and a **denied mbid still overrules a loose name match** — the loosening applies to the name heuristic only, never to the one piece of evidence that is trustworthy.
+- One existing test changed: `The Phish` used to be asserted as a non-match. A leading article is a spelling difference rather than a different band — `scanForMissingSetlists` has always retried setlist.fm under both `X` and `The X` for exactly that reason — so it now matches, and the test says why it moved.
+
+### Added: The Admin Re-Sync Names The Artist Strings It Scanned
+
+- 5.34.1 made the re-sync distinguish "no Goose shows found" from "already in sync". That was the right distinction and still left the useful half unsaid: *which* artist strings were scanned, and what did each one normalize to?
+- The report now carries every distinct artist string the walk saw, with its exact key, its loose key, whether it reached a band source and how it matched. When no show resolves, the panel prints that list — so `Goose (US) → goose-us / goose · setlist.fm · 7 shows` is a diagnosis you can read in one click instead of a zero you have to guess at.
+- Capped at 40 distinct artists, so a large account reports its spellings rather than its whole library.
+
+---
+
 ## [5.34.1] — 2026-09-12
 
 ### Added: A Re-Fetch Button On The Show Itself

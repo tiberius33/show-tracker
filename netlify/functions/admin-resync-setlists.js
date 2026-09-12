@@ -103,6 +103,10 @@ const MAX_LIMIT = 1000;
 // timeout, or for local runs where there is no limit at all.
 const DEFAULT_BUDGET_MS = 8000;
 
+// How many distinct artist strings the report will name. Enough to read a
+// whole account's Goose spellings, small enough not to dump a library.
+const MAX_ARTISTS_REPORTED = 40;
+
 // ── The artist → source registry, mirrored for CommonJS ───────────────
 //
 // lib/setlistSources.js is the registry, but it is an ESM module written
@@ -133,8 +137,31 @@ function artistNameKey(name) {
     .trim();
 }
 
+// The loose second pass, mirroring artistNameKeyLoose in
+// lib/setlistSources.js: bracketed qualifiers and a leading article
+// removed, so "Goose (US)" and "The Goose" reach El Goose too. See that
+// file for why this exists — an exact-only key is what made a stored
+// artist string of "Goose (US)" resolve to setlist.fm and every part of
+// this feature quietly do nothing.
+function artistNameKeyLoose(name) {
+  return artistNameKey(
+    String(name || '')
+      .replace(/[([{][^)\]}]*[)\]}]/g, ' ')
+      .trim()
+      .replace(/^the\s+/i, '')
+  );
+}
+
 function resolveBandSource(artist) {
-  return BAND_SOURCE_NAME_KEYS[artistNameKey(artist)] || null;
+  const key = artistNameKey(artist);
+  if (BAND_SOURCE_NAME_KEYS[key]) return { ...BAND_SOURCE_NAME_KEYS[key], matchedOn: 'name', nameKey: key };
+
+  const loose = artistNameKeyLoose(artist);
+  if (loose && loose !== key && BAND_SOURCE_NAME_KEYS[loose]) {
+    return { ...BAND_SOURCE_NAME_KEYS[loose], matchedOn: 'name-loose', nameKey: loose };
+  }
+
+  return null;
 }
 
 function initFirebase() {
@@ -298,6 +325,10 @@ exports.handler = async function (event) {
   // halves page deterministically.
   const [cursorUserId, cursorShowId] = String(body.cursor || '').split('::');
 
+  // Keyed by the raw artist string, so two spellings of the same band show
+  // up as the two separate entries they are.
+  const artistsSeen = new Map();
+
   const startedAt = Date.now();
   const outOfTime = () => Date.now() - startedAt > budgetMs;
 
@@ -324,6 +355,14 @@ exports.handler = async function (event) {
     // to the wrong place, or an artist-name false positive (the Dutch
     // Goose). Reported separately rather than lumped in with "unchanged"
     // precisely because they are the list worth reading.
+    // Every distinct artist string the walk saw, with the key it normalized
+    // to and whether that key reached a band source. This is the answer to
+    // the question the first two versions of this tool could not answer:
+    // when bandSourceShows is 0, WHICH artist strings were scanned and what
+    // did they key to? A stored "Goose (US)" keying to "goose-us" and
+    // resolving to setlist.fm looks, without this, exactly like an account
+    // with no Goose shows in it.
+    artistsSeen: [],
     sourceReturnedNothing: [],
     ambiguousDates: [],
     errors: [],
@@ -403,6 +442,27 @@ exports.handler = async function (event) {
         if (!show.artist || !show.date) continue;
 
         const resolved = resolveBandSource(show.artist);
+
+        // Recorded for every show, matched or not, before the skip below.
+        // Capped so a large account cannot turn the report into a listing
+        // of its whole artist library.
+        if (artistsSeen.size < MAX_ARTISTS_REPORTED || artistsSeen.has(show.artist)) {
+          const seen = artistsSeen.get(show.artist) || {
+            artist: show.artist,
+            nameKey: artistNameKey(show.artist),
+            looseKey: artistNameKeyLoose(show.artist),
+            source: null,
+            matchedOn: 'default',
+            shows: 0,
+          };
+          seen.shows++;
+          if (resolved) {
+            seen.source = resolved.source;
+            seen.matchedOn = resolved.matchedOn;
+          }
+          artistsSeen.set(show.artist, seen);
+        }
+
         if (!resolved) continue;
         if (onlySource && resolved.source !== onlySource) continue;
 
@@ -493,6 +553,8 @@ exports.handler = async function (event) {
 
       if (report.truncated) break;
     }
+
+    report.artistsSeen = [...artistsSeen.values()].sort((a, b) => b.shows - a.shows);
 
     return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(report) };
   } catch (err) {

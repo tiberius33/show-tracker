@@ -1430,11 +1430,34 @@ function AdminView() {
                     case where no show ever resolved to El Goose at all. */}
                 {resyncPlan.wouldChange === 0 && !resyncPlan.truncated && (
                   resyncPlan.bandSourceShows === 0 ? (
-                    <p className="text-amber text-xs font-medium">
-                      No Goose shows found — {resyncPlan.scannedShows} show{resyncPlan.scannedShows === 1 ? '' : 's'} scanned
-                      and none had an artist that resolves to El Goose. The artist name has to normalize to
-                      &ldquo;goose&rdquo;; anything else (a side project, a typo, a suffix) goes to setlist.fm.
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-amber text-xs font-medium">
+                        No Goose shows found — {resyncPlan.scannedShows} show{resyncPlan.scannedShows === 1 ? '' : 's'} scanned
+                        and none had an artist that resolves to El Goose.
+                      </p>
+                      {/* The artist strings themselves, with what each one
+                          normalized to. Without this, an account whose shows
+                          are stored under a spelling the registry doesn't
+                          claim looks exactly like an account with no Goose
+                          shows in it — which is the ambiguity that cost two
+                          releases. */}
+                      {resyncPlan.artistsSeen?.length > 0 && (
+                        <div className="p-2.5 bg-surface border border-subtle rounded-xl">
+                          <p className="text-[11px] text-muted mb-1.5">Artist names scanned, and the key each normalized to:</p>
+                          <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                            {resyncPlan.artistsSeen.map(a => (
+                              <p key={a.artist} className="text-[11px] text-secondary">
+                                <span className="text-primary">{a.artist}</span>
+                                {' → '}<code>{a.nameKey}</code>
+                                {a.looseKey !== a.nameKey && <> / <code>{a.looseKey}</code></>}
+                                {' · '}{a.source ? <span className="text-brand">{a.source} ({a.matchedOn})</span> : 'setlist.fm'}
+                                {' · '}{a.shows} show{a.shows === 1 ? '' : 's'}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : resyncPlan.sourceReturnedNothing.length === resyncPlan.considered ? (
                     <p className="text-amber text-xs font-medium">
                       El Goose returned nothing for any of the {resyncPlan.considered} show
