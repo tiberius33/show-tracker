@@ -116,6 +116,7 @@ const FIELDS = {
   songId: 'song_id',    // stable across performances — use for song-page links
   uniqueId: 'uniqueid', // identifies ONE rendition, not the song
   artistId: 'artist_id',
+  artistName: 'artist',
   slug: 'slug',
 };
 
@@ -237,6 +238,53 @@ function readEnvelope(payload) {
   return { ok: true, message: '', rows: diagnostics.rowCount ? payload.data : [], diagnostics };
 }
 
+// ── Whose show is this? ───────────────────────────────────────────────
+//
+// /setlists/showdate/<date> is addressed by DATE, not by artist, and this
+// Songfish instance carries more than one act — elgoose.net lists Orebolo
+// and other Goose-adjacent projects alongside Goose itself. So a date where
+// two of them played returns rows for both, grouped into two shows, and the
+// caller picks between them on venue alone. On a date where the venue
+// doesn't match, or matches both, that is a coin flip between two different
+// bands' setlists.
+//
+// Rows carry the artist, so the filter belongs here, before grouping.
+//
+// ── Failing open, deliberately ────────────────────────────────────────
+//
+// The filter compares against `sourceArtistFilter` from the registry
+// ('goose'), and the exact shape of the archive's `artist` and `artist_id`
+// values is not verified against a live response. So if the filter matches
+// NOTHING, every row is kept and the result is exactly what it was before
+// this existed. A filter that cannot recognize its own artist must not turn
+// a working lookup into an empty one — the cost of being wrong in that
+// direction is a show that stops updating, which is the failure mode this
+// whole feature has been chasing.
+function artistRowKey(value) {
+  return String(value == null ? '' : value)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .trim();
+}
+
+function rowsForArtist(rows, artistFilter) {
+  const wanted = artistRowKey(artistFilter);
+  if (!wanted) return { rows, droppedOtherArtistCount: 0, filterApplied: false };
+
+  const kept = rows.filter((row) => {
+    const id = String(get(row, 'artistId') == null ? '' : get(row, 'artistId')).toLowerCase();
+    const name = artistRowKey(get(row, 'artistName'));
+    return id === wanted || name === wanted;
+  });
+
+  if (kept.length === 0) {
+    return { rows, droppedOtherArtistCount: 0, filterApplied: false };
+  }
+
+  return { rows: kept, droppedOtherArtistCount: rows.length - kept.length, filterApplied: true };
+}
+
 /**
  * Groups the flat row array by show, because one date can carry more than
  * one (a festival day where Goose played twice, or a late show). Grouping
@@ -330,13 +378,18 @@ function mapShow(rows) {
 }
 
 /**
- * fetchSetlists(date) -> { ok, message, shows: [normalizedShow] }
+ * fetchSetlists(date, { artistFilter }) -> { ok, message, shows: [...] }
  *
- * Returns every show elgoose.net has for that date. Picking between them is
- * the caller's job, not the adapter's — band-setlist.js disambiguates on
- * venue and says in the response when it had to.
+ * Returns every show elgoose.net has for that date, for the artist asked
+ * for. `artistFilter` is the registry's sourceArtistFilter ('goose'); rows
+ * belonging to another act in the same archive are dropped before grouping,
+ * and the filter fails open if it recognizes nothing (see rowsForArtist).
+ *
+ * Picking between two shows by the SAME artist on one date is still the
+ * caller's job — band-setlist.js disambiguates on venue and says in the
+ * response when it had to.
  */
-async function fetchSetlists(date) {
+async function fetchSetlists(date, { artistFilter = '' } = {}) {
   const { statusCode, data } = await fetchShowDate(date);
 
   if (statusCode !== 200) {
@@ -348,7 +401,9 @@ async function fetchSetlists(date) {
     return { ok: false, message: envelope.message, shows: [], upstream: envelope.diagnostics };
   }
 
-  const shows = groupRowsByShow(envelope.rows)
+  const { rows, droppedOtherArtistCount } = rowsForArtist(envelope.rows, artistFilter);
+
+  const shows = groupRowsByShow(rows)
     .map(mapShow)
     // A show kept only because rows were dropped still comes through, so
     // the counts reach the caller and a mapping error is visible. It
@@ -358,7 +413,16 @@ async function fetchSetlists(date) {
       || show.droppedSoundcheckCount > 0
       || show.droppedUntitledCount > 0);
 
-  return { ok: true, message: '', shows, upstream: envelope.diagnostics };
+  return {
+    ok: true,
+    message: '',
+    shows,
+    // Reported so a caller can see the filter did something — a date where
+    // another act in this archive also played is exactly the case that used
+    // to be a coin flip.
+    droppedOtherArtistCount,
+    upstream: envelope.diagnostics,
+  };
 }
 
-module.exports = { FIELDS, describeUpstream, fetchSetlists, mapShow, readEnvelope, groupRowsByShow };
+module.exports = { FIELDS, describeUpstream, fetchSetlists, mapShow, readEnvelope, groupRowsByShow, rowsForArtist };
