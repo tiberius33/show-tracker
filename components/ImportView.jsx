@@ -7,6 +7,7 @@ import { IMPORT_FIELDS } from '@/lib/constants';
 import Tip from '@/components/ui/Tip';
 import { apiUrl } from '@/lib/api';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
+import { fetchBandSetlist } from '@/lib/bandSetlist';
 
 function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
   const [step, setStep] = useState('upload');
@@ -253,9 +254,27 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
     URL.revokeObjectURL(url);
   };
 
-  const fetchSetlistForShow = async ({ artist, date }) => {
+  const fetchSetlistForShow = async ({ artist, date, venue }) => {
     try {
       if (!artist || !date) return null;
+
+      // A band source owns this artist? One date-addressed request, and
+      // we're done — no page loop, no name variants. Falls through to the
+      // setlist.fm search below on any failure, silently, which is the
+      // whole contract of lib/bandSetlist.js.
+      const band = await fetchBandSetlist({ artist, date, venue });
+      if (band) {
+        return {
+          setlist: band.songs,
+          setlistfmId: null,
+          tour: band.tour || null,
+          setlistSource: band.source,
+          sourceShowId: band.sourceShowId,
+          sourcePermalink: band.sourcePermalink,
+          setlistNotes: band.setlistNotes,
+        };
+      }
+
       const year = date.split('-')[0];
 
       const searchAndMatch = async (searchArtist) => {
@@ -300,7 +319,8 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       return {
         setlist: songs,
         setlistfmId: match.id,
-        tour: match.tour ? match.tour.name : null
+        tour: match.tour ? match.tour.name : null,
+        setlistSource: 'setlistfm',
       };
     } catch (err) {
       console.warn('Setlist fetch failed for', artist, date, err);
@@ -361,10 +381,24 @@ function ImportView({ onImport, onUpdateShow, existingShows, onNavigate }) {
       for (let i = 0; i < importedShows.length; i++) {
         const show = importedShows[i];
         try {
-          const result = await fetchSetlistForShow({ artist: show.artist, date: show.date });
+          const result = await fetchSetlistForShow({ artist: show.artist, date: show.date, venue: show.venue });
           if (result) {
-            const updates = { setlist: result.setlist, setlistfmId: result.setlistfmId, isManual: false };
+            const updates = {
+              setlist: result.setlist,
+              setlistfmId: result.setlistfmId,
+              isManual: false,
+              setlistSource: result.setlistSource || 'setlistfm',
+            };
             if (result.tour) updates.tour = result.tour;
+            // Band-source-only show fields. Absent on the setlist.fm path,
+            // so a non-Goose/Phish import writes exactly what it wrote
+            // before plus the explicit source stamp.
+            if (result.sourceShowId) updates.sourceShowId = result.sourceShowId;
+            if (result.sourcePermalink) updates.sourcePermalink = result.sourcePermalink;
+            if (result.setlistNotes) updates.setlistNotes = result.setlistNotes;
+            if (result.setlistSource && result.setlistSource !== 'setlistfm') {
+              updates.setlistFetchedAt = new Date().toISOString();
+            }
             await onUpdateShow(show.showId, updates);
             found++;
           }

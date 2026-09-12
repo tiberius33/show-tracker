@@ -16,6 +16,9 @@ import { apiUrl } from '@/lib/api';
 import { fetchArtistImage } from '@/lib/artistImage';
 import { isReturningUser as checkIsReturningUser } from '@/lib/popupManager';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
+import { enrichShowDataWithBandSetlist, fetchBandSetlist, bandSetlistShowFields } from '@/lib/bandSetlist';
+import { mergeBandSetlist, describeSummary } from '@/lib/bandSetlistMerge';
+import { resolveSource } from '@/lib/setlistSources';
 import { buildExistingShowIndex, existingShowStatus } from '@/lib/tourBrowse';
 import { normalizeFestivalName, findFestivalMatches as matchFestivals } from '@/lib/festivalMatch';
 import { logActivity } from '@/lib/activityFeed';
@@ -64,8 +67,24 @@ function buildShowDoc(showData, id) {
     id,
     setlist: showData.setlist || [],
     createdAt: new Date().toISOString(),
-    isManual: !showData.setlistfmId,
+    // `isManual` means "nobody but the user wrote this setlist", and it is
+    // what admin-populate-setlist.js checks before it refuses to overwrite.
+    // It used to be derived from setlistfmId alone, which was the same
+    // question back when setlist.fm was the only source. A band-sourced
+    // show (El Goose, Phish.net — see lib/setlistSources.js) has no
+    // setlistfmId and is emphatically not manual, so the source id counts
+    // too.
+    isManual: !showData.setlistfmId && !isBandSourced(showData),
   };
+}
+
+// True when this show's setlist came from a band source rather than from
+// setlist.fm or the user. Reads the stored `setlistSource` field rather than
+// sniffing for the presence of `footnote`/`transitionMark`: a Goose show
+// where nobody wrote any footnotes is still a Goose show from El Goose.
+function isBandSourced(showData) {
+  const id = showData?.setlistSource;
+  return !!id && id !== 'setlistfm';
 }
 
 // The Firestore half of the same path. `createdAt` is replaced with a
@@ -1114,8 +1133,20 @@ export function AppProvider({ children }) {
       return { id: existing.id, duplicate: true };
     }
 
+    // ── Where the setlist comes from ──────────────────────────────────
+    // Every add path lands here — the setlist.fm search in SearchView, the
+    // CSV import, the ticket scanner, the festival lineup modal, the manual
+    // form — so resolving the artist through lib/setlistSources.js once,
+    // here, covers all of them rather than five copies of the same branch.
+    // For an artist with no band source this is a no-op that stamps
+    // `setlistSource: 'setlistfm'` and returns; see lib/bandSetlist.js.
+    //
+    // Deliberately after the duplicate check, so adding a show the user
+    // already has doesn't spend a request on a volunteer-run archive.
+    const enriched = await enrichShowDataWithBandSetlist(showData);
+
     const showId = mintShowId();
-    const newShow = buildShowDoc(showData, showId);
+    const newShow = buildShowDoc(enriched, showId);
 
     const isFirstShow = shows.length === 0;
 
@@ -1251,7 +1282,15 @@ export function AppProvider({ children }) {
       }
 
       try {
-        const show = buildShowDoc(candidate, mintShowId());
+        // Same band-source resolution addShow does, for the same reason —
+        // a bulk-added show must be indistinguishable from a hand-added
+        // one, and that now includes where its setlist came from. A no-op
+        // for any artist the registry doesn't claim, and a single
+        // date-addressed request for one that does; the cache in
+        // band-setlist.js means two nights of the same tour don't re-ask
+        // for the same date.
+        const enriched = await enrichShowDataWithBandSetlist(candidate);
+        const show = buildShowDoc(enriched, mintShowId());
         await writeShowDoc(user.uid, show);
         createdThisRun.push(show);
         // Fold each success into the index so a repeated candidate in the
@@ -1389,11 +1428,57 @@ export function AppProvider({ children }) {
 
     const extractSongs = extractSongsFromSetlist;
 
+    // ── The band-source shortcut ──────────────────────────────────────
+    // For a Goose or Phish show this is ONE request: both archives are
+    // addressable by show date, so there is a single URL that either has
+    // the night or doesn't.
+    //
+    // What it replaces for those shows is searchAndMatch above, which is
+    // built entirely around setlist.fm's search having no date endpoint:
+    // up to three pages of twenty results, retried under up to three
+    // artist-name variants ("X", "X and Y", "The X"), reversing
+    // setlist.fm's DD-MM-YYYY into YYYY-MM-DD to compare each candidate.
+    // Up to nine requests to find one night, and that loop exists for no
+    // other reason. Every other artist keeps it unchanged.
+    const scanViaBandSource = async (show) => {
+      const result = await fetchBandSetlist({
+        artist: show.artist,
+        date: show.date,
+        venue: show.venue,
+      });
+      if (!result) return false;
+
+      // Through the merge rules like every other write, even though these
+      // shows are the ones with no setlist — because "no setlist" is
+      // `setlist: []` in most cases but not all, and a user who hand-added
+      // two songs they remembered has a setlist worth keeping.
+      const { setlist, changed, summary } = mergeBandSetlist(show.setlist || [], result.songs);
+      if (!changed) return false;
+
+      console.log(`[SETLIST SCAN] ${show.artist} ${show.date} via ${result.source}: ${describeSummary(summary)}`);
+      await updateShowData(show.id, bandSetlistShowFields(result, setlist));
+      return true;
+    };
+
     for (let i = 0; i < showsWithoutSetlists.length; i++) {
       const show = showsWithoutSetlists[i];
       try {
         if (!show.artist || !show.date) continue;
         const year = show.date.split('-')[0];
+
+        // One request instead of up to nine, where the artist has a band
+        // source. A failure here falls through to the setlist.fm path
+        // below rather than giving up on the show.
+        if (resolveSource({ name: show.artist }).isBandSource) {
+          if (await scanViaBandSource(show)) {
+            found++;
+            setSetlistScanProgress({ current: i + 1, total: showsWithoutSetlists.length, found });
+            if (i < showsWithoutSetlists.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            continue;
+          }
+        }
 
         let match = await searchAndMatch(show.artist, show.date, year);
 
@@ -1414,7 +1499,14 @@ export function AppProvider({ children }) {
         if (match) {
           const songs = extractSongs(match);
           if (songs.length > 0) {
-            const updates = { setlist: songs, setlistfmId: match.id, isManual: false };
+            // `setlistSource` is stamped explicitly on the setlist.fm path
+            // too, so nothing downstream has to infer the source from
+            // which fields happen to be present. Readers still default to
+            // setlist.fm when the field is absent — every show document
+            // written before this release has no such field, and
+            // backfilling millions of them to say what the default already
+            // says would be pointless churn.
+            const updates = { setlist: songs, setlistfmId: match.id, isManual: false, setlistSource: 'setlistfm' };
             if (match.tour) updates.tour = match.tour.name;
             await updateShowData(show.id, updates);
             found++;
