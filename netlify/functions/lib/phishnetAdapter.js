@@ -132,6 +132,40 @@ function fetchShowDate(date, apiKey) {
   });
 }
 
+// Describes what the upstream actually sent, for the case where we got a
+// 200 and no usable rows. Without this, "the archive has no show on that
+// date" and "the `data` node is not shaped the way this adapter assumes"
+// produce byte-identical output — which is precisely the question you need
+// answered when the field mapping is unverified and a lookup comes back
+// empty. Attached to the response only when there are no songs, so a
+// normal response is not bloated by it.
+function describeUpstream(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { topLevelKeys: [], dataType: payload === null ? 'null' : typeof payload, rowCount: 0 };
+  }
+  const data = payload.data;
+  let dataType;
+  if (Array.isArray(data)) dataType = 'array';
+  else if (data === null) dataType = 'null';
+  else if (data === undefined) dataType = 'absent';
+  else dataType = typeof data;
+
+  return {
+    topLevelKeys: Object.keys(payload),
+    dataType,
+    rowCount: Array.isArray(data) ? data.length : 0,
+    // The first row's keys are the single most useful thing for checking a
+    // FIELDS map against reality: if they are present but none of them is
+    // the key this adapter reads, the mapping is wrong and this names the
+    // real spelling.
+    firstRowKeys: Array.isArray(data) && data.length && data[0] && typeof data[0] === 'object'
+      ? Object.keys(data[0])
+      : [],
+    errorValue: payload.error === undefined ? 'absent' : String(payload.error),
+    errorMessage: payload.error_message == null ? '' : String(payload.error_message),
+  };
+}
+
 /**
  * v5's `error` node is a boolean `false` on success, where elgoose.net's is
  * the number 0. Both spellings are accepted here and both are tested for
@@ -149,8 +183,23 @@ function readEnvelope(payload) {
     return { ok: false, message: payload.error_message || 'phish.net reported an error', rows: [] };
   }
 
-  const rows = Array.isArray(payload.data) ? payload.data : [];
-  return { ok: true, message: '', rows };
+  const diagnostics = describeUpstream(payload);
+
+  if (diagnostics.dataType !== 'array') {
+    // A 200 whose `data` is not a list is not an empty result, it is a
+    // response this adapter does not understand. Reported as a failure
+    // so it cannot be mistaken for "no show on that date" — the merge
+    // rules treat ok:false and an empty setlist identically, so this is
+    // no less safe, just no longer silent.
+    return {
+      ok: false,
+      message: `Unexpected response shape from phish.net: data is ${diagnostics.dataType}, not an array`,
+      rows: [],
+      diagnostics,
+    };
+  }
+
+  return { ok: true, message: '', rows: diagnostics.rowCount ? payload.data : [], diagnostics };
 }
 
 function groupRowsByShow(rows) {
@@ -243,7 +292,9 @@ async function fetchSetlists(date, { apiKey, artistId } = {}) {
   }
 
   const envelope = readEnvelope(data);
-  if (!envelope.ok) return { ok: false, message: envelope.message, shows: [] };
+  if (!envelope.ok) {
+    return { ok: false, message: envelope.message, shows: [], upstream: envelope.diagnostics };
+  }
 
   const rows = artistId
     ? envelope.rows.filter((row) => String(get(row, 'artistId') || '') === String(artistId))
@@ -259,7 +310,7 @@ async function fetchSetlists(date, { apiKey, artistId } = {}) {
       || show.droppedSoundcheckCount > 0
       || show.droppedUntitledCount > 0);
 
-  return { ok: true, message: '', shows };
+  return { ok: true, message: '', shows, upstream: envelope.diagnostics };
 }
 
-module.exports = { FIELDS, fetchSetlists, mapShow, readEnvelope, splitSetCode, groupRowsByShow };
+module.exports = { FIELDS, describeUpstream, fetchSetlists, mapShow, readEnvelope, splitSetCode, groupRowsByShow };

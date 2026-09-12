@@ -212,11 +212,30 @@ exports.handler = async function (event) {
         message: result.message || 'Source returned an error',
         shows: [],
         songs: [],
+        upstream: result.upstream,
       });
       return { statusCode: 200, headers: { ...CORS_HEADERS, 'X-Cache': 'MISS' }, body };
     }
 
     const payload = selectShow(result.shows, { source, date, venue });
+
+    // Nothing came back. Attach what the upstream actually sent, because
+    // "the archive has no show on that date" and "a key in this adapter's
+    // FIELDS map is wrong" are otherwise the same empty response — and with
+    // the mapping unverified, that is the one distinction a caller needs.
+    // `firstRowKeys` is the payoff: rows present but none of them carrying
+    // the keys FIELDS reads means the mapping is wrong, and it names the
+    // real spelling.
+    if (payload.songs.length === 0 && result.upstream) {
+      payload.upstream = result.upstream;
+      if (result.upstream.rowCount > 0) {
+        console.warn(
+          `[BAND-SETLIST] ${label} — upstream returned ${result.upstream.rowCount} row(s) ` +
+          `but none produced a song. Row keys: ${result.upstream.firstRowKeys.join(', ')}. ` +
+          `Check the FIELDS map in ${source}Adapter.js.`
+        );
+      }
+    }
 
     // A row the archive returned that came out with no song title means an
     // upstream key in this adapter's FIELDS map is wrong — get `songName`
