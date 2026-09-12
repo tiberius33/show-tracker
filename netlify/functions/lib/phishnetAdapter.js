@@ -38,7 +38,9 @@
  */
 
 const https = require('https');
-const { buildSetlist, pickSetLabel, setSortKey, toBool, toIntOrNull } = require('./bandSetlistShape');
+const {
+  buildSetlist, pickSetLabel, setSortKey, stripHtml, toBool, toIntOrNull,
+} = require('./bandSetlistShape');
 
 const HOSTNAME = 'api.phish.net';
 const API_PATH = '/v5/setlists/showdate';
@@ -264,7 +266,9 @@ function mapShow(rows) {
     sourcePermalink: String(get(first, 'permalink') || ''),
     // The show-level prose phish.net keeps and setlist.fm does not. Stored
     // on the show document as `setlistNotes` and rendered under the setlist.
-    setlistNotes: String(get(first, 'setlistNotes') || '').trim(),
+    // phish.net writes HTML here as well; same stripping as elgoose so
+    // the reader never sees literal markup.
+    setlistNotes: stripHtml(get(first, 'setlistNotes')),
     sourceArtistId: String(get(first, 'artistId') || ''),
   };
 }

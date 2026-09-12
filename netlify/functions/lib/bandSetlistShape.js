@@ -154,6 +154,28 @@ function cleanStr(v) {
   return String(v == null ? '' : v).trim();
 }
 
+// Both archives write HTML in their show-level notes — links to other
+// shows, <br> between paragraphs. The UI renders those notes as text, so
+// React escapes them and the reader sees literal `<a href="...">` markup.
+// Stripped to plain text here, at the edge, with block-level tags becoming
+// newlines so paragraph breaks survive into the `whitespace-pre-line` block
+// that renders them.
+function stripHtml(v) {
+  return String(v == null ? '' : v)
+    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+    .replace(/<\s*\/\s*(p|div|li)\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /**
  * Builds one normalized song object.
  *
@@ -279,6 +301,8 @@ function setSortKey(setType, setNumber) {
 
 module.exports = {
   SOUNDCHECK_LABEL,
+  cleanStr,
+  stripHtml,
   SOUNDCHECK_POLICY,
   buildSetlist,
   buildSong,
