@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { toIsoDate } from '@/lib/utils';
 import { Camera, X, RefreshCw, Search, Check, Download, Plus, ChevronDown } from 'lucide-react';
 import { resizeImageForUpload } from '@/lib/utils';
 import { apiUrl } from '@/lib/api';
@@ -199,7 +200,10 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
       venue: setlist.venue.name,
       city: setlist.venue.city.name,
       country: setlist.venue.city.country.name,
-      date: setlist.eventDate,
+      // setlist.fm sends DD-MM-YYYY. Every other add path reverses it before
+      // saving; this one stored it verbatim, so shows added by scanning a
+      // ticket carried a date no band-source archive could be asked about.
+      date: toIsoDate(setlist.eventDate) || setlist.eventDate,
       setlist: songs,
       setlistfmId: setlist.id,
       tour: setlist.tour ? setlist.tour.name : null
@@ -216,7 +220,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
       artist: show.artist || '',
       venue: show.venue || '',
       city: show.city || '',
-      date: show.date || '',
+      date: toIsoDate(show.date) || show.date || '',
       setlist: [],
     });
     setExtractedShows(prev => prev.map((s, idx) =>

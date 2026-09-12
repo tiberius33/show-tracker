@@ -4,6 +4,23 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.34.4] — 2026-09-12
+
+### Fixed: Half A Library Worked, Split By Which Screen Added The Show
+
+- **Show documents do not all store dates the same way.** setlist.fm's API returns `eventDate` as `28-05-2025` (DD-MM-YYYY). Every add path reverses that into `2025-05-28` before saving — except the **ticket scanner**, which stored it verbatim (`components/TicketScanner.jsx:202`). So a library contains both spellings, split by which screen added each show.
+- That difference was invisible, because `parseDate` in `lib/utils.js` accepts both: such a show sorts correctly, renders correctly, and reads correctly everywhere in the app. And then the band-source lookup asked elgoose.net for `/setlists/showdate/28-05-2025`, which is not a date it has — or, after 5.33.0's validation, got a 400 from our own function for a date not in ISO form. Either way the show quietly kept its setlist.fm setlist, with no error to see.
+- **Same artist, same archive, same button, two outcomes decided by which screen had added the show.** That is the "works on some of my Goose shows but not others" report, exactly.
+- Fixed in four places, so it is closed from every direction: a `toIsoDate` helper in `lib/utils.js` built **on** `parseDate` rather than beside it (whatever date the app displays is the date it asks the archive about); the ticket scanner now saves ISO like everything else; the client normalizes before building the request; and `/api/band-setlist` accepts DD-MM-YYYY from any caller and works in ISO from there down — which fixes every already-deployed client, including an installed app version that cannot be updated.
+- A date that cannot be read at all is now its own reported reason (`bad-date`) rather than an empty result, and the admin re-sync reports the conversion it made per show (`askedDate`) rather than hiding it.
+
+### Note: The Stored Dates Are Not Migrated
+
+- Shows added by the ticket scanner still hold `DD-MM-YYYY` in Firestore. Nothing needs them converted for setlists to work now — every lookup normalizes — and rewriting dates across a live library is a data migration that deserves its own dry run rather than riding along with a bug fix.
+- Worth knowing while it stands: `admin-cleanup-duplicates` keys on the raw `date` string, so the same show saved once by the scanner and once by search would not be seen as a duplicate, and the My Shows date filter compares raw strings too.
+
+---
+
 ## [5.34.3] — 2026-09-12
 
 ### Fixed: A Corrected Field Mapping Was Served Stale For Up To A Day
