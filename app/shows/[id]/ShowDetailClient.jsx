@@ -17,7 +17,7 @@ export default function ShowDetailClient({ id }) {
   const router = useRouter();
   const {
     shows, user, guestMode, friends, festivals,
-    updateShowRating, updateShowData, updateShowComment,
+    updateShowRating, updateShowData, updateShowComment, resyncSetlistFromSource,
     tagFriendsAtShow, tagFriendByEmail, tagFriendsShow, setTagFriendsShow,
     deleteShow, toggleFavoriteArtist, isArtistFavorite, addSongToShow,
     updateSetlistOrder,
@@ -53,6 +53,7 @@ export default function ShowDetailClient({ id }) {
         onDeleteShow={deleteShow}
         onAddSong={!guestMode ? addSongToShow : undefined}
         onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}
+        onResyncSetlist={!guestMode ? resyncSetlistFromSource : undefined}
         toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
         isArtistFavorite={isArtistFavorite}
         allShows={shows}
