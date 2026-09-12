@@ -218,10 +218,34 @@ function buildSong(fields) {
 function buildSetlist(rows) {
   const kept = [];
   let droppedSoundcheckCount = 0;
+  let droppedUntitledCount = 0;
 
   for (const row of rows) {
     if (row.set == null) {
       droppedSoundcheckCount++;
+      continue;
+    }
+    // ── A song with no title is not a song ─────────────────────────────
+    // It is either corrupt upstream data or, far more likely, a
+    // mis-transcribed key in the adapter's FIELDS map: get `songName`
+    // wrong and every row still carries a valid set, position and gap,
+    // so the setlist comes out structurally perfect and entirely
+    // nameless.
+    //
+    // That case has to be caught HERE, because it slips past every guard
+    // downstream. The merge rule's "empty incoming writes nothing" rule
+    // keys off the array being empty, and this array is full; the titles
+    // normalize to '' so nothing matches the existing songs; and the
+    // result is a real setlist of blank rows written over a good one,
+    // taking the user's ratings and comments with it. Precisely the data
+    // loss the merge rules exist to prevent, arriving through the one
+    // door they don't watch.
+    //
+    // Dropping untitled rows closes it by turning a mapping error back
+    // into the empty result the merge already refuses to write. Verified
+    // against a simulated mis-transcription of `songname`.
+    if (!String(row.name == null ? '' : row.name).trim()) {
+      droppedUntitledCount++;
       continue;
     }
     kept.push(row);
@@ -232,7 +256,7 @@ function buildSetlist(rows) {
     return (a.position || 0) - (b.position || 0);
   });
 
-  return { songs: kept.map(buildSong), droppedSoundcheckCount };
+  return { songs: kept.map(buildSong), droppedSoundcheckCount, droppedUntitledCount };
 }
 
 /**

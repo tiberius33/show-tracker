@@ -4,6 +4,20 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.33.1] — 2026-09-12
+
+### Fixed: A Mis-Mapped Field Name Could Have Blanked a Setlist and Taken the Ratings With It
+
+- 5.33.0 shipped the El Goose and Phish.net adapters with their upstream field names transcribed from documentation rather than read off a live response — the branch had no network route to either API, and the PR said so. The mapping being unverified was a known, accepted risk. What was not understood at the time is that **one particular way of getting it wrong destroyed data**, and this fixes that.
+- Get the song-title key wrong — `song_name` where the archive says `songname` — and nothing else looks wrong at all. Every row still carries a valid `settype`, `setnumber`, `position` and `gap`, so the setlist comes out structurally perfect, correctly ordered, correctly split into sets, and **entirely nameless**.
+- That case walked straight past every guard. The merge rule refuses to write an *empty* incoming setlist, which is the rule that makes a failed fetch and an artist-name false positive both harmless — but this array is full. The blank titles then normalize to `''`, so nothing matched any existing song, so every existing song counted as removed. The result written to the document was a setlist of blank rows, with the user's per-song ratings and comments gone. Precisely the data loss the merge rules exist to prevent, arriving through the one door they were not watching.
+- **Untitled rows are now dropped in the adapter**, which turns a mapping error back into the empty result the merge already refuses to write. A song with no title is not a song; it is either corrupt upstream data or a wrong key. Verified by simulating exactly that mis-transcription: before, a rated two-song setlist came back as two blank rows; after, the fetch yields no songs and the existing setlist is left untouched, ratings and comments intact.
+- The merge rule gained the same check as a second line of defence — an incoming setlist with no usable title in it anywhere is treated as empty. Unreachable today because the adapter drops those rows first, and deliberately kept anyway so a future adapter that builds its songs some other way still cannot write nameless rows over a good setlist. It fires only when *nothing* incoming has a title, so one bad row among real ones is not grounds for discarding a fetch.
+- The dropped-row count rides on the response as `droppedUntitledCount` and gets a `console.warn` naming the likely culprit file, because the symptom otherwise is just "the feature quietly does nothing" — which is a much harder thing to notice than a setlist that has visibly gone blank.
+- No user-facing change and no Release Notes entry: nobody's setlist was actually harmed, since a wrong key would have had to ship *and* be exercised before anyone saw it. This is the guard that was missing from 5.33.0, added before the mapping is verified rather than after.
+
+---
+
 ## [5.33.0] — 2026-09-12
 
 ### Added: The Setlist Source Is Now a Function of the Artist
