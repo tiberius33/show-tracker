@@ -18,6 +18,7 @@ const config: CapacitorConfig = {
       '*.firebaseapp.com',
       'js-cdn.music.apple.com',
       'mysetlists.net',
+      '*.mysetlists.net',
     ],
   },
 

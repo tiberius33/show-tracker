@@ -24,6 +24,27 @@
 [functions."venue-bucket-list-notifications"]
   schedule = "30 13 * * *"
 
+# Firebase Auth handler, proxied onto our own domain.
+#
+# Google's sign-in screen shows the app name only for brand-verified OAuth
+# clients; unverified ones display the host of the redirect URI instead, which
+# is why users saw "show-tracker-d7a4d.firebaseapp.com". Proxying /__/auth/*
+# here puts the handler on mysetlists.net, so that is the host Google shows,
+# and it makes authDomain same-origin with the app (which is also what Firebase
+# recommends for browsers that block third-party storage — Safari's ITP).
+#
+# status = 200 makes this a transparent proxy, not a redirect; a 301/302 here
+# would break the flow. Must stay above the SPA catch-all at the bottom.
+#
+# NOTE: this proxy approach does not support Sign in with Apple on the WEB.
+# Apple is native-only today (components/auth/OAuthButtons.js), so nothing is
+# affected — but enabling Apple for web later means revisiting this.
+[[redirects]]
+  from = "/__/auth/*"
+  to = "https://show-tracker-d7a4d.firebaseapp.com/__/auth/:splat"
+  status = 200
+  force = true
+
 # Rewrite /api/* to Netlify functions for static export compatibility
 [[redirects]]
   from = "/api/send-email"

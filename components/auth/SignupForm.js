@@ -174,6 +174,9 @@ function getErrorMessage(code) {
     'auth/operation-not-allowed': 'Email/password accounts are not enabled',
     'auth/weak-password': 'Password is too weak',
     'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method',
+    'auth/popup-blocked': 'Your browser blocked the sign-in window. Allow popups for this site, then try again.',
+    'auth/cancelled-popup-request': 'Sign up was cancelled.',
+    'auth/unauthorized-domain': 'This domain is not authorized for OAuth operations. Add it in Firebase Console.',
   };
-  return messages[code] || 'Sign up failed. Please try again.';
+  return messages[code] || `Sign up failed (${code || 'unknown error'}). Please try again.`;
 }

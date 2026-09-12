@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -20,6 +20,15 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Persistence is applied here, when the checkbox changes, rather than inside
+  // the sign-in handlers. Awaiting setPersistence() between the click and
+  // signInWithPopup() spends the user activation the browser needs to let
+  // window.open() through, which is the other half of the blocked-popup bug.
+  useEffect(() => {
+    setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence)
+      .catch((err) => console.error('Failed to set auth persistence:', err));
+  }, [rememberMe]);
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -43,8 +52,10 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
     setLoading(true);
 
     try {
-      // Set persistence based on "Remember me" checkbox
-      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      // No awaits before signInWithPopup() on the web path — persistence is
+      // already applied by the effect above, and anything awaited here would
+      // push window.open() outside the click's user-activation window and get
+      // the popup blocked.
 
       // On native, the native sheet is the ONLY path. signInWithPopup() does
       // not throw inside WKWebView, it silently does nothing — the button
@@ -152,7 +163,7 @@ function getErrorMessage(code) {
     'auth/invalid-credential': 'Invalid email or password',
     'auth/too-many-requests': 'Too many attempts. Please try again later.',
     'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method',
-    'auth/popup-blocked': 'Popup was blocked. Please allow popups for this site.',
+    'auth/popup-blocked': 'Your browser blocked the sign-in window. Allow popups for this site, then try again.',
     'auth/cancelled-popup-request': 'Sign in was cancelled.',
     'auth/unauthorized-domain': 'This domain is not authorized for OAuth operations. Add it in Firebase Console.',
   };
