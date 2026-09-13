@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { parseDate } from '@/lib/utils';
 import { groupSongsBySet, getSetLabels, getSetOptions, moveSongToSet, reorderSongWithinSet } from '@/lib/setlistGrouping';
@@ -164,7 +164,7 @@ function SidebarCard({ children, className = '' }) {
 // Owner-only editor for moving a song between sets/encore and reordering
 // within a set — operates directly on the raw `setlist` array (with stable
 // song.id) rather than the display-only `sets`/`tracks` shape from buildSets().
-function SetlistEditControls({ setlist, onMoveSet, onReorder }) {
+function SetlistEditControls({ setlist, onMoveSet, onReorder, onRequestDelete, pendingDeleteId }) {
   const groups = groupSongsBySet(setlist);
   const setOptions = getSetOptions(setlist);
 
@@ -225,6 +225,32 @@ function SetlistEditControls({ setlist, onMoveSet, onReorder }) {
                       <option key={label} value={label}>{label}</option>
                     ))}
                   </select>
+                  {onRequestDelete && (
+                    /* Two taps, because a deleted song takes its rating and
+                       its comment with it. The second tap is a wider, red,
+                       explicitly-labelled button rather than the same icon
+                       again, so confirming is a deliberate act and not a
+                       double-tap that happened to land twice. */
+                    pendingDeleteId === song.id ? (
+                      <button
+                        type="button"
+                        onClick={() => onRequestDelete(song)}
+                        aria-label={`Confirm delete ${song.name || song.song || 'song'}`}
+                        className="px-2.5 py-2 rounded-lg text-[11px] font-semibold text-on-dark bg-danger hover:opacity-90 transition-opacity whitespace-nowrap"
+                      >
+                        Delete?
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onRequestDelete(song)}
+                        aria-label={`Delete ${song.name || song.song || 'song'}`}
+                        className="p-2 rounded-lg text-muted hover:text-danger hover:bg-surface transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )
+                  )}
                 </div>
               </li>
             ))}
@@ -262,6 +288,11 @@ export default function ShowDetailView({
   onDeleteShow,
   onAddSong,
   onReorderSetlist,
+  // Removes one song from this show's setlist, and puts it back. Two
+  // callbacks rather than one, because the undo has to restore the song at
+  // the index it came from — see deleteSongFromShow in AppContext.
+  onDeleteSong,
+  onRestoreSong,
   // Re-fetches this show's setlist from its band source (El Goose,
   // phish.net) and returns a result object saying what happened. Undefined
   // for a guest session, and never rendered for an artist setlist.fm owns.
@@ -290,6 +321,19 @@ export default function ShowDetailView({
   // changed, and those deserve to stay on screen next to the setlist they
   // are about.
   const [resyncState, setResyncState] = useState(null);
+  // The song whose delete button has been tapped once. Cleared on a second
+  // tap, on a tap elsewhere, or after a few seconds — an armed delete
+  // button that stays armed is a trap.
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  // The last deleted song, held only long enough to offer an undo.
+  const [lastDeleted, setLastDeleted] = useState(null);
+  const pendingTimer = useRef(null);
+  const undoTimer = useRef(null);
+
+  useEffect(() => () => {
+    clearTimeout(pendingTimer.current);
+    clearTimeout(undoTimer.current);
+  }, []);
 
   const artistShowCount = useMemo(
     () => allShows.filter(s => s.artist === show?.artist).length,
@@ -385,6 +429,37 @@ export default function ShowDetailView({
   const saveNote = () => {
     onUpdateComment?.(show.id, noteText.trim());
     setEditingNote(false);
+  };
+
+  // First tap arms, second tap deletes. The armed state disarms itself
+  // after a few seconds so a button left armed on screen cannot be hit by
+  // a later, unrelated tap.
+  const handleRequestDelete = async (song) => {
+    clearTimeout(pendingTimer.current);
+
+    if (pendingDeleteId !== song.id) {
+      setPendingDeleteId(song.id);
+      pendingTimer.current = setTimeout(() => setPendingDeleteId(null), 5000);
+      return;
+    }
+
+    setPendingDeleteId(null);
+    const removed = await onDeleteSong?.(show.id, song.id);
+    if (!removed) return;
+
+    // Held briefly, then dropped. An undo that stays on screen forever
+    // reads as an unfinished action.
+    setLastDeleted({ ...removed, name: song.name || song.song || song.title || 'That song' });
+    clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setLastDeleted(null), 12000);
+  };
+
+  const handleUndoDelete = async () => {
+    if (!lastDeleted) return;
+    clearTimeout(undoTimer.current);
+    const { song, index } = lastDeleted;
+    setLastDeleted(null);
+    await onRestoreSong?.(show.id, song, index);
   };
 
   const handleResync = async () => {
@@ -676,11 +751,33 @@ export default function ShowDetailView({
           </div>
 
           {editMode ? (
-            <SetlistEditControls
-              setlist={show.setlist || []}
-              onMoveSet={(songId, newLabel) => onReorderSetlist(show.id, moveSongToSet(show.setlist, songId, newLabel))}
-              onReorder={(setLabel, index, direction) => onReorderSetlist(show.id, reorderSongWithinSet(show.setlist, setLabel, index, direction))}
-            />
+            <>
+              <SetlistEditControls
+                setlist={show.setlist || []}
+                onMoveSet={(songId, newLabel) => onReorderSetlist(show.id, moveSongToSet(show.setlist, songId, newLabel))}
+                onReorder={(setLabel, index, direction) => onReorderSetlist(show.id, reorderSongWithinSet(show.setlist, setLabel, index, direction))}
+                onRequestDelete={onDeleteSong ? handleRequestDelete : undefined}
+                pendingDeleteId={pendingDeleteId}
+              />
+
+              {/* The undo. A rating and a comment live on the song that was
+                  just removed, and there is no other way back to them. */}
+              {lastDeleted && (
+                <div className="mt-3 flex items-center justify-between gap-3 px-3 py-2.5 bg-hover border border-subtle rounded-xl">
+                  <span className="text-xs text-secondary truncate">
+                    Removed <span className="text-primary font-medium">{lastDeleted.name}</span>
+                    {lastDeleted.song?.rating ? ` — its ${lastDeleted.song.rating}/10 rating went with it` : ''}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleUndoDelete}
+                    className="text-xs font-semibold text-brand hover:underline shrink-0"
+                  >
+                    Undo
+                  </button>
+                </div>
+              )}
+            </>
           ) : sets.length > 0 ? (
             <SetlistView
               sets={sets}

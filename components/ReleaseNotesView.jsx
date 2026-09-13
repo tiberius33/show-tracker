@@ -6,6 +6,15 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.35.0',
+      date: 'September 13, 2026',
+      title: 'Delete A Song From A Setlist',
+      changes: [
+        'New: tap Edit on a setlist and you can now remove a song, not just move it. Handy when an archive lists something that wasn\u2019t played, or you added one by hand and changed your mind',
+        'It asks twice before removing anything, and then offers to put it back \u2014 with its rating, your note and its place in the setlist exactly as they were',
+      ]
+    },
+    {
       version: '5.34.4',
       date: 'September 12, 2026',
       title: 'Shows Added By Scanning A Ticket',

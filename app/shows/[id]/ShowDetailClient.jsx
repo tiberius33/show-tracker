@@ -18,6 +18,7 @@ export default function ShowDetailClient({ id }) {
   const {
     shows, user, guestMode, friends, festivals,
     updateShowRating, updateShowData, updateShowComment, resyncSetlistFromSource,
+    deleteSong, restoreSongToShow,
     tagFriendsAtShow, tagFriendByEmail, tagFriendsShow, setTagFriendsShow,
     deleteShow, toggleFavoriteArtist, isArtistFavorite, addSongToShow,
     updateSetlistOrder,
@@ -54,6 +55,8 @@ export default function ShowDetailClient({ id }) {
         onAddSong={!guestMode ? addSongToShow : undefined}
         onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}
         onResyncSetlist={!guestMode ? resyncSetlistFromSource : undefined}
+        onDeleteSong={!guestMode ? deleteSong : undefined}
+        onRestoreSong={restoreSongToShow}
         toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
         isArtistFavorite={isArtistFavorite}
         allShows={shows}
