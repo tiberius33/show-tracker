@@ -132,7 +132,7 @@ export default function AdminVenueVerificationsPage() {
 
   return (
     <div>
-      <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/admin/')} className="mb-4">Back to Admin</Button>
+      <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/admin/')} className="hidden md:inline-flex mb-4">Back to Admin</Button>
       <PageHeader eyebrow="Admin" title="Venue Verifications" subtitle={`${pending.length} pending applications · ${reports.length} open reports`} />
 
       <Tabs

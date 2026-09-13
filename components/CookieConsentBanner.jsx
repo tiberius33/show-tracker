@@ -29,7 +29,7 @@ export default function CookieConsentBanner() {
   // appears — transform/opacity changes on an already-mounted element don't.
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-50 p-4 transition-transform duration-300 ${
+      className={`fixed bottom-0 left-0 right-0 z-50 p-4 pb-[calc(1rem+var(--safe-bottom))] transition-transform duration-300 ${
         visible ? 'translate-y-0' : 'translate-y-full pointer-events-none'
       }`}
       aria-hidden={!visible}

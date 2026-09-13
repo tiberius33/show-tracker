@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Send, Sparkles, RotateCcw } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
 import { artistColor } from '@/lib/utils';
+import { useDismissable } from '@/context/DismissStackContext';
+import useSheetDrag from '@/hooks/useSheetDrag';
+import useIsMobile from '@/hooks/useIsMobile';
 
 const DAILY_LIMIT = 10;
 const MAX_HISTORY = 8;
@@ -55,6 +58,15 @@ function LoadingDots() {
 }
 
 export default function ArtistAIChat({ artistName, mbid, userShows = [], onClose }) {
+  useDismissable(true, onClose, { id: 'artist-ai-chat' });
+
+  // A bottom sheet below sm:, so it gets the downward drag. The message
+  // list is the scroll container the drag has to defer to.
+  const isMobileViewport = useIsMobile();
+  const { sheetRef, backdropRef, scrollRef, dragHandleProps } = useSheetDrag({
+    enabled: isMobileViewport,
+    onDismiss: onClose,
+  });
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -137,14 +149,21 @@ export default function ArtistAIChat({ artistName, mbid, userShows = [], onClose
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div ref={backdropRef} className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative z-10 w-full sm:max-w-lg flex flex-col bg-surface border border-subtle rounded-t-2xl sm:rounded-2xl shadow-2xl"
-           style={{ maxHeight: '90vh', height: '90vh' }}>
+      <div ref={sheetRef}
+           className="relative z-10 w-full sm:max-w-lg flex flex-col bg-surface border border-subtle rounded-t-2xl sm:rounded-2xl shadow-2xl pb-safe-bottom sm:pb-0"
+           // dvh: with the keyboard up, 90vh is taller than the space left.
+           style={{ maxHeight: '90dvh', height: '90dvh' }}>
+
+        {/* Grabber — mobile only */}
+        <div {...dragHandleProps} className="sm:hidden flex-shrink-0 flex items-center justify-center pt-2.5 pb-1">
+          <div className="sheet-grabber" />
+        </div>
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-subtle flex-shrink-0">
+        <div {...dragHandleProps} className="flex items-center gap-3 px-4 py-3 border-b border-subtle flex-shrink-0">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                style={{ backgroundColor: `${color}22` }}>
             <Sparkles className="w-4 h-4" style={{ color }} />
@@ -161,18 +180,18 @@ export default function ArtistAIChat({ artistName, mbid, userShows = [], onClose
           </div>
           <div className="flex items-center gap-1">
             {messages.length > 0 && (
-              <button onClick={clearChat} className="p-1.5 rounded-lg hover:bg-hover text-muted hover:text-secondary transition-colors" title="Clear chat">
+              <button onClick={clearChat} className="tap-target rounded-lg hover:bg-hover text-muted hover:text-secondary transition-colors pressable" title="Clear chat" aria-label="Clear chat">
                 <RotateCcw className="w-4 h-4" />
               </button>
             )}
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-hover text-muted hover:text-secondary transition-colors">
+            <button onClick={onClose} className="tap-target rounded-lg hover:bg-hover text-muted hover:text-secondary transition-colors pressable" aria-label="Close">
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
           {messages.length === 0 && !loading && (
             <div className="space-y-4">
               <p className="text-sm text-secondary text-center">

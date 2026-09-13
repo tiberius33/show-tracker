@@ -19,6 +19,9 @@ export default function SearchField({
   return (
     <Input
       icon={Search}
+      // type=search picks up the search keyboard defaults in ui/Input.jsx,
+      // so every SearchField shows a Search key rather than a return key.
+      type="search"
       value={value}
       onChange={(e) => onChange?.(e.target.value)}
       placeholder={placeholder}

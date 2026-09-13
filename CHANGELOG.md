@@ -4,6 +4,84 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.36.0] — 2026-09-13
+
+### Added: Navigation Built For A Phone
+
+- The navigation was designed for the web and shipped to a handset. On device there was no back gesture at all, and **nineteen routes had no back affordance of any kind** — `/activity`, `/friends`, `/notifications`, `/wishlist`, `/bucket-list`, `/setlist-photos`, `/scan-import`, `/meetups`, `/community`, `/advanced-search`, `/roadmap`, `/feedback`, `/how-to-use`, the four `/stats` sub-pages and more. In a browser the back button covered for that. In the Capacitor shell there is no browser chrome, so the only way off those screens was to open the drawer and pick somewhere else.
+- **Swipe from the left edge to go back.** The content follows the finger, an iOS-style parallax shim trails behind it, and reversing mid-drag cancels. Committing fires a light haptic on native.
+- **Swipe down to dismiss a bottom sheet**, and swipe left to close the nav drawer.
+- **Every screen now has a header with a back control**, labelled with the parent screen's name where it fits. One component (`components/layout/MobileHeader.jsx`), mounted once, deriving what to show from the route — which is why nineteen screens gained a back control without being edited one at a time.
+- Desktop and tablet are untouched. Verified rather than assumed: the six main routes were captured from `main` and from this branch at 1440×900 and compared at `maxDiffPixels: 0`. Pixel-identical.
+
+### Added: A Gesture That Knows What Is On Screen
+
+- **We deliberately did not enable `webView.allowsBackForwardNavigationGestures`.** It is the five-line version and it is the wrong one. It walks WKWebView history rather than app state, so its interactive preview animates a snapshot of the previous route — which, for a client-rendered static export, is stale or blank. iOS 17.5+ lands the gesture on the first history entry rather than the previous one. And fatally, it has no idea a modal is open: swiping with a sheet up navigates the page underneath and strands the sheet. Nothing in `ios/` sets it, and nothing should.
+- Instead the gesture reads app state, through a new **dismiss stack** (`context/DismissStackContext.jsx`). Every overlay registers while it is open — one registration inside `components/ui/Modal.jsx` covers its fifteen call sites, and each of the fourteen ad-hoc `fixed inset-0` overlays registers for itself. On release the gesture closes the topmost overlay if there is one, and only then navigates.
+- **"Can we go back?" does not come from `window.history.length`**, which in a Capacitor SPA is never zero and counts entries that are not ours — it would report "yes" on a cold deep link where going back leaves the app. The provider keeps its own stack of visited paths instead. It counts query-string navigations too, because `/songs?song=x` renders a song rather than the song list and `usePathname` cannot see the difference.
+- **The five tab-bar roots plus `/` are floors.** You can never go back out of one; the gesture rubber-bands instead. There are no dead-end swipes off the app.
+- On a cold deep link with no in-app history, the back control routes to a parent **derived statically from the route** (`lib/navRoutes.js`) rather than calling `router.back()` into nothing. `/venues/[venueKey]` was doing exactly that.
+- The recognizer aborts inside a text field, inside `[data-no-swipe]`, inside a genuinely horizontally-scrollable ancestor, and whenever the keyboard is up. The scroller check tests `scrollWidth > clientWidth` as well as `overflow-x`, because several of this app's chip strips declare `overflow-x: auto` and fit anyway on a wide phone.
+- `touch-action: pan-y` is applied only while a drag is claimed, never as a standing rule on the content wrapper. `touch-action` is intersected down the ancestor chain and a descendant cannot opt back in, so a permanent `pan-y` there would have disabled horizontal panning for the `Tabs` strip and every other scroller in the app.
+
+### Added: Safe-Area Tokens, And One Inset That Was Counted Twice
+
+- `env(safe-area-inset-*)` is now defined once in `app/globals.css` and consumed through the Tailwind spacing scale (`pt-safe-top`, `pb-safe-bottom`, `pt-header`), rather than being spelled out in each component.
+- **The top inset was being applied twice.** `body` padded down by `env(safe-area-inset-top)`, and the content column then offset by `inset + 56px` on top of that — leaving roughly one notch of dead space under the header on a Dynamic Island device. `body` no longer pads the vertical insets; the header and the content column own them. The horizontal insets stay on `body`, because in landscape the notch genuinely eats into the content column.
+- `100vh` and `h-screen` are `100dvh`/`h-dscreen` where the intent was "fills the visible viewport" — the sheet height calc in `ui/Modal.jsx` and the drawer in `Sidebar.jsx`. Not a blind find-and-replace: the eleven `min-h-screen` uses genuinely mean "at least a screen tall" and are unchanged.
+
+### Fixed: A Delete Button You Could Not Reach On A Phone
+
+- The per-show delete in `components/StatsView.jsx` was `opacity-0 group-hover:opacity-100`. On a touchscreen there is no hover, so it was invisible and unreachable — the control simply did not exist on a phone. It is visible by default below `md:` now, and stays hover-revealed on desktop where a pointer exists.
+
+### Fixed: Focusing Any Input Zoomed The Whole Page
+
+- `ui/Input`, `ui/Textarea` and `ui/Select` all set `text-[15px]`. Safari zooms the page whenever a focused field's font size is under 16px, so **every form in the app** — search, auth, ratings, notes, the setlist editor — jolted the layout on focus. They are 16px below `md:` and keep 15px from `md:` up, where the rule does not apply.
+- `inputMode`, `enterKeyHint`, `autoComplete` and `autoCapitalize` appeared **zero times in the codebase**. An email field got the same alphabetic keyboard and the same capitalised first letter as a comment box. They are derived from the input's `type` in `ui/Input.jsx` — one table, ~60 call sites, each overridable — and set explicitly on the `/search` fields, which submit on Enter without being `type="search"`.
+
+### Fixed: Controls Under 44pt
+
+- `ui/Button` `sm` was ~32px tall and `md` ~42px; `ui/Tag` — the `/stats` period selector and every filter chip — was ~26px. All meet 44pt below `md:` via `min-h-touch`, with the padding, and therefore the desktop height, untouched. `Tag`'s remove button was a 16px target nested inside another one and now has a 44pt hit area without its 12px glyph changing size.
+- Also raised: the setlist chip buttons in `ShowDetailView` (~30px, and 6px apart, under the 8pt minimum), the `SearchView` text buttons (~16px), the `/stats/songs` sort headers, the `ArtistAIChat` header controls, and the sort/clear controls that had no vertical padding at all.
+- Tap delay and the iOS grey tap flash are gone globally, and interactive elements have a pressed state — on touch, press feedback is the only confirmation a tap registered.
+
+### Fixed: The Empty Library Scrolled Sideways On A Phone
+
+- The `animate-ping` halo on the "Search for a Show" button in the `/shows` empty state scales to 2× its element. The button is near full-width when that row stacks, so the ring's bounding box ran past a 390px viewport and gave the page a horizontal scroll. Kept from `sm:` up, where the button is narrow enough for the halo to fit.
+
+### Changed: One Definition Of "This Is A Phone", And One Of The Keyboard Height
+
+- There was no JS notion of a small screen at all — no `useIsMobile`, no `matchMedia`, no UA sniffing. Everything was Tailwind's `md:`. The gesture layer needs a JS answer, and two sources of truth that can drift is how a header ends up thinking it is on mobile while a gesture thinks it is not. `hooks/useIsMobile.js` is the one definition, derived from the same 768px `md:` uses.
+- **`--keyboard-height` was written and never read.** `lib/capacitor.js` maintained it from the Capacitor Keyboard plugin and nothing in the app consumed it, while `ui/Modal.jsx` kept a second, unrelated `visualViewport` implementation that was the only one that actually worked — and only inside that one component. Both now live in `lib/keyboardInset.js`: the plugin on native, `visualViewport` on web, one custom property and one subscriber list.
+- Standalone-PWA detection (`display-mode: standalone`) did not exist anywhere. It does now, and an installed PWA gets the full gesture set: there is no browser chrome, so the user has no back affordance of their own either.
+- `@capacitor/haptics` had been a dependency since the iOS target was set up and was never called. It is now, once per committed gesture — never per frame, never on cancel.
+
+### Note: Edge-Swipe-Back Is Off In A Mobile Browser Tab
+
+- Native and installed-PWA get the left-edge gesture. An ordinary mobile browser tab does not, because iOS Safari and Chrome both own the left edge and a JS gesture competing with the browser's own back gesture is a fight the user always loses. Everything else — swipe-down sheets, drawer swipe-to-close, the headers, the safe-area and touch-target work — is on everywhere.
+- It is one constant, `EDGE_SWIPE_BACK_IN_BROWSER_TAB` in `lib/platform.js`, so it is a one-line change if device testing says otherwise.
+
+### Note: The Tab Bar Is Still Not Mounted
+
+- `components/layout/MobileTabBar.jsx` has existed for some time and **nothing imports it**. The app has never shipped a bottom tab bar; the live shell is the inline `AppShell` in `app/AppProviderWrapper.jsx`, which renders the header and the drawer and no tab bar.
+- Left dormant on purpose. Mounting it changes the app's information architecture, which is a product decision rather than part of a navigation fix. Its five routes are still treated as navigation floors, so the hierarchy it describes is real even though the bar is not rendered. Its safe-area and touch-target handling is now correct for whenever it is mounted, but page-level padding to keep content clear of it would still have to be added at that point.
+- `components/layout/AppShell.jsx` is unused too, and is the only remaining importer of the stale `components/MobileHeader.jsx` duplicate. Both are labelled rather than deleted; removing them is unrelated to this work.
+
+### Note: One Desktop Pixel Difference, And The Bug Behind It
+
+- Desktop was verified rather than assumed: six routes captured from `main` and from this branch at 1440x920 and compared at `maxDiffPixels: 0`. Four are pixel-identical. **Two — `/stats/songs` and `/how-to-use` — differ by ~380 pixels in a 20x26 box**, which is the sidebar's 32px logo.
+- The cause is a pre-existing bug rather than a layout change. `components/brand/Pick.jsx` hard-codes its gradient id, so two `<Pick>`s on one page both declare `mys-pick-g` and every reference resolves to whichever is first in document order. The gradient is `gradientUnits="userSpaceOnUse"`, so a 32px Pick borrowing a 24px Pick's gradient renders a subtly different fill — and that is what happened on **every** screen, because the old mobile header rendered a 24px Pick above the sidebar's 32px one.
+- The new header shows a screen title instead of the wordmark on pushed routes, so on those the sidebar is now alone and uses its own, correctly-scaled gradient. **The new rendering is the correct one.** Tab roots still render both and are unchanged.
+- Fixing the id properly (a per-instance id via React's `useId`) would alter the logo's rendering slightly on every route, desktop included, so it is deliberately not bundled into a navigation change. It is noted in the component.
+
+### Note: What Is Tested, And What Needs A Device
+
+- Playwright cannot drive a native-feeling pointer gesture, so the decidable half — both commit thresholds, the direction lock, every abort condition — is a pure function in `lib/swipeGesture.js` with 31 unit tests, and the route table has 21 more. `hooks/useEdgeSwipeBack.js` is then only plumbing.
+- 16 Playwright tests cover what is driveable at a 390px viewport: the header's back control on pushed routes and its absence on tab roots, back from a cold deep link landing on the parent, no horizontal overflow, the sticky header not covering the content, and input font sizes.
+- The feel of the gesture is still a physical-device check, and so is every overlay's swipe-down, a notched device against one without, and a sheet with the keyboard up.
+
+---
+
 ## [5.35.0] — 2026-09-13
 
 ### Added: Delete A Song From A Setlist

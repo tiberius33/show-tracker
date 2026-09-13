@@ -9,6 +9,48 @@
 
 import React, { forwardRef } from 'react';
 
+// Mobile keyboard defaults per input type. There were none of these
+// anywhere in the app — inputMode, enterKeyHint, autoComplete and
+// autoCapitalize appeared zero times — so an email field got the same
+// alphabetic keyboard and the same capitalised first letter as a comment
+// box. Set here rather than at ~60 call sites; every one is overridable
+// by passing the prop explicitly.
+const TYPE_DEFAULTS = {
+  email: {
+    inputMode: 'email',
+    enterKeyHint: 'next',
+    autoComplete: 'email',
+    autoCapitalize: 'none',
+    autoCorrect: 'off',
+    spellCheck: false,
+  },
+  password: {
+    enterKeyHint: 'go',
+    autoComplete: 'current-password',
+    autoCapitalize: 'none',
+    autoCorrect: 'off',
+    spellCheck: false,
+  },
+  search: {
+    inputMode: 'search',
+    enterKeyHint: 'search',
+    autoCapitalize: 'none',
+    autoCorrect: 'off',
+    spellCheck: false,
+  },
+  url: {
+    inputMode: 'url',
+    enterKeyHint: 'go',
+    autoComplete: 'url',
+    autoCapitalize: 'none',
+    autoCorrect: 'off',
+    spellCheck: false,
+  },
+  tel: { inputMode: 'tel', autoComplete: 'tel' },
+  number: { inputMode: 'numeric' },
+  date: { autoComplete: 'off' },
+};
+
 const Input = forwardRef(function Input(
   {
     label,
@@ -24,6 +66,9 @@ const Input = forwardRef(function Input(
   ref,
 ) {
   const inputId = id || (label ? `in-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+
+  // Caller's props win: `...rest` is spread after these on the element.
+  const typeDefaults = TYPE_DEFAULTS[rest.type] || {};
 
   return (
     <div className={`flex flex-col gap-1.5 ${containerClassName}`}>
@@ -49,12 +94,18 @@ const Input = forwardRef(function Input(
           id={inputId}
           ref={ref}
           className={[
-            'flex-1 bg-transparent text-[15px] text-primary placeholder:text-muted',
-            'outline-none py-2.5',
+            // 16px below md:, not 15px. Safari zooms the whole page when a
+            // focused input's font-size is under 16px, which jolted the
+            // layout on every form in the app; 15px is kept from md: up
+            // where the zoom rule does not apply.
+            'flex-1 bg-transparent text-[16px] md:text-[15px] text-primary placeholder:text-muted',
+            // min-h-touch takes the field to the 44pt minimum on touch.
+            'outline-none py-2.5 min-h-touch md:min-h-0',
             Icon ? 'pl-2.5 pr-3.5' : 'px-3.5',
             rightElement ? 'pr-2' : '',
             className,
           ].join(' ')}
+          {...typeDefaults}
           {...rest}
         />
         {rightElement && <div className="mr-2 flex-shrink-0">{rightElement}</div>}

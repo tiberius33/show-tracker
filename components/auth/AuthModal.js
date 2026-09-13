@@ -4,8 +4,10 @@ import { X } from 'lucide-react';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
 import ForgotPasswordForm from './ForgotPasswordForm';
+import { useDismissable } from '@/context/DismissStackContext';
 
 export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
+  useDismissable(true, onClose, { id: 'auth-modal' });
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e) => {

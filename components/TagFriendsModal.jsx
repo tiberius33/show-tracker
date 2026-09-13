@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { Calendar, MapPin, Check, Search, ChevronLeft, Users, Send, RefreshCw, X } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { Button, Card, Input } from '@/components/ui';
+import { useDismissable } from '@/context/DismissStackContext';
 
 function TagFriendsModal({ show, shows: bulkShows, friends, onTag, onInviteByEmail, onClose }) {
+  useDismissable(true, onClose, { id: 'tag-friends' });
   const isBulk = Array.isArray(bulkShows) && bulkShows.length > 0;
   const displayShow = isBulk ? bulkShows[0] : show;
   const [selectedFriends, setSelectedFriends] = useState(new Set());

@@ -6,6 +6,20 @@ import { Check } from 'lucide-react';
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.36.0',
+      date: 'September 13, 2026',
+      title: 'Built For Your Phone',
+      changes: [
+        'New: swipe from the left edge of the screen to go back, and swipe down to dismiss a sheet. The screen follows your finger, and changing your mind halfway cancels it',
+        'New: every screen has a clear way back. Quite a few had none at all before \u2014 in the app there is no browser back button to fall back on, so the only way off them was the menu',
+        'Better fit on modern iPhones: nothing hidden behind the notch, the home indicator, or the keyboard',
+        'Bigger, easier tap targets throughout, and everything you tap now responds to the press',
+        'Fixed: tapping into any text box zoomed the whole page in and shifted the layout. It no longer does, and the right keyboard shows up for the field \u2014 a search key when you are searching, an email keypad for an email',
+        'Fixed: the button for deleting a show from your stats table was invisible on a phone, because it only appeared on mouse hover',
+        'Swipe left on the menu to close it. Nothing about the menu itself has changed',
+      ]
+    },
+    {
       version: '5.35.0',
       date: 'September 13, 2026',
       title: 'Delete A Song From A Setlist',

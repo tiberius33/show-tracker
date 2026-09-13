@@ -52,7 +52,11 @@ export default function TourDetailView({ tour, favorites = null }) {
     <div className="max-w-3xl mx-auto">
       <Link
         href="/tours/"
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-primary mb-5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-lg"
+        // Hidden below md:: components/layout/MobileHeader.jsx now carries
+        // the back control on this screen, and two back affordances stacked
+        // on one screen is the doubled-header problem this work removes.
+        // Desktop keeps it, with a real vertical hit area.
+        className="hidden md:inline-flex items-center gap-1.5 text-sm text-muted hover:text-primary mb-5 py-2 -my-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-lg"
       >
         <ArrowLeft className="w-4 h-4" />
         All tours

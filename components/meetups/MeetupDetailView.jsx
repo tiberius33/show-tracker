@@ -187,7 +187,11 @@ export default function MeetupDetailView({ meetup }) {
     <div className="max-w-2xl mx-auto space-y-5">
       <Link
         href="/bucket-list/"
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-primary transition-colors"
+        // Hidden below md:: components/layout/MobileHeader.jsx now carries
+        // the back control on this screen, and two back affordances stacked
+        // on one screen is the doubled-header problem this work removes.
+        // Desktop keeps it, with a real vertical hit area.
+        className="hidden md:inline-flex items-center gap-1.5 text-sm text-muted hover:text-primary py-2 -my-2 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Bucket list

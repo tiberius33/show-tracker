@@ -484,9 +484,13 @@ export default function ShowDetailView({
     <div className="max-w-5xl mx-auto">
 
       {/* ── Back button ────────────────────────────────────────────────────── */}
+      {/* Hidden below md:, where components/layout/MobileHeader.jsx already
+          provides the back control — two back affordances stacked on one
+          screen is exactly the doubled-header problem this work set out to
+          remove. Desktop keeps it, and it keeps its own hit area. */}
       <button
         onClick={onClose}
-        className="flex items-center gap-1.5 text-sm text-muted hover:text-primary mb-5 transition-colors"
+        className="hidden md:flex items-center gap-1.5 text-sm text-muted hover:text-primary mb-5 transition-colors py-2 -my-2"
       >
         <ArrowLeft className="w-4 h-4" />
         All shows
@@ -724,11 +728,11 @@ export default function ShowDetailView({
         <section>
           <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
             <h2 className="text-[22px] font-extrabold text-primary tracking-tight">Setlist</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {onReorderSetlist && totalSongs > 0 && (
                 <button
                   onClick={() => setEditMode(v => !v)}
-                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 min-h-touch md:min-h-0 rounded-lg pressable transition-colors ${
                     editMode ? 'bg-brand text-[#2a2a4e]' : 'bg-hover text-primary'
                   }`}
                 >
@@ -739,7 +743,7 @@ export default function ShowDetailView({
               {totalSongs > 0 && !editMode && (
                 <button
                   onClick={() => setShowPlayCounts(v => !v)}
-                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 min-h-touch md:min-h-0 rounded-lg pressable transition-colors ${
                     showPlayCounts ? 'bg-elevated text-primary' : 'bg-hover text-primary'
                   }`}
                 >
@@ -838,7 +842,7 @@ export default function ShowDetailView({
               <button
                 onClick={handleResync}
                 disabled={resyncState?.loading}
-                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-hover text-primary hover:bg-elevated transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 min-h-touch md:min-h-0 rounded-lg pressable bg-hover text-primary hover:bg-elevated transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${resyncState?.loading ? 'animate-spin' : ''}`} />
                 {resyncState?.loading

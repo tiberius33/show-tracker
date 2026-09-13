@@ -42,7 +42,7 @@ export default function InstallPrompt() {
   if (!showPrompt || !deferredPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-gradient-to-r from-brand to-amber rounded-2xl p-4 shadow-xl z-50 animate-slide-up">
+    <div className="fixed bottom-[calc(1rem+var(--safe-bottom))] left-4 right-4 md:left-auto md:right-4 md:w-80 bg-gradient-to-r from-brand to-amber rounded-2xl p-4 shadow-xl z-50 animate-slide-up">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-hover rounded-xl flex items-center justify-center flex-shrink-0">
           <Download className="w-5 h-5 text-primary" />

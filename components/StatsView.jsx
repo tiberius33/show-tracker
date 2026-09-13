@@ -621,8 +621,14 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
                         <td className="px-2 py-3 text-center">
                           <button
                             onClick={(e) => { e.stopPropagation(); setShowToDelete(show); }}
-                            className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all"
+                            // Was opacity-0 until hover, which on a
+                            // touchscreen means never: the control was
+                            // invisible and unreachable on a phone. Visible
+                            // by default below md:, hover-revealed from
+                            // md: up, where the pointer exists.
+                            className="tap-target rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-all pressable md:opacity-0 md:group-hover:opacity-100"
                             title="Delete show"
+                            aria-label="Delete show"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

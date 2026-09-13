@@ -63,7 +63,7 @@ export default function YearInReviewClient({ userId, year }) {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/')} className="mb-4">Back</Button>
+      <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/')} className="hidden md:inline-flex mb-4">Back</Button>
 
       <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-brand to-[#059669] text-white p-8 md:p-12 text-center mb-8">
         <p className="text-sm font-bold uppercase tracking-wide opacity-90 mb-2">MySetlists</p>

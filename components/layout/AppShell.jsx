@@ -7,6 +7,13 @@
 //
 // Drop into app/(authed)/layout.jsx or wrap individual pages.
 //
+// NOT MOUNTED. Nothing imports this file. The live shell is the inline
+// AppShell function in app/AppProviderWrapper.jsx; this is an earlier
+// extraction of the same idea that was never adopted, and it is the only
+// remaining importer of the stale components/MobileHeader.jsx duplicate.
+// Left in place rather than deleted (removing it is unrelated to the
+// navigation work), but it is not the file to edit.
+//
 //   <AppShell user={currentUser} isAdmin={isAdmin} isGuest={isGuest}>
 //     <PageHeader title="My Shows" />
 //     …page content…

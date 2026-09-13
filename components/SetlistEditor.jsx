@@ -14,8 +14,20 @@ import UpcomingShows from '@/components/UpcomingShows';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import StreamingLinks from '@/components/StreamingLinks';
+import { useDismissable } from '@/context/DismissStackContext';
+import useSheetDrag from '@/hooks/useSheetDrag';
+import useIsMobile from '@/hooks/useIsMobile';
 
 function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, friendAnnotations, isReturningUser }) {
+  useDismissable(true, onClose, { id: 'setlist-editor' });
+
+  // Presents as a bottom sheet on mobile (items-end, rounded-t-2xl) and a
+  // centred dialog from md: up, so the downward drag is mobile-only.
+  const isMobileViewport = useIsMobile();
+  const { sheetRef, backdropRef, scrollRef, dragHandleProps } = useSheetDrag({
+    enabled: isMobileViewport,
+    onDismiss: onClose,
+  });
   const router = useRouter();
   const { setSelectedShow } = useApp();
   const [songName, setSongName] = useState('');
@@ -140,10 +152,30 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
   }, [friendAnnotations]);
 
   return (
-    <div className="fixed inset-0 md:left-64 bg-sidebar/50 backdrop-blur-xl flex items-end md:items-center justify-center md:p-4 z-[60]">
-      <div className="bg-surface border border-subtle rounded-t-2xl md:rounded-3xl max-w-[100vw] sm:max-w-lg md:max-w-2xl w-full max-h-[92vh] md:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 md:left-64 flex items-end md:items-center justify-center md:p-4 z-[60]">
+      {/* Backdrop split out of the wrapper so the swipe-down drag can fade
+          it in step with the sheet. */}
+      <div
+        ref={backdropRef}
+        aria-hidden="true"
+        className="absolute inset-0 bg-sidebar/50 backdrop-blur-xl"
+      />
+      <div
+        ref={sheetRef}
+        className="relative bg-surface border border-subtle rounded-t-2xl md:rounded-3xl max-w-[100vw] sm:max-w-lg md:max-w-2xl w-full max-h-[92dvh] md:max-h-[90dvh] overflow-hidden flex flex-col shadow-2xl pb-safe-bottom md:pb-0"
+      >
+        {/* Grabber — mobile only; the drag region is this plus the top bar. */}
+        <div
+          {...dragHandleProps}
+          className="md:hidden flex-shrink-0 flex items-center justify-center pt-2.5 pb-1"
+        >
+          <div className="sheet-grabber" />
+        </div>
         {/* Compact top bar with close, share, and tag */}
-        <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-subtle bg-surface flex-shrink-0">
+        <div
+          {...dragHandleProps}
+          className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-subtle bg-surface flex-shrink-0"
+        >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <h2 className="text-lg md:text-2xl font-bold truncate" style={{ color: artistColor(show.artist) }}>{show.artist}</h2>
             {!show.isManual && (
@@ -213,7 +245,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                         <p className="text-primary text-xs leading-relaxed mb-2">
                           Create a Spotify or Apple Music playlist from this setlist with one tap!
                         </p>
-                        <button onClick={dismissPlaylistTip} className="text-brand hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                        <button onClick={dismissPlaylistTip} className="text-brand hover:text-primary text-xs font-medium min-h-touch md:min-h-0 inline-flex items-center transition-colors">Got it ✓</button>
                       </div>
                     </div>
                     {/* Mobile: tooltip below the button */}
@@ -223,7 +255,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
                         <p className="text-primary text-xs leading-relaxed mb-2">
                           Create a Spotify or Apple Music playlist from this setlist!
                         </p>
-                        <button onClick={dismissPlaylistTip} className="text-brand hover:text-primary text-xs font-medium transition-colors">Got it ✓</button>
+                        <button onClick={dismissPlaylistTip} className="text-brand hover:text-primary text-xs font-medium min-h-touch md:min-h-0 inline-flex items-center transition-colors">Got it ✓</button>
                       </div>
                     </div>
                   </>
@@ -247,7 +279,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
         </div>
 
         {/* Scrollable content area with show info + setlist */}
-        <div className="flex-1 overflow-y-auto">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {/* Show details */}
           <div className="px-4 py-3 md:px-6 md:py-4 border-b border-subtle bg-surface">
             <p className="text-secondary text-sm">

@@ -12,7 +12,10 @@ import CookieConsentBanner from '@/components/CookieConsentBanner';
 import ChangelogPopup from '@/components/ChangelogPopup';
 import { extractFirstName } from '@/lib/utils';
 import { initCapacitorPlugins } from '@/lib/capacitor';
+import { initKeyboardInsetTracking } from '@/lib/keyboardInset';
 import { registerServiceWorker } from '@/lib/service-worker';
+import { DismissStackProvider, useDismissable } from '@/context/DismissStackContext';
+import SwipeBackLayer from '@/components/layout/SwipeBackLayer';
 import { Music, Check, Sparkles } from 'lucide-react';
 
 // Code-split: each of these only renders behind a runtime condition (logged
@@ -55,8 +58,13 @@ function isPublicPath(pathname) {
 export default function AppProviderWrapper({ children }) {
   return (
     <AppProvider>
-      <AppShell>{children}</AppShell>
-      <CookieConsentBanner />
+      {/* Inside AppProvider (it reads nothing from it, but every overlay
+          that registers with it lives further in) and outside everything
+          that renders an overlay, so there is exactly one stack. */}
+      <DismissStackProvider>
+        <AppShell>{children}</AppShell>
+        <CookieConsentBanner />
+      </DismissStackProvider>
     </AppProvider>
   );
 }
@@ -83,7 +91,19 @@ function AppShell({ children }) {
   useEffect(() => {
     initCapacitorPlugins();
     registerServiceWorker();
+    // Keeps --keyboard-height current on web, where there is no Keyboard
+    // plugin to report it. No-ops on native, which already owns the value.
+    return initKeyboardInsetTracking();
   }, []);
+
+  // The three overlays this component renders inline. Each registers with
+  // the dismiss stack so the back gesture closes it rather than navigating
+  // the page out from under it.
+  useDismissable(showMigrationPrompt, handleSkipMigration, { id: 'migration-prompt' });
+  useDismissable(showGuestPrompt, () => setShowGuestPrompt(false), { id: 'guest-prompt' });
+  useDismissable(!!welcomeState, () => setWelcomeState(null), { id: 'welcome-modal' });
+  // The first-show celebration is deliberately absent: it is
+  // pointer-events-none and self-dismissing, so it is not a dismiss target.
 
   // Show loading state while auth initializes
   if (authLoading) {
@@ -124,6 +144,7 @@ function AppShell({ children }) {
   }
 
   return (
+    <SwipeBackLayer>
     <div className="min-h-screen bg-base text-primary">
       {/* Migration Prompt Modal */}
       {showMigrationPrompt && (
@@ -263,8 +284,11 @@ function AppShell({ children }) {
         unreadNotificationCount={unreadNotifications?.length || null}
       />
 
-      {/* Main Content Area */}
-      <div className="md:pl-64 min-h-screen pt-[calc(env(safe-area-inset-top)+56px)] md:pt-0">
+      {/* Main Content Area.
+          pt-header is the mobile header's bar plus the status-bar inset,
+          from the safe-* tokens in globals.css — the body no longer pads
+          the top inset as well, which used to count it twice. */}
+      <div className="md:pl-64 min-h-screen pt-header md:pt-0">
         <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10">
           {children}
         </div>
@@ -298,7 +322,7 @@ function AppShell({ children }) {
       {toast && (
         <div
           className={[
-            'fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 rounded-2xl',
+            'fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-1/2 -translate-x-1/2 z-[90] px-5 py-3 rounded-2xl',
             'shadow-lg font-medium text-sm animate-fade-in',
             toast?.type === 'error'
               ? 'bg-danger text-white shadow-danger/40'
@@ -310,5 +334,6 @@ function AppShell({ children }) {
         </div>
       )}
     </div>
+    </SwipeBackLayer>
   );
 }

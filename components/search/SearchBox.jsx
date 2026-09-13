@@ -31,6 +31,16 @@ export default function SearchBox({
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
+        // type=search + enterKeyHint give iOS a Search key instead of a
+        // return key; autoCapitalize/autoCorrect off because an artist or
+        // venue name is not prose and the corrections were fighting it.
+        type="search"
+        inputMode="search"
+        enterKeyHint="search"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck="false"
+        aria-label={placeholder}
         className="flex-1 border-0 outline-none font-sans text-[18px] font-semibold text-primary bg-transparent placeholder:text-muted placeholder:font-medium"
       />
       {typeof resultCount === 'number' && (

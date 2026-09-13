@@ -274,7 +274,7 @@ export default function ShowsPage() {
           {filterLabel && (
             <Link
               href={filterLabel.type === 'artist' ? '/stats/top-artists' : '/stats/top-venues'}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-primary mb-3"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-primary mb-3 min-h-touch md:min-h-0"
             >
               <ChevronLeft className="w-4 h-4" />
               Back to {filterLabel.type === 'artist' ? 'Top Artists' : 'Top Venues'}
@@ -469,7 +469,13 @@ export default function ShowsPage() {
                   onClick={() => navigateTo('search')}
                   className="relative"
                 >
-                  <span className="absolute inset-0 rounded-full bg-brand animate-ping opacity-20 pointer-events-none" />
+                  {/* Decorative pulse. Hidden below sm: — animate-ping
+                      scales to 2x, and this button is near full-width when
+                      the row stacks, so the ring's bounding box ran past a
+                      390px viewport and gave the page a horizontal scroll.
+                      Kept from sm: up, where the button is narrow enough
+                      for the halo to fit. */}
+                  <span className="hidden sm:block absolute inset-0 rounded-full bg-brand animate-ping opacity-20 pointer-events-none" />
                   Search for a Show
                 </Button>
                 <Button
@@ -615,7 +621,12 @@ export default function ShowsPage() {
 
           {/* Bulk action bar */}
           {selectionMode && selectedShowIds.size > 0 && (
-            <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-surface border-t border-subtle p-4 z-50 shadow-xl">
+            <div
+              // Clears the home indicator, and rides above the keyboard —
+              // bottom-keyboard resolves to --keyboard-height, which
+              // lib/keyboardInset.js keeps current on both platforms.
+              className="fixed bottom-keyboard left-0 md:left-64 right-0 bg-surface border-t border-subtle p-4 pb-[calc(1rem+var(--safe-bottom))] z-50 shadow-xl"
+            >
               <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
                 <span className="text-sm font-medium text-primary">
                   {selectedShowIds.size} show{selectedShowIds.size !== 1 ? 's' : ''} selected

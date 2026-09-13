@@ -30,7 +30,13 @@ export default function PageHeader({
           </div>
         )}
         {title && (
-          <h1 className="text-[32px] md:text-[40px] leading-[1.05] font-extrabold tracking-[-0.025em] text-primary">
+          <h1
+            // The mobile header watches this with an IntersectionObserver
+            // and fades its own compact title in once this one has scrolled
+            // away — see components/layout/MobileHeader.jsx.
+            data-page-title
+            className="text-[26px] md:text-[40px] leading-[1.08] md:leading-[1.05] font-extrabold tracking-[-0.025em] text-primary"
+          >
             {title}
           </h1>
         )}

@@ -242,6 +242,9 @@ function SearchView({ onImport, importedIds, onAddManually }) {
               value={artistName}
               onChange={(e) => setArtistName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchByArtist()}
+              enterKeyHint="search"
+              autoCapitalize="words"
+              autoCorrect="off"
               hint="Find all shows featuring this artist across different bands and projects"
               containerClassName="mb-4"
             />
@@ -267,6 +270,9 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                   value={artistName}
                   onChange={(e) => setArtistName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchArtists()}
+                  enterKeyHint="search"
+                  autoCapitalize="words"
+                  autoCorrect="off"
                   disabled={selectedArtist !== null}
                 />
                 {selectedArtist && (
@@ -280,7 +286,8 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                     <Tip text="Clear selection">
                       <button
                         onClick={clearArtistSelection}
-                        className="text-secondary hover:text-primary p-2 -m-1 flex items-center justify-center"
+                        className="text-secondary hover:text-primary tap-target -m-1 pressable"
+                        aria-label="Clear artist selection"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -295,6 +302,10 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
+                // A numeric pad for a year, but type stays text so a
+                // partial entry is not silently rejected by the browser.
+                inputMode="numeric"
+                enterKeyHint="search"
               />
               <Input
                 label="Venue"
@@ -303,6 +314,8 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && selectedArtist && searchSetlists(1)}
+                enterKeyHint="search"
+                autoCapitalize="words"
               />
               <Input
                 label="City"
@@ -311,6 +324,8 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                 value={cityName}
                 onChange={(e) => setCityName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (selectedArtist ? searchSetlists(1) : searchArtists())}
+                enterKeyHint="search"
+                autoCapitalize="words"
               />
             </div>
             <Button
@@ -426,7 +441,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                               {songCount > 0 && (
                                 <button
                                   onClick={() => setExpandedSetlist(isExpanded ? null : setlist.id)}
-                                  className="flex items-center gap-1 text-xs text-secondary hover:text-primary mt-2 transition-colors"
+                                  className="flex items-center gap-1 text-xs text-secondary hover:text-primary mt-2 min-h-touch md:min-h-0 transition-colors pressable"
                                 >
                                   <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                   {songCount} songs
@@ -522,7 +537,7 @@ function SearchView({ onImport, importedIds, onAddManually }) {
                       {songCount > 0 && (
                         <button
                           onClick={() => setExpandedSetlist(isExpanded ? null : setlist.id)}
-                          className="flex items-center gap-1 text-xs text-secondary hover:text-primary mt-2 transition-colors"
+                          className="flex items-center gap-1 text-xs text-secondary hover:text-primary mt-2 min-h-touch md:min-h-0 transition-colors pressable"
                         >
                           <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                           {songCount} songs

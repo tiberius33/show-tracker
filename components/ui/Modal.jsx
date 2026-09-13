@@ -14,8 +14,12 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useDismissable } from '@/context/DismissStackContext';
+import useSheetDrag from '@/hooks/useSheetDrag';
+import useIsMobile from '@/hooks/useIsMobile';
+import useKeyboardInset from '@/hooks/useKeyboardInset';
 
 const SIZES = {
   sm:   'max-w-md',
@@ -35,37 +39,19 @@ export default function Modal({
   showClose = true,
   footer,
 }) {
-  // How much of the layout viewport is covered by the on-screen keyboard.
+  // How much of the layout viewport the on-screen keyboard covers.
   //
-  // This modal is `position: fixed; inset: 0`, so it is laid out against the
-  // *layout* viewport. Capacitor's `Keyboard: { resize: 'body' }` resizes the
-  // body element, which a fixed-position element is not affected by — so on
-  // iOS the sheet stayed anchored to the bottom of the screen, behind the
-  // keyboard, and its buttons could not be tapped at all. visualViewport is
-  // the only thing that reports the keyboard's true height to the web layer.
-  const [keyboardInset, setKeyboardInset] = useState(0);
-
-  useEffect(() => {
-    if (!open || typeof window === 'undefined') return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const update = () => {
-      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      // A browser chrome bar is tens of pixels; a keyboard is hundreds. Ignore
-      // the former so the sheet does not twitch while scrolling in Safari.
-      setKeyboardInset(inset > 120 ? Math.round(inset) : 0);
-    };
-
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-      setKeyboardInset(0);
-    };
-  }, [open]);
+  // This modal is `position: fixed; inset: 0`, so it is laid out against
+  // the *layout* viewport. Capacitor's `Keyboard: { resize: 'body' }`
+  // resizes the body element, which a fixed-position element is not
+  // affected by — so on iOS the sheet stayed anchored to the bottom of the
+  // screen, behind the keyboard, and its buttons could not be tapped at all.
+  //
+  // The visualViewport listener that used to live here was the only working
+  // keyboard measurement in the app, and worked only inside this component.
+  // It is now lib/keyboardInset.js, shared with everything else that has to
+  // ride above the keyboard, and correct on native as well as on web.
+  const keyboardInset = useKeyboardInset();
 
   // Escape to close + scroll lock
   useEffect(() => {
@@ -84,29 +70,53 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[9000] flex items-end md:items-center justify-center p-0 md:p-4 bg-sidebar/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[9000] flex items-end md:items-center justify-center p-0 md:p-4"
       style={keyboardInset ? { paddingBottom: keyboardInset } : undefined}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
+      {/* Backdrop as its own element so the swipe-down drag can fade it
+          with the sheet. */}
       <div
+        ref={backdropRef}
+        aria-hidden="true"
+        className="absolute inset-0 bg-sidebar/60 backdrop-blur-sm animate-fade-in"
+      />
+      <div
+        ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
         style={
           keyboardInset
-            ? { maxHeight: `calc(100vh - ${keyboardInset}px - 0.5rem)` }
+            // dvh, not vh: vh is the largest-possible viewport, so with the
+            // keyboard up this used to compute a sheet taller than the space
+            // actually left for it.
+            ? { maxHeight: `calc(100dvh - ${keyboardInset}px - 0.5rem)` }
             : undefined
         }
         className={[
-          'bg-surface w-full shadow-theme-xl flex flex-col max-h-[92vh] animate-slide-up',
+          'relative bg-surface w-full shadow-theme-xl flex flex-col max-h-[92dvh] animate-slide-up',
           'rounded-t-2xl md:rounded-2xl',
+          // The home indicator sits over the bottom of a full-width sheet.
+          'pb-safe-bottom md:pb-0',
           SIZES[size],
         ].join(' ')}
       >
+        {/* Grabber — mobile only, and the primary drag region. Also the
+            affordance that tells you the sheet can be dragged at all. */}
+        <div
+          {...dragHandleProps}
+          className="md:hidden flex-shrink-0 flex items-center justify-center pt-2.5 pb-1 cursor-grab"
+        >
+          <div className="sheet-grabber" />
+        </div>
         {/* Header */}
         {(title || showClose) && (
-          <div className="flex items-start justify-between gap-4 p-5 md:p-6 border-b border-subtle">
+          <div
+            {...dragHandleProps}
+            className="flex items-start justify-between gap-4 px-5 pb-5 pt-2 md:p-6 border-b border-subtle"
+          >
             <div className="min-w-0 flex-1">
               {title && (
                 <h2 id="modal-title" className="text-xl md:text-2xl font-bold tracking-[-0.015em] text-primary">
@@ -122,7 +132,7 @@ export default function Modal({
                 type="button"
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="flex-shrink-0 p-2 -m-2 rounded-lg text-muted hover:text-primary hover:bg-hover transition-colors"
+                className="flex-shrink-0 tap-target -mr-2 -mt-1 rounded-lg text-muted hover:text-primary hover:bg-hover transition-colors pressable"
               >
                 <X size={22} strokeWidth={2.2} />
               </button>
@@ -131,11 +141,11 @@ export default function Modal({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 md:p-6">{children}</div>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 md:p-6">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex justify-end gap-2.5 p-5 md:p-6 border-t border-subtle bg-base/40">
+          <div className="flex-shrink-0 flex justify-end gap-2.5 p-5 md:p-6 border-t border-subtle bg-base/40">
             {footer}
           </div>
         )}

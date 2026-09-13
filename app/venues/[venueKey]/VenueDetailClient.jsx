@@ -47,7 +47,7 @@ export default function VenueDetailClient({ venueKey }) {
 
   return (
     <div>
-      <Button variant="ghost" icon={ArrowLeft} onClick={() => router.back()} className="mb-4">Back</Button>
+      <Button variant="ghost" icon={ArrowLeft} className="hidden md:inline-flex mb-4" onClick={() => router.back()}>Back</Button>
 
       <PageHeader
         eyebrow="Venue"

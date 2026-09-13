@@ -73,7 +73,7 @@ export default function VenueDashboardClient({ venueKey }) {
     return (
       <div className="py-24 text-center">
         <p className="text-lg text-primary mb-4">You don't manage this venue.</p>
-        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push(`/venues/${encodeURIComponent(venueKey)}/`)}>
+        <Button variant="ghost" icon={ArrowLeft} className="hidden md:inline-flex" onClick={() => router.push(`/venues/${encodeURIComponent(venueKey)}/`)}>
           Back to venue page
         </Button>
       </div>
@@ -82,7 +82,7 @@ export default function VenueDashboardClient({ venueKey }) {
 
   return (
     <div>
-      <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push(`/venues/${encodeURIComponent(venueKey)}/`)} className="mb-4">
+      <Button variant="ghost" icon={ArrowLeft} className="hidden md:inline-flex mb-4" onClick={() => router.push(`/venues/${encodeURIComponent(venueKey)}/`)}>
         Back to venue page
       </Button>
 
