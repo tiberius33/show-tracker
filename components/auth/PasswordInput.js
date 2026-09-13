@@ -36,11 +36,20 @@ export default function PasswordInput({
         onChange={(e) => onChange(e.target.value)}
         required={required}
         disabled={disabled}
+        // Toggling to type=text would otherwise lose ui/Input's password
+        // keyboard defaults and let iOS capitalise the first character of a
+        // revealed password. `showStrength` is only set on the signup form,
+        // which is where a new-password hint belongs.
+        autoComplete={showStrength ? 'new-password' : 'current-password'}
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
         rightElement={
           <button
             type="button"
             onClick={() => setVisible(!visible)}
-            className="text-muted hover:text-primary transition-colors p-1"
+            aria-label={visible ? 'Hide password' : 'Show password'}
+            className="tap-target text-muted hover:text-primary transition-colors"
             tabIndex={-1}
           >
             {visible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}

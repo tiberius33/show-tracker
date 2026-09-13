@@ -167,7 +167,7 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                       ) : (
                         <button
                           onClick={() => onSongClick?.(t.title)}
-                          className="ml-2 inline-block text-[10px] font-bold text-success hover:text-success/80 transition-colors"
+                          className="relative tap-area ml-2 inline-block text-[10px] font-bold text-success hover:text-success/80 transition-colors"
                         >
                           Seen {playCounts[t.title]}×
                         </button>

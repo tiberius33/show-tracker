@@ -62,7 +62,7 @@ export default function FestivalsPage() {
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Tent className="w-10 h-10 text-muted mb-4" />
           <p className="text-lg text-primary mb-4">Festival not found.</p>
-          <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/festivals/')}>
+          <Button variant="ghost" icon={ArrowLeft} className="hidden md:inline-flex" onClick={() => router.push('/festivals/')}>
             Back to festivals
           </Button>
         </div>

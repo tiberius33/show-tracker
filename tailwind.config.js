@@ -38,6 +38,37 @@ module.exports = {
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'sans-serif'],
       },
+      spacing: {
+        // Device insets, from the tokens in app/globals.css. Use these
+        // (pt-safe-top, pb-safe-bottom, …) rather than spelling out
+        // env(safe-area-inset-*) in a component.
+        'safe-top': 'var(--safe-top)',
+        'safe-bottom': 'var(--safe-bottom)',
+        'safe-left': 'var(--safe-left)',
+        'safe-right': 'var(--safe-right)',
+        // The mobile header's bar plus the status-bar inset above it —
+        // what a fixed-header page has to offset its content by.
+        'header': 'calc(var(--mobile-header-h) + var(--safe-top))',
+        // Keyboard height, so a sticky control can ride above it.
+        'keyboard': 'var(--keyboard-height)',
+      },
+      minHeight: {
+        // 44x44pt is the minimum comfortable touch target.
+        'touch': '44px',
+        // "Fills the visible viewport" — dvh, because 100vh is wrong the
+        // moment the iOS URL bar or the keyboard moves.
+        'dscreen': '100dvh',
+      },
+      minWidth: {
+        'touch': '44px',
+      },
+      height: {
+        'header': 'calc(var(--mobile-header-h) + var(--safe-top))',
+        'dscreen': '100dvh',
+      },
+      maxHeight: {
+        'dscreen': '100dvh',
+      },
       boxShadow: {
         'theme-sm': 'var(--shadow-sm)',
         'theme-md': 'var(--shadow-md)',

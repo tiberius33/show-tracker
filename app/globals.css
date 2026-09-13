@@ -35,6 +35,25 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.40);
   --shadow-xl: 0 20px 48px rgba(0,0,0,0.45);
+
+  /* ── Device insets & mobile chrome ──────────────────
+     Defined once here and consumed through the Tailwind spacing scale
+     (pt-safe-top, pb-safe-bottom, h-header …) so no component has to spell
+     out env(safe-area-inset-*) itself. viewport-fit=cover is set in
+     app/layout.jsx; without it every one of these resolves to zero. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Height of the mobile header's bar, excluding its safe-area padding. */
+  --mobile-header-h: 56px;
+
+  /* How much of the viewport the on-screen keyboard covers. Written by the
+     Capacitor Keyboard plugin on native and by visualViewport on web —
+     see lib/keyboardInset.js. Declared here so it is always a valid length
+     even before either has reported. */
+  --keyboard-height: 0px;
 }
 
 /* Hide scrollbar for horizontal scroll containers */
@@ -65,11 +84,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg-base);
   color: var(--text-primary);
-  /* iOS safe areas */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  /* iOS safe areas — horizontal only.
+     Top and bottom are deliberately NOT padded here. The mobile header is
+     position:fixed and pads its own top inset, and the content column
+     already offsets by header height + top inset; padding the body as well
+     counted the inset twice and left a strip of dead space under the header
+     on a notched device. Vertical insets are now applied where they are
+     actually needed (header, sheets, fixed bottom controls) via the
+     safe-* spacing tokens. The horizontal insets stay, because in landscape
+     the notch genuinely eats into the content column. */
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 code {
@@ -190,4 +215,71 @@ code {
   .tooltip-wrap .tooltip-text::after {
     display: none;
   }
+}
+
+/* ── Touch ergonomics ─────────────────────────────────
+   On a touchscreen there is no hover, so a pressed state is the only
+   confirmation a tap registered at all. These are the shared pieces;
+   individual components opt in rather than each re-deriving them. */
+
+/* Every interactive element: kill the 300ms tap delay and iOS's grey
+   flash, which fires on scroll-starts as well as taps and reads as the
+   app twitching. */
+button,
+a,
+[role="button"],
+input,
+select,
+textarea,
+label {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* A control that must meet the 44x44pt minimum. Expands the HIT AREA, not
+   the icon — apply to the element, keep the glyph whatever size it looks
+   right at. */
+.tap-target {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Same, for a control that has to stay visually small: the pseudo-element
+   extends the tappable box past the painted one without changing layout. */
+.tap-area::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
+/* Visible press feedback. Deliberately a transform + opacity change so it
+   costs nothing and reads instantly. */
+.pressable {
+  transition: transform 0.12s ease-out, opacity 0.12s ease-out;
+}
+.pressable:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pressable:active {
+    transform: none;
+  }
+}
+
+/* ── Bottom-sheet grabber ───────────────────────────── */
+.sheet-grabber {
+  width: 36px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  opacity: 0.4;
 }

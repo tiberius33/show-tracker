@@ -23,6 +23,9 @@ import {
 import Pick from '../brand/Pick';
 import Wordmark from '../brand/Wordmark';
 import Badge from '../ui/Badge';
+import { useDismissable } from '@/context/DismissStackContext';
+import useDrawerSwipeClose from '@/hooks/useDrawerSwipeClose';
+import useIsMobile from '@/hooks/useIsMobile';
 
 function getActiveId(pathname) {
   if (!pathname || pathname === '/') return 'shows';
@@ -43,6 +46,21 @@ export default function Sidebar({
 }) {
   const pathname = usePathname() || '';
   const segment = getActiveId(pathname);
+
+  // The mobile drawer is a dismissable overlay like any other, driven by the
+  // isOpen/onClose pair AppShell and AppProviderWrapper already pass in — so
+  // an edge swipe with the drawer open closes the drawer rather than
+  // navigating the page behind it.
+  useDismissable(!!isOpen, onClose, { id: 'nav-drawer' });
+
+  // Leftward swipe-to-close. Close only: a right-edge open gesture would
+  // collide with the back swipe.
+  const isMobileViewport = useIsMobile();
+  const { drawerRef } = useDrawerSwipeClose({
+    isOpen: !!isOpen,
+    onClose,
+    enabled: isMobileViewport,
+  });
 
   // Profile's badge folds together everything that needs the user's
   // attention there: pending friend requests/invites (pendingNotificationCount)
@@ -109,11 +127,18 @@ export default function Sidebar({
       )}
 
       <aside
+        ref={drawerRef}
         className={[
-          'w-64 h-screen bg-sidebar flex flex-col fixed left-0 top-0 z-50',
+          // dvh, not vh: with the iOS URL bar showing, h-screen made the
+          // drawer taller than the visible viewport and cut off the logout
+          // row at the bottom.
+          'w-64 h-dscreen bg-sidebar flex flex-col fixed left-0 top-0 z-50',
           'transform transition-transform duration-300 ease-out',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           'md:translate-x-0',
+          // The status bar and home indicator both overlap a full-height
+          // drawer.
+          'pt-safe-top pb-safe-bottom md:pt-0 md:pb-0',
         ].join(' ')}
       >
         {/* Brand */}
@@ -131,7 +156,7 @@ export default function Sidebar({
             <button
               type="button"
               onClick={onClose}
-              className="md:hidden p-2 rounded-lg text-on-dark-muted hover:text-on-dark hover:bg-white/[0.06] transition-colors"
+              className="md:hidden tap-target -mr-2 rounded-lg text-on-dark-muted hover:text-on-dark hover:bg-white/[0.06] transition-colors pressable"
               aria-label="Close menu"
             >
               <X size={20} />

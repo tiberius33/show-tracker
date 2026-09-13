@@ -58,7 +58,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
     <div className="max-w-2xl mx-auto">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-secondary hover:text-primary text-sm mb-6 transition-colors"
+        className="flex items-center gap-2 text-secondary hover:text-primary text-sm mb-6 min-h-touch md:min-h-0 -my-1 md:my-0 transition-colors pressable"
       >
         <ChevronLeft className="w-4 h-4" /> Back to Friends
       </button>

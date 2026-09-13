@@ -55,7 +55,7 @@ export default function SongPage() {
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <Music className="w-10 h-10 text-muted mb-4" />
         <p className="text-lg text-primary mb-4">Song not found.</p>
-        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/shows/')}>
+        <Button variant="ghost" icon={ArrowLeft} className="hidden md:inline-flex" onClick={() => router.push('/shows/')}>
           Back to shows
         </Button>
       </div>

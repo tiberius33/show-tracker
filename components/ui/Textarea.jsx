@@ -21,7 +21,8 @@ const Textarea = forwardRef(function Textarea(
         ref={ref}
         rows={rows}
         className={[
-          'bg-surface border rounded-xl px-3.5 py-2.5 text-[15px] text-primary',
+          // 16px below md: so focusing it does not zoom the page on iOS.
+          'bg-surface border rounded-xl px-3.5 py-2.5 text-[16px] md:text-[15px] text-primary',
           'placeholder:text-muted outline-none transition-colors resize-y',
           error
             ? 'border-danger focus:border-danger focus:ring-2 focus:ring-danger/20'

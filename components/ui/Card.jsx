@@ -12,7 +12,7 @@
 //   interactive — adds hover lift + pointer cursor
 //   padding     — 'none' | 'sm' | 'md' | 'lg'
 
-import React from 'react';
+import React, { forwardRef } from 'react';
 
 const VARIANTS = {
   default:  'bg-surface border border-subtle',
@@ -31,7 +31,10 @@ const PAD = {
 const INTERACTIVE =
   'cursor-pointer transition-all hover:border-active hover:-translate-y-0.5 hover:shadow-theme-md';
 
-export default function Card({
+// forwardRef so a caller can reach the DOM node — the bottom-sheet drag
+// (hooks/useSheetDrag.js) has to transform the sheet directly, and several
+// overlays are built on <Card>. Purely additive: rendering is unchanged.
+const Card = forwardRef(function Card({
   children,
   variant = 'default',
   padding = 'md',
@@ -39,9 +42,10 @@ export default function Card({
   className = '',
   as: As = 'div',
   ...rest
-}) {
+}, ref) {
   return (
     <As
+      ref={ref}
       className={[
         'rounded-2xl',
         VARIANTS[variant],
@@ -56,4 +60,6 @@ export default function Card({
       {children}
     </As>
   );
-}
+});
+
+export default Card;

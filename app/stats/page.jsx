@@ -91,7 +91,7 @@ export default function StatsPage() {
       />
 
       {/* Period selector — scrollable strip */}
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-6 mt-10 scrollbar-none">
+      <div data-no-swipe className="flex gap-2 overflow-x-auto pb-1 mb-6 mt-10 scrollbar-none">
         {periodLabels.map((p) => (
           <Tag
             key={p}
