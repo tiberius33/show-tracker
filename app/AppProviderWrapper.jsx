@@ -322,7 +322,7 @@ function AppShell({ children }) {
       {toast && (
         <div
           className={[
-            'fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 rounded-2xl',
+            'fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-1/2 -translate-x-1/2 z-[90] px-5 py-3 rounded-2xl',
             'shadow-lg font-medium text-sm animate-fade-in',
             toast?.type === 'error'
               ? 'bg-danger text-white shadow-danger/40'

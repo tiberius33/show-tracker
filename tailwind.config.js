@@ -62,6 +62,11 @@ module.exports = {
       minWidth: {
         'touch': '44px',
       },
+      inset: {
+        // So a fixed bottom control can sit above the keyboard with
+        // `bottom-keyboard`. Resolves to 0px when no keyboard is up.
+        'keyboard': 'var(--keyboard-height)',
+      },
       height: {
         'header': 'calc(var(--mobile-header-h) + var(--safe-top))',
         'dscreen': '100dvh',

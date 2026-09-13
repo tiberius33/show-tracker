@@ -67,6 +67,13 @@ All notable changes to mysetlists.net are documented here.
 - Left dormant on purpose. Mounting it changes the app's information architecture, which is a product decision rather than part of a navigation fix. Its five routes are still treated as navigation floors, so the hierarchy it describes is real even though the bar is not rendered. Its safe-area and touch-target handling is now correct for whenever it is mounted, but page-level padding to keep content clear of it would still have to be added at that point.
 - `components/layout/AppShell.jsx` is unused too, and is the only remaining importer of the stale `components/MobileHeader.jsx` duplicate. Both are labelled rather than deleted; removing them is unrelated to this work.
 
+### Note: One Desktop Pixel Difference, And The Bug Behind It
+
+- Desktop was verified rather than assumed: six routes captured from `main` and from this branch at 1440x920 and compared at `maxDiffPixels: 0`. Four are pixel-identical. **Two — `/stats/songs` and `/how-to-use` — differ by ~380 pixels in a 20x26 box**, which is the sidebar's 32px logo.
+- The cause is a pre-existing bug rather than a layout change. `components/brand/Pick.jsx` hard-codes its gradient id, so two `<Pick>`s on one page both declare `mys-pick-g` and every reference resolves to whichever is first in document order. The gradient is `gradientUnits="userSpaceOnUse"`, so a 32px Pick borrowing a 24px Pick's gradient renders a subtly different fill — and that is what happened on **every** screen, because the old mobile header rendered a 24px Pick above the sidebar's 32px one.
+- The new header shows a screen title instead of the wordmark on pushed routes, so on those the sidebar is now alone and uses its own, correctly-scaled gradient. **The new rendering is the correct one.** Tab roots still render both and are unchanged.
+- Fixing the id properly (a per-instance id via React's `useId`) would alter the logo's rendering slightly on every route, desktop included, so it is deliberately not bundled into a navigation change. It is noted in the component.
+
 ### Note: What Is Tested, And What Needs A Device
 
 - Playwright cannot drive a native-feeling pointer gesture, so the decidable half — both commit thresholds, the direction lock, every abort condition — is a pure function in `lib/swipeGesture.js` with 31 unit tests, and the route table has 21 more. `hooks/useEdgeSwipeBack.js` is then only plumbing.

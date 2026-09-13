@@ -621,7 +621,12 @@ export default function ShowsPage() {
 
           {/* Bulk action bar */}
           {selectionMode && selectedShowIds.size > 0 && (
-            <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-surface border-t border-subtle p-4 z-50 shadow-xl">
+            <div
+              // Clears the home indicator, and rides above the keyboard —
+              // bottom-keyboard resolves to --keyboard-height, which
+              // lib/keyboardInset.js keeps current on both platforms.
+              className="fixed bottom-keyboard left-0 md:left-64 right-0 bg-surface border-t border-subtle p-4 pb-[calc(1rem+var(--safe-bottom))] z-50 shadow-xl"
+            >
               <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
                 <span className="text-sm font-medium text-primary">
                   {selectedShowIds.size} show{selectedShowIds.size !== 1 ? 's' : ''} selected
