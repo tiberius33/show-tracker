@@ -11,7 +11,7 @@ import SongStatsRow from '@/components/SongStatsRow';
 import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 
-function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onRateShow, onCommentShow, onUpdateVenueRating, onDeleteShow, onAddSong, onReorderSetlist, onResyncSetlist, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate, friends, user }) {
+function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, onRateSong, onRateShow, onCommentShow, onUpdateVenueRating, onDeleteShow, onAddSong, onReorderSetlist, onResyncSetlist, onDeleteSong, onRestoreSong, initialTab, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, fetchVenueRatings, normalizeVenueKey, computeVenueAggregate, friends, user }) {
   const [tab, setTab] = useState(initialTab || 'years');
   const [selectedYear, setSelectedYear] = useState(null);
   const [filterArtist, setFilterArtist] = useState('');
@@ -185,6 +185,8 @@ function StatsView({ shows, songStats, artistStats, venueStats, topRatedShows, o
           onAddSong={onAddSong}
           onReorderSetlist={onReorderSetlist}
           onResyncSetlist={onResyncSetlist}
+          onDeleteSong={onDeleteSong}
+          onRestoreSong={onRestoreSong}
           toggleFavoriteArtist={onToggleFavoriteArtist}
           isArtistFavorite={isArtistFavorite}
           allShows={shows}

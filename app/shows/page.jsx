@@ -37,6 +37,7 @@ export default function ShowsPage() {
     sortBy, setSortBy,
     addShow, updateShowRating, updateShowComment, deleteShow, updateShowData, backfillArtistImages,
     addSongToShow, updateSetlistOrder, resyncSetlistFromSource,
+    deleteSong, restoreSongToShow,
     tagFriendsAtShow, bulkTagFriendsAtShows, tagFriendByEmail,
     tagFriendsShow, setTagFriendsShow,
     friends, festivals,
@@ -182,6 +183,8 @@ export default function ShowsPage() {
           onAddSong={!guestMode ? addSongToShow : undefined}
           onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}
           onResyncSetlist={!guestMode ? resyncSetlistFromSource : undefined}
+          onDeleteSong={!guestMode ? deleteSong : undefined}
+          onRestoreSong={restoreSongToShow}
           toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
           isArtistFavorite={isArtistFavorite}
           allShows={shows}

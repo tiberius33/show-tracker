@@ -4,6 +4,23 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.35.0] — 2026-09-13
+
+### Added: Delete A Song From A Setlist
+
+- The setlist editor could move a song between sets and reorder it within one, but not remove it. An archive occasionally lists a song that wasn't played, a soundcheck creeps in, or you add one by hand and change your mind — and the only way out was to leave it there.
+- The **Edit** button on a show's setlist now gives every song a delete control, alongside the existing up/down and set controls.
+- **It asks twice.** The first tap arms the row — the icon becomes a red *Delete?* button, wider and explicitly labelled rather than the same icon again, so confirming is a deliberate act rather than a double-tap that happened to land twice. An armed row disarms itself after five seconds, because a delete button left armed on screen is a trap.
+- **And it can be undone.** A deleted song takes its rating and its comment with it, and nothing else in the app holds a copy — an archive can supply the song again, never the 9/10 and the note that said why. So the removed song is offered back for twelve seconds, and restoring it puts it at the index it came from with its id, set, rating, comment and *added by you* flag intact. The banner names the rating that went with it, so the cost of the deletion is visible before the undo expires.
+
+### Changed: One Rule For Removing A Song
+
+- `deleteSong` in the app context already existed, used by the older Shows Together setlist editor. Rather than adding a second removal path beside it, that one now runs on a shared `removeSongFromSetlist` helper and reports what it removed and from where — so both screens delete a song the same way, and the new undo is possible at all.
+- It no longer writes when there is nothing to remove. The save is a whole-array replace, so a no-op write from a double-tap or a stale view could stamp an old setlist over a newer one; a missing id now returns null and writes nothing.
+- The removal splices rather than round-tripping through `groupSongsBySet`, which infers set membership from the `set` label *and array order*. Grouping on the way through could re-file a song's neighbours across a set boundary, and removing one song must change exactly one thing.
+
+---
+
 ## [5.34.4] — 2026-09-12
 
 ### Fixed: Half A Library Worked, Split By Which Screen Added The Show

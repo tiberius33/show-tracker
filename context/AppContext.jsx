@@ -19,6 +19,7 @@ import { extractSongsFromSetlist } from '@/lib/setlistParser';
 import { enrichShowDataWithBandSetlist, fetchBandSetlist, fetchBandSetlistWithReason, bandSetlistShowFields } from '@/lib/bandSetlist';
 import { mergeBandSetlist, describeSummary } from '@/lib/bandSetlistMerge';
 import { resolveSource } from '@/lib/setlistSources';
+import { removeSongFromSetlist, insertSongAt } from '@/lib/setlistGrouping';
 import { buildExistingShowIndex, existingShowStatus } from '@/lib/tourBrowse';
 import { normalizeFestivalName, findFestivalMatches as matchFestivals } from '@/lib/festivalMatch';
 import { logActivity } from '@/lib/activityFeed';
@@ -2879,25 +2880,53 @@ export function AppProvider({ children }) {
     await saveShow(updatedShow);
   };
 
+  // Removes one song from a setlist. Returns { song, index } so a caller
+  // can offer to put it back, and null when there was nothing to remove —
+  // a double-tap, or a view rendered before someone else's edit. Returning
+  // null rather than writing matters: the save is a whole-array replace, so
+  // a no-op write could stamp a stale setlist over a newer one.
+  //
+  // A deleted song takes its rating and its comment with it. The callers
+  // that surface this (ShowDetailView's setlist editor, SetlistEditor) are
+  // where that is made deliberate; the rule here is only that it says what
+  // it removed.
   const deleteSong = async (showId, songId) => {
-    const updatedShows = shows.map(show => {
-      if (show.id === showId) {
-        return {
-          ...show,
-          setlist: show.setlist.filter(s => s.id !== songId),
-        };
-      }
-      return show;
-    });
+    const show = shows.find(s => s.id === showId);
+    if (!show) return null;
+
+    const { setlist, removed, index } = removeSongFromSetlist(show.setlist || [], songId);
+    if (!removed) return null;
+
+    const updatedShows = shows.map(s => (s.id === showId ? { ...s, setlist } : s));
     const updatedShow = updatedShows.find(s => s.id === showId);
     setShows(updatedShows);
-    setSelectedShow(updatedShow);
+    if (selectedShow?.id === showId) setSelectedShow(updatedShow);
     await saveShow(updatedShow);
+
+    return { song: removed, index };
   };
 
   // Persists a full setlist array after a set-editor move/reorder — used
   // instead of addSongToShow/updateSongRating since the whole array (order
   // and each song's `set` label) may have changed, not just one field.
+  // The undo. Puts the song back exactly as it was — same id, same set,
+  // same rating and comment — at the position it came from, so undoing a
+  // deletion leaves no trace rather than appending the song to the end of
+  // its section.
+  const restoreSongToShow = async (showId, song, index) => {
+    const show = shows.find(s => s.id === showId);
+    if (!show || !song) return;
+    // Already back (an undo pressed twice, or a re-fetch that returned it).
+    if ((show.setlist || []).some(s => s.id === song.id)) return;
+
+    const setlist = insertSongAt(show.setlist || [], song, index);
+    const updatedShows = shows.map(s => (s.id === showId ? { ...s, setlist } : s));
+    const updatedShow = updatedShows.find(s => s.id === showId);
+    setShows(updatedShows);
+    if (selectedShow?.id === showId) setSelectedShow(updatedShow);
+    await saveShow(updatedShow);
+  };
+
   const updateSetlistOrder = async (showId, newSetlist) => {
     const updatedShows = shows.map(show =>
       show.id === showId ? { ...show, setlist: newSetlist } : show
@@ -3380,6 +3409,7 @@ export function AppProvider({ children }) {
     bulkAdd,
     updateShowData,
     resyncSetlistFromSource,
+    restoreSongToShow,
     deleteShow,
     backfillArtistImages,
     updateShowRating,
