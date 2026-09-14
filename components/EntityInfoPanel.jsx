@@ -3,6 +3,9 @@
 import React, { useState, useCallback } from 'react';
 import { ChevronDown, ExternalLink, BookOpen, Globe, Music } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
+
+const STREAMING_SERVICE_URL = /spotify\.com|music\.apple\.com/i;
 
 const styles = {
   artist: {
@@ -103,8 +106,13 @@ function EntityInfoPanel({ name, type, city, extraContent }) {
   };
 
   const displayImage = data?.image || enrichData?.image;
+  // MusicBrainz supplies these links at runtime, so dropping the "Spotify"
+  // label alone would still render the link — just under its generic
+  // "streaming" type. Filter the destinations out instead, while playlist
+  // creation is switched off (lib/constants.js).
   const filteredUrls = (enrichData?.urls || [])
     .filter(u => LINK_TYPES_TO_SHOW.some(t => u.type.includes(t) || u.url.includes(t)))
+    .filter(u => PLAYLIST_CREATION_ENABLED || !STREAMING_SERVICE_URL.test(u.url))
     .slice(0, 5);
 
   return (
