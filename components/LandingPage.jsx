@@ -5,6 +5,7 @@ import { Play } from 'lucide-react';
 import Pick from './brand/Pick';
 import { Button, Card, Badge } from './ui';
 import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
+import { isNativePlatform } from '@/lib/native-auth';
 import './LandingPage.css';
 import packageJson from '../package.json';
 
@@ -437,7 +438,10 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
           <div className="lp-footer-col">
             <h4>Resources</h4>
             <Link href="/how-to-use">How to use</Link>
-            <a href="https://buymeacoffee.com/phillipd" target="_blank" rel="noopener noreferrer">Support this project</a>
+            {/* Website-only — see the note in components/layout/Sidebar.jsx. */}
+            {!isNativePlatform() && (
+              <a href="https://buymeacoffee.com/phillipd" target="_blank" rel="noopener noreferrer">Support this project</a>
+            )}
             <Link href="/community">Community</Link>
           </div>
           <div className="lp-footer-col">

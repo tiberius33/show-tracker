@@ -26,6 +26,7 @@ import Badge from '../ui/Badge';
 import { useDismissable } from '@/context/DismissStackContext';
 import useDrawerSwipeClose from '@/hooks/useDrawerSwipeClose';
 import useIsMobile from '@/hooks/useIsMobile';
+import { isNativePlatform } from '@/lib/native-auth';
 
 function getActiveId(pathname) {
   if (!pathname || pathname === '/') return 'shows';
@@ -218,15 +219,21 @@ export default function Sidebar({
             <HelpCircle size={15} strokeWidth={2} />
             <span className="font-medium">How to Use</span>
           </Link>
-          <a
-            href="https://buymeacoffee.com/phillipd"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] text-on-dark-muted hover:bg-white/[0.06] hover:text-on-dark transition-colors"
-          >
-            <Coffee size={15} strokeWidth={2} />
-            <span className="font-medium">Support</span>
-          </a>
+          {/* Donations are a website-only affordance. App Store Guideline
+              2.1(b) treats a link out to a tip jar as an unreviewed business
+              model, so the native build must not show it. Mobile Safari and
+              the installed PWA still do — they are not the App Store binary. */}
+          {!isNativePlatform() && (
+            <a
+              href="https://buymeacoffee.com/phillipd"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] text-on-dark-muted hover:bg-white/[0.06] hover:text-on-dark transition-colors"
+            >
+              <Coffee size={15} strokeWidth={2} />
+              <span className="font-medium">Support</span>
+            </a>
+          )}
           <button
             type="button"
             onClick={onLogout}
