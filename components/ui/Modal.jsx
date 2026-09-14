@@ -53,6 +53,17 @@ export default function Modal({
   // ride above the keyboard, and correct on native as well as on web.
   const keyboardInset = useKeyboardInset();
 
+  // This call went missing in 5.36.0, while the refs and drag props it
+  // returns stayed in the markup below. They were left as free variables, so
+  // opening any Modal threw a ReferenceError before it painted — the delete-
+  // account and block-user confirmations among them. `if (!open) return null`
+  // meant a closed Modal was fine, which is why nothing caught it.
+  const isMobileViewport = useIsMobile();
+  const { sheetRef, backdropRef, scrollRef, dragHandleProps } = useSheetDrag({
+    enabled: isMobileViewport,
+    onDismiss: onClose,
+  });
+
   // Escape to close + scroll lock
   useEffect(() => {
     if (!open) return;

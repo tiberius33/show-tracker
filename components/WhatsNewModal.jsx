@@ -23,8 +23,8 @@ const FEATURES = [
     icon: ArrowLeft,
     color: 'text-amber',
     bg: 'bg-amber-subtle',
-    title: 'Swipe To Go Back',
-    description: 'Swipe from the left edge of the screen to go back, and swipe down to dismiss a sheet. Every screen has a clear way back now \u2014 quite a few had none at all.',
+    title: 'A Way Back From Every Screen',
+    description: 'Every screen now has a clear way back. Quite a few had none at all \u2014 in the app there is no browser back button to fall back on, so the only way off them was the menu.',
     cta: null,
   },
   {

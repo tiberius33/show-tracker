@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { impact } from '@/lib/capacitor';
+import { TOUCH_GESTURES_ENABLED } from '@/lib/platform';
 
 /** Fraction of drawer width past which release closes it. */
 export const DRAWER_CLOSE_FRACTION = 0.4;
@@ -20,7 +21,12 @@ export const DRAWER_CLOSE_VELOCITY = 0.35;
 const SETTLE_MS = 220;
 const EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
-export default function useDrawerSwipeClose({ isOpen, onClose, enabled = true } = {}) {
+export default function useDrawerSwipeClose({ isOpen, onClose, enabled: enabledByCaller = true } = {}) {
+  // See TOUCH_GESTURES_ENABLED in lib/platform.js. Sidebar passes
+  // `enabled: isMobileViewport`, so the master switch has to be ANDed in
+  // here rather than changed as a default. The drawer still closes by its
+  // own control, by the backdrop, and by navigating.
+  const enabled = TOUCH_GESTURES_ENABLED && enabledByCaller;
   const drawerRef = useRef(null);
   const drag = useRef(null);
   const onCloseRef = useRef(onClose);
