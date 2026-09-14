@@ -42,12 +42,18 @@ test.describe('Landing Page', () => {
       'Rate & remember',
       'Stats that actually matter',
       'Follow friends & bands',
-      'One-click Spotify playlists',
       'Wishlist the ones you missed',
     ];
     for (const feature of features) {
       await expect(page.getByRole('heading', { name: feature })).toBeVisible();
     }
+  });
+
+  test('does not advertise playlist creation while it is switched off', async ({ page }) => {
+    // PLAYLIST_CREATION_ENABLED is false, so no Spotify or Apple Music copy
+    // should reach the landing page. Guards the App Review commitment that
+    // the app names neither service anywhere a user can see.
+    await expect(page.getByText(/spotify|apple music/i)).toHaveCount(0);
   });
 });
 

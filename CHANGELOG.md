@@ -4,6 +4,38 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.36.1] — 2026-09-14
+
+### Changed: Three Surfaces The App Store Binary Should Not Carry
+
+- **The Buy Me a Coffee link no longer renders in the native app.** Guideline 2.1(b) reads a link out to a tip jar as a business model that was never reviewed, and it is the most likely reason the question was asked. It is gated on `isNativePlatform()`, not deleted — mysetlists.net and the installed PWA still show it, because neither is the binary under review. Both call sites render client-side only, so neither reaches the exported HTML and neither can flash before it is removed. There is no `/support` route to close off; the link existed only as two anchors.
+- **The cookie notice no longer renders in the native app.** The content it would govern is bundled in the binary and the app sets no advertising or tracking cookies, so on device the notice described something that was not happening. The website still shows it exactly as before.
+- **The app stopped naming Spotify and Apple Music.** `PLAYLIST_CREATION_ENABLED` has been `false` since 5.32.0 (#297), but the copy never moved with it: the signed-out landing page — the first screen a reviewer sees — carried a "One-click Spotify playlists" feature card, two data-source badges and two more mentions in body copy, all for a feature that cannot be reached. The copy now hangs off the same flag that gates the feature, so it goes and returns in step with it rather than drifting again.
+
+### Fixed: A Link That Came Back Through The Back Door
+
+- `EntityInfoPanel` labelled a link "Spotify" when the URL looked like one, and those links arrive from MusicBrainz at runtime under the generic type `streaming`. Dropping the label alone would have left the link on the page under a different name. The destinations are filtered out instead, so the panel is quiet about it rather than coy.
+- `/spotify-callback` rendered "Connecting to Spotify…" to anyone who typed it, long after the OAuth flow that redirects there stopped running. With the flag off it redirects home.
+- The invite email offered to "import shows from Spotify listening history" — a feature that was never built.
+
+### Fixed: Every Modal In The App Threw On Open
+
+- `components/ui/Modal.jsx` lost its `useSheetDrag()` call in 5.36.0 while the four values it returns — `sheetRef`, `backdropRef`, `scrollRef` and `dragHandleProps` — stayed in the markup. They became free variables, so **opening any Modal threw a `ReferenceError` before it painted**: the delete-account confirmation in `profile/ProfileView.js`, the block-user and bulk-action confirmations in `FriendsView.jsx`, and the photo directory. `if (!open) return null` meant a closed Modal rendered fine, which is why it survived a release — the crash needed someone to actually open one.
+- Nothing caught it. There is no ESLint config in the repo, so `no-undef` never ran, and a free variable is not a build error. The bundle proves it: at the grabber `<div>`, the broken build emits `{...dragHandleProps,` verbatim while the fixed build emits `{...j,`. A minifier renames locals and cannot rename frees, so a name surviving intact there is a global lookup — and spreading an undeclared identifier throws.
+
+### Changed: The Three Swipe Gestures Are Off
+
+- Edge-swipe-back, sheet swipe-down and drawer swipe-close are disabled behind one constant, `TOUCH_GESTURES_ENABLED` in `lib/platform.js`. None of the three had run on a device, and each fires a haptic through `impact`, **which `lib/capacitor.js` has never exported** — so all three threw a `TypeError` partway through their commit handler, before the navigate, the dismiss or the close that followed. A gesture that strands an overlay on the deletion or moderation flow is the one failure this build cannot carry.
+- Each gesture was already built with its own switch, so this is three guards and no restructuring. Every caller passes `enabled: isMobileViewport`, so the master switch is ANDed inside `useSheetDrag` and `useDrawerSwipeClose` rather than changed as a default, which would have had no effect.
+- **Nothing else from the navigation work is affected** — the back control on every screen, the safe-area insets, 16px inputs and 44pt targets all stay. Each gesture was an enhancement over a control that still works by tap: `Modal` still closes by Escape, by its backdrop and by its close button, and the drawer by its own control. The release notes no longer promise a swipe the build does not do.
+- To re-enable: export a real `impact`, flip the constant, and do the device pass.
+
+### Note
+
+- Nothing was deleted to achieve any of this. The token functions, the `spotify.com` entry in the moderation link allowlist and the reserved `spotify-callback` handle are all untouched; the allowlist in particular is what keeps a user's comment containing a Spotify link from being flagged as spam. Historical release notes are filtered at render, not edited — flipping the flag back on restores every entry word for word.
+
+---
+
 ## [5.36.0] — 2026-09-13
 
 ### Added: Navigation Built For A Phone

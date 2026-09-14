@@ -2,6 +2,13 @@
 
 import React from 'react';
 import { Check } from 'lucide-react';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
+
+// Playlist creation is switched off (see lib/constants.js), so the historical
+// entries that name Spotify or Apple Music advertise a feature no one can
+// reach. Filter them at render rather than editing the history: flipping
+// PLAYLIST_CREATION_ENABLED back on restores every entry untouched.
+const STREAMING_MENTION = /spotify|apple\s*music/i;
 
 function ReleaseNotesView() {
   const releases = [
@@ -10,13 +17,11 @@ function ReleaseNotesView() {
       date: 'September 13, 2026',
       title: 'Built For Your Phone',
       changes: [
-        'New: swipe from the left edge of the screen to go back, and swipe down to dismiss a sheet. The screen follows your finger, and changing your mind halfway cancels it',
         'New: every screen has a clear way back. Quite a few had none at all before \u2014 in the app there is no browser back button to fall back on, so the only way off them was the menu',
         'Better fit on modern iPhones: nothing hidden behind the notch, the home indicator, or the keyboard',
         'Bigger, easier tap targets throughout, and everything you tap now responds to the press',
         'Fixed: tapping into any text box zoomed the whole page in and shifted the layout. It no longer does, and the right keyboard shows up for the field \u2014 a search key when you are searching, an email keypad for an email',
         'Fixed: the button for deleting a show from your stats table was invisible on a phone, because it only appeared on mouse hover',
-        'Swipe left on the menu to close it. Nothing about the menu itself has changed',
       ]
     },
     {
@@ -1477,13 +1482,23 @@ function ReleaseNotesView() {
     },
   ];
 
+  const visibleReleases = PLAYLIST_CREATION_ENABLED
+    ? releases
+    : releases
+        .filter((release) => !STREAMING_MENTION.test(release.title))
+        .map((release) => ({
+          ...release,
+          changes: release.changes.filter((change) => !STREAMING_MENTION.test(change)),
+        }))
+        .filter((release) => release.changes.length > 0);
+
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl md:text-2xl font-bold text-primary mb-2">Release Notes</h1>
       <p className="text-secondary mb-8">What's new in Setlist Tracker</p>
 
       <div className="space-y-6">
-        {releases.map((release, index) => (
+        {visibleReleases.map((release, index) => (
           <div
             key={release.version}
             className={`bg-hover backdrop-blur-xl rounded-2xl border border-subtle p-6 ${

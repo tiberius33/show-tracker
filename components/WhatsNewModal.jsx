@@ -1,55 +1,39 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Music, Users, UserCheck, Mail, Camera, ChevronRight } from 'lucide-react';
+import { X, Sparkles, Music, ArrowLeft, Smartphone, ChevronRight } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { useDismissable } from '@/context/DismissStackContext';
 
 // Bump this version string whenever you add new features to announce.
 // Users who have seen this version won't see the modal again.
-const CURRENT_WHATS_NEW_VERSION = '3.11';
+const CURRENT_WHATS_NEW_VERSION = '3.12';
 
 const FEATURES = [
   {
-    icon: Camera,
+    icon: Music,
     color: 'text-brand',
     bg: 'bg-brand-subtle',
-    title: 'AI Ticket Stub Scanning',
-    description: 'Take a photo of ticket stubs and our AI will automatically extract show details and import them to your collection.',
-    cta: { label: 'Try It', view: 'scan-import' },
+    title: 'Goose and Phish Setlists, From The Source',
+    description: 'Goose setlists now come from elgoose.net and Phish from phish.net \u2014 real segue marks, footnotes, jam-chart notes and official gap counts. Every other artist is unchanged.',
+    cta: null,
   },
   {
-    icon: Users,
+    icon: ArrowLeft,
+    color: 'text-amber',
+    bg: 'bg-amber-subtle',
+    title: 'A Way Back From Every Screen',
+    description: 'Every screen now has a clear way back. Quite a few had none at all \u2014 in the app there is no browser back button to fall back on, so the only way off them was the menu.',
+    cta: null,
+  },
+  {
+    icon: Smartphone,
     color: 'text-brand',
     bg: 'bg-brand-subtle',
-    title: 'Bulk Friend Tagging',
-    description: 'Select multiple shows at once and tag friends in all of them — no more one-by-one tagging.',
+    title: 'A Better Fit On Your Phone',
+    description: 'Nothing hidden behind the notch, the home indicator or the keyboard, and bigger tap targets throughout.',
     cta: null,
-  },
-  {
-    icon: UserCheck,
-    color: 'text-amber',
-    bg: 'bg-amber-subtle',
-    title: 'Guest Access',
-    description: 'Non-members can now view shows they\'ve been tagged in without needing an account.',
-    cta: null,
-  },
-  {
-    icon: Mail,
-    color: 'text-amber',
-    bg: 'bg-amber/15',
-    title: 'Consolidated Email Notifications',
-    description: 'Bulk tagging sends one email per friend listing all shows instead of flooding their inbox.',
-    cta: null,
-  },
-  {
-    icon: Sparkles,
-    color: 'text-amber',
-    bg: 'bg-amber-subtle',
-    title: 'Public Roadmap & Voting',
-    description: 'See what features are coming next and vote on what we build. Your voice shapes MySetlists.',
-    cta: { label: 'View Roadmap', view: 'roadmap' },
   },
 ];
 

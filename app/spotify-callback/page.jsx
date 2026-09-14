@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Music } from 'lucide-react';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 
 function SpotifyCallbackContent() {
   const searchParams = useSearchParams();
@@ -110,6 +111,18 @@ function SpotifyCallbackContent() {
 }
 
 export default function SpotifyCallbackPage() {
+  const router = useRouter();
+
+  // Nothing can legitimately reach this route while playlist creation is off
+  // (lib/constants.js) — the OAuth flow that redirects here never starts. It
+  // stays reachable by deep link and by typing the URL, though, so send it
+  // home rather than rendering "Connecting to Spotify...".
+  useEffect(() => {
+    if (!PLAYLIST_CREATION_ENABLED) router.replace('/');
+  }, [router]);
+
+  if (!PLAYLIST_CREATION_ENABLED) return null;
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-base via-surface to-base flex items-center justify-center p-4">

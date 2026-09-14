@@ -89,10 +89,14 @@ test.describe('Playlists Integration Tests', () => {
   // ---------------------------------------------------------------------------
   // Spotify callback page loads without error
   // ---------------------------------------------------------------------------
-  test('/spotify-callback page loads without crash', async ({ page }) => {
+  test('/spotify-callback redirects home while playlist creation is off', async ({ page }) => {
     await page.goto('/spotify-callback', { waitUntil: 'load' });
     await expect(page.locator('body')).not.toContainText('Application error');
     await expect(page).toHaveTitle(/MySetlists/i);
+    // PLAYLIST_CREATION_ENABLED is false, so the route must not render its
+    // "Connecting to Spotify..." shell to anyone who deep-links to it.
+    await expect(page).toHaveURL(/\/(?:$|\?)/);
+    await expect(page.getByText(/spotify/i)).toHaveCount(0);
   });
 
   // ---------------------------------------------------------------------------

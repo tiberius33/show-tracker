@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { Play } from 'lucide-react';
 import Pick from './brand/Pick';
 import { Button, Card, Badge } from './ui';
+import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
+import { isNativePlatform } from '@/lib/native-auth';
 import './LandingPage.css';
 import packageJson from '../package.json';
 
@@ -143,8 +145,12 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
           <div className="lp-logos-label">Setlist data from</div>
           <div className="lp-logos-row">
             <span>setlist.fm</span>
-            <span>Spotify</span>
-            <span>Apple Music</span>
+            {PLAYLIST_CREATION_ENABLED && (
+              <>
+                <span>Spotify</span>
+                <span>Apple Music</span>
+              </>
+            )}
             <span>phish.net</span>
             <span>Bandsintown</span>
             <span>relisten.net</span>
@@ -167,7 +173,12 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               </svg>
             </div>
             <h3>Auto-import your shows</h3>
-            <p>Scan a ticket, paste a setlist.fm link, or connect Spotify. We pull dates, venues, openers, and the full setlist so you don&apos;t type a thing.</p>
+            <p>
+              {PLAYLIST_CREATION_ENABLED
+                ? 'Scan a ticket, paste a setlist.fm link, or connect Spotify.'
+                : 'Scan a ticket or paste a setlist.fm link.'}
+              {' '}We pull dates, venues, openers, and the full setlist so you don&apos;t type a thing.
+            </p>
           </Card>
           <Card padding="none" interactive className="lp-feature lp-amber">
             <div className="lp-feature-icon">
@@ -186,7 +197,12 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
               </svg>
             </div>
             <h3>Stats that actually matter</h3>
-            <p>How many &quot;Tweezer&quot;s have you heard? Top venues, songs seen live, minutes on the lawn. Year-end wraps that beat Spotify&apos;s.</p>
+            <p>
+              How many &quot;Tweezer&quot;s have you heard? Top venues, songs seen live, minutes on the lawn.
+              {PLAYLIST_CREATION_ENABLED
+                ? ' Year-end wraps that beat Spotify’s.'
+                : ' Year-end wraps worth sharing.'}
+            </p>
           </Card>
           <Card padding="none" interactive className="lp-feature">
             <div className="lp-feature-icon">
@@ -198,17 +214,19 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
             <h3>Follow friends &amp; bands</h3>
             <p>See who else was at the 10/31 show. Compare tour runs. Get notified when your favorites announce new dates in your city.</p>
           </Card>
-          <Card padding="none" interactive className="lp-feature lp-amber">
-            <div className="lp-feature-icon">
-              <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" />
-                <circle cx="18" cy="16" r="3" />
-              </svg>
-            </div>
-            <h3>One-click Spotify playlists</h3>
-            <p>Export any setlist to Spotify or Apple Music. Re-live the show on your drive home — in the order it happened.</p>
-          </Card>
+          {PLAYLIST_CREATION_ENABLED && (
+            <Card padding="none" interactive className="lp-feature lp-amber">
+              <div className="lp-feature-icon">
+                <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+              <h3>One-click Spotify playlists</h3>
+              <p>Export any setlist to Spotify or Apple Music. Re-live the show on your drive home — in the order it happened.</p>
+            </Card>
+          )}
           <Card padding="none" interactive className="lp-feature lp-navy">
             <div className="lp-feature-icon">
               <svg className="lp-ico lp-ico-lg" viewBox="0 0 24 24">
@@ -420,7 +438,10 @@ export default function LandingPage({ onSignUp, onSignIn, onGuest, communityStat
           <div className="lp-footer-col">
             <h4>Resources</h4>
             <Link href="/how-to-use">How to use</Link>
-            <a href="https://buymeacoffee.com/phillipd" target="_blank" rel="noopener noreferrer">Support this project</a>
+            {/* Website-only — see the note in components/layout/Sidebar.jsx. */}
+            {!isNativePlatform() && (
+              <a href="https://buymeacoffee.com/phillipd" target="_blank" rel="noopener noreferrer">Support this project</a>
+            )}
             <Link href="/community">Community</Link>
           </div>
           <div className="lp-footer-col">

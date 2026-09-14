@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { impact } from '@/lib/capacitor';
+import { TOUCH_GESTURES_ENABLED } from '@/lib/platform';
 
 /** Fraction of sheet height past which release dismisses. */
 export const SHEET_DISMISS_FRACTION = 0.25;
@@ -41,7 +42,13 @@ function reducedMotion() {
 /**
  * @param {{ enabled?: boolean, onDismiss?: () => void }} options
  */
-export default function useSheetDrag({ enabled = true, onDismiss } = {}) {
+export default function useSheetDrag({ enabled: enabledByCaller = true, onDismiss } = {}) {
+  // Gated by the master switch as well as the caller's own condition — see
+  // TOUCH_GESTURES_ENABLED in lib/platform.js. Every caller passes
+  // `enabled: isMobileViewport`, so a default alone would not turn this off.
+  // The refs are returned either way: the sheet, backdrop and scroll
+  // container are laid out through them whether or not it can be dragged.
+  const enabled = TOUCH_GESTURES_ENABLED && enabledByCaller;
   const sheetRef = useRef(null);
   const backdropRef = useRef(null);
   const scrollRef = useRef(null);
