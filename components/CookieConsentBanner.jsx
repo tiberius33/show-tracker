@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { isNativePlatform } from '@/lib/native-auth';
 
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
@@ -12,6 +13,12 @@ export default function CookieConsentBanner() {
       setVisible(true);
     }
   }, []);
+
+  // The native build ships its content inside the binary and sets no
+  // advertising or tracking cookies, so there is nothing for this notice to
+  // govern — and it is what prompted Apple's Guideline 2.1 cookie questions.
+  // The website is unaffected and still shows it exactly as before.
+  if (isNativePlatform()) return null;
 
   const handleAccept = () => {
     localStorage.setItem('cookie-consent', 'accepted');
