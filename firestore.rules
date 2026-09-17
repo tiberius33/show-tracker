@@ -81,16 +81,64 @@ service cloud.firestore {
     // existing profile predates this field, and a bare read of a missing
     // field fails rule evaluation outright — which would lock every
     // current user out of editing their own profile.
+    // ── The four fields a client may never write (v5.36.2) ─────────────
+    //
+    // displayName, firstName, handle and handleLower are published text:
+    // the name sits beside every comment, photo, friend card and activity
+    // row, and the handle becomes a public URL (/u/{handle}). They are
+    // filtered by lib/contentFilter.js, and a filter a client can skip is
+    // advice rather than a gate — so the client is taken off the write
+    // path entirely and netlify/functions/moderate-content.js, which runs
+    // the wordlist before writing, is the only writer. Its Admin SDK
+    // bypasses these rules, which is what makes that work.
+    //
+    // `.get(field, '')` on both sides rather than a bare read: almost
+    // every existing profile predates handle/handleLower, and a bare read
+    // of a missing field fails rule evaluation outright — which would
+    // lock every current user out of writing any part of their profile.
+    function textFieldsUnchanged() {
+      return request.resource.data.get('displayName', '')
+               == resource.data.get('displayName', '')
+          && request.resource.data.get('firstName', '')
+               == resource.data.get('firstName', '')
+          && request.resource.data.get('handle', '')
+               == resource.data.get('handle', '')
+          && request.resource.data.get('handleLower', '')
+               == resource.data.get('handleLower', '');
+    }
+
     match /userProfiles/{userId} {
       allow read: if request.auth != null;
+      // A profile is created by the client on first load (see
+      // updateUserProfile in AppContext) but must arrive without any of
+      // the published text on it — the server establishes the name a
+      // moment later. Creating with a name is how an unfiltered one would
+      // otherwise get in on a brand new account.
       allow create: if request.auth != null
                     && request.auth.uid == userId
-                    && request.resource.data.get('banned', false) == false;
+                    && request.resource.data.get('banned', false) == false
+                    && !request.resource.data.keys().hasAny(
+                         ['displayName', 'firstName', 'handle', 'handleLower']);
       allow update: if request.auth != null
                     && request.auth.uid == userId
                     && request.resource.data.get('banned', false)
-                       == resource.data.get('banned', false);
+                       == resource.data.get('banned', false)
+                    && textFieldsUnchanged();
       allow delete: if false;
+    }
+
+    // ── Handle reservations (v5.36.2) ──────────────────────────────────
+    // uid -> handle is 1:1 and the uniqueness transaction lives in
+    // moderate-content.js, so nothing here needs to be client-writable.
+    //
+    // This collection previously had NO rule at all and Firestore denies
+    // any path without one, so the client transaction in lib/handles.js
+    // could never commit — nobody has ever successfully claimed a handle.
+    // Reads stay open to signed-in users so the "is this taken?" check
+    // under the field still works without a round trip to a function.
+    match /handles/{handleLower} {
+      allow read:  if request.auth != null;
+      allow write: if false;
     }
 
     // ── Blocked accounts (v5.32.0) ─────────────────────────────────────
@@ -301,25 +349,35 @@ service cloud.firestore {
     // creator; joining/leaving afterward is restricted to adding or
     // removing only the caller's own uid, mirroring showComments' likedBy
     // pattern. The organizer alone may edit the pinned `description`.
-    // Unlike the two comment collections, meetup documents themselves
-    // carry only one piece of free text (the organizer's `description`,
-    // which the organizer alone may edit and which is filtered
-    // client-side), so creating and joining stay direct writes. What they
-    // gain here is the ban check: a banned account cannot start a meetup,
-    // join one, or edit its pinned details.
+    // Meetup documents carry one piece of free text, the organizer's
+    // `description`. As of v5.36.2 that field is closed to clients on
+    // both create and update and is written only by
+    // moderate-content.js, which filters it. Creating and joining stay
+    // direct writes — neither introduces text — and what they gain here
+    // is the ban check: a banned account cannot start a meetup, join one,
+    // or edit its pinned details.
     match /meetups/{meetupId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && isNotBanned()
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.attendeeUids == [request.auth.uid];
+        && request.resource.data.attendeeUids == [request.auth.uid]
+        // Seeded empty. Creating with a description would be the way
+        // round the update rule below.
+        && request.resource.data.get('description', '') == '';
       allow update: if request.auth != null && isNotBanned() && (
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendeeUids', 'attendeeNames'])
           && request.resource.data.attendeeUids.removeAll(resource.data.attendeeUids).hasOnly([request.auth.uid])
           && resource.data.attendeeUids.removeAll(request.resource.data.attendeeUids).hasOnly([request.auth.uid]))
         ||
+        // `description` is NOT here any more: it is published text every
+        // attendee reads, and this rule only ever decided WHO may write
+        // it, never WHAT. The organizer could publish a slur with the
+        // client-side filter skipped. It now goes through
+        // moderate-content.js, which checks organizer ownership itself
+        // because its Admin SDK writes bypass this rule.
         (resource.data.createdBy == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['description', 'updatedAt']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']))
       );
       allow delete: if false;
     }

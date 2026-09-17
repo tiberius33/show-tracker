@@ -9,7 +9,7 @@ import {
   serverTimestamp, onSnapshot, query, where, addDoc, writeBatch, limit,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, browserPopupRedirectResolver } from '@/lib/firebase';
-import { formatDate, parseDate, extractFirstName, normalizeSongTitle } from '@/lib/utils';
+import { formatDate, parseDate, normalizeSongTitle } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
@@ -31,6 +31,7 @@ import {
   TERMS_VERSION, fetchTermsAcceptance, getPendingAcceptance,
   recordTermsAcceptance,
 } from '@/lib/terms';
+import { saveDisplayName } from '@/lib/handles';
 import { sendEmailIfAllowed } from '@/lib/email';
 import {
   inviteEmail,
@@ -109,11 +110,20 @@ async function updateUserProfile(user, shows = []) {
   const totalSongs = shows.reduce((acc, s) => acc + (s.setlist || []).length, 0);
   const ratedSongs = shows.reduce((acc, s) => acc + (s.setlist || []).filter(song => song.rating).length, 0);
 
+  // displayName and firstName are deliberately NOT written here any more.
+  //
+  // This function runs on every load and after every add/delete, and it
+  // mirrored whatever Firebase Auth held into the profile — which made it
+  // the last unfiltered path to the most widely published string in the
+  // app. Auth's displayName is set by updateProfile() on the client and
+  // no Firestore rule can reach it, so the only way to make the filter a
+  // gate is for the profile to stop trusting it. The name is established
+  // once, server-side and filtered, by syncProfileName() in the auth
+  // listener, and changed only through saveDisplayName(); firestore.rules
+  // now rejects a client write that changes either field.
   const profileData = {
     odubleserId: user.uid,
     email: user.email,
-    displayName: user.displayName || '',
-    firstName: extractFirstName(user.displayName),
     photoURL: user.photoURL || '',
     lastLogin: serverTimestamp(),
     showCount: shows.length,
@@ -840,6 +850,28 @@ export function AppProvider({ children }) {
           // Fail closed: show the gate. Agreeing again is cheap; letting
           // someone past it on an error is the rejection all over again.
           setTermsAccepted(false);
+        }
+
+        // ── Establish the profile display name, once, server-side ─────
+        // updateUserProfile() used to mirror Firebase Auth's displayName
+        // into the profile on every load, which no Firestore rule can
+        // filter. It is written here instead, through the function that
+        // runs the wordlist, and only when the profile does not already
+        // carry one — a name already set is either filtered or was
+        // changed through saveDisplayName(), and re-sending it on every
+        // launch would undo a rename the moment Auth disagreed.
+        //
+        // Best-effort: a new account with no name yet renders as
+        // "Anonymous" (resolveAuthorName's fallback) rather than failing
+        // to sign in, and the next launch tries again.
+        try {
+          const profileSnap = await getDoc(doc(db, 'userProfiles', currentUser.uid));
+          const hasName = profileSnap.exists() && profileSnap.data().displayName;
+          if (!hasName && currentUser.displayName) {
+            await saveDisplayName(currentUser.displayName);
+          }
+        } catch (err) {
+          console.error('Could not establish profile display name:', err);
         }
         // Mark guest session as converted if the user was in guest mode
         try {

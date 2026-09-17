@@ -150,11 +150,12 @@ export default function MeetupDetailView({ meetup }) {
 
   const handleSaveDescription = async () => {
     // The pinned description is shown to everyone who joins, so it goes
-    // through the same filter as a message. Unlike comments this one is
-    // still a direct Firestore write — the meetups rule already restricts
-    // it to the organizer, so there is no unauthenticated path to close,
-    // and routing an organizer-only field through a function would buy
-    // nothing.
+    // through the same filter as a message — and, since v5.36.2, through
+    // the same server path. The meetups rule restricts this field to the
+    // organizer, but a rule decides who may write, never what: the
+    // organizer could publish a slur to every attendee with the filter
+    // below skipped. This check is for the inline error; the server's is
+    // the gate.
     const problem = contentProblem(description);
     if (problem) {
       setDescriptionError(problem);
@@ -167,7 +168,11 @@ export default function MeetupDetailView({ meetup }) {
       setEditingDescription(false);
     } catch (err) {
       console.error('[meetups] Failed to save description:', err);
-      setToast?.("Couldn't save. Please try again.");
+      // The server runs the same filter, so a rejection here is most
+      // often "that text isn't allowed" — inline under the field, where
+      // the client-side rejection already goes, rather than a toast that
+      // reads like the save merely failed.
+      setDescriptionError(err.message || "Couldn't save. Please try again.");
     } finally {
       setSaving(false);
     }
