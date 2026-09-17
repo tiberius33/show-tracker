@@ -27,12 +27,30 @@
  *             wastes a little space, where a failed storage call that
  *             aborted the delete would leave the content up.
  *
- *   ban     — delete, plus `banned: true` on the author's profile.
- *             firestore.rules refuses their writes and
- *             netlify/functions/moderate-content.js refuses them on the
- *             path that bypasses rules. Their existing content is left
- *             standing; a ban is not a retroactive purge, and mass-
- *             deleting a user's history on one report is not reversible.
+ *   ban     — EJECTION. Apple's wording is "ejecting the user who
+ *             provided the offending content", and what this action used
+ *             to do did not meet it: `banned: true` on the profile stopped
+ *             them writing, but they could still sign in, still read, and
+ *             every word they had already posted stayed up. The confirm
+ *             dialog said as much out loud.
+ *
+ *             It now does four things:
+ *               1. `banned: true` on the profile, which firestore.rules
+ *                  and moderate-content.js both refuse writes against.
+ *               2. Disables the Firebase Auth account, so sign-in fails
+ *                  with auth/user-disabled.
+ *               3. Revokes refresh tokens, so sessions already open on
+ *                  other devices stop working at their next refresh
+ *                  rather than lasting until the token expires.
+ *               4. Sweeps every comment, meetup message and photo they
+ *                  ever posted into `moderationHidden`, which only an
+ *                  admin can read — so it is gone for everyone else but
+ *                  recoverable if the decision was wrong.
+ *
+ *             The sweep is deliberately a move, not a delete, and it uses
+ *             the same quarantine collection auto-hide uses. Mass-
+ *             deleting a user's history on one report is not reversible;
+ *             moving it is.
  *
  * Every action closes every OPEN report against that content, not just
  * the one the admin clicked — three reports about one comment are one
@@ -71,6 +89,86 @@ async function verifyAdmin(token) {
   const decoded = await getAuth().verifyIdToken(token);
   if (!ADMIN_EMAILS.includes(decoded.email)) throw new Error('Forbidden');
   return decoded;
+}
+
+/**
+ * Disable the account, kill its live sessions, and quarantine everything
+ * it has published.
+ *
+ * Every step is independently best-effort and reported back, because
+ * they fail independently and an admin needs to know WHICH half worked.
+ * A user whose content is hidden but who can still sign in is a different
+ * problem from one who is locked out with their comments still up.
+ */
+async function ejectUser(db, uid, byEmail) {
+  const { getAuth } = require('firebase-admin/auth');
+  const { FieldValue } = require('firebase-admin/firestore');
+  const result = { authDisabled: false, tokensRevoked: false, contentHidden: 0, errors: [] };
+
+  try {
+    await getAuth().updateUser(uid, { disabled: true });
+    result.authDisabled = true;
+  } catch (e) {
+    // auth/user-not-found is not a failure: the account is already gone,
+    // which is a stronger version of what was being asked for.
+    if (e.code === 'auth/user-not-found') result.authDisabled = true;
+    else result.errors.push(`disable: ${e.message}`);
+  }
+
+  try {
+    // Without this, a session already open on another device keeps
+    // working until its ID token expires — up to an hour of posting
+    // after being ejected.
+    await getAuth().revokeRefreshTokens(uid);
+    result.tokensRevoked = true;
+  } catch (e) {
+    if (e.code !== 'auth/user-not-found') result.errors.push(`revoke: ${e.message}`);
+    else result.tokensRevoked = true;
+  }
+
+  // Everything this account has published, into the same admin-only
+  // quarantine auto-hide uses. Moved rather than deleted so the decision
+  // is reversible.
+  const sources = [
+    { collection: 'showComments', field: 'authorUid' },
+    { collection: 'meetupComments', field: 'authorUid' },
+    { collection: 'showPhotos', field: 'uploadedBy' },
+  ];
+
+  for (const source of sources) {
+    try {
+      const snap = await db.collection(source.collection)
+        .where(source.field, '==', uid)
+        .get();
+
+      // Firestore caps a batch at 500 writes and each document costs two
+      // (the copy in, the delete out), so 200 documents per batch leaves
+      // room to spare.
+      const docs = snap.docs;
+      for (let i = 0; i < docs.length; i += 200) {
+        const batch = db.batch();
+        for (const d of docs.slice(i, i + 200)) {
+          batch.set(db.collection('moderationHidden').doc(`${source.collection}_${d.id}`), {
+            collectionName: source.collection,
+            docId: d.id,
+            contentType: source.collection,
+            data: d.data(),
+            hidden: true,
+            hiddenAt: FieldValue.serverTimestamp(),
+            hiddenReason: `author ejected by ${byEmail}`,
+            authorUid: uid,
+          });
+          batch.delete(d.ref);
+        }
+        await batch.commit();
+        result.contentHidden += Math.min(200, docs.length - i);
+      }
+    } catch (e) {
+      result.errors.push(`${source.collection}: ${e.message}`);
+    }
+  }
+
+  return result;
 }
 
 exports.handler = async function (event) {
@@ -116,34 +214,44 @@ exports.handler = async function (event) {
     const report = reportSnap.data();
     const { contentId, contentPath } = report;
     const [collectionName] = String(contentPath || '').split('/');
-    if (!collectionName || !contentId) {
-      return json(400, { error: 'That report is missing the content path it refers to.' });
+
+    // A block notice (netlify/functions/notify-block.js) is a report about
+    // a PERSON, not a document — it carries no contentPath at all. It
+    // still belongs in this queue and still needs resolving, so the
+    // content half of every action below is simply skipped for one.
+    // Requiring a contentPath here, as this used to, would have made
+    // every block notice permanently unresolvable.
+    const isPersonReport = !collectionName || !contentId;
+    if (isPersonReport && action === 'delete') {
+      return json(400, { error: 'There is no single item to delete on a block notice.' });
     }
 
-    const contentRef = db.collection(collectionName).doc(String(contentId));
-    const hiddenRef = db.collection('moderationHidden').doc(`${collectionName}_${contentId}`);
-    const counterRef = db.collection('moderationCounters').doc(String(contentId));
+    const contentRef = isPersonReport ? null : db.collection(collectionName).doc(String(contentId));
+    const hiddenRef = isPersonReport ? null : db.collection('moderationHidden').doc(`${collectionName}_${contentId}`);
+    const counterRef = isPersonReport ? null : db.collection('moderationCounters').doc(String(contentId));
 
     const batch = db.batch();
     let restored = false;
 
     if (action === 'dismiss') {
-      const hiddenSnap = await hiddenRef.get();
-      if (hiddenSnap.exists) {
-        // Back to its own collection under its original id, so replies
-        // (which reference parentId) and any link to it still resolve.
-        batch.set(contentRef, hiddenSnap.data().data || {});
-        batch.delete(hiddenRef);
-        restored = true;
+      if (hiddenRef) {
+        const hiddenSnap = await hiddenRef.get();
+        if (hiddenSnap.exists) {
+          // Back to its own collection under its original id, so replies
+          // (which reference parentId) and any link to it still resolve.
+          batch.set(contentRef, hiddenSnap.data().data || {});
+          batch.delete(hiddenRef);
+          restored = true;
+        }
       }
       // Cleared, not decremented: leaving the count at three would let
       // the same three reports re-hide the content the instant it
       // returns, and an admin has now looked at all three.
-      batch.delete(counterRef);
+      if (counterRef) batch.delete(counterRef);
     } else {
-      batch.delete(contentRef);
-      batch.delete(hiddenRef);
-      batch.delete(counterRef);
+      if (contentRef) batch.delete(contentRef);
+      if (hiddenRef) batch.delete(hiddenRef);
+      if (counterRef) batch.delete(counterRef);
 
       if (action === 'ban' && report.reportedUserId) {
         batch.set(
@@ -155,10 +263,15 @@ exports.handler = async function (event) {
     }
 
     // Close every open report against this content, not just this one.
-    const siblings = await db.collection('reports')
-      .where('contentId', '==', String(contentId))
-      .where('status', '==', 'open')
-      .get();
+    // A person report has no contentId to group by, so it closes alone —
+    // and must, because two people blocking the same account are two
+    // independent signals, not duplicate reports of one item.
+    const siblings = isPersonReport
+      ? { docs: [], size: 0 }
+      : await db.collection('reports')
+          .where('contentId', '==', String(contentId))
+          .where('status', '==', 'open')
+          .get();
 
     const status = action === 'dismiss' ? 'dismissed' : 'actioned';
     siblings.docs.forEach((sibling) => {
@@ -193,11 +306,23 @@ exports.handler = async function (event) {
 
     await batch.commit();
 
+    // ── Ejection ──────────────────────────────────────────────────────
+    // After the batch, not inside it: disabling an Auth account and
+    // sweeping a content history are neither Firestore writes nor
+    // atomic with one. The profile flag committed above is the part the
+    // rules read, so a failure here leaves the user unable to write even
+    // if they can still sign in — the safe half fails first.
+    let ejected = null;
+    if (action === 'ban' && report.reportedUserId) {
+      ejected = await ejectUser(db, String(report.reportedUserId), admin.email);
+    }
+
     return json(200, {
       action,
       restored,
       closedReports: siblings.size || 1,
       banned: action === 'ban' ? report.reportedUserId : null,
+      ejected,
     });
   } catch (e) {
     console.error('[moderate-report] Failed:', e.message, e);

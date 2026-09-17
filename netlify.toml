@@ -120,6 +120,18 @@
   to = "/.netlify/functions/moderate-report"
   status = 200
 
+# Guideline 1.2 requires that blocking notify the developer, not just
+# hide content. See netlify/functions/notify-block.js.
+[[redirects]]
+  from = "/api/notify-block"
+  to = "/.netlify/functions/notify-block"
+  status = 200
+
+[[redirects]]
+  from = "/api/notify-block/"
+  to = "/.netlify/functions/notify-block"
+  status = 200
+
 # Band-source setlists (El Goose, Phish.net) — see
 # netlify/functions/band-setlist.js and lib/setlistSources.js.
 #

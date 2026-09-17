@@ -400,6 +400,12 @@ export function AppProvider({ children }) {
   // sign-in and the profile read coming back.
   const [termsAccepted, setTermsAccepted] = useState(null);
 
+  // Ejected accounts (Guideline 1.2). Same tri-state as termsAccepted and
+  // for the same reason: `null` means unresolved, and the suspended
+  // screen must not flash over a normal user while the profile read is
+  // still in flight.
+  const [isSuspended, setIsSuspended] = useState(null);
+
   // Favorite artists
   const [favoriteArtists, setFavoriteArtists] = useState([]);
 
@@ -866,12 +872,24 @@ export function AppProvider({ children }) {
         // to sign in, and the next launch tries again.
         try {
           const profileSnap = await getDoc(doc(db, 'userProfiles', currentUser.uid));
-          const hasName = profileSnap.exists() && profileSnap.data().displayName;
-          if (!hasName && currentUser.displayName) {
+          const profileData = profileSnap.exists() ? profileSnap.data() : {};
+
+          // Disabling an Auth account does not sign anyone out on the
+          // spot — the ID token in hand stays valid until it expires, and
+          // until then the app runs signed in with every write refused.
+          // Reading the flag here is what turns that hour of silent
+          // breakage into an explanation.
+          setIsSuspended(profileData.banned === true);
+
+          if (!profileData.displayName && currentUser.displayName) {
             await saveDisplayName(currentUser.displayName);
           }
         } catch (err) {
-          console.error('Could not establish profile display name:', err);
+          console.error('Could not read profile on sign-in:', err);
+          // Not suspended on a read failure: locking a user out of the
+          // app over a Firestore blip is the worse error, and every write
+          // they attempt is still refused by the rules regardless.
+          setIsSuspended(false);
         }
         // Mark guest session as converted if the user was in guest mode
         try {
@@ -1035,10 +1053,12 @@ export function AppProvider({ children }) {
 
       } else if (guestMode) {
         setTermsAccepted(null);
+        setIsSuspended(null);
         loadGuestShows();
         setFestivalsLoading(false);
       } else {
         setTermsAccepted(null);
+        setIsSuspended(null);
         setShows([]);
         setIsLoading(false);
         setFestivalsLoading(false);
@@ -3459,6 +3479,7 @@ export function AppProvider({ children }) {
     // state declaration above.
     termsAccepted,
     acceptTerms,
+    isSuspended,
 
     // Moderation — blocked accounts (Guideline 1.2)
     blockedUserIds,

@@ -17,7 +17,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { AlertTriangle, Check, Flag, ShieldOff, Trash2, Clock } from 'lucide-react';
+import { AlertTriangle, Check, Flag, ShieldOff, Trash2, Clock, UserX } from 'lucide-react';
 import { Card, Button, Badge, Spinner, EmptyState } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import {
@@ -45,14 +45,24 @@ function AgeBadge({ createdAt }) {
 }
 
 function ReportRow({ report, onResolve, busy }) {
-  const typeLabel = REPORTABLE_TYPES[report.contentType]?.label || report.contentType;
-  const reasonLabel = REPORT_REASON_LABELS[report.reason] || report.reason;
+  // A block notice is a report about a person, not a document: it arrives
+  // from netlify/functions/notify-block.js with no contentPath, and there
+  // is no single item to delete. Guideline 1.2 asks that blocking notify
+  // the developer, and this row is where that notification lands.
+  const isBlockNotice = report.contentType === 'blockNotice';
+
+  const typeLabel = isBlockNotice
+    ? 'Block'
+    : REPORTABLE_TYPES[report.contentType]?.label || report.contentType;
+  const reasonLabel = isBlockNotice
+    ? 'user blocked them'
+    : REPORT_REASON_LABELS[report.reason] || report.reason;
 
   return (
     <li className="py-4 border-b border-subtle last:border-0">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge tone="navy" size="sm">{typeLabel}</Badge>
+          <Badge tone={isBlockNotice ? 'amber' : 'navy'} size="sm">{typeLabel}</Badge>
           <Badge tone="red" size="sm">{reasonLabel}</Badge>
           <AgeBadge createdAt={report.createdAt} />
           {report.hidden && <Badge tone="amber" size="sm">Auto-hidden</Badge>}
@@ -64,8 +74,19 @@ function ReportRow({ report, onResolve, busy }) {
           content document may no longer exist, so this copy is the only
           thing left to judge it by. */}
       <blockquote className="text-sm text-primary bg-hover rounded-xl px-3.5 py-3 whitespace-pre-wrap break-words">
-        {report.contentSnapshot || <span className="text-muted italic">(no text — media with no caption)</span>}
+        {report.contentSnapshot || (
+          <span className="text-muted italic">
+            {isBlockNotice
+              ? '(this account has posted nothing)'
+              : '(no text — media with no caption)'}
+          </span>
+        )}
       </blockquote>
+      {isBlockNotice && (
+        <p className="text-xs text-muted mt-1.5">
+          Their recent posts, for context — none of it was reported.
+        </p>
+      )}
 
       {report.details && (
         <p className="text-sm text-secondary mt-2">
@@ -87,23 +108,26 @@ function ReportRow({ report, onResolve, busy }) {
         >
           Dismiss
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          icon={Trash2}
-          disabled={busy}
-          onClick={() => onResolve(report, 'delete')}
-        >
-          Delete content
-        </Button>
+        {/* No single document to delete on a block notice. */}
+        {!isBlockNotice && (
+          <Button
+            size="sm"
+            variant="outline"
+            icon={Trash2}
+            disabled={busy}
+            onClick={() => onResolve(report, 'delete')}
+          >
+            Delete content
+          </Button>
+        )}
         <Button
           size="sm"
           variant="danger"
-          icon={ShieldOff}
+          icon={isBlockNotice ? UserX : ShieldOff}
           disabled={busy || !report.reportedUserId}
           onClick={() => onResolve(report, 'ban')}
         >
-          Delete + ban
+          {isBlockNotice ? 'Eject user' : 'Delete + ban'}
         </Button>
       </div>
     </li>
@@ -139,7 +163,9 @@ export default function ModerationQueue() {
     const prompts = {
       dismiss: 'Dismiss this report? If the content was auto-hidden it goes back up.',
       delete: 'Delete this content permanently? This cannot be undone.',
-      ban: 'Delete this content and ban its author? They keep their account and their existing posts, but cannot post again.',
+      ban: report.contentType === 'blockNotice'
+        ? 'Eject this account? They are suspended, signed out everywhere, and cannot sign back in.'
+        : 'Delete this content and eject its author? They are suspended, signed out everywhere, and cannot sign back in.',
     };
     if (!window.confirm(prompts[action])) return;
 

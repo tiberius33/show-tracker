@@ -29,6 +29,7 @@ import { Music, Check, Sparkles } from 'lucide-react';
 const LandingPage = dynamic(() => import('@/components/LandingPage'), { ssr: false });
 const AuthModal = dynamic(() => import('@/components/auth/AuthModal'), { ssr: false });
 const TermsGate = dynamic(() => import('@/components/auth/TermsGate'), { ssr: false });
+const SuspendedScreen = dynamic(() => import('@/components/auth/SuspendedScreen'), { ssr: false });
 const VenueRatingModal = dynamic(() => import('@/components/VenueRatingModal'), { ssr: false });
 
 // Routes that render their own content for a signed-out visitor instead of
@@ -84,7 +85,7 @@ function AppShell({ children }) {
     friends, handleLogout,
     enterGuestMode, exitGuestMode, communityStats,
     handleAuthSuccess,
-    termsAccepted, acceptTerms,
+    termsAccepted, acceptTerms, isSuspended,
   } = useApp();
 
   const pathname = usePathname();
@@ -121,6 +122,20 @@ function AppShell({ children }) {
   // they need none of the shell below.
   if (!user && !guestMode && isPublicPath(pathname)) {
     return <>{children}</>;
+  }
+
+  // ── Ejected accounts (Guideline 1.2) ──────────────────────────────────
+  //
+  // Ahead of the terms gate, because an ejected account has nothing to
+  // agree to — asking someone to accept the Community Guidelines and then
+  // telling them they have been removed for breaking them is a worse
+  // experience than the suspension notice on its own.
+  //
+  // `=== true` rather than truthy: `null` means the profile read has not
+  // come back, and flashing a suspension notice at an ordinary user is
+  // about the worst false positive this app could produce.
+  if (user && !guestMode && isSuspended === true) {
+    return <SuspendedScreen onSignOut={handleLogout} />;
   }
 
   // ── Terms agreement gate (Guideline 1.2) ──────────────────────────────

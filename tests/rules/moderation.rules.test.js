@@ -110,6 +110,13 @@ async function main() {
 
     // For the published-text tests below.
     await db.doc('handles/taken').set({ uid: 'uid_bob' });
+
+    // What an ejection sweep leaves behind.
+    await db.doc('moderationHidden/showComments_ejected1').set({
+      collectionName: 'showComments', docId: 'ejected1', hidden: true,
+      hiddenReason: 'author ejected by admin', authorUid: BANNED,
+      data: { text: 'something the ejected account posted' },
+    });
     await db.doc('meetups/meet_owned').set({
       concertKey: 'kd', createdBy: ALICE, attendeeUids: [ALICE], description: '',
     });
@@ -255,6 +262,41 @@ async function main() {
     // The attendee path must survive description being closed.
     await assertSucceeds(alice().doc('meetups/meet_join').update({
       attendeeUids: ['uid_dave', ALICE], attendeeNames: { [ALICE]: 'Alice' },
+    }));
+  });
+
+  console.log('\nan ejected account is locked down');
+
+  // Ejection (moderate-report.js `ban`) has four parts. Two are Auth-side
+  // and cannot be tested here — disabling the account and revoking its
+  // refresh tokens are firebase-admin calls, not rules. The two that ARE
+  // rules are below: the flag holds against the user themselves, and the
+  // quarantine their content is swept into is unreadable by anyone else.
+
+  await test('an ejected user cannot write any UGC', async () => {
+    // The ban flag is what firestore.rules reads; disabling the Auth
+    // account is belt and braces for the hour an issued token stays valid.
+    await assertFails(banned().doc('meetups/meet_ejected').set({
+      concertKey: 'ke', createdBy: BANNED, attendeeUids: [BANNED], description: '',
+    }));
+    await assertFails(banned().doc('showComments/c1').update({ likedBy: [BANNED] }));
+    await assertFails(banned().doc('showPhotos/p1').update({ likedBy: [BANNED] }));
+  });
+
+  await test('swept content is unreadable by everyone but an admin', async () => {
+    // The sweep moves each document into moderationHidden rather than
+    // deleting it, so the decision is reversible. That only counts as
+    // "removed" if nobody else can read it there — including the author.
+    await assertFails(alice().doc('moderationHidden/showComments_ejected1').get());
+    await assertFails(banned().doc('moderationHidden/showComments_ejected1').get());
+    await assertFails(anon().doc('moderationHidden/showComments_ejected1').get());
+    await assertSucceeds(admin().doc('moderationHidden/showComments_ejected1').get());
+  });
+
+  await test('an ejected user cannot rescue their own swept content', async () => {
+    await assertFails(banned().doc('moderationHidden/showComments_ejected1').delete());
+    await assertFails(banned().doc('showComments/ejected1').set({
+      concertKey: 'k1', authorUid: BANNED, authorName: 'Banned', text: 'back again', likedBy: [],
     }));
   });
 
