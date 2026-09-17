@@ -49,7 +49,10 @@ export default function FriendCard({
             variant="ghost"
             icon={ShieldOff}
             onClick={onBlock}
-            className="text-muted hover:text-danger"
+            // min-w/min-h: an icon-only `size="sm"` ghost button is about
+            // 18pt of tappable area. Apple's minimum is 44, and the
+            // reviewer is on an iPad running this at phone scale.
+            className="text-muted hover:text-danger min-w-[44px] min-h-[44px]"
             aria-label={`Block ${name}`}
           />
         )}

@@ -23,6 +23,7 @@ import { logActivity } from '@/lib/activityFeed';
 import { timeAgo } from '@/lib/utils';
 import { withoutBlocked } from '@/lib/moderation';
 import ReportButton from '@/components/moderation/ReportButton';
+import UserLink from '@/components/moderation/UserLink';
 
 import UploadMediaModal from './UploadMediaModal';
 
@@ -141,7 +142,10 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, canModerat
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <Avatar name={item.uploaderName} size="sm" />
-              <span className="text-sm font-semibold text-primary">{item.uploaderName}</span>
+              <UserLink uid={item.uploadedBy} name={item.uploaderName}
+                        className="text-sm font-semibold text-primary">
+                {item.uploaderName}
+              </UserLink>
               <span className="text-xs text-muted">{timeAgo(item.createdAt)}</span>
             </div>
             {item.caption && <p className="text-sm text-secondary mt-1.5">{item.caption}</p>}

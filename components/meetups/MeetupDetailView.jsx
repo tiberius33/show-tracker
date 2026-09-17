@@ -24,6 +24,7 @@ import { formatDate, timeAgo } from '@/lib/utils';
 import { contentProblem } from '@/lib/contentFilter';
 import { withoutBlocked } from '@/lib/moderation';
 import ReportButton from '@/components/moderation/ReportButton';
+import UserLink from '@/components/moderation/UserLink';
 
 function DiscussionThread({ meetupId }) {
   const { user, blockedUserIds } = useApp();
@@ -86,7 +87,10 @@ function DiscussionThread({ meetupId }) {
               <Avatar name={c.authorName} size="sm" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-primary">{c.authorName}</span>
+                  <UserLink uid={c.authorUid} name={c.authorName}
+                            className="text-sm font-semibold text-primary">
+                    {c.authorName}
+                  </UserLink>
                   <span className="text-xs text-muted">{timeAgo(c.createdAt)}</span>
                 </div>
                 <p className="text-sm text-secondary mt-0.5 whitespace-pre-wrap break-words">{c.text}</p>

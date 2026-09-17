@@ -25,6 +25,7 @@ import { getLastViewed, markViewed } from '@/lib/commentViews';
 import { contentProblem } from '@/lib/contentFilter';
 import { withoutBlocked } from '@/lib/moderation';
 import ReportButton from '@/components/moderation/ReportButton';
+import UserLink from '@/components/moderation/UserLink';
 import { timeAgo } from '@/lib/utils';
 
 const SORTS = [
@@ -155,7 +156,13 @@ function CommentRow({ comment, isReply, currentUid, canModerate, onReply, onLike
       <Avatar name={comment.authorName} size={isReply ? 'sm' : 'md'} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="font-semibold text-sm text-primary">{comment.authorName}</span>
+          {/* The name is the way to this person's profile — and so to the
+              Block control — from a show page. Before this, blocking
+              someone who had commented meant already being their friend. */}
+          <UserLink uid={comment.authorUid} name={comment.authorName}
+                    className="font-semibold text-sm text-primary">
+            {comment.authorName}
+          </UserLink>
           <span className="text-xs text-muted">{timeAgo(comment.createdAt)}</span>
           {isNew && <span className="text-[10px] font-bold uppercase tracking-wide text-brand">New</span>}
         </div>
