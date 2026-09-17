@@ -168,6 +168,11 @@ test.describe('Authenticated Flow', () => {
     // Login
     await page.goto('/', { waitUntil: 'load' });
     await page.getByRole('button', { name: /sign in/i }).click();
+    // Guideline 1.2: the submit button is disabled until the terms
+    // agreement is ticked.
+    const termsBox = page.getByTestId('terms-agree-checkbox');
+    await termsBox.waitFor({ state: 'visible', timeout: 10000 });
+    await termsBox.check();
     await page.getByPlaceholder('Email address').fill(TEST_EMAIL);
     await page.getByPlaceholder('Password').fill(TEST_PASSWORD);
     await page.locator('form').getByRole('button', { name: /sign in/i }).click();

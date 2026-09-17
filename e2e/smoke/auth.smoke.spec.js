@@ -14,7 +14,7 @@
  * `auth/too-many-requests` failed the entire suite. See e2e/auth.setup.js.
  */
 const { test, expect } = require('@playwright/test');
-const { loginUser } = require('../utils/test-helpers');
+const { loginUser, acceptTerms } = require('../utils/test-helpers');
 
 const TEST_EMAIL = process.env.TEST_EMAIL;
 const TEST_PASSWORD = process.env.TEST_PASSWORD;
@@ -49,6 +49,9 @@ test.describe('Auth Smoke Tests', () => {
     // suite into auth/too-many-requests. An address that cannot exist
     // exercises the same "credentials rejected" path and costs the real
     // account nothing.
+    // Guideline 1.2: the submit button below is disabled until the terms
+    // agreement is ticked, so this is part of signing in now, not setup.
+    await acceptTerms(page);
     await page.getByPlaceholder('Email address').fill('no-such-account@example.invalid');
     await page.getByPlaceholder('Password').fill('definitely-wrong-password');
     await page.locator('form').getByRole('button', { name: /sign in/i }).click();
