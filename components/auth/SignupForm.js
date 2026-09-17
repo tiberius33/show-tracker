@@ -11,6 +11,7 @@ import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
 import { Input, Button } from '@/components/ui';
+import { contentProblem } from '@/lib/contentFilter';
 
 export default function SignupForm({ onSuccess, onSwitchToLogin, agreed = true }) {
   const [displayName, setDisplayName] = useState('');
@@ -38,6 +39,19 @@ export default function SignupForm({ onSuccess, onSwitchToLogin, agreed = true }
     // Validation
     if (!displayName.trim()) {
       setError('Please enter your name');
+      return;
+    }
+
+    // The display name is the single most widely published piece of text a
+    // user controls — it renders on every comment, photo, friend card and
+    // activity row in the app. It was filtered on the profile EDIT path
+    // (ProfileView) but not here, which made signing up with a slur the
+    // easiest way to publish one: no SDK, no Firestore bypass, just this
+    // form. Checked before the account is created, so a rejected name
+    // never reaches Firebase Auth at all.
+    const nameProblem = contentProblem(displayName);
+    if (nameProblem) {
+      setError(nameProblem);
       return;
     }
 
