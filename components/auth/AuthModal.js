@@ -95,23 +95,32 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative bg-surface backdrop-blur-xl border border-subtle rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      {/* Modal
+          The scroll container is the INNER div, not this one. The close
+          button is absolutely positioned, and an absolutely positioned
+          child of a scrolling box scrolls away with the content — so
+          putting overflow on the same element as the button would send
+          the only visible way out off the top of a modal that is now tall
+          enough to scroll. The outer box clips, the inner one scrolls,
+          and the button sits between them where it stays put. */}
+      <div className="relative bg-surface backdrop-blur-xl border border-subtle rounded-3xl w-full max-w-md mx-4 shadow-2xl max-h-[90vh] flex flex-col">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-3 text-secondary hover:text-primary active:bg-hover rounded-xl transition-colors"
+          className="absolute top-4 right-4 z-10 p-3 text-secondary hover:text-primary active:bg-hover rounded-xl transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
 
-        {/* Above the form, so the rules are read before the buttons are
-            reachable — every sign-in control below is disabled until the
-            box is ticked. */}
-        {gated && (
-          <TermsAgreement agreed={agreed} onChange={handleAgreeChange} />
-        )}
+        <div className="overflow-y-auto p-8">
+          {/* Above the form, so the rules are read before the buttons are
+              reachable — every sign-in control below is disabled until the
+              box is ticked. */}
+          {gated && (
+            <TermsAgreement agreed={agreed} onChange={handleAgreeChange} />
+          )}
 
-        {renderForm()}
+          {renderForm()}
+        </div>
       </div>
     </div>
   );

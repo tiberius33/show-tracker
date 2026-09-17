@@ -172,3 +172,36 @@ test.describe('Guideline 1.2 — terms agreement before sign-in', () => {
     ).toBeEnabled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// The agreement made the auth modal tall enough to scroll
+// ---------------------------------------------------------------------------
+test.describe('Guideline 1.2 — the taller auth modal still works', () => {
+  test('the close button stays put when the content scrolls', async ({ page }) => {
+    // Adding the agreement pushed the modal past the height of a short
+    // phone, so it needs to scroll — and the close button is absolutely
+    // positioned. An absolutely positioned child of a scrolling box
+    // scrolls away with the content, which would have sent the only
+    // visible way out of the modal off the top of the screen.
+    await page.setViewportSize({ width: 390, height: 600 });
+    await page.goto('/', { waitUntil: 'load' });
+    await page.getByRole('button', { name: /log in/i }).first().click();
+    await expect(page.getByTestId('terms-agreement')).toBeVisible();
+
+    const close = page.locator('button.absolute.top-4.right-4').first();
+    await expect(close).toBeVisible();
+    const before = await close.boundingBox();
+
+    const scroller = page.locator('div.overflow-y-auto').first();
+    const scrolled = await scroller.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+      return el.scrollTop;
+    });
+    // The assertion below proves nothing if the modal never scrolled.
+    expect(scrolled).toBeGreaterThan(0);
+
+    const after = await close.boundingBox();
+    expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+    await expect(close).toBeInViewport();
+  });
+});
