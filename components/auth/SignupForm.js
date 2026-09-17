@@ -12,7 +12,7 @@ import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
 import { Input, Button } from '@/components/ui';
 
-export default function SignupForm({ onSuccess, onSwitchToLogin }) {
+export default function SignupForm({ onSuccess, onSwitchToLogin, agreed = true }) {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +30,9 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
 
   const handleEmailSignup = async (e) => {
     e.preventDefault();
+    // The submit button is disabled without agreement, but a form still
+    // submits on Enter — so the gate is enforced here as well.
+    if (!agreed) return;
     setError('');
 
     // Validation
@@ -69,6 +72,7 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
   };
 
   const handleOAuthSignup = async (providerName) => {
+    if (!agreed) return;
     setError('');
     setLoading(true);
 
@@ -103,9 +107,10 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
         Create Account
       </h2>
 
+      {/* Same agreement flag as LoginForm — see the note there. */}
       <OAuthButtons
         onProviderClick={handleOAuthSignup}
-        disabled={loading}
+        disabled={loading || !agreed}
         action="signup"
       />
 
@@ -149,7 +154,7 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
           <p className="text-danger text-sm">{error}</p>
         )}
 
-        <Button type="submit" variant="primary" full loading={loading}>
+        <Button type="submit" variant="primary" full loading={loading} disabled={!agreed}>
           {loading ? 'Creating account...' : 'Create Account'}
         </Button>
       </form>

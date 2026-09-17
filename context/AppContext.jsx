@@ -27,6 +27,10 @@ import {
   subscribeBlocks, blockUser as blockUserDoc, unblockUser as unblockUserDoc,
   withoutBlocked,
 } from '@/lib/moderation';
+import {
+  TERMS_VERSION, fetchTermsAcceptance, getPendingAcceptance,
+  recordTermsAcceptance,
+} from '@/lib/terms';
 import { sendEmailIfAllowed } from '@/lib/email';
 import {
   inviteEmail,
@@ -379,6 +383,12 @@ export function AppProvider({ children }) {
   // selectors below do once, not something every new surface has to
   // remember to do — see withoutBlocked() in lib/moderation.js.
   const [blockedUserIds, setBlockedUserIds] = useState([]);
+
+  // Terms agreement (Guideline 1.2). Three states, and the third matters:
+  // `null` means "not resolved yet". The gate renders only on an explicit
+  // `false`, so it cannot flash over the app for the moment between
+  // sign-in and the profile read coming back.
+  const [termsAccepted, setTermsAccepted] = useState(null);
 
   // Favorite artists
   const [favoriteArtists, setFavoriteArtists] = useState([]);
@@ -806,6 +816,31 @@ export function AppProvider({ children }) {
       if (currentUser) {
         // Close auth modal when user signs in (belt-and-suspenders)
         setAuthModal(null);
+
+        // ── Terms agreement (Guideline 1.2) ───────────────────────────
+        // First thing after sign-in, because everything below it is
+        // loading data for an app the user may not be allowed into yet.
+        //
+        // A parked tick means they agreed on the gate a moment ago, when
+        // there was no uid to write to — flush it now. Otherwise read
+        // what their profile says; a missing field means every account
+        // created before build 32, which is exactly who the launch gate
+        // in AppProviderWrapper is for.
+        try {
+          if (getPendingAcceptance() >= TERMS_VERSION) {
+            setTermsAccepted(true);
+            recordTermsAcceptance(currentUser.uid).catch((err) => {
+              console.error('Failed to record terms acceptance:', err);
+            });
+          } else {
+            setTermsAccepted(await fetchTermsAcceptance(currentUser.uid));
+          }
+        } catch (err) {
+          console.error('Terms acceptance check failed:', err);
+          // Fail closed: show the gate. Agreeing again is cheap; letting
+          // someone past it on an error is the rejection all over again.
+          setTermsAccepted(false);
+        }
         // Mark guest session as converted if the user was in guest mode
         try {
           const guestSessionId = storage.get(STORAGE_KEYS.GUEST_SESSION);
@@ -967,9 +1002,11 @@ export function AppProvider({ children }) {
         }
 
       } else if (guestMode) {
+        setTermsAccepted(null);
         loadGuestShows();
         setFestivalsLoading(false);
       } else {
+        setTermsAccepted(null);
         setShows([]);
         setIsLoading(false);
         setFestivalsLoading(false);
@@ -1044,6 +1081,21 @@ export function AppProvider({ children }) {
       console.error('Logout failed:', error);
     }
   };
+
+  /**
+   * Record the current user's agreement from the launch gate.
+   *
+   * Optimism is deliberate but ordered: the write is awaited so a failure
+   * keeps the gate up (TermsGate catches the throw and shows an inline
+   * error), and only a successful write flips the flag that unmounts it.
+   * Letting someone past on a failed write would leave an account marked
+   * as never having agreed.
+   */
+  const acceptTerms = useCallback(async () => {
+    if (!user) return;
+    await recordTermsAcceptance(user.uid);
+    setTermsAccepted(true);
+  }, [user]);
 
   const openAuthModal = (mode) => setAuthModal(mode);
   const closeAuthModal = () => setAuthModal(null);
@@ -3370,6 +3422,11 @@ export function AppProvider({ children }) {
     // Toast
     toast,
     setToast,
+
+    // Terms agreement (Guideline 1.2) — null until resolved, see the
+    // state declaration above.
+    termsAccepted,
+    acceptTerms,
 
     // Moderation — blocked accounts (Guideline 1.2)
     blockedUserIds,

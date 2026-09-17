@@ -1,13 +1,45 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
 import ForgotPasswordForm from './ForgotPasswordForm';
+import TermsAgreement from './TermsAgreement';
 import { useDismissable } from '@/context/DismissStackContext';
+import { getPendingAcceptance, setPendingAcceptance, TERMS_VERSION } from '@/lib/terms';
 
 export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
   useDismissable(true, onClose, { id: 'auth-modal' });
+
+  // ── The Guideline 1.2 agreement gate ──────────────────────────────────
+  //
+  // Held here rather than in LoginForm/SignupForm so that switching
+  // between "Sign in" and "Sign up" does not silently reset a tick the
+  // user has already given — and so one flag covers all three providers.
+  //
+  // Seeded from localStorage because the agreement is taken BEFORE an
+  // account exists: someone who ticked the box, started Sign in with
+  // Apple and backed out of the native sheet should not have to tick it
+  // again. AppContext flushes the parked value to their profile once
+  // sign-in completes. Read in an effect rather than during render — this
+  // is a static export, so a localStorage read at render time disagrees
+  // with the prerendered HTML and trips a hydration mismatch in the
+  // app's webview.
+  const [agreed, setAgreed] = useState(false);
+  useEffect(() => {
+    if (getPendingAcceptance() >= TERMS_VERSION) setAgreed(true);
+  }, []);
+
+  const handleAgreeChange = (next) => {
+    setAgreed(next);
+    if (next) setPendingAcceptance();
+  };
+
+  // Password reset is not registering and not logging in, so it is not
+  // behind the gate — someone locked out of their account must be able to
+  // recover it. Agreement is still required before the sign-in that
+  // follows, because LoginForm renders with the same flag.
+  const gated = mode === 'login' || mode === 'signup';
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e) => {
@@ -33,6 +65,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
             onSuccess={onSuccess}
             onSwitchToSignup={() => onSwitchMode('signup')}
             onForgotPassword={() => onSwitchMode('forgot-password')}
+            agreed={agreed}
           />
         );
       case 'signup':
@@ -40,6 +73,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
           <SignupForm
             onSuccess={onSuccess}
             onSwitchToLogin={() => onSwitchMode('login')}
+            agreed={agreed}
           />
         );
       case 'forgot-password':
@@ -62,13 +96,20 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
       />
 
       {/* Modal */}
-      <div className="relative bg-surface backdrop-blur-xl border border-subtle rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl">
+      <div className="relative bg-surface backdrop-blur-xl border border-subtle rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-3 text-secondary hover:text-primary active:bg-hover rounded-xl transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
+
+        {/* Above the form, so the rules are read before the buttons are
+            reachable — every sign-in control below is disabled until the
+            box is ticked. */}
+        {gated && (
+          <TermsAgreement agreed={agreed} onChange={handleAgreeChange} />
+        )}
 
         {renderForm()}
       </div>
