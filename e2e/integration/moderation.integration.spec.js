@@ -27,7 +27,7 @@
  * something identifiable behind rather than anonymous debris.
  */
 const { test, expect } = require('@playwright/test');
-const { loginUser, logoutUser, dismissOverlays } = require('../utils/test-helpers');
+const { loginUser, logoutUser, dismissOverlays, acceptTerms } = require('../utils/test-helpers');
 
 const AUTHOR = { email: process.env.TEST_EMAIL, password: process.env.TEST_PASSWORD };
 const REPORTERS = [
@@ -168,5 +168,220 @@ test.describe('Guideline 1.2 — the full report loop', () => {
     } catch {
       console.warn(`[moderation] Could not clean up ${MARKER} — remove it by hand.`);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Blocking (Guideline 1.2, requirement 4)
+// ---------------------------------------------------------------------------
+//
+// Apple asks for three things here and the third is the one that is easy
+// to claim and hard to do: blocking must remove the blocked user's content
+// from the blocker's feed INSTANTLY, and it must notify the developer.
+// Both are asserted below, and "instantly" is asserted the only way that
+// means anything — by never reloading the page.
+test.describe('Guideline 1.2 — blocking', () => {
+  const BLOCKER = { email: process.env.TEST_EMAIL_2, password: process.env.TEST_PASSWORD_2 };
+
+  const haveBlock = AUTHOR.email && AUTHOR.password
+    && BLOCKER.email && BLOCKER.password
+    && ADMIN.email && ADMIN.password && !!SHOW_PATH;
+
+  test.skip(!haveBlock, 'Skipping: needs TEST_EMAIL, TEST_EMAIL_2, ADMIN_EMAIL and MODERATION_TEST_SHOW_PATH');
+  test.describe.configure({ mode: 'serial' });
+
+  const BLOCK_MARKER = `block-e2e-${RUN_ID}`;
+
+  test('the author posts something for the blocker to see', async ({ page }) => {
+    await loginUser(page, AUTHOR.email, AUTHOR.password);
+    await dismissOverlays(page);
+    await page.goto(SHOW_PATH, { waitUntil: 'load' });
+
+    await page.getByPlaceholder(/share your thoughts on this show/i)
+      .fill(`${BLOCK_MARKER} see you at the next one`);
+    await page.getByRole('button', { name: /^post$/i }).click();
+    await expect(page.getByText(BLOCK_MARKER).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('blocking from the profile sheet removes their content with no reload', async ({ page }) => {
+    await loginUser(page, BLOCKER.email, BLOCKER.password);
+    await dismissOverlays(page);
+    await page.goto(SHOW_PATH, { waitUntil: 'load' });
+
+    const comment = page.getByText(BLOCK_MARKER).first();
+    await expect(comment).toBeVisible({ timeout: 15000 });
+
+    // Open the author's profile by tapping their name on the comment —
+    // the path a reviewer takes, and the one that did not exist before
+    // v5.36.2. Blocking used to be reachable only from the friends grid.
+    await page.getByRole('button', { name: /view .*profile/i }).first().click();
+    await expect(page.getByTestId('user-profile-sheet')).toBeVisible();
+
+    await page.getByTestId('block-user').click();
+    await expect(page.getByTestId('block-confirm')).toBeVisible();
+    await page.getByTestId('block-confirm-yes').click();
+
+    // THE ASSERTION THAT MATTERS. No goto, no reload — if this passes
+    // only after a refresh, the requirement is not met. AppContext sets
+    // blockedUserIds optimistically on the same tick, and every selector
+    // filters on it.
+    await expect(page.getByText(BLOCK_MARKER)).toHaveCount(0, { timeout: 10000 });
+  });
+
+  test('the block survives a reload, and is listed in Settings', async ({ page }) => {
+    await loginUser(page, BLOCKER.email, BLOCKER.password);
+    await dismissOverlays(page);
+    await page.goto(SHOW_PATH, { waitUntil: 'load' });
+    await expect(page.getByText(BLOCK_MARKER)).toHaveCount(0, { timeout: 15000 });
+
+    // Guideline 1.2 wants blocking undoable, and a block with no visible
+    // list and no way back is a trap rather than a control.
+    await page.goto('/profile', { waitUntil: 'load' });
+    await expect(page.getByRole('heading', { name: /blocked accounts/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /unblock/i }).first()).toBeVisible();
+  });
+
+  test('the admin was notified — the block is in the queue', async ({ page }) => {
+    await loginUser(page, ADMIN.email, ADMIN.password);
+    await dismissOverlays(page);
+    await page.goto('/admin', { waitUntil: 'load' });
+    await page.getByRole('button', { name: /moderation/i }).click();
+
+    // notify-block.js files it as a report with reason 'blocked', so it
+    // lands in the same queue on the same 24-hour clock. A separate
+    // collection would have needed its own screen to be looked at.
+    await expect(page.getByText(/user blocked them/i).first())
+      .toBeVisible({ timeout: 20000 });
+  });
+
+  test.afterAll(async ({ browser }) => {
+    if (!haveBlock) return;
+    // Unblock, so the next run starts from a clean pair — a leftover
+    // block would hide the content the next run posts.
+    try {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await loginUser(page, BLOCKER.email, BLOCKER.password);
+      await page.goto('/profile', { waitUntil: 'load' });
+      await page.getByRole('button', { name: /unblock/i }).first().click();
+      await context.close();
+    } catch {
+      console.warn('[moderation] Could not unblock — clear it by hand before the next run.');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ejection (Guideline 1.2, requirement 5)
+// ---------------------------------------------------------------------------
+//
+// "…with the developer removing the offending content and ejecting the
+// user who provided the offending content." Before v5.36.2 the ban action
+// set a flag and stopped there: the user could still sign in, still read,
+// and everything they had posted stayed up. This asserts the version that
+// actually ejects.
+//
+// ── THIS TEST DESTROYS AN ACCOUNT ───────────────────────────────────────
+//
+// Ejection disables the Firebase Auth account, and there is no un-eject
+// in the admin UI — reversing it means firebase-admin, by hand. So this
+// deliberately will NOT run against TEST_EMAIL or any other account the
+// rest of the suite depends on. It requires its own credentials in
+// EJECT_TEST_EMAIL / EJECT_TEST_PASSWORD and skips without them, and the
+// account it is pointed at should be considered spent afterwards.
+//
+// Create a fresh one per run, or re-enable it in the Firebase console
+// between runs. There is no cleanup hook here because there is nothing
+// Playwright can do to undo it.
+test.describe('Guideline 1.2 — ejection', () => {
+  const DOOMED = {
+    email: process.env.EJECT_TEST_EMAIL,
+    password: process.env.EJECT_TEST_PASSWORD,
+  };
+
+  // AUTHOR and REPORTERS[0] are used below too — as the account that
+  // files the report, and as a third party who never reported, to prove
+  // the sweep removed the content for everyone rather than just hiding it
+  // locally for the reporter. Without them the last two assertions would
+  // run against undefined credentials and fail for the wrong reason.
+  const haveEject = DOOMED.email && DOOMED.password
+    && ADMIN.email && ADMIN.password
+    && AUTHOR.email && AUTHOR.password
+    && REPORTERS[0].email && REPORTERS[0].password
+    && !!SHOW_PATH;
+
+  test.skip(
+    !haveEject,
+    'Skipping: needs EJECT_TEST_EMAIL / EJECT_TEST_PASSWORD (a disposable account — ejection cannot be undone from the app), plus TEST_EMAIL, TEST_EMAIL_2 and ADMIN_EMAIL',
+  );
+  test.describe.configure({ mode: 'serial' });
+
+  const EJECT_MARKER = `eject-e2e-${RUN_ID}`;
+
+  test('the doomed account posts, and can sign in beforehand', async ({ page }) => {
+    await loginUser(page, DOOMED.email, DOOMED.password);
+    await dismissOverlays(page);
+    await page.goto(SHOW_PATH, { waitUntil: 'load' });
+
+    await page.getByPlaceholder(/share your thoughts on this show/i)
+      .fill(`${EJECT_MARKER} this account is about to be ejected`);
+    await page.getByRole('button', { name: /^post$/i }).click();
+    await expect(page.getByText(EJECT_MARKER).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('a reporter flags it, and it disappears for them immediately', async ({ page }) => {
+    await loginUser(page, REPORTERS[0].email, REPORTERS[0].password);
+    await dismissOverlays(page);
+    await page.goto(SHOW_PATH, { waitUntil: 'load' });
+
+    const row = page.locator('div').filter({ hasText: EJECT_MARKER }).last();
+    await row.getByRole('button', { name: /report/i }).first().click();
+    await page.getByRole('dialog').getByText(/harassment or hate/i).click();
+    await page.getByRole('button', { name: /send report/i }).click();
+
+    await expect(page.getByText(EJECT_MARKER)).toHaveCount(0, { timeout: 15000 });
+    // The 24-hour commitment, stated back to the reporter.
+    await expect(page.getByText(/within 24 hours/i).first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test('the admin ejects the author', async ({ page }) => {
+    await loginUser(page, ADMIN.email, ADMIN.password);
+    await dismissOverlays(page);
+    await page.goto('/admin', { waitUntil: 'load' });
+    await page.getByRole('button', { name: /moderation/i }).click();
+
+    const row = page.locator('li').filter({ hasText: EJECT_MARKER }).first();
+    await expect(row).toBeVisible({ timeout: 20000 });
+
+    page.once('dialog', (d) => d.accept());
+    await row.getByRole('button', { name: /delete \+ eject|eject user/i }).first().click();
+
+    await expect(page.getByText(/ejected|banned/i).first()).toBeVisible({ timeout: 25000 });
+  });
+
+  test('the ejected account cannot sign back in', async ({ page }) => {
+    // The whole point. Firebase rejects a disabled account with
+    // auth/user-disabled, which LoginForm maps to this copy.
+    await page.goto('/', { waitUntil: 'load' });
+    await page.getByRole('button', { name: /log in/i }).first().click();
+    await acceptTerms(page);
+    await page.getByPlaceholder('Email address').fill(DOOMED.email);
+    await page.getByPlaceholder('Password').fill(DOOMED.password);
+    await page.locator('form').getByRole('button', { name: /sign in/i }).click();
+
+    await expect(page.getByText(/account has been disabled/i)).toBeVisible({ timeout: 20000 });
+    // And it never reached the app.
+    await expect(page.getByTestId('terms-agreement')).toBeVisible();
+  });
+
+  test('their content is gone for everyone, not just the reporter', async ({ page }) => {
+    // The sweep in ejectUser() moves every comment, meetup message and
+    // photo the account posted into moderationHidden. Checked with an
+    // account that never reported it, so a pass cannot be the reporter's
+    // own local hide.
+    await loginUser(page, AUTHOR.email, AUTHOR.password);
+    await dismissOverlays(page);
+    await page.goto(SHOW_PATH, { waitUntil: 'load' });
+    await expect(page.getByText(EJECT_MARKER)).toHaveCount(0, { timeout: 20000 });
   });
 });
