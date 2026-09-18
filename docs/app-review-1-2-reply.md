@@ -218,6 +218,8 @@ checked.
 | Actions recorded with reviewer/time | `adminAuditLog` + `resolvedBy`/`resolvedAt` | ✅ code read |
 | Camera prompt fixed | `lib/nativePermissions.js` — one permission at a time | **[VERIFY ON DEVICE]** — the bug is iOS-only |
 | Purpose strings specific | `Info.plist` | ✅ plist parsed |
+| Privacy manifest ships in the bundle | `PrivacyInfo.xcprivacy` is in the Resources build phase (pbxproj L157) | ✅ verified in the project file — no manual step needed |
+| Release build uses production push | `AppRelease.entitlements`, wired at pbxproj L356 | ✅ verified in the project file |
 
 ### Do not send this reply until
 
@@ -227,6 +229,10 @@ checked.
    if a previous review round left `appreview@` blocking `reviewfriend@`, the
    friend's content is invisible and the reviewer will find nothing to flag.
 3. The recording is made on a physical device from a fresh install.
+
+Build and upload steps are in `docs/build-testflight-3-1-32.md` — reconstructed from
+the project's own build settings, because `claude/build-testflight-and-submit.md` is
+not in this repository.
 
 ### One wording note
 
