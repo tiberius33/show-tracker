@@ -24,6 +24,16 @@
 [functions."venue-bucket-list-notifications"]
   schedule = "30 13 * * *"
 
+# Moderation SLA reminder (Guideline 1.2) — re-sends the admin email for
+# any report open more than 12 hours, so the 24-hour review commitment in
+# the Community Guidelines cannot be missed silently. Every four hours
+# rather than daily: a reminder that arrives at the deadline is a
+# post-mortem, not a reminder. Offset off the hour so it does not contend
+# with the two daily jobs above. See
+# netlify/functions/moderation-sla-reminder.js.
+[functions."moderation-sla-reminder"]
+  schedule = "15 */4 * * *"
+
 # Firebase Auth handler, proxied onto our own domain.
 #
 # Google's sign-in screen shows the app name only for brand-verified OAuth
@@ -118,6 +128,18 @@
 [[redirects]]
   from = "/api/moderate-report/"
   to = "/.netlify/functions/moderate-report"
+  status = 200
+
+# Guideline 1.2 requires that blocking notify the developer, not just
+# hide content. See netlify/functions/notify-block.js.
+[[redirects]]
+  from = "/api/notify-block"
+  to = "/.netlify/functions/notify-block"
+  status = 200
+
+[[redirects]]
+  from = "/api/notify-block/"
+  to = "/.netlify/functions/notify-block"
   status = 200
 
 # Band-source setlists (El Goose, Phish.net) — see

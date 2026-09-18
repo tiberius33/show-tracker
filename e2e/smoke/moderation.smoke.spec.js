@@ -90,3 +90,118 @@ test.describe('Guideline 1.2 — Community Guidelines', () => {
     ).toBeVisible();
   });
 });
+
+// ---------------------------------------------------------------------------
+// The terms agreement gate (Guideline 1.2, requirement 1)
+// ---------------------------------------------------------------------------
+//
+// This is the requirement build 3.1 (31) was rejected for on 2026-09-17:
+// the Terms existed but nobody ever agreed to them. What the reviewer
+// checks is that the sign-in controls do not work until the box is ticked
+// — so that is what these assert, on every provider rather than just the
+// email form, because a gate that Apple or Google can walk around is not
+// a gate.
+//
+// Unauthenticated and non-destructive, like the rest of this file: the
+// checkbox is ticked but no sign-in is ever attempted.
+test.describe('Guideline 1.2 — terms agreement before sign-in', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/', { waitUntil: 'load' });
+    await page.getByRole('button', { name: /log in/i }).first().click();
+    await expect(page.getByTestId('terms-agreement')).toBeVisible();
+  });
+
+  test('the agreement appears above the sign-in options, unchecked', async ({ page }) => {
+    const box = page.getByTestId('terms-agree-checkbox');
+    await expect(box).toBeVisible();
+    await expect(box).not.toBeChecked();
+    await expect(page.getByTestId('terms-agree-hint')).toBeVisible();
+  });
+
+  test('it states the zero-tolerance commitment in plain language', async ({ page }) => {
+    const agreement = page.getByTestId('terms-agreement');
+    await expect(agreement).toContainText(/zero tolerance for objectionable content/i);
+    await expect(agreement).toContainText(/zero tolerance for abusive users/i);
+    await expect(agreement).toContainText(/within 24 hours/i);
+  });
+
+  test('it links to the full Terms', async ({ page }) => {
+    await expect(
+      page.getByTestId('terms-agreement').locator('a[href="/terms"]')
+    ).toBeVisible();
+  });
+
+  test('every sign-in control is disabled until the box is ticked', async ({ page }) => {
+    const emailSubmit = page.locator('form').getByRole('button', { name: /sign in/i });
+    const google = page.getByRole('button', { name: /sign in with google/i });
+
+    await expect(emailSubmit).toBeDisabled();
+    await expect(google).toBeDisabled();
+
+    // Apple only renders on native (see OAuthButtons) — assert it when
+    // it is there rather than making the web run fail on its absence.
+    const apple = page.getByRole('button', { name: /sign in with apple/i });
+    if (await apple.count()) await expect(apple.first()).toBeDisabled();
+  });
+
+  test('ticking the box enables them', async ({ page }) => {
+    await page.getByTestId('terms-agree-checkbox').check();
+
+    await expect(page.locator('form').getByRole('button', { name: /sign in/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /sign in with google/i })).toBeEnabled();
+    await expect(page.getByTestId('terms-agree-hint')).toHaveCount(0);
+  });
+
+  test('the gate applies to sign-up as well as sign-in', async ({ page }) => {
+    await page.getByRole('button', { name: /^sign up$/i }).click();
+    await expect(page.getByTestId('terms-agreement')).toBeVisible();
+    await expect(page.getByTestId('terms-agree-checkbox')).not.toBeChecked();
+    await expect(
+      page.locator('form').getByRole('button', { name: /create account/i })
+    ).toBeDisabled();
+  });
+
+  test('agreement survives switching between sign-in and sign-up', async ({ page }) => {
+    // The tick lives on AuthModal, not on either form, so switching mode
+    // must not silently drop a consent the user has already given.
+    await page.getByTestId('terms-agree-checkbox').check();
+    await page.getByRole('button', { name: /^sign up$/i }).click();
+    await expect(page.getByTestId('terms-agree-checkbox')).toBeChecked();
+    await expect(
+      page.locator('form').getByRole('button', { name: /create account/i })
+    ).toBeEnabled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The agreement made the auth modal tall enough to scroll
+// ---------------------------------------------------------------------------
+test.describe('Guideline 1.2 — the taller auth modal still works', () => {
+  test('the close button stays put when the content scrolls', async ({ page }) => {
+    // Adding the agreement pushed the modal past the height of a short
+    // phone, so it needs to scroll — and the close button is absolutely
+    // positioned. An absolutely positioned child of a scrolling box
+    // scrolls away with the content, which would have sent the only
+    // visible way out of the modal off the top of the screen.
+    await page.setViewportSize({ width: 390, height: 600 });
+    await page.goto('/', { waitUntil: 'load' });
+    await page.getByRole('button', { name: /log in/i }).first().click();
+    await expect(page.getByTestId('terms-agreement')).toBeVisible();
+
+    const close = page.locator('button.absolute.top-4.right-4').first();
+    await expect(close).toBeVisible();
+    const before = await close.boundingBox();
+
+    const scroller = page.locator('div.overflow-y-auto').first();
+    const scrolled = await scroller.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+      return el.scrollTop;
+    });
+    // The assertion below proves nothing if the modal never scrolled.
+    expect(scrolled).toBeGreaterThan(0);
+
+    const after = await close.boundingBox();
+    expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+    await expect(close).toBeInViewport();
+  });
+});

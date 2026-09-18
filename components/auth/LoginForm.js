@@ -14,7 +14,7 @@ import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
 import { Input, Button } from '@/components/ui';
 
-export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPassword }) {
+export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPassword, agreed = true }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -32,6 +32,9 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
+    // The submit button is disabled without agreement, but a form still
+    // submits on Enter — so the gate is enforced here as well.
+    if (!agreed) return;
     setError('');
     setLoading(true);
 
@@ -48,6 +51,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
   };
 
   const handleOAuthLogin = async (providerName) => {
+    if (!agreed) return;
     setError('');
     setLoading(true);
 
@@ -88,9 +92,11 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
         Welcome Back
       </h2>
 
+      {/* Guideline 1.2: Apple, Google and email are all held behind the
+          same agreement flag, so no provider is a way around the gate. */}
       <OAuthButtons
         onProviderClick={handleOAuthLogin}
-        disabled={loading}
+        disabled={loading || !agreed}
       />
 
       <AuthDivider />
@@ -136,7 +142,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, onForgotPasswor
           <p className="text-danger text-sm">{error}</p>
         )}
 
-        <Button type="submit" variant="primary" full loading={loading}>
+        <Button type="submit" variant="primary" full loading={loading} disabled={!agreed}>
           {loading ? 'Signing in...' : 'Sign In'}
         </Button>
       </form>

@@ -46,11 +46,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>MySetlists uses the camera to scan concert ticket stubs and wristbands</string>
+	<string>MySetlists uses the camera so you can scan a concert ticket stub to add the show to your history, or take a photo at a gig to share on that show&#8217;s page.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>MySetlists can save scanned ticket photos to your library</string>
+	<string>MySetlists asks for this only if you choose to keep a copy of an image in your photo library, such as your Year in Review card. The app never saves anything without you asking.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>MySetlists accesses your photos to scan ticket stubs and import concert memorabilia</string>
+	<string>MySetlists accesses your photo library so you can choose an existing ticket stub to scan, or add your own concert photos and videos to a show you attended.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

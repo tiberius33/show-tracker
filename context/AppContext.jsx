@@ -9,7 +9,7 @@ import {
   serverTimestamp, onSnapshot, query, where, addDoc, writeBatch, limit,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, browserPopupRedirectResolver } from '@/lib/firebase';
-import { formatDate, parseDate, extractFirstName, normalizeSongTitle } from '@/lib/utils';
+import { formatDate, parseDate, normalizeSongTitle } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { apiUrl } from '@/lib/api';
@@ -27,6 +27,11 @@ import {
   subscribeBlocks, blockUser as blockUserDoc, unblockUser as unblockUserDoc,
   withoutBlocked,
 } from '@/lib/moderation';
+import {
+  TERMS_VERSION, fetchTermsAcceptance, getPendingAcceptance,
+  recordTermsAcceptance,
+} from '@/lib/terms';
+import { saveDisplayName } from '@/lib/handles';
 import { sendEmailIfAllowed } from '@/lib/email';
 import {
   inviteEmail,
@@ -105,11 +110,20 @@ async function updateUserProfile(user, shows = []) {
   const totalSongs = shows.reduce((acc, s) => acc + (s.setlist || []).length, 0);
   const ratedSongs = shows.reduce((acc, s) => acc + (s.setlist || []).filter(song => song.rating).length, 0);
 
+  // displayName and firstName are deliberately NOT written here any more.
+  //
+  // This function runs on every load and after every add/delete, and it
+  // mirrored whatever Firebase Auth held into the profile — which made it
+  // the last unfiltered path to the most widely published string in the
+  // app. Auth's displayName is set by updateProfile() on the client and
+  // no Firestore rule can reach it, so the only way to make the filter a
+  // gate is for the profile to stop trusting it. The name is established
+  // once, server-side and filtered, by syncProfileName() in the auth
+  // listener, and changed only through saveDisplayName(); firestore.rules
+  // now rejects a client write that changes either field.
   const profileData = {
     odubleserId: user.uid,
     email: user.email,
-    displayName: user.displayName || '',
-    firstName: extractFirstName(user.displayName),
     photoURL: user.photoURL || '',
     lastLogin: serverTimestamp(),
     showCount: shows.length,
@@ -379,6 +393,18 @@ export function AppProvider({ children }) {
   // selectors below do once, not something every new surface has to
   // remember to do — see withoutBlocked() in lib/moderation.js.
   const [blockedUserIds, setBlockedUserIds] = useState([]);
+
+  // Terms agreement (Guideline 1.2). Three states, and the third matters:
+  // `null` means "not resolved yet". The gate renders only on an explicit
+  // `false`, so it cannot flash over the app for the moment between
+  // sign-in and the profile read coming back.
+  const [termsAccepted, setTermsAccepted] = useState(null);
+
+  // Ejected accounts (Guideline 1.2). Same tri-state as termsAccepted and
+  // for the same reason: `null` means unresolved, and the suspended
+  // screen must not flash over a normal user while the profile read is
+  // still in flight.
+  const [isSuspended, setIsSuspended] = useState(null);
 
   // Favorite artists
   const [favoriteArtists, setFavoriteArtists] = useState([]);
@@ -806,6 +832,65 @@ export function AppProvider({ children }) {
       if (currentUser) {
         // Close auth modal when user signs in (belt-and-suspenders)
         setAuthModal(null);
+
+        // ── Terms agreement (Guideline 1.2) ───────────────────────────
+        // First thing after sign-in, because everything below it is
+        // loading data for an app the user may not be allowed into yet.
+        //
+        // A parked tick means they agreed on the gate a moment ago, when
+        // there was no uid to write to — flush it now. Otherwise read
+        // what their profile says; a missing field means every account
+        // created before build 32, which is exactly who the launch gate
+        // in AppProviderWrapper is for.
+        try {
+          if (getPendingAcceptance() >= TERMS_VERSION) {
+            setTermsAccepted(true);
+            recordTermsAcceptance(currentUser.uid).catch((err) => {
+              console.error('Failed to record terms acceptance:', err);
+            });
+          } else {
+            setTermsAccepted(await fetchTermsAcceptance(currentUser.uid));
+          }
+        } catch (err) {
+          console.error('Terms acceptance check failed:', err);
+          // Fail closed: show the gate. Agreeing again is cheap; letting
+          // someone past it on an error is the rejection all over again.
+          setTermsAccepted(false);
+        }
+
+        // ── Establish the profile display name, once, server-side ─────
+        // updateUserProfile() used to mirror Firebase Auth's displayName
+        // into the profile on every load, which no Firestore rule can
+        // filter. It is written here instead, through the function that
+        // runs the wordlist, and only when the profile does not already
+        // carry one — a name already set is either filtered or was
+        // changed through saveDisplayName(), and re-sending it on every
+        // launch would undo a rename the moment Auth disagreed.
+        //
+        // Best-effort: a new account with no name yet renders as
+        // "Anonymous" (resolveAuthorName's fallback) rather than failing
+        // to sign in, and the next launch tries again.
+        try {
+          const profileSnap = await getDoc(doc(db, 'userProfiles', currentUser.uid));
+          const profileData = profileSnap.exists() ? profileSnap.data() : {};
+
+          // Disabling an Auth account does not sign anyone out on the
+          // spot — the ID token in hand stays valid until it expires, and
+          // until then the app runs signed in with every write refused.
+          // Reading the flag here is what turns that hour of silent
+          // breakage into an explanation.
+          setIsSuspended(profileData.banned === true);
+
+          if (!profileData.displayName && currentUser.displayName) {
+            await saveDisplayName(currentUser.displayName);
+          }
+        } catch (err) {
+          console.error('Could not read profile on sign-in:', err);
+          // Not suspended on a read failure: locking a user out of the
+          // app over a Firestore blip is the worse error, and every write
+          // they attempt is still refused by the rules regardless.
+          setIsSuspended(false);
+        }
         // Mark guest session as converted if the user was in guest mode
         try {
           const guestSessionId = storage.get(STORAGE_KEYS.GUEST_SESSION);
@@ -967,9 +1052,13 @@ export function AppProvider({ children }) {
         }
 
       } else if (guestMode) {
+        setTermsAccepted(null);
+        setIsSuspended(null);
         loadGuestShows();
         setFestivalsLoading(false);
       } else {
+        setTermsAccepted(null);
+        setIsSuspended(null);
         setShows([]);
         setIsLoading(false);
         setFestivalsLoading(false);
@@ -1044,6 +1133,21 @@ export function AppProvider({ children }) {
       console.error('Logout failed:', error);
     }
   };
+
+  /**
+   * Record the current user's agreement from the launch gate.
+   *
+   * Optimism is deliberate but ordered: the write is awaited so a failure
+   * keeps the gate up (TermsGate catches the throw and shows an inline
+   * error), and only a successful write flips the flag that unmounts it.
+   * Letting someone past on a failed write would leave an account marked
+   * as never having agreed.
+   */
+  const acceptTerms = useCallback(async () => {
+    if (!user) return;
+    await recordTermsAcceptance(user.uid);
+    setTermsAccepted(true);
+  }, [user]);
 
   const openAuthModal = (mode) => setAuthModal(mode);
   const closeAuthModal = () => setAuthModal(null);
@@ -3370,6 +3474,12 @@ export function AppProvider({ children }) {
     // Toast
     toast,
     setToast,
+
+    // Terms agreement (Guideline 1.2) — null until resolved, see the
+    // state declaration above.
+    termsAccepted,
+    acceptTerms,
+    isSuspended,
 
     // Moderation — blocked accounts (Guideline 1.2)
     blockedUserIds,

@@ -7,7 +7,7 @@ import { updateProfile, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { apiUrl } from '@/lib/api';
 import { artistColor, parseDate } from '@/lib/utils';
-import { claimHandle, handleFormatError, normalizeHandle } from '@/lib/handles';
+import { claimHandle, handleFormatError, normalizeHandle, saveDisplayName } from '@/lib/handles';
 import { contentProblem } from '@/lib/contentFilter';
 import BlockedAccountsSection from '@/components/moderation/BlockedAccountsSection';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
@@ -136,17 +136,21 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
     setError('');
 
     try {
+      // The name goes through the server, which runs the same filter and
+      // is the only writer firestore.rules still allows for displayName
+      // and firstName. It throws with the inline message on a rejection,
+      // so an unfiltered name never reaches Firebase Auth below either.
+      await saveDisplayName(displayName);
+
       await updateProfile(auth.currentUser, {
         displayName: displayName.trim(),
         photoURL: photoURL.trim() || null
       });
 
+      // photoURL stays a direct write — it is a URL the client already
+      // uploaded to Storage, not free text, and the rules still allow it.
       const profileRef = doc(db, 'userProfiles', user.uid);
-      await updateDoc(profileRef, {
-        displayName: displayName.trim(),
-        firstName: displayName.trim().split(' ')[0] || 'Anonymous',
-        photoURL: photoURL.trim()
-      });
+      await updateDoc(profileRef, { photoURL: photoURL.trim() });
 
       onProfileUpdate?.({ displayName: displayName.trim(), photoURL: photoURL.trim() });
       setIsEditing(false);

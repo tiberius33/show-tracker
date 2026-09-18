@@ -107,6 +107,22 @@ async function main() {
     });
     await db.doc('moderationCounters/c9').set({ contentId: 'c9', openReports: 3 });
     await db.doc(`userBlocks/${ALICE}`).set({ userId: ALICE, blockedUserIds: ['uid_bob'] });
+
+    // For the published-text tests below.
+    await db.doc('handles/taken').set({ uid: 'uid_bob' });
+
+    // What an ejection sweep leaves behind.
+    await db.doc('moderationHidden/showComments_ejected1').set({
+      collectionName: 'showComments', docId: 'ejected1', hidden: true,
+      hiddenReason: 'author ejected by admin', authorUid: BANNED,
+      data: { text: 'something the ejected account posted' },
+    });
+    await db.doc('meetups/meet_owned').set({
+      concertKey: 'kd', createdBy: ALICE, attendeeUids: [ALICE], description: '',
+    });
+    await db.doc('meetups/meet_join').set({
+      concertKey: 'kj', createdBy: 'uid_dave', attendeeUids: ['uid_dave'], description: '',
+    });
   });
 
   console.log('\nthe write path is closed to clients');
@@ -176,7 +192,112 @@ async function main() {
   await test('an ordinary profile edit still works', async () => {
     // Profiles predating the `banned` field must keep working — a bare
     // field read in the rule would fail evaluation on every one of them.
-    await assertSucceeds(alice().doc(`userProfiles/${ALICE}`).update({ displayName: 'Alice B' }));
+    // photoURL rather than displayName: the name is closed to clients as
+    // of v5.36.2 (see below), but the rest of the profile is not, and a
+    // rule that locked the whole document would break every setting.
+    await assertSucceeds(alice().doc(`userProfiles/${ALICE}`).update({ photoURL: 'https://example.test/a.jpg' }));
+    await assertSucceeds(alice().doc(`userProfiles/${ALICE}`).update({ publicProfile: true }));
+  });
+
+  console.log('\npublished text is closed to clients (v5.36.2)');
+
+  // The name, the handle and the meetup description are filtered by
+  // lib/contentFilter.js before they are written. A filter the client can
+  // skip is advice, not a gate — and a client that writes the field
+  // directly skips it. These are the attacks that has to fail.
+
+  await test('a user cannot change their own display name', async () => {
+    await assertFails(alice().doc(`userProfiles/${ALICE}`).update({ displayName: 'Alice B' }));
+    await assertFails(alice().doc(`userProfiles/${ALICE}`).update({ firstName: 'Alice' }));
+    // Nor smuggled in beside a field that IS allowed.
+    await assertFails(alice().doc(`userProfiles/${ALICE}`).update({
+      photoURL: 'https://example.test/b.jpg', displayName: 'Alice B',
+    }));
+  });
+
+  await test('a write that leaves the name alone still works', async () => {
+    // The rule compares old and new rather than forbidding the key, so
+    // set() with merge — which resends every field — must not be refused
+    // just for carrying the name it already has.
+    await assertSucceeds(alice().doc(`userProfiles/${ALICE}`).set(
+      { displayName: 'Alice', showCount: 12 }, { merge: true },
+    ));
+  });
+
+  await test('a new profile cannot be created carrying published text', async () => {
+    const carol = () => testEnv.authenticatedContext('uid_carol').firestore();
+    await assertFails(carol().doc('userProfiles/uid_carol').set({ displayName: 'Carol' }));
+    await assertFails(carol().doc('userProfiles/uid_carol').set({ handle: 'carol', handleLower: 'carol' }));
+    // Creating without it is how the app actually does it; the server
+    // establishes the name a moment later.
+    await assertSucceeds(carol().doc('userProfiles/uid_carol').set({ email: 'c@example.test' }));
+  });
+
+  await test('a user cannot claim a handle directly', async () => {
+    await assertFails(alice().doc(`userProfiles/${ALICE}`).update({ handle: 'alice', handleLower: 'alice' }));
+    await assertFails(alice().doc('handles/alice').set({ uid: ALICE }));
+  });
+
+  await test('handles stay readable, so the availability check works', async () => {
+    await assertSucceeds(alice().doc('handles/taken').get());
+  });
+
+  await test('the organizer cannot write a meetup description directly', async () => {
+    await assertFails(alice().doc('meetups/meet_owned').update({ description: 'come to my thing' }));
+    await assertFails(alice().doc('meetups/meet_owned').set(
+      { description: 'come to my thing' }, { merge: true },
+    ));
+  });
+
+  await test('a meetup cannot be created carrying a description', async () => {
+    await assertFails(alice().doc('meetups/meet_new').set({
+      concertKey: 'kn', createdBy: ALICE, attendeeUids: [ALICE], description: 'slur goes here',
+    }));
+    await assertSucceeds(alice().doc('meetups/meet_new').set({
+      concertKey: 'kn', createdBy: ALICE, attendeeUids: [ALICE], description: '',
+    }));
+  });
+
+  await test('joining a meetup still works', async () => {
+    // The attendee path must survive description being closed.
+    await assertSucceeds(alice().doc('meetups/meet_join').update({
+      attendeeUids: ['uid_dave', ALICE], attendeeNames: { [ALICE]: 'Alice' },
+    }));
+  });
+
+  console.log('\nan ejected account is locked down');
+
+  // Ejection (moderate-report.js `ban`) has four parts. Two are Auth-side
+  // and cannot be tested here — disabling the account and revoking its
+  // refresh tokens are firebase-admin calls, not rules. The two that ARE
+  // rules are below: the flag holds against the user themselves, and the
+  // quarantine their content is swept into is unreadable by anyone else.
+
+  await test('an ejected user cannot write any UGC', async () => {
+    // The ban flag is what firestore.rules reads; disabling the Auth
+    // account is belt and braces for the hour an issued token stays valid.
+    await assertFails(banned().doc('meetups/meet_ejected').set({
+      concertKey: 'ke', createdBy: BANNED, attendeeUids: [BANNED], description: '',
+    }));
+    await assertFails(banned().doc('showComments/c1').update({ likedBy: [BANNED] }));
+    await assertFails(banned().doc('showPhotos/p1').update({ likedBy: [BANNED] }));
+  });
+
+  await test('swept content is unreadable by everyone but an admin', async () => {
+    // The sweep moves each document into moderationHidden rather than
+    // deleting it, so the decision is reversible. That only counts as
+    // "removed" if nobody else can read it there — including the author.
+    await assertFails(alice().doc('moderationHidden/showComments_ejected1').get());
+    await assertFails(banned().doc('moderationHidden/showComments_ejected1').get());
+    await assertFails(anon().doc('moderationHidden/showComments_ejected1').get());
+    await assertSucceeds(admin().doc('moderationHidden/showComments_ejected1').get());
+  });
+
+  await test('an ejected user cannot rescue their own swept content', async () => {
+    await assertFails(banned().doc('moderationHidden/showComments_ejected1').delete());
+    await assertFails(banned().doc('showComments/ejected1').set({
+      concertKey: 'k1', authorUid: BANNED, authorName: 'Banned', text: 'back again', likedBy: [],
+    }));
   });
 
   console.log('\nreports are admin-only to read');

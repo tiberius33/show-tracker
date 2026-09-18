@@ -20,6 +20,7 @@ import { useApp } from '@/context/AppContext';
 import { subscribeFriendActivity } from '@/lib/activityFeed';
 import { timeAgo } from '@/lib/utils';
 import { withoutBlocked } from '@/lib/moderation';
+import UserLink from '@/components/moderation/UserLink';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -54,7 +55,9 @@ function ActivityRow({ item }) {
       <Avatar name={item.userName} size="md" />
       <div className="min-w-0 flex-1">
         <p className="text-sm text-primary">
-          <span className="font-semibold">{item.userName}</span>{' '}
+          <UserLink uid={item.userId} name={item.userName} className="font-semibold">
+            {item.userName}
+          </UserLink>{' '}
           {item.action === 'rated_show' && <>rated <span className="font-semibold">{item.artist}</span> {item.rating}/10</>}
           {item.action === 'commented' && <>commented on <span className="font-semibold">{item.artist}</span></>}
           {item.action === 'shared_media' && <>shared {MEDIA_NOUN[item.mediaCategory] || 'media'} from <span className="font-semibold">{item.artist}</span></>}

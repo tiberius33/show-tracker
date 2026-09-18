@@ -8,6 +8,9 @@ import { apiUrl } from '@/lib/api';
 import { isNativePlatform } from '@/lib/native-auth';
 import { extractSongsFromSetlist } from '@/lib/setlistParser';
 import { Card, Button } from '@/components/ui';
+import {
+  PERMISSION_KIND, requestNativePermission, openAppSettings,
+} from '@/lib/nativePermissions';
 
 function TicketScanner({ onImport, importedIds, existingShows }) {
   const [files, setFiles] = useState([]);
@@ -16,6 +19,9 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
   const [error, setError] = useState('');
   const [extractedShows, setExtractedShows] = useState([]);
   const [expandedSetlist, setExpandedSetlist] = useState(null);
+  // Set when a permission is refused for good, so the error can offer the
+  // only thing that actually fixes it rather than "please try again".
+  const [permissionBlocked, setPermissionBlocked] = useState(false);
 
   const handleFileSelect = (e) => {
     const selected = Array.from(e.target.files || []);
@@ -36,48 +42,65 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
     setError('');
   };
 
-  // Native camera: use @capacitor/camera for a better experience on iOS
-  const handleNativeCamera = async () => {
+  /**
+   * Take a photo, or pick one from the library.
+   *
+   * `kind` is decided by which button the user pressed, BEFORE anything is
+   * requested — see lib/nativePermissions.js for why that matters. The
+   * previous version asked for both permissions at once and used
+   * CameraSource.Prompt to decide afterwards, which is what stopped the
+   * camera prompt from ever appearing.
+   */
+  const handleNativeCapture = async (kind) => {
+    setError('');
+    setPermissionBlocked(false);
+
+    const verdict = await requestNativePermission(kind);
+    if (!verdict.ok) {
+      setPermissionBlocked(!!verdict.blocked);
+      setError(
+        verdict.blocked
+          ? `${verdict.message} You can turn it back on in Settings.`
+          : verdict.message,
+      );
+      return;
+    }
+
     try {
       const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-
-      // Explicitly request permissions first — on some iOS versions getPhoto()
-      // silently fails without this step, and the permission prompt never appears
-      const perms = await CapCamera.requestPermissions({ permissions: ['camera', 'photos'] });
-      if (perms.camera === 'denied') {
-        setError('Camera access denied. Go to Settings → MySetlists → Camera to enable it.');
-        return;
-      }
 
       const photo = await CapCamera.getPhoto({
         quality: 90,
         resultType: CameraResultType.Uri,
-        source: CameraSource.Prompt,
+        // Explicit, because the permission above was requested for this
+        // one source. CameraSource.Prompt would let the user pick the
+        // other one, for which they may have granted nothing.
+        source: kind === PERMISSION_KIND.CAMERA ? CameraSource.Camera : CameraSource.Photos,
         correctOrientation: true,
         width: 1600,
         height: 1600,
         presentationStyle: 'fullScreen',
       });
 
-      // Read the photo from its URI and convert to a File for the analysis flow
       const photoUrl = photo.webPath || photo.dataUrl;
       if (photoUrl) {
         const res = await fetch(photoUrl);
         const blob = await res.blob();
         const file = new File([blob], `ticket-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
         setFiles(prev => [...prev, file]);
-        const previewUrl = URL.createObjectURL(blob);
-        setPreviews(prev => [...prev, { name: file.name, url: previewUrl }]);
+        setPreviews(prev => [...prev, { name: file.name, url: URL.createObjectURL(blob) }]);
         setError('');
       }
     } catch (err) {
-      // Ignore user cancellation
+      // Backing out of the camera or the picker is not an error.
       const msg = err?.message || '';
-      if (msg.includes('cancel') || msg.includes('User cancelled') || msg.includes('dismissed')) {
-        return;
-      }
+      if (/cancel|dismiss/i.test(msg)) return;
       console.error('Camera error:', err);
-      setError(`Camera error: ${msg || 'Unknown error'}. Please try again.`);
+      setError(
+        kind === PERMISSION_KIND.CAMERA
+          ? 'Couldn’t open the camera. Please try again.'
+          : 'Couldn’t open your photos. Please try again.',
+      );
     }
   };
 
@@ -257,9 +280,20 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
               Upload photos of your concert ticket stubs or digital tickets
             </p>
             {isNativePlatform() ? (
-              <Button variant="primary" icon={Camera} onClick={handleNativeCamera}>
-                {files.length > 0 ? 'Add More Photos' : 'Take Photo or Choose'}
-              </Button>
+              /* Two buttons, not one: the permission is requested for the
+                 source the user actually chose, at the moment they choose
+                 it. That is both the fix for the dropped camera prompt and
+                 what Guideline 5.1.1 means by asking in context. */
+              <div className="flex flex-wrap gap-2.5 justify-center">
+                <Button variant="primary" icon={Camera}
+                        onClick={() => handleNativeCapture(PERMISSION_KIND.CAMERA)}>
+                  Take Photo
+                </Button>
+                <Button variant="secondary"
+                        onClick={() => handleNativeCapture(PERMISSION_KIND.PHOTOS)}>
+                  Choose from Library
+                </Button>
+              </div>
             ) : (
               <label className="inline-flex items-center justify-center gap-2 text-[15px] font-bold px-[18px] py-2.5 rounded-full cursor-pointer whitespace-nowrap select-none transition-all duration-150 bg-brand text-[#2a2a4e] hover:bg-[#e6c200] shadow-[0_1px_2px_rgba(255,215,0,0.25)] hover:shadow-[0_4px_12px_rgba(255,215,0,0.3)] hover:-translate-y-0.5 active:translate-y-0">
                 <Camera size={16} strokeWidth={2.4} />
@@ -324,6 +358,20 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
       {error && (
         <div className="bg-danger/10 border border-danger/20 rounded-xl p-4 mb-6">
           <p className="text-danger text-sm">{error}</p>
+          {/* A refused permission cannot be re-requested — iOS will not
+              show the prompt a second time — so "please try again" is a
+              dead end and Settings is the only thing that fixes it. */}
+          {permissionBlocked && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              onClick={openAppSettings}
+              data-testid="open-settings"
+            >
+              Open Settings
+            </Button>
+          )}
         </div>
       )}
 

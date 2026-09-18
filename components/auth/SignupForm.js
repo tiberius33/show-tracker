@@ -11,8 +11,9 @@ import OAuthButtons from './OAuthButtons';
 import AuthDivider from './AuthDivider';
 import PasswordInput from './PasswordInput';
 import { Input, Button } from '@/components/ui';
+import { contentProblem } from '@/lib/contentFilter';
 
-export default function SignupForm({ onSuccess, onSwitchToLogin }) {
+export default function SignupForm({ onSuccess, onSwitchToLogin, agreed = true }) {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,11 +31,27 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
 
   const handleEmailSignup = async (e) => {
     e.preventDefault();
+    // The submit button is disabled without agreement, but a form still
+    // submits on Enter — so the gate is enforced here as well.
+    if (!agreed) return;
     setError('');
 
     // Validation
     if (!displayName.trim()) {
       setError('Please enter your name');
+      return;
+    }
+
+    // The display name is the single most widely published piece of text a
+    // user controls — it renders on every comment, photo, friend card and
+    // activity row in the app. It was filtered on the profile EDIT path
+    // (ProfileView) but not here, which made signing up with a slur the
+    // easiest way to publish one: no SDK, no Firestore bypass, just this
+    // form. Checked before the account is created, so a rejected name
+    // never reaches Firebase Auth at all.
+    const nameProblem = contentProblem(displayName);
+    if (nameProblem) {
+      setError(nameProblem);
       return;
     }
 
@@ -69,6 +86,7 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
   };
 
   const handleOAuthSignup = async (providerName) => {
+    if (!agreed) return;
     setError('');
     setLoading(true);
 
@@ -103,9 +121,10 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
         Create Account
       </h2>
 
+      {/* Same agreement flag as LoginForm — see the note there. */}
       <OAuthButtons
         onProviderClick={handleOAuthSignup}
-        disabled={loading}
+        disabled={loading || !agreed}
         action="signup"
       />
 
@@ -149,7 +168,7 @@ export default function SignupForm({ onSuccess, onSwitchToLogin }) {
           <p className="text-danger text-sm">{error}</p>
         )}
 
-        <Button type="submit" variant="primary" full loading={loading}>
+        <Button type="submit" variant="primary" full loading={loading} disabled={!agreed}>
           {loading ? 'Creating account...' : 'Create Account'}
         </Button>
       </form>

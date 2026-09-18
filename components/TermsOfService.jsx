@@ -4,6 +4,7 @@ import React from 'react';
 import { Music, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import Footer from '@/components/Footer';
+import { TERMS_VERSION } from '@/lib/terms';
 
 export default function TermsOfService() {
   return (
@@ -33,7 +34,7 @@ export default function TermsOfService() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-hover backdrop-blur-xl border border-subtle rounded-3xl p-8 sm:p-12">
           <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-          <p className="text-secondary mb-8">Last Updated: September 5, 2026</p>
+          <p className="text-secondary mb-8">Last Updated: September 17, 2026 &middot; Agreement version {TERMS_VERSION}</p>
 
           <div className="prose-legal space-y-8 text-secondary leading-relaxed">
             <p>
@@ -84,7 +85,9 @@ export default function TermsOfService() {
 
               <p className="mb-3"><strong className="text-primary">You can block anyone.</strong> Blocking a user hides their comments, photos, meetup messages, tags and activity from you, and removes you from each other's friends list. You can block someone from the report dialog, from their card in your friends list, or from their profile, and you can undo it at any time under Profile → Blocked accounts.</p>
 
-              <p className="mb-3"><strong className="text-primary">Repeat offenders lose their account.</strong> Accounts that post objectionable content are banned. A banned account can still read and can still export its own data, but cannot post comments, upload media, or create or join meetups.</p>
+              <p className="mb-3"><strong className="text-primary">Offending accounts are removed from the Service.</strong> There is no tolerance for abusive users. When we find that an account has posted objectionable content or behaved abusively, we remove that content and we remove the account: it is suspended, signed out of every device, and cannot sign back in. Content posted by a removed account is taken down for everyone. We do this within the same 24-hour window, and we do not require a pattern of offences before acting.</p>
+
+              <p className="mb-3"><strong className="text-primary">You agree to these rules before you use the Service.</strong> Everyone must accept these Terms and these Community Guidelines before registering or signing in, and again whenever we change them materially. Using MySetlists means you have accepted them. If you do not accept them, you cannot use the Service.</p>
 
               <p>To report something you cannot reach through the app — including content you have seen without being signed in — email <a href="mailto:support@mysetlists.net" className="text-brand hover:text-brand underline">support@mysetlists.net</a>. We answer moderation reports sent there on the same 24-hour commitment.</p>
             </section>

@@ -13,6 +13,18 @@ const STREAMING_MENTION = /spotify|apple\s*music/i;
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.36.2',
+      date: 'September 17, 2026',
+      title: 'Community Guidelines, Flagging And Blocking',
+      changes: [
+        'New: community guidelines you agree to when you sign in \u2014 zero tolerance for objectionable content and for anyone abusive',
+        'New: flag any comment, photo or profile, and we\u2019ll review it within 24 hours. It disappears for you straight away',
+        'New: block anyone, from their profile or from anything they posted. Their content disappears right away, you stop appearing to each other, and we\u2019re notified',
+        'Blocked someone by mistake? Profile \u2192 Blocked accounts lists everyone you\u2019ve blocked, with an undo',
+        'Clearer camera and photo permissions, and a fix for the ticket scanner asking for camera access and never showing the prompt',
+      ]
+    },
+    {
       version: '5.36.0',
       date: 'September 13, 2026',
       title: 'Built For Your Phone',

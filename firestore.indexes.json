@@ -81,6 +81,14 @@
       ]
     },
     {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "reportedUserId", "order": "ASCENDING" },
+        { "fieldPath": "reason", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "venueReports",
       "queryScope": "COLLECTION",
       "fields": [

@@ -26,6 +26,7 @@ import { createEngagementNotification } from '@/lib/notifications';
 import { timeAgo } from '@/lib/utils';
 import { withoutBlocked } from '@/lib/moderation';
 import ReportButton from '@/components/moderation/ReportButton';
+import UserLink from '@/components/moderation/UserLink';
 
 function Lightbox({ items, index, onIndexChange, onClose, currentUid, onLike, onReported }) {
   const item = items[index];
@@ -75,7 +76,10 @@ function Lightbox({ items, index, onIndexChange, onClose, currentUid, onLike, on
             <div className="text-xs text-muted">{[item.venue, item.date].filter(Boolean).join(' · ')}</div>
             <div className="flex items-center gap-2 mt-1.5">
               <Avatar name={item.uploaderName} size="sm" />
-              <span className="text-sm text-secondary">{item.uploaderName}</span>
+              <UserLink uid={item.uploadedBy} name={item.uploaderName}
+                        className="text-sm text-secondary">
+                {item.uploaderName}
+              </UserLink>
               <span className="text-xs text-muted">{timeAgo(item.createdAt)}</span>
             </div>
             {item.caption && <p className="text-sm text-secondary mt-1.5">{item.caption}</p>}

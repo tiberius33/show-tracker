@@ -183,6 +183,61 @@ async function guarded(label, fn) {
               : fail('media query', 'no media found on any of the reviewer\'s shows');
   });
 
+  // ── Guideline 1.2: the reviewer must have someone ELSE's content ──
+  //
+  // This is the check that matters for the 2026-09-17 rejection. The
+  // reviewer is asked to flag a comment and block its author, and both
+  // are impossible if every piece of content on screen is their own.
+  // Worse, it fails silently: the app looks fine, the flag control is
+  // simply absent (ReportButton hides itself on your own content) and the
+  // reviewer concludes the feature does not exist.
+  await guarded('friend content the reviewer can flag', async () => {
+    const friendComments = await db.collection('showComments')
+      .where('authorUid', '==', friendUid).get();
+    const friendMedia = await db.collection('showPhotos')
+      .where('uploadedBy', '==', friendUid).get();
+
+    const commentShows = new Set(friendComments.docs.map(d => d.data().concertKey));
+    const mediaShows = new Set(friendMedia.docs.map(d => d.data().concertKey));
+    // Both on ONE show the reviewer has logged, so the flag control is on
+    // the screen they are already looking at rather than one show away.
+    const both = [...commentShows].filter(k => mediaShows.has(k) && showKeys.has(k));
+
+    if (friendComments.size === 0) {
+      fail('friend content', 'the friend has posted no comments — nothing to flag');
+    } else if (both.length === 0) {
+      fail(
+        'friend content on one show',
+        `friend has ${friendComments.size} comment(s) and ${friendMedia.size} media item(s), but no single show the reviewer has logged carries both`,
+      );
+    } else {
+      pass('friend content the reviewer can flag',
+           `${both.length} shared show(s) carry both a friend comment and friend media`);
+    }
+  });
+
+  // A block left over from a previous review round hides the friend's
+  // content from the reviewer entirely, and there is nothing on screen to
+  // say why. Re-run the seeder with --reset to clear it.
+  await guarded('no leftover blocks between the demo accounts', async () => {
+    const blocks = await db.doc(`userBlocks/${reviewUid}`).get();
+    const blocked = blocks.exists ? (blocks.data().blockedUserIds || []) : [];
+    blocked.includes(friendUid)
+      ? fail('leftover block', 'the review account still blocks the friend — their content is invisible. Re-run with --reset')
+      : pass('no leftover blocks', 'the review account can see the friend');
+  });
+
+  await guarded('neither demo account is suspended', async () => {
+    for (const [label, uid] of [['review', reviewUid], ['friend', friendUid]]) {
+      const snap = await db.doc(`userProfiles/${uid}`).get();
+      if (snap.exists && snap.data().banned === true) {
+        fail('demo account suspended', `the ${label} account is banned — it will show the suspension screen at sign-in`);
+        return;
+      }
+    }
+    pass('neither demo account is suspended', 'both can sign in');
+  });
+
   // ── activity feed: friends only, ordered ──
   await guarded('activity feed query', async () => {
     const snap = await db.collection('userActivity')

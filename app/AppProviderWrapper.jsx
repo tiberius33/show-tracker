@@ -28,6 +28,8 @@ import { Music, Check, Sparkles } from 'lucide-react';
 // there's nothing pre-rendered to lose.
 const LandingPage = dynamic(() => import('@/components/LandingPage'), { ssr: false });
 const AuthModal = dynamic(() => import('@/components/auth/AuthModal'), { ssr: false });
+const TermsGate = dynamic(() => import('@/components/auth/TermsGate'), { ssr: false });
+const SuspendedScreen = dynamic(() => import('@/components/auth/SuspendedScreen'), { ssr: false });
 const VenueRatingModal = dynamic(() => import('@/components/VenueRatingModal'), { ssr: false });
 
 // Routes that render their own content for a signed-out visitor instead of
@@ -83,6 +85,7 @@ function AppShell({ children }) {
     friends, handleLogout,
     enterGuestMode, exitGuestMode, communityStats,
     handleAuthSuccess,
+    termsAccepted, acceptTerms, isSuspended,
   } = useApp();
 
   const pathname = usePathname();
@@ -119,6 +122,49 @@ function AppShell({ children }) {
   // they need none of the shell below.
   if (!user && !guestMode && isPublicPath(pathname)) {
     return <>{children}</>;
+  }
+
+  // ── Ejected accounts (Guideline 1.2) ──────────────────────────────────
+  //
+  // Ahead of the terms gate, because an ejected account has nothing to
+  // agree to — asking someone to accept the Community Guidelines and then
+  // telling them they have been removed for breaking them is a worse
+  // experience than the suspension notice on its own.
+  //
+  // `=== true` rather than truthy: `null` means the profile read has not
+  // come back, and flashing a suspension notice at an ordinary user is
+  // about the worst false positive this app could produce.
+  if (user && !guestMode && isSuspended === true) {
+    return <SuspendedScreen onSignOut={handleLogout} />;
+  }
+
+  // ── Terms agreement gate (Guideline 1.2) ──────────────────────────────
+  //
+  // A signed-in user whose stored acceptance is missing or behind
+  // TERMS_VERSION sees this instead of the app, at every launch, until
+  // they agree. That covers every account created before build 32 —
+  // "agree before logging in" is not a requirement you can satisfy for
+  // new registrations only.
+  //
+  // Placed here, ahead of the signed-in shell, so the app never renders
+  // behind it: an early `return` cannot be swiped, scrolled or
+  // back-gestured past, which is a stronger guarantee than an overlay
+  // stacked on top of a live screen. `termsAccepted === false` and not
+  // `!termsAccepted`, because `null` means the profile read has not come
+  // back yet and must not flash the gate.
+  //
+  // Guest mode is deliberately not gated: a guest sees no content from
+  // any other user (every UGC surface — comments, media, meetups, the
+  // activity feed — short-circuits on `guestMode`), so there is nothing
+  // for the terms to govern, and a guest who signs in meets the gate in
+  // AuthModal on the way through.
+  if (user && !guestMode && termsAccepted === false) {
+    return (
+      <TermsGate
+        onAgree={acceptTerms}
+        onSignOut={handleLogout}
+      />
+    );
   }
 
   // Show landing page with optional auth modal overlay when logged out

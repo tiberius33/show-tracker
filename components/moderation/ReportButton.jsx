@@ -43,7 +43,11 @@ export default function ReportButton({
         onClick={() => setOpen(true)}
         aria-label={label}
         title={label}
-        className={`flex items-center gap-1 text-xs font-medium text-muted hover:text-danger transition-colors ${className}`}
+        // min-h-[44px] and the negative margin: Apple's minimum touch
+        // target is 44pt and this was ~18. The -my-3 keeps the control
+        // rows it sits in (like/reply/delete) the same height they were,
+        // so the tappable area grows without the layout moving.
+        className={`inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-danger transition-colors min-h-[44px] -my-3 ${className}`}
       >
         <Flag size={size} />
         {showLabel && label}

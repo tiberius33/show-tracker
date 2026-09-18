@@ -244,6 +244,9 @@ async function befriend(db, a, aWho, b, bWho) {
 async function writeComments(db, reviewUid, friendUid) {
   const lines = [
     { s: SHOWS[0], uid: reviewUid, name: REVIEW.displayName, text: 'Bathtub Gin here was the whole weekend in one song.' },
+    // The friend's comment on SHOWS[0] is what App Review flags in the
+    // screen recording. Keep it, and keep it on the same show as their
+    // media item in writeMedia() below.
     { s: SHOWS[0], uid: friendUid, name: FRIEND.displayName, text: 'Agreed. Still thinking about the Down with Disease opener.' },
     { s: SHOWS[2], uid: friendUid, name: FRIEND.displayName, text: 'Rain stopped about thirty seconds into Madhuvan. Unreal timing.' },
     { s: SHOWS[6], uid: reviewUid, name: REVIEW.displayName, text: 'Morning Dew in that room is something I will not forget.' },
@@ -260,8 +263,17 @@ async function writeComments(db, reviewUid, friendUid) {
 
 async function writeMedia(db, reviewUid, friendUid) {
   // YouTube-type records need no Storage upload and render in the gallery.
+  //
+  // SHOWS[0] (Phish, Dick's, 2025-08-29) deliberately carries BOTH a
+  // comment and a media item from the FRIEND account, because that is the
+  // one show App Review is walked to: the reviewer needs something of
+  // another user's to flag on the screen they are already looking at, and
+  // before this the friend's comment was on SHOWS[0] while their only
+  // media was on SHOWS[4]. Finding the flag control meant finding a
+  // second show first.
   const items = [
     { s: SHOWS[0], uid: reviewUid, name: REVIEW.displayName, caption: 'Set II opener from the rail', vid: 'dQw4w9WgXcQ' },
+    { s: SHOWS[0], uid: friendUid, name: FRIEND.displayName, caption: 'Bathtub Gin from the rail — whole crowd singing', vid: '5N1C6WgMEPo' },
     { s: SHOWS[4], uid: friendUid, name: FRIEND.displayName, caption: 'Full second set', vid: 'aqz-KE-bpKQ' },
   ];
   let i = 0;
@@ -351,7 +363,50 @@ async function reset(db, auth, uids) {
   }
   const tags = await db.collection('showTags').where('toUid', 'in', uids).get();
   for (const d of tags.docs) await d.ref.delete();
-  console.log('  reset: cleared seeded content');
+
+  // Moderation state from a previous App Review walkthrough.
+  //
+  // This is the one that bites on a resubmission. The reviewer is asked
+  // to block the friend account as part of the demo — and a block is
+  // permanent until undone, so on the NEXT round the friend's comment and
+  // photo are invisible to the review account and there is nothing to
+  // flag. The reviewer then reports that the feature does not work,
+  // correctly, because for them it does not.
+  //
+  // Reports are cleared for the same reason: a flagged item is hidden
+  // from the reporter immediately, so last round's flag would hide this
+  // round's demo content.
+  for (const uid of uids) {
+    await db.doc(`userBlocks/${uid}`).delete().catch(() => {});
+  }
+  for (const uid of uids) {
+    for (const field of ['reporterId', 'reportedUserId']) {
+      const snap = await db.collection('reports').where(field, '==', uid).get();
+      for (const d of snap.docs) await d.ref.delete();
+    }
+  }
+
+  // Anything a previous round's flag pulled out of circulation, and the
+  // counters behind the auto-hide threshold.
+  for (const uid of uids) {
+    const hidden = await db.collection('moderationHidden').where('authorUid', '==', uid).get();
+    for (const d of hidden.docs) await d.ref.delete();
+  }
+
+  // A suspension from testing the eject flow would otherwise leave the
+  // demo account showing the "account suspended" screen at sign-in.
+  for (const uid of uids) {
+    await db.doc(`userProfiles/${uid}`)
+      .set({ banned: false }, { merge: true })
+      .catch(() => {});
+    try {
+      await auth.updateUser(uid, { disabled: false });
+    } catch {
+      // The account may not exist yet on a first run.
+    }
+  }
+
+  console.log('  reset: cleared seeded content, blocks, reports and suspensions');
 }
 
 async function main() {

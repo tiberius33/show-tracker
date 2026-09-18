@@ -4,6 +4,120 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.36.2] — 2026-09-17
+
+App Review rejected 3.1 (31) under Guideline 1.2 (Safety: User-Generated
+Content) on 2026-09-17. Apple named five requirements; the app met one and a
+half of them. This release is the other three and a half, plus the camera
+permission bug.
+
+### Added: Terms You Actually Agree To
+
+- **Nobody had ever agreed to the Terms.** They existed at `/terms`, said the
+  right things, and were reachable while signed out — and none of that is an
+  agreement, which is what Guideline 1.2 asks for. An unchecked checkbox now
+  sits above the sign-in options with a plain-language summary of the rules,
+  and Sign in with Apple, Sign in with Google and the email form are all
+  disabled until it is ticked. The flag lives on `AuthModal`, not on either
+  form, so one gate covers all three providers and switching between Sign in
+  and Sign up does not silently drop a consent already given.
+- **Existing accounts are gated too**, at their next launch. "Agree before
+  logging in" is not a requirement that can be satisfied for new registrations
+  only. The gate is an early `return` ahead of the app shell rather than an
+  overlay, so there is no live screen underneath to swipe or scroll past.
+- Acceptance is parked in `localStorage` and flushed to the user's profile once
+  sign-in completes — at the moment the box is ticked there is no account to
+  write to, which is exactly what "before registering" means.
+- Guest mode is deliberately not gated: every surface that shows another user's
+  content already short-circuits on `guestMode`, so there is nothing for the
+  terms to govern.
+
+### Added: A Profile You Can Open, With Block On It
+
+- **The app had no screen for another user's profile.** Blocking was reachable
+  from the friends grid and from a checkbox inside the report sheet — so
+  blocking someone who had commented on a show required already being their
+  friend. Section 4 of the Terms already told users they could block "from
+  their profile", which was not true.
+- Tapping any name — on a comment, a photo, a meetup message, an activity row —
+  now opens that person's profile with **Block** and **Report** on it.
+
+### Added: Blocking Tells Us
+
+- Guideline 1.2 asks that blocking notify the developer, not only that it hide
+  content. It was silent. A block now files a record in the moderation queue
+  and emails us, with a count of how many separate users have blocked that
+  account — a pattern no single report shows.
+- Blocking also clears what was still in flight between the two: a friend
+  request either way, and any show tag one had put on the other. Unfriending
+  alone left those behind, and each is a way back in.
+
+### Changed: Ejection Now Ejects
+
+- The ban action set a flag and stopped, and the confirmation dialog said so
+  out loud: "They keep their account and their existing posts, but cannot post
+  again." Apple's wording is "ejecting the user". It now also disables the
+  Firebase Auth account, revokes its refresh tokens — without which a session
+  already open elsewhere keeps working for up to an hour — and sweeps every
+  comment, message and photo that account posted into an admin-only
+  quarantine. Moved, not deleted: mass-deleting a history on one report is not
+  reversible.
+- An ejected account now sees an explanation and a support address rather than
+  an app where every action fails with a permission error.
+
+### Added: The 24-Hour Commitment Has Something Keeping It
+
+- A scheduled job re-sends the list of anything still open after 12 hours —
+  half the window, because a reminder at the deadline is a post-mortem. It does
+  not escalate or auto-action: an automated moderation decision taken because
+  nobody looked is exactly the kind that should never be automatic.
+
+### Changed: The Filter Is Now A Gate
+
+- Display names, public handles and meetup descriptions were filtered in the
+  browser and then written straight to Firestore, which the rules permitted. A
+  filter a client can skip is advice, not a gate. All three now go through the
+  server, and the rules refuse a direct client write to every one of them.
+- **The signup form never filtered the display name at all** — only the profile
+  editor did. The fastest route to a slur on every comment and friend card in
+  the app was to sign up with one.
+- The name Apple hands back on first sign-in is filtered too. Apple's sheet
+  lets the user edit it, so it is user-supplied text, not something the
+  provider vouches for.
+
+### Fixed: "Spicy" Was A Slur
+
+- `spic` is on the wordlist and the suffix allowance turned "spices" and
+  "spicy" into matches — in an app whose users are jam band fans, for whom
+  "spicy" is everyday vocabulary for a good jam. This was live, and rejecting
+  real comments.
+- Compound insults sailed through in the other direction: "fuck" was blocked
+  and "fuckwit" was not, likewise "shithead", "cuntface", "shithole". The
+  suffix list only allowed inflections.
+
+### Fixed: Nobody Could Ever Claim A Handle
+
+- `handles/{handleLower}` had no rule in `firestore.rules`, and Firestore
+  denies every path without one — so the client transaction behind "claim your
+  handle" was rejected on every attempt since the feature shipped. Moving the
+  uniqueness check to the server repairs it.
+
+### Fixed: The Camera Prompt That Never Appeared
+
+- The ticket scanner asked for camera and photo-library access at the same
+  time, with a comment claiming that was the fix. It was the cause:
+  `@capacitor/camera` fires both iOS requests concurrently from two threads,
+  iOS shows one system alert per window, and the camera alert was the one
+  dropped. The scanner then failed against a permission the user was never
+  asked for.
+- Permissions are now requested one at a time, for the source the user actually
+  chose, at the moment they choose it. A refused permission offers a route into
+  Settings instead of "please try again", which could never have worked — iOS
+  will not show the prompt a second time.
+- All three permission descriptions rewritten to say what is accessed and why.
+
+---
+
 ## [5.36.1] — 2026-09-14
 
 ### Changed: Three Surfaces The App Store Binary Should Not Carry
