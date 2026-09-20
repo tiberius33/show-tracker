@@ -38,7 +38,7 @@ export default function ProfileHero({
         </div>
       </div>
       {actions && (
-        <div className="col-span-2 md:col-span-1 flex md:flex-col gap-2 md:self-start">
+        <div className="col-span-2 md:col-span-1 flex flex-col md:flex-col gap-2 md:self-start">
           {actions}
         </div>
       )}
