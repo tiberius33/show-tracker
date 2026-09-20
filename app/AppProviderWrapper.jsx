@@ -8,7 +8,6 @@ import Sidebar from '@/components/layout/Sidebar';
 import MobileHeader from '@/components/layout/MobileHeader';
 import InstallPrompt from '@/components/InstallPrompt';
 import Footer from '@/components/Footer';
-import CookieConsentBanner from '@/components/CookieConsentBanner';
 import ChangelogPopup from '@/components/ChangelogPopup';
 import { extractFirstName } from '@/lib/utils';
 import { initCapacitorPlugins } from '@/lib/capacitor';
@@ -65,7 +64,6 @@ export default function AppProviderWrapper({ children }) {
           that renders an overlay, so there is exactly one stack. */}
       <DismissStackProvider>
         <AppShell>{children}</AppShell>
-        <CookieConsentBanner />
       </DismissStackProvider>
     </AppProvider>
   );

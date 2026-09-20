@@ -50,7 +50,7 @@ setup.skip(
 
 setup('authenticate once for the whole run', async ({ page, context }) => {
   await loginUser(page, TEST_EMAIL, TEST_PASSWORD);
-  // Clear the What's New / cookie overlays before snapshotting, so every
+  // Clear the What's New overlays before snapshotting, so every
   // test inheriting this state starts from the same clean shell.
   await dismissOverlays(page);
 

@@ -143,12 +143,6 @@ test.describe('Guest Mode', () => {
     // Wait for guest mode to load
     await expect(page.getByText('Guest').first()).toBeVisible({ timeout: 15000 });
 
-    // Dismiss cookie consent banner if it overlays the sidebar
-    const cookieBanner = page.locator('[class*="fixed bottom-0"]').filter({ hasText: /cookie|accept/i });
-    if (await cookieBanner.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await cookieBanner.getByRole('button').first().click();
-      await cookieBanner.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
-    }
 
     // Click exit guest mode (force in case anything still overlaps)
     await page.getByText('Exit Guest Mode').click({ force: true });
@@ -192,12 +186,6 @@ test.describe('Authenticated Flow', () => {
       await tooltipDismiss.click();
     }
 
-    // Dismiss cookie consent banner if it overlays the sidebar
-    const cookieBanner = page.locator('[class*="fixed bottom-0"]').filter({ hasText: /cookie|accept/i });
-    if (await cookieBanner.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await cookieBanner.getByRole('button').first().click();
-      await cookieBanner.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
-    }
   });
 
   test('shows page loads with user content', async ({ page }) => {

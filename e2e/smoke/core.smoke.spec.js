@@ -5,7 +5,6 @@
  * No test credentials required.
  */
 const { test, expect } = require('@playwright/test');
-const { dismissCookieBanner } = require('../utils/test-helpers');
 
 const BASE = process.env.TEST_BASE_URL || 'https://mysetlists.net';
 
@@ -130,13 +129,6 @@ test.describe('Guest Mode', () => {
       timeout: 15000,
     });
 
-    // "How to Use" sits at the bottom of the sidebar, underneath the
-    // cookie-consent banner, which is `fixed bottom-0 … z-50` and swallows
-    // the click ("intercepts pointer events") until it is dismissed. The
-    // banner is not part of what this test is checking, so clear it first
-    // rather than dropping the link from the walk.
-    await dismissCookieBanner(page);
-
     // Only links a GUEST actually has. components/layout/Sidebar.jsx hides
     // Tours, Wishlist, Bucket List, Festivals, Profile and Setlist Photos
     // behind `!isGuest`, leaving My Shows, Stats, Upcoming, "Search for a
@@ -160,8 +152,6 @@ test.describe('Guest Mode', () => {
     await expect(page.getByText('Exit Guest Mode').first()).toBeVisible({
       timeout: 15000,
     });
-
-    await dismissCookieBanner(page);
 
     await page.getByText('Exit Guest Mode').click({ force: true });
     // v2 landing page uses "Start tracking" instead of "Get started"

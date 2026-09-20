@@ -40,9 +40,6 @@ async function coldLaunch(page, route) {
   await page.addInitScript(() => {
     // AppContext seeds guestMode from this key on mount.
     localStorage.setItem('guest-session-id', 'e2e-mobile-nav');
-    // Keeps the consent banner — fixed, bottom-0, z-50 — from sitting over
-    // the controls these tests measure.
-    localStorage.setItem('cookie-consent', 'accepted');
   });
   await page.goto(route, { waitUntil: 'load' });
   await expect(page.locator('body')).not.toContainText('Application error');
