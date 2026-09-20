@@ -1,4 +1,4 @@
-# Building and uploading 3.1 (32)
+# Building and uploading 3.1 (TODO: build number)
 
 Part 10 of the Guideline 1.2 brief pointed at `claude/build-testflight-and-submit.md` §6.
 **That file does not exist in this repository** — there is no `claude/` directory at
@@ -17,7 +17,7 @@ Verified in `ios/App/App.xcodeproj/project.pbxproj` and `package.json`:
 | Setting | Value | Where |
 |---|---|---|
 | `MARKETING_VERSION` | `3.1` | pbxproj L337, L365 (both configs) |
-| `CURRENT_PROJECT_VERSION` | `32` | pbxproj L330, L358 (both configs) |
+| `CURRENT_PROJECT_VERSION` | **TODO: new build number** | pbxproj L330, L358 (both configs) — assigned by Xcode Cloud at distribution |
 | `PRODUCT_BUNDLE_IDENTIFIER` | `com.mysetlists.app` | pbxproj L339, L366 |
 | `DEVELOPMENT_TEAM` | `66N4YR3VP9` | pbxproj L237, L300 |
 | `CODE_SIGN_STYLE` | `Automatic` | pbxproj L329, L357 |

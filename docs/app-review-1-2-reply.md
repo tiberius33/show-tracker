@@ -1,6 +1,6 @@
-# App Review — Guideline 1.2 reply (build 3.1 (32))
+# App Review — Guideline 1.2 reply (build 3.1 (TODO: build number))
 
-Rejection: **3.1 (130 in the rejection notice, 31 in the repo)** on 2026-09-17,
+Rejection: **3.1 (130 in the rejection notice)** on 2026-09-17, resubmit with build 3.1 (**TODO: new build number**),
 Guideline 1.2 (Safety: User-Generated Content). Tested on an iPad Air 11-inch (M3).
 
 This document holds three things: the screen-recording shot list, the reply to
@@ -52,8 +52,8 @@ Three things that make or break the recording:
 
 ## 2. Reply to App Review
 
-> Thank you for the detailed feedback on build 3.1 (31). We have addressed all
-> five points of Guideline 1.2 in build 3.1 (32).
+> Thank you for the detailed feedback on build 3.1 (130). We have addressed all
+> five points of Guideline 1.2 in build 3.1 (**TODO: new build number**).
 >
 > **1. Terms (EULA) agreed before registering or signing in**
 >

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, Megaphone, ShieldCheck, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, ShieldCheck, Flag } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import SetlistEditor from '@/components/SetlistEditor';
 import Tip from '@/components/ui/Tip';
@@ -12,7 +12,6 @@ import AdminRoadmapCard from '@/components/AdminRoadmapCard';
 import { formatDate, parseDate, artistColor, avgSongRating, parseCSV, parseImportDate, autoDetectMapping } from '@/lib/utils';
 import { ROADMAP_CATEGORIES, IMPORT_FIELDS } from '@/lib/constants';
 import { apiUrl } from '@/lib/api';
-import AdminPopups from '@/components/AdminPopups';
 import ModerationQueue from '@/components/admin/ModerationQueue';
 import { PageHeader, Button } from '@/components/ui';
 import { useDismissable } from '@/context/DismissStackContext';
@@ -20,7 +19,7 @@ import { useDismissable } from '@/context/DismissStackContext';
 export default
 function AdminView() {
   const { shows, scanForMissingSetlists, setlistScanning, setlistScanProgress } = useApp();
-  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap' | 'bulkImport' | 'tools' | 'popups' | 'moderation'
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap' | 'bulkImport' | 'tools' | 'moderation'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1747,17 +1746,6 @@ function AdminView() {
             >
               <Wrench className="w-4 h-4" />
               Tools
-            </button>
-            <button
-              onClick={() => setAdminTab('popups')}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                adminTab === 'popups'
-                  ? 'bg-brand-subtle text-brand border border-brand/30'
-                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
-              }`}
-            >
-              <Megaphone className="w-4 h-4" />
-              Popups
             </button>
             <Link
               href="/admin/venue-verifications/"
@@ -3626,9 +3614,6 @@ function AdminView() {
           </div>
         )}
       </div>
-
-      {/* Popups Tab */}
-      {adminTab === 'popups' && <AdminPopups />}
 
       {/* Delete User Confirmation Dialog */}
       {deleteConfirmUser && (
