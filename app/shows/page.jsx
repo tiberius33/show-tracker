@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { formatDate } from '@/lib/utils';
 import ShowForm from '@/components/ShowForm';
@@ -13,7 +13,6 @@ import ArtistShowsRow from '@/components/ArtistShowsRow';
 import ShowsListSkeleton from '@/components/ui/ShowsListSkeleton';
 import { Button, Card, SearchField, PageHeader, StatFigure } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
-import ShowDetailView from '@/components/shows/ShowDetailView';
 import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
 import { tourKeyFor, tourHref } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
@@ -25,9 +24,9 @@ import {
 } from 'lucide-react';
 
 export default function ShowsPage() {
+  const router = useRouter();
   const {
     shows, isLoading, user, guestMode,
-    selectedShow, setSelectedShow,
     selectedArtist, setSelectedArtist,
     showForm, setShowForm,
     bucketListPrefill, setBucketListPrefill,
@@ -162,51 +161,6 @@ export default function ShowsPage() {
 
   if (isLoading) {
     return <ShowsListSkeleton />;
-  }
-
-  // When a show is selected (from either Timeline or Artist tab), render the
-  // unified full detail view inline (no routing, no page reload).
-  if (selectedShow) {
-    return (
-      <>
-        <ShowDetailView
-          show={selectedShow}
-          friends={friends}
-          onClose={() => setSelectedShow(null)}
-          onUpdateRating={updateShowRating}
-          onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
-          onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
-          festival={selectedShow.festivalId ? festivals.find(f => f.id === selectedShow.festivalId) || null : null}
-          onTagFriends={!guestMode ? (show) => setTagFriendsShow(show) : undefined}
-          onCreatePlaylist={PLAYLIST_CREATION_ENABLED && !guestMode ? (show) => setPlaylistShow(show) : undefined}
-          onDeleteShow={deleteShow}
-          onAddSong={!guestMode ? addSongToShow : undefined}
-          onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}
-          onResyncSetlist={!guestMode ? resyncSetlistFromSource : undefined}
-          onDeleteSong={!guestMode ? deleteSong : undefined}
-          onRestoreSong={restoreSongToShow}
-          toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
-          isArtistFavorite={isArtistFavorite}
-          allShows={shows}
-          user={user}
-        />
-        {tagFriendsShow && (
-          <TagFriendsModal
-            show={tagFriendsShow}
-            friends={friends}
-            onTag={(selectedFriendUids) => tagFriendsAtShow(tagFriendsShow, selectedFriendUids)}
-            onInviteByEmail={(params) => tagFriendByEmail({ ...params, show: tagFriendsShow })}
-            onClose={() => setTagFriendsShow(null)}
-          />
-        )}
-        {playlistShow && (
-          <PlaylistCreatorModal
-            show={playlistShow}
-            onClose={() => setPlaylistShow(null)}
-          />
-        )}
-      </>
-    );
   }
 
   return (
@@ -542,7 +496,7 @@ export default function ShowsPage() {
                   key={show.id}
                   show={show}
                   friends={friends}
-                  onClick={() => setSelectedShow(show)}
+                  onClick={() => router.push(`/shows/${show.id}`)}
                   onDelete={() => setShowToDelete(show)}
                   runInfo={runInfoByShowId.get(show.id) || null}
                   tourHref={tourHrefFor(show)}
@@ -571,10 +525,9 @@ export default function ShowsPage() {
                       shows={artistShows}
                       expanded={selectedArtist === artist}
                       onToggle={() => setSelectedArtist(selectedArtist === artist ? null : artist)}
-                      onSelectShow={setSelectedShow}
+                      onSelectShow={(show) => router.push(`/shows/${show.id}`)}
                       onDeleteShow={(show) => setShowToDelete(show)}
                       onRateShow={updateShowRating}
-                      selectedShowId={selectedShow?.id}
                       selectionMode={selectionMode}
                       selectedShowIds={selectedShowIds}
                       onToggleSelect={toggleSelectShow}
