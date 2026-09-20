@@ -27,16 +27,11 @@ import TourBrowseModal from '@/components/tours/TourBrowseModal';
 
 export default function TourDetailView({ tour, favorites = null }) {
   const router = useRouter();
-  const { shows, setSelectedShow } = useApp();
   const songIndex = useSongIndex();
   const [browseOpen, setBrowseOpen] = useState(false);
 
   const goToShow = (showId) => {
-    const show = shows.find(s => s.id === showId);
-    if (show) {
-      setSelectedShow(show);
-      router.push('/shows/');
-    }
+    router.push(`/shows/${showId}/`);
   };
 
   // Songs the user heard for the first time ever on one of this tour's

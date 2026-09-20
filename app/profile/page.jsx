@@ -13,7 +13,7 @@ import { formatDate } from '@/lib/utils';
 export default function ProfilePage() {
   const {
     user, guestMode, shows, userRank, friends,
-    setSelectedShow, favoriteArtists, toggleFavoriteArtist,
+    favoriteArtists, toggleFavoriteArtist,
     pendingNotificationCount, unreadNotifications,
   } = useApp();
   const unreadNotificationCount = unreadNotifications?.length || 0;
@@ -121,7 +121,7 @@ export default function ProfilePage() {
                 as="button"
                 padding="none"
                 interactive
-                onClick={() => { setSelectedShow(s); router.push('/shows/'); }}
+                onClick={() => router.push(`/shows/${s.id}/`)}
                 className="w-full flex items-center gap-4 px-4 py-3 text-left"
               >
                 <div className="min-w-0 flex-1">
@@ -147,8 +147,7 @@ export default function ProfilePage() {
         userRank={userRank}
         onProfileUpdate={() => {}}
         onViewShow={(show) => {
-          setSelectedShow(show);
-          router.push('/shows/');
+          router.push(`/shows/${show.id}/`);
         }}
         friends={friends}
         favoriteArtists={favoriteArtists}

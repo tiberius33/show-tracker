@@ -29,7 +29,6 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
     onDismiss: onClose,
   });
   const router = useRouter();
-  const { setSelectedShow } = useApp();
   const [songName, setSongName] = useState('');
   const [songSet, setSongSet] = useState('');
   const [batchRating, setBatchRating] = useState(5);
@@ -517,7 +516,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
           onClose={() => setSongHistoryTarget(null)}
           onViewShow={(targetShow) => {
             setSongHistoryTarget(null);
-            if (targetShow.id !== show.id) { setSelectedShow(targetShow); router.push('/shows/'); }
+            if (targetShow.id !== show.id) { router.push(`/shows/${targetShow.id}/`); }
           }}
         />
       )}

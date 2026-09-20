@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, X, Bookmark, Clock, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import useRunIndex, { useTourIndex } from '@/hooks/useRunIndex';
@@ -60,7 +61,8 @@ function summarizeFilters(filters, tourIndex, festivalById, friends) {
 }
 
 export default function AdvancedSearchView() {
-  const { user, shows, friends, festivals, setSelectedShow, navigateTo } = useApp();
+  const { user, shows, friends, festivals } = useApp();
+  const router = useRouter();
   const tourIndex = useTourIndex();
   const festivalById = useMemo(() => new Map((festivals || []).map(f => [f.id, f])), [festivals]);
 
@@ -159,8 +161,7 @@ export default function AdvancedSearchView() {
   };
 
   const goToShow = (show) => {
-    setSelectedShow(show);
-    navigateTo('shows');
+    router.push(`/shows/${show.id}/`);
   };
 
   return (

@@ -40,14 +40,9 @@ function buildSets(setlist = []) {
 
 export default function RunDetailView({ run }) {
   const router = useRouter();
-  const { shows, setSelectedShow } = useApp();
 
   const goToShow = (showId) => {
-    const show = shows.find(s => s.id === showId);
-    if (show) {
-      setSelectedShow(show);
-      router.push('/shows/');
-    }
+    router.push(`/shows/${showId}/`);
   };
 
   const artistSlug = run.artistSlug;

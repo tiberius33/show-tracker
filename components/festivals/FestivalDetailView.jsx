@@ -33,7 +33,7 @@ import FestivalLineupModal from './FestivalLineupModal';
 export default function FestivalDetailView({ festival }) {
   const router = useRouter();
   const {
-    shows, festivals, setSelectedShow,
+    shows, festivals,
     updateFestivalData, leaveFestival, attachShowsToFestival, detachShowsFromFestival,
     importShowsToFestival,
   } = useApp();
@@ -49,11 +49,7 @@ export default function FestivalDetailView({ festival }) {
   const [savingNotes, setSavingNotes] = useState(false);
 
   const goToShow = (showId) => {
-    const show = shows.find(s => s.id === showId);
-    if (show) {
-      setSelectedShow(show);
-      router.push('/shows/');
-    }
+    router.push(`/shows/${showId}/`);
   };
 
   const saveNotes = async () => {
