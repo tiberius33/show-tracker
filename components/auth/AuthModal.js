@@ -7,9 +7,11 @@ import ForgotPasswordForm from './ForgotPasswordForm';
 import TermsAgreement from './TermsAgreement';
 import { useDismissable } from '@/context/DismissStackContext';
 import { getPendingAcceptance, setPendingAcceptance, TERMS_VERSION } from '@/lib/terms';
+import useKeyboardInset from '@/hooks/useKeyboardInset';
 
 export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
   useDismissable(true, onClose, { id: 'auth-modal' });
+  const keyboardInset = useKeyboardInset();
 
   // ── The Guideline 1.2 agreement gate ──────────────────────────────────
   //
@@ -88,7 +90,10 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      style={keyboardInset ? { paddingBottom: keyboardInset } : undefined}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-sidebar/50 backdrop-blur-sm"
@@ -103,7 +108,14 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onSuccess }) {
           the only visible way out off the top of a modal that is now tall
           enough to scroll. The outer box clips, the inner one scrolls,
           and the button sits between them where it stays put. */}
-      <div className="relative bg-surface backdrop-blur-xl border border-subtle rounded-3xl w-full max-w-md mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div
+        className="relative bg-surface backdrop-blur-xl border border-subtle rounded-3xl w-full max-w-md mx-4 shadow-2xl flex flex-col"
+        style={
+          keyboardInset
+            ? { maxHeight: `calc(100dvh - ${keyboardInset}px - 0.5rem)` }
+            : { maxHeight: '90vh' }
+        }
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-3 text-secondary hover:text-primary active:bg-hover rounded-xl transition-colors"
