@@ -496,7 +496,7 @@ export default function ShowsPage() {
                   key={show.id}
                   show={show}
                   friends={friends}
-                  onClick={() => router.push(`/shows/${show.id}`)}
+                  onClick={() => router.push(`/shows/${show.id}/`)}
                   onDelete={() => setShowToDelete(show)}
                   runInfo={runInfoByShowId.get(show.id) || null}
                   tourHref={tourHrefFor(show)}
@@ -525,7 +525,7 @@ export default function ShowsPage() {
                       shows={artistShows}
                       expanded={selectedArtist === artist}
                       onToggle={() => setSelectedArtist(selectedArtist === artist ? null : artist)}
-                      onSelectShow={(show) => router.push(`/shows/${show.id}`)}
+                      onSelectShow={(show) => router.push(`/shows/${show.id}/`)}
                       onDeleteShow={(show) => setShowToDelete(show)}
                       onRateShow={updateShowRating}
                       selectionMode={selectionMode}
