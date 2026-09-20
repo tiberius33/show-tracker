@@ -312,6 +312,35 @@ async function checkEnvVarSize() {
   }
 }
 
+// ── Check 5: Navigation URL validation ──────────────────────────────────────
+
+function checkNavigationUrls() {
+  console.log('\n5. Navigation URL Validation');
+
+  // Run the separate navigation validation script
+  const validationScript = path.join(__dirname, 'validate-navigation-urls.js');
+  if (!fs.existsSync(validationScript)) {
+    fail('Navigation URL validation', 'Script not found');
+    return;
+  }
+
+  try {
+    const result = require('child_process').spawnSync('node', [validationScript], {
+      stdio: 'inherit',
+      cwd: path.join(__dirname, '../..'),
+    });
+
+    if (result.status !== 0) {
+      // Error already printed by the validation script
+      failed++;
+    } else {
+      pass('Navigation URL validation');
+    }
+  } catch (e) {
+    fail('Navigation URL validation', e.message);
+  }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -323,6 +352,7 @@ async function main() {
   checkFunctionFiles();
   await checkExternalApis();
   await checkEnvVarSize();
+  checkNavigationUrls();
 
   console.log('\n─────────────────────────────────────');
   console.log(`  Passed: ${passed}`);

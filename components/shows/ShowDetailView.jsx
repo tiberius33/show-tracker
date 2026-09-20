@@ -481,7 +481,7 @@ export default function ShowDetailView({
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto" data-testid="show-detail-view">
 
       {/* ── Back button ────────────────────────────────────────────────────── */}
       {/* Hidden below md:, where components/layout/MobileHeader.jsx already
