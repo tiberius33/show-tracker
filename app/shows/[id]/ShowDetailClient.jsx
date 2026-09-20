@@ -16,7 +16,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function ShowDetailClient({ id }) {
   const router = useRouter();
   const {
-    shows, user, guestMode, friends, festivals,
+    shows, user, guestMode, isLoading, friends, festivals,
     updateShowRating, updateShowData, updateShowComment, resyncSetlistFromSource,
     deleteSong, restoreSongToShow,
     tagFriendsAtShow, tagFriendByEmail, tagFriendsShow, setTagFriendsShow,
@@ -27,6 +27,18 @@ export default function ShowDetailClient({ id }) {
   const [playlistShow, setPlaylistShow] = useState(null);
 
   const show = useMemo(() => shows.find(s => s.id === id), [shows, id]);
+
+  // Show loading state while data is still being fetched
+  if ((shows.length === 0 && isLoading) || (!show && shows.length === 0)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border border-brand border-t-transparent mx-auto mb-4" />
+          <p className="text-sm text-secondary">Loading show...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!show) {
     return (
