@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Search, List, BarChart3, Ticket, Shield, Coffee,
-  LogOut, User, X, Heart, HelpCircle,
+  LogOut, User, X, Heart, HelpCircle, ScrollText,
   Bookmark, GalleryVertical, Tent, Map,
 } from 'lucide-react';
 import Pick from '../brand/Pick';
@@ -218,6 +218,14 @@ export default function Sidebar({
           >
             <HelpCircle size={15} strokeWidth={2} />
             <span className="font-medium">How to Use</span>
+          </Link>
+          <Link
+            href="/release-notes"
+            onClick={onClose}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] text-on-dark-muted hover:bg-white/[0.06] hover:text-on-dark transition-colors"
+          >
+            <ScrollText size={15} strokeWidth={2} />
+            <span className="font-medium">Release Notes</span>
           </Link>
           {/* Donations are a website-only affordance. App Store Guideline
               2.1(b) treats a link out to a tip jar as an unreviewed business
