@@ -6,7 +6,7 @@ import { formatDate, artistColor, avgSongRating } from '@/lib/utils';
 import RatingSelect from '@/components/ui/RatingSelect';
 import UpcomingShows from '@/components/UpcomingShows';
 
-function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDeleteShow, onRateShow, selectedShowId, selectionMode, selectedShowIds, onToggleSelect }) {
+function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDeleteShow, onRateShow, selectionMode, selectedShowIds, onToggleSelect }) {
   const avgRating = (() => {
     const rated = shows.filter(s => s.rating);
     if (rated.length === 0) return null;
@@ -47,14 +47,12 @@ function ArtistShowsRow({ artist, shows, expanded, onToggle, onSelectShow, onDel
               <div className="space-y-3">
                 {shows.map(show => {
                   const songAvg = avgSongRating(show.setlist);
-                  const isSelected = selectedShowId === show.id;
                   const isBulkSelected = selectionMode && selectedShowIds?.has(show.id);
                   return (
                     <div
                       key={show.id}
                       className={`group flex items-start justify-between bg-hover rounded-2xl p-4 border cursor-pointer transition-all ${
-                        isBulkSelected ? 'border-brand ring-2 ring-brand/30 bg-brand-subtle' :
-                        isSelected ? 'border-brand ring-2 ring-brand/30 bg-brand-subtle' : 'border-subtle hover:bg-hover hover:border-active'
+                        isBulkSelected ? 'border-brand ring-2 ring-brand/30 bg-brand-subtle' : 'border-subtle hover:bg-hover hover:border-active'
                       }`}
                       onClick={() => selectionMode ? onToggleSelect?.(show.id) : onSelectShow(show)}
                     >
