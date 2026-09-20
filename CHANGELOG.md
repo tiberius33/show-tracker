@@ -4,6 +4,40 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.36.5] — 2026-09-20
+
+The TestFlight build cut from this release is the first to carry 5.36.3,
+5.36.4 and the navigation fixes below. The last upload, 3.1 (32), shipped
+5.36.2, so everything in those three releases reaches the app for the first
+time here.
+
+### Removed: The Cookie Banner
+
+- **The web no longer shows a cookie consent banner.** 5.36.1 hid it on the
+  native build on the grounds that a binary shipping its own content sets
+  nothing for the notice to govern; the website kept it. It is now gone from
+  both. Sign-in state lives in IndexedDB and `localStorage` rather than in
+  tracking cookies, so there was no non-essential storage left for the banner
+  to ask about.
+- `/cookies` stays where it is and the footer still links to it. Removing the
+  prompt is not the same as removing the policy.
+- The e2e helpers that existed only to click the banner out of the way are
+  gone with it. `dismissCookieBanner` was load-bearing for any test touching
+  the bottom of the sidebar, which the banner used to cover.
+
+### Fixed
+
+- Show navigation from My Shows, My Profile, comments, stats and search, which
+  5.36.4 left either reloading the list or landing on a blank detail page.
+- Profile action buttons no longer wrap out of alignment on a phone.
+- The show detail page waits for Firestore instead of flashing "Show not
+  found" on a direct link.
+- Firestore offline persistence is enabled, so edits made on a flaky
+  connection survive until they can sync — the cause of the changes lost in
+  the app but not on the web.
+
+---
+
 ## [5.36.2] — 2026-09-17
 
 App Review rejected 3.1 (31) under Guideline 1.2 (Safety: User-Generated
