@@ -28,8 +28,11 @@ export default function ShowDetailClient({ id }) {
 
   const show = useMemo(() => shows.find(s => s.id === id), [shows, id]);
 
-  // Show loading state while data is still being fetched
-  if ((shows.length === 0 && isLoading) || (!show && shows.length === 0)) {
+  // Wait for the fetch, but only while it is actually running — keying the
+  // spinner off an empty `shows` as well meant a signed-in user with no shows
+  // yet, or any load that finished empty, span here forever instead of
+  // reaching "Show not found" below.
+  if (!show && isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
         <div className="text-center">
