@@ -17,6 +17,7 @@ import StreamingLinks from '@/components/StreamingLinks';
 import { useDismissable } from '@/context/DismissStackContext';
 import useSheetDrag from '@/hooks/useSheetDrag';
 import useIsMobile from '@/hooks/useIsMobile';
+import { showHref } from '@/lib/showRouting';
 
 function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onClose, onCreatePlaylist, onTagFriends, onRateVenue, onToggleFavoriteArtist, isArtistFavorite, friendAnnotations, isReturningUser }) {
   useDismissable(true, onClose, { id: 'setlist-editor' });
@@ -516,7 +517,7 @@ function SetlistEditor({ show, allShows, onAddSong, onRateSong, onCommentSong, o
           onClose={() => setSongHistoryTarget(null)}
           onViewShow={(targetShow) => {
             setSongHistoryTarget(null);
-            if (targetShow.id !== show.id) { router.push(`/shows/${targetShow.id}/`); }
+            if (targetShow.id !== show.id) { router.push(showHref(targetShow.id)); }
           }}
         />
       )}

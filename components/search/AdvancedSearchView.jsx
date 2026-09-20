@@ -15,6 +15,7 @@ import { EMPTY_FILTERS, filterShows, hasActiveFilters } from '@/lib/advancedSear
 import { getSavedSearches, addSavedSearch, deleteSavedSearch, getSearchHistory, pushSearchHistory } from '@/lib/savedSearches';
 import { Card, Button, Input, Select, PageHeader, EmptyState } from '@/components/ui';
 import ShowCard from '@/components/shows/ShowCard';
+import { showHref } from '@/lib/showRouting';
 
 const MATCH_LABELS = {
   notes: 'matched your notes',
@@ -161,7 +162,7 @@ export default function AdvancedSearchView() {
   };
 
   const goToShow = (show) => {
-    router.push(`/shows/${show.id}/`);
+    router.push(showHref(show.id));
   };
 
   return (

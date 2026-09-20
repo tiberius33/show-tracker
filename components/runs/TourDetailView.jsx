@@ -24,6 +24,7 @@ import { newSongsOnTour } from '@/lib/runIndex';
 import { songSlugFromTitle } from '@/lib/songIndex';
 import TourFavoriteButton from './TourFavoriteButton';
 import TourBrowseModal from '@/components/tours/TourBrowseModal';
+import { showHref } from '@/lib/showRouting';
 
 export default function TourDetailView({ tour, favorites = null }) {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function TourDetailView({ tour, favorites = null }) {
   const [browseOpen, setBrowseOpen] = useState(false);
 
   const goToShow = (showId) => {
-    router.push(`/shows/${showId}/`);
+    router.push(showHref(showId));
   };
 
   // Songs the user heard for the first time ever on one of this tour's

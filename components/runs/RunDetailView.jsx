@@ -19,6 +19,7 @@ import { formatDate } from '@/lib/utils';
 import { groupSongsBySet } from '@/lib/setlistGrouping';
 import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
 import SetlistView from '@/components/shows/SetlistView';
+import { showHref } from '@/lib/showRouting';
 
 function buildSets(setlist = []) {
   return groupSongsBySet(setlist).map(({ label, songs }) => ({
@@ -42,7 +43,7 @@ export default function RunDetailView({ run }) {
   const router = useRouter();
 
   const goToShow = (showId) => {
-    router.push(`/shows/${showId}/`);
+    router.push(showHref(showId));
   };
 
   const artistSlug = run.artistSlug;

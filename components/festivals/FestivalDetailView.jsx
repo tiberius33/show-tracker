@@ -29,6 +29,7 @@ import FestivalFormModal from './FestivalFormModal';
 import LeaveFestivalModal from './LeaveFestivalModal';
 import AttachShowsModal from './AttachShowsModal';
 import FestivalLineupModal from './FestivalLineupModal';
+import { showHref } from '@/lib/showRouting';
 
 export default function FestivalDetailView({ festival }) {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function FestivalDetailView({ festival }) {
   const [savingNotes, setSavingNotes] = useState(false);
 
   const goToShow = (showId) => {
-    router.push(`/shows/${showId}/`);
+    router.push(showHref(showId));
   };
 
   const saveNotes = async () => {

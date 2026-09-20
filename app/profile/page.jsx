@@ -9,6 +9,7 @@ import ProfileHero from '@/components/profile/ProfileHero';
 import AchievementCard from '@/components/profile/AchievementCard';
 import { SectionHeader, Card, Button } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
+import { showHref } from '@/lib/showRouting';
 
 export default function ProfilePage() {
   const {
@@ -121,7 +122,7 @@ export default function ProfilePage() {
                 as="button"
                 padding="none"
                 interactive
-                onClick={() => router.push(`/shows/${s.id}/`)}
+                onClick={() => router.push(showHref(s.id))}
                 className="w-full flex items-center gap-4 px-4 py-3 text-left"
               >
                 <div className="min-w-0 flex-1">
@@ -147,7 +148,7 @@ export default function ProfilePage() {
         userRank={userRank}
         onProfileUpdate={() => {}}
         onViewShow={(show) => {
-          router.push(`/shows/${show.id}/`);
+          router.push(showHref(show.id));
         }}
         friends={friends}
         favoriteArtists={favoriteArtists}

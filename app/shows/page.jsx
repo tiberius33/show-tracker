@@ -18,13 +18,18 @@ import { tourKeyFor, tourHref } from '@/lib/runIndex';
 import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import { removeFromBucketList } from '@/lib/bucketList';
 import YearInReviewCard from '@/components/yearInReview/YearInReviewCard';
+import ShowDetailView from '@/components/shows/ShowDetailView';
+import { showHref } from '@/lib/showRouting';
 import {
   Search, Camera, X, Upload, Send,
-  Bell, ChevronRight, ChevronLeft, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square,
+  Bell, ChevronRight, ChevronLeft, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square, ArrowLeft,
 } from 'lucide-react';
 
 export default function ShowsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const detailShowId = searchParams.get('show');
+
   const {
     shows, isLoading, user, guestMode,
     selectedArtist, setSelectedArtist,
@@ -54,6 +59,11 @@ export default function ShowsPage() {
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
   const [showsTab, setShowsTab] = useState('timeline'); // 'timeline' | 'artist'
   const [bulkTagShows, setBulkTagShows] = useState(null); // array of shows for bulk tag modal
+
+  const detailShow = useMemo(() =>
+    detailShowId ? shows.find(s => s.id === detailShowId) : null,
+    [shows, detailShowId]
+  );
 
   // Arriving from BucketListView's "Mark Attended" — open the manual add
   // form pre-filled with the saved show, and clear the prefill so it
@@ -99,7 +109,6 @@ export default function ShowsPage() {
 
   // Arriving from a Top Artists / Top Venues row: seed the filter from the
   // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
-  const searchParams = useSearchParams();
   const [filterLabel, setFilterLabel] = useState(null); // { type: 'artist'|'venue', name }
 
   useEffect(() => {
@@ -161,6 +170,61 @@ export default function ShowsPage() {
 
   if (isLoading) {
     return <ShowsListSkeleton />;
+  }
+
+  // Detail view: when ?show=<id> is present, render the detail instead of the list
+  if (detailShowId) {
+    if (!detailShow) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <p className="text-lg text-primary mb-4">Show not found.</p>
+          <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push('/shows/')}>
+            Back to shows
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <ShowDetailView
+          show={detailShow}
+          friends={friends}
+          onClose={() => router.push('/shows/')}
+          onUpdateRating={updateShowRating}
+          onUpdateVenueRating={(showId, venueRating) => updateShowData(showId, { venueRating })}
+          onUpdateComment={!guestMode ? (showId, comment) => updateShowComment(showId, comment) : undefined}
+          festival={detailShow.festivalId ? festivals.find(f => f.id === detailShow.festivalId) || null : null}
+          onTagFriends={!guestMode ? (s) => setTagFriendsShow(s) : undefined}
+          onCreatePlaylist={PLAYLIST_CREATION_ENABLED && !guestMode ? (s) => setPlaylistShow(s) : undefined}
+          onDeleteShow={deleteShow}
+          onAddSong={!guestMode ? addSongToShow : undefined}
+          onReorderSetlist={!guestMode ? updateSetlistOrder : undefined}
+          onResyncSetlist={!guestMode ? resyncSetlistFromSource : undefined}
+          onDeleteSong={!guestMode ? deleteSong : undefined}
+          onRestoreSong={restoreSongToShow}
+          toggleFavoriteArtist={!guestMode ? toggleFavoriteArtist : undefined}
+          isArtistFavorite={isArtistFavorite}
+          allShows={shows}
+          user={user}
+        />
+        {tagFriendsShow && (
+          <TagFriendsModal
+            show={tagFriendsShow}
+            friends={friends}
+            onTag={(selectedFriendUids) => tagFriendsAtShow(tagFriendsShow, selectedFriendUids)}
+            onInviteByEmail={(params) => tagFriendByEmail({ ...params, show: tagFriendsShow })}
+            onClose={() => setTagFriendsShow(null)}
+          />
+        )}
+        {playlistShow && (
+          <PlaylistCreatorModal
+            show={playlistShow}
+            onClose={() => setPlaylistShow(null)}
+          />
+        )}
+      </>
+    );
   }
 
   return (
@@ -496,7 +560,7 @@ export default function ShowsPage() {
                   key={show.id}
                   show={show}
                   friends={friends}
-                  onClick={() => router.push(`/shows/${show.id}/`)}
+                  onClick={() => router.push(showHref(show.id))}
                   onDelete={() => setShowToDelete(show)}
                   runInfo={runInfoByShowId.get(show.id) || null}
                   tourHref={tourHrefFor(show)}
@@ -525,7 +589,7 @@ export default function ShowsPage() {
                       shows={artistShows}
                       expanded={selectedArtist === artist}
                       onToggle={() => setSelectedArtist(selectedArtist === artist ? null : artist)}
-                      onSelectShow={(show) => router.push(`/shows/${show.id}/`)}
+                      onSelectShow={(show) => router.push(showHref(show.id))}
                       onDeleteShow={(show) => setShowToDelete(show)}
                       onRateShow={updateShowRating}
                       selectionMode={selectionMode}
