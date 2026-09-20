@@ -9,6 +9,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { PartyPopper } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { buildUpcomingAnniversaries } from '@/lib/anniversaries';
@@ -16,13 +17,13 @@ import { Card, EmptyState } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 
 export default function AnniversaryCalendar({ limit = 8 }) {
-  const { shows, setSelectedShow, navigateTo } = useApp();
+  const router = useRouter();
+  const { shows } = useApp();
 
   const upcoming = useMemo(() => buildUpcomingAnniversaries(shows || []).slice(0, limit), [shows, limit]);
 
   const goToShow = (show) => {
-    setSelectedShow(show);
-    navigateTo('shows');
+    router.push(`/shows/${show.id}/`);
   };
 
   return (

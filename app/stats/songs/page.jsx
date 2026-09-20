@@ -79,14 +79,9 @@ export default function StatsSongsPage() {
     });
   };
 
-  // Same route the song page uses to open a show — /shows/[id] only ever
-  // resolves its build-time placeholder under output: 'export'.
+  // Navigate to the show detail page via dynamic route
   const goToShow = (showId) => {
-    const show = shows.find((s) => s.id === showId);
-    if (show) {
-      setSelectedShow(show);
-      router.push('/shows/');
-    }
+    router.push(`/shows/${showId}/`);
   };
 
   const SortIcon = sortDir === 'desc' ? ArrowDown : ArrowUp;

@@ -93,17 +93,13 @@ function PerformancesByYear({ performances }) {
 
 export default function SongDetailView({ song }) {
   const router = useRouter();
-  const { shows, setSelectedShow, user } = useApp();
+  const { user } = useApp();
   const { sensitivity: bustOutSensitivity } = useBustOutSensitivity(user?.uid);
   const personalBustOutSeverity = getBustOutSeverity(song.currentGap.days, song.currentGap.shows, bustOutSensitivity);
   const personalBustOutMeta = personalBustOutSeverity ? BUSTOUT_SEVERITY_META[personalBustOutSeverity] : null;
 
   const goToShow = (showId) => {
-    const show = shows.find(s => s.id === showId);
-    if (show) {
-      setSelectedShow(show);
-      router.push('/shows/');
-    }
+    router.push(`/shows/${showId}/`);
   };
 
   const bestVersions = song.performances

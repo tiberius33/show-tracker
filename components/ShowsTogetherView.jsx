@@ -9,11 +9,9 @@ import PlaylistCreatorModal from '@/components/PlaylistCreatorModal';
 import { PLAYLIST_CREATION_ENABLED } from '@/lib/constants';
 import SongHistoryModal from '@/components/SongHistoryModal';
 import { useRouter } from 'next/navigation';
-import { useApp } from '@/context/AppContext';
 
 function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onAddSong, onRateSong, onCommentSong, onDeleteSong, onRateShow, onCommentShow, onBatchRate, onTagFriends, onRateVenue, allShows }) {
   const router = useRouter();
-  const { setSelectedShow: setGlobalSelectedShow } = useApp();
   const [sharedShows, setSharedShows] = useState(null); // null = loading
   const [error, setError] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
@@ -267,7 +265,7 @@ function ShowsTogetherView({ friend, getShowsTogether, onBack, onSelectShow, onA
           artistName={songHistory.artistName}
           allShows={allShows}
           onClose={() => setSongHistory(null)}
-          onViewShow={(targetShow) => { setSongHistory(null); setGlobalSelectedShow(targetShow); router.push('/shows/'); }}
+          onViewShow={(targetShow) => { setSongHistory(null); router.push(`/shows/${targetShow.id}/`); }}
         />
       )}
     </div>
