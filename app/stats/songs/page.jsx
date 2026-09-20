@@ -10,6 +10,7 @@ import SongPerformanceRow from '@/components/songs/SongPerformanceRow';
 import useSongIndex from '@/hooks/useSongIndex';
 import { songSlugFromTitle } from '@/lib/songIndex';
 import { useApp } from '@/context/AppContext';
+import { showHref } from '@/lib/showRouting';
 
 // An `aria-controls` target needs a whitespace-free id, and a song key is
 // `artistSlug:normalized title` — spaces and all.
@@ -79,9 +80,9 @@ export default function StatsSongsPage() {
     });
   };
 
-  // Navigate to the show detail page via dynamic route
+  // Navigate to the show detail page via query param
   const goToShow = (showId) => {
-    router.push(`/shows/${showId}/`);
+    router.push(showHref(showId));
   };
 
   const SortIcon = sortDir === 'desc' ? ArrowDown : ArrowUp;

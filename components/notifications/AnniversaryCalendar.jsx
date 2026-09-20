@@ -15,6 +15,7 @@ import { useApp } from '@/context/AppContext';
 import { buildUpcomingAnniversaries } from '@/lib/anniversaries';
 import { Card, EmptyState } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
+import { showHref } from '@/lib/showRouting';
 
 export default function AnniversaryCalendar({ limit = 8 }) {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function AnniversaryCalendar({ limit = 8 }) {
   const upcoming = useMemo(() => buildUpcomingAnniversaries(shows || []).slice(0, limit), [shows, limit]);
 
   const goToShow = (show) => {
-    router.push(`/shows/${show.id}/`);
+    router.push(showHref(show.id));
   };
 
   return (

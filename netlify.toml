@@ -210,6 +210,19 @@
   status = 200
   force = true
 
+# Show detail URLs — deep links and shared URLs redirect to the query-param form.
+# `:showId` only matches a non-empty segment, so /shows/ itself still serves
+# the list page.
+[[redirects]]
+  from = "/shows/:showId"
+  to = "/shows/?show=:showId"
+  status = 301
+
+[[redirects]]
+  from = "/shows/:showId/"
+  to = "/shows/?show=:showId"
+  status = 301
+
 # Legacy festival detail URLs (the pre-5.29.0 /festivals/<id> dynamic route,
 # which static export could never actually serve — see app/festivals/page.jsx)
 # now point at the query-param form. `:festivalId` only matches a non-empty

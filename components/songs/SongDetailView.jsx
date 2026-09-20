@@ -18,6 +18,7 @@ import { formatDate, humanizeGapDuration } from '@/lib/utils';
 import { getBustOutSeverity, BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SongPerformanceRow from '@/components/songs/SongPerformanceRow';
+import { showHref } from '@/lib/showRouting';
 
 function venueLabel({ venue, city }) {
   if (!venue) return null;
@@ -99,7 +100,7 @@ export default function SongDetailView({ song }) {
   const personalBustOutMeta = personalBustOutSeverity ? BUSTOUT_SEVERITY_META[personalBustOutSeverity] : null;
 
   const goToShow = (showId) => {
-    router.push(`/shows/${showId}/`);
+    router.push(showHref(showId));
   };
 
   const bestVersions = song.performances

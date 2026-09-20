@@ -833,6 +833,12 @@ export function AppProvider({ children }) {
         // Close auth modal when user signs in (belt-and-suspenders)
         setAuthModal(null);
 
+        // Navigate to shows list to clear any lingering detail view query
+        // params from a previous user. This prevents signing in as a
+        // different account from landing on the previous user's show.
+        router.push('/shows/');
+
+
         // ── Terms agreement (Guideline 1.2) ───────────────────────────
         // First thing after sign-in, because everything below it is
         // loading data for an app the user may not be allowed into yet.
@@ -1128,7 +1134,7 @@ export function AppProvider({ children }) {
       setShows([]);
       setFestivals([]);
       setFestivalsLoading(false);
-      setSelectedShow(null);
+      router.push('/');
     } catch (error) {
       console.error('Logout failed:', error);
     }
