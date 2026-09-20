@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Bell, BellOff, Check, AlertCircle } from 'lucide-react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, requestNotificationPermission } from '@/lib/firebase';
+import { isNativePlatform } from '@/lib/native-auth';
 
 export default function NotificationSettings({ userId }) {
   const [permission, setPermission] = useState(
@@ -86,9 +87,120 @@ export default function NotificationSettings({ userId }) {
     }
   };
 
-  // Check if notifications are supported
+  // Check if notifications are supported (web-push only)
   const notificationsSupported = typeof Notification !== 'undefined' && 'serviceWorker' in navigator;
+  const isNative = isNativePlatform();
 
+  // On native, skip the web-push section and show only in-app notifications
+  if (isNative) {
+    return (
+      <div className="bg-hover border border-subtle rounded-2xl p-6">
+        <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+          <Bell className="w-5 h-5 text-brand" />
+          Notifications
+        </h3>
+
+        {/* Replies & likes */}
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={preferences.engagementNotifications}
+            onChange={(e) => handlePreferenceChange('engagementNotifications', e.target.checked)}
+            className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+          />
+          <div>
+            <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+              Replies & likes
+            </span>
+            <p className="text-secondary text-xs">Notify me when someone replies to my comment, or likes my comment or photo</p>
+          </div>
+        </label>
+
+        {preferences.engagementNotifications && (
+          <div className="mt-3 pl-7">
+            <label className="text-secondary text-xs font-medium block mb-1.5">Also email me</label>
+            <select
+              value={preferences.emailFrequency || 'off'}
+              onChange={(e) => handlePreferenceChange('emailFrequency', e.target.value)}
+              className="text-sm bg-hover border border-active rounded-lg px-2.5 py-1.5 text-primary focus:ring-2 focus:ring-brand/50 focus:outline-none"
+            >
+              <option value="off">Off</option>
+              <option value="immediate">Immediately</option>
+            </select>
+            <p className="text-muted text-xs mt-1">Daily and weekly digest options are coming later.</p>
+          </div>
+        )}
+
+        {/* Anniversary reminders */}
+        <div className="mt-5 pt-5 border-t border-subtle">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={preferences.anniversaries?.enabled !== false}
+              onChange={(e) => handlePreferenceChange('anniversaries', { ...preferences.anniversaries, enabled: e.target.checked })}
+              className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+            />
+            <div>
+              <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+                Anniversary reminders
+              </span>
+              <p className="text-secondary text-xs">"X years ago today you saw..." — on the exact date, once a year per show</p>
+            </div>
+          </label>
+
+          {preferences.anniversaries?.enabled !== false && (
+            <div className="mt-3 pl-7">
+              <label className="text-secondary text-xs font-medium block mb-1.5">Notify me via</label>
+              <select
+                value={preferences.anniversaries?.method || 'both'}
+                onChange={(e) => handlePreferenceChange('anniversaries', { ...preferences.anniversaries, method: e.target.value })}
+                className="text-sm bg-hover border border-active rounded-lg px-2.5 py-1.5 text-primary focus:ring-2 focus:ring-brand/50 focus:outline-none"
+              >
+                <option value="both">Push and email</option>
+                <option value="push">Push only</option>
+                <option value="email">Email only</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Venue bucket list matches */}
+        <div className="mt-5 pt-5 border-t border-subtle">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={preferences.venueBucketList?.enabled !== false}
+              onChange={(e) => handlePreferenceChange('venueBucketList', { ...preferences.venueBucketList, enabled: e.target.checked })}
+              className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
+            />
+            <div>
+              <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+                Venue bucket list matches
+              </span>
+              <p className="text-secondary text-xs">Notify me when a favorite artist is playing at a venue on my bucket list</p>
+            </div>
+          </label>
+
+          {preferences.venueBucketList?.enabled !== false && (
+            <div className="mt-3 pl-7">
+              <label className="text-secondary text-xs font-medium block mb-1.5">Notify me via</label>
+              <select
+                value={preferences.venueBucketList?.method || 'both'}
+                onChange={(e) => handlePreferenceChange('venueBucketList', { ...preferences.venueBucketList, method: e.target.value })}
+                className="text-sm bg-hover border border-active rounded-lg px-2.5 py-1.5 text-primary focus:ring-2 focus:ring-brand/50 focus:outline-none"
+              >
+                <option value="both">Push and email</option>
+                <option value="push">Push only</option>
+                <option value="email">Email only</option>
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Web version: show web-push section if supported, otherwise show unsupported message
   if (!notificationsSupported) {
     return (
       <div className="bg-hover border border-subtle rounded-2xl p-6">
@@ -166,9 +278,7 @@ export default function NotificationSettings({ userId }) {
         </div>
       )}
 
-      {/* In-app notifications (Notification Center + real-time badge) —
-          independent of browser push permission above, since these are
-          just Firestore records the app shows you, not OS notifications. */}
+      {/* In-app notifications (on web too) */}
       <div className="mt-5 pt-5 border-t border-subtle">
         <label className="flex items-start gap-3 cursor-pointer group">
           <input
@@ -201,10 +311,7 @@ export default function NotificationSettings({ userId }) {
         )}
       </div>
 
-      {/* Anniversary reminders — "X years ago today you saw..." — sent by a
-          daily scheduled job (see netlify/functions/anniversary-notifications.js),
-          independent of the browser push permission and the engagement
-          notifications above. */}
+      {/* Anniversary reminders */}
       <div className="mt-5 pt-5 border-t border-subtle">
         <label className="flex items-start gap-3 cursor-pointer group">
           <input
@@ -237,9 +344,7 @@ export default function NotificationSettings({ userId }) {
         )}
       </div>
 
-      {/* Venue bucket list matches — "your favorite artist is playing at a
-          venue on your bucket list" — sent by a daily scheduled job (see
-          netlify/functions/venue-bucket-list-notifications.js). */}
+      {/* Venue bucket list matches */}
       <div className="mt-5 pt-5 border-t border-subtle">
         <label className="flex items-start gap-3 cursor-pointer group">
           <input
