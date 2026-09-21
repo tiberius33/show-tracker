@@ -39,10 +39,11 @@ export default function ShowCard({ show, friends = [], onClick, onDelete, runInf
       interactive
       className={`group relative flex items-start justify-between p-4 ${onDelete ? 'pr-11' : ''}`}
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
+      data-testid="show-card"
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold" style={{ color: artistColor(show.artist) }}>
+          <span className="font-semibold" style={{ color: artistColor(show.artist) }} data-testid="show-card-artist">
             {show.artist}
           </span>
           {show.tour && (
