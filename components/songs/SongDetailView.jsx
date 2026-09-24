@@ -12,11 +12,8 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
 import { Card, StatFigure } from '@/components/ui';
 import { formatDate, humanizeGapDuration } from '@/lib/utils';
-import { getBustOutSeverity, BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
-import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SongPerformanceRow from '@/components/songs/SongPerformanceRow';
 import { showHref } from '@/lib/showRouting';
 
@@ -94,10 +91,6 @@ function PerformancesByYear({ performances }) {
 
 export default function SongDetailView({ song }) {
   const router = useRouter();
-  const { user } = useApp();
-  const { sensitivity: bustOutSensitivity } = useBustOutSensitivity(user?.uid);
-  const personalBustOutSeverity = getBustOutSeverity(song.currentGap.days, song.currentGap.shows, bustOutSensitivity);
-  const personalBustOutMeta = personalBustOutSeverity ? BUSTOUT_SEVERITY_META[personalBustOutSeverity] : null;
 
   const goToShow = (showId) => {
     router.push(showHref(showId));
@@ -129,14 +122,6 @@ export default function SongDetailView({ song }) {
       <div className="bg-surface border border-subtle rounded-2xl p-6 mb-6">
         <h1 className="text-2xl font-bold text-primary mb-1 flex items-center gap-2 flex-wrap">
           {song.title}
-          {personalBustOutMeta && (
-            <span
-              title={`${personalBustOutMeta.label} for you · ${song.currentGap.shows} shows / ${song.currentGap.days} days since you last saw it`}
-              className={`text-[10px] font-extrabold tracking-[0.1em] uppercase px-2 py-1 rounded ${personalBustOutMeta.badgeClass}`}
-            >
-              {personalBustOutMeta.flames} {personalBustOutMeta.label}
-            </span>
-          )}
         </h1>
         <Link
           href={`/shows/?artist=${encodeURIComponent(song.artistName)}`}

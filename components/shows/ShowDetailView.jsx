@@ -6,12 +6,9 @@ import { parseDate } from '@/lib/utils';
 import { groupSongsBySet, getSetLabels, getSetOptions, moveSongToSet, reorderSongWithinSet } from '@/lib/setlistGrouping';
 import { artistSlugFromName, songSlugFromTitle } from '@/lib/songIndex';
 import { buildRunIndex, buildTourIndex, tourKeyFor, tourHref } from '@/lib/runIndex';
-import { normalizeSongTitle, formatDate } from '@/lib/utils';
 import { festivalHref } from '@/lib/festivalGrouping';
-import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
+import { venueKeyFor } from '@/lib/venues';
 import { sourceLabel, sourceHomeUrl, resolveSource } from '@/lib/setlistSources';
-import useBustOutAnalysis from '@/hooks/useBustOutAnalysis';
-import useBustOutSensitivity from '@/hooks/useBustOutSensitivity';
 import SetlistView from './SetlistView';
 import { Avatar, Button } from '@/components/ui';
 import EntityInfoPanel from '@/components/EntityInfoPanel';
@@ -20,7 +17,7 @@ import ArchivalAudioSection from './ArchivalAudioSection';
 import {
   UserPlus, Heart, Share2, ListMusic, Hash,
   Trash2, X, Tag, MessageSquare, ArrowLeft, Plus,
-  Pencil, Check, ChevronUp, ChevronDown, Flame, Tent, RefreshCw,
+  Pencil, Check, ChevronUp, ChevronDown, Tent, RefreshCw,
 } from 'lucide-react';
 import DeleteShowModal from './DeleteShowModal';
 import CommentsSection from '@/components/comments/CommentsSection';
@@ -75,41 +72,15 @@ function describeResync(result, sourceName, date) {
   }
 }
 
-// Finds the internal show id for a bust-out's previous performance, when
-// that performance is itself one of the user's own logged shows — lets the
-// bust-out badge link to /shows/[id] instead of only setlist.fm.
-function findPreviousShowId(allShows, artist, lastPlayedDate) {
-  if (!lastPlayedDate) return null;
-  const target = lastPlayedDate.toDateString();
-  const match = allShows.find(s => s.artist === artist && parseDate(s.date).toDateString() === target);
-  return match?.id || null;
-}
-
-function buildSets(setlist = [], bustOuts, allShows, artist) {
+function buildSets(setlist = []) {
   return groupSongsBySet(setlist).map(({ label, songs }) => ({
     label,
     tracks: songs.map(song => {
       const title = song.song || song.name || song.title || '';
-      const bustOut = bustOuts?.get(normalizeSongTitle(title));
       return {
         title,
         cover: song.cover || null,
         debut: !!(song.debut || song.tags?.includes('debut')),
-        bustout: !!bustOut || !!(song.bustout || song.tags?.includes('bustout')),
-        bustoutSeverity: bustOut?.severity || null,
-        bustoutNote: bustOut
-          ? `${bustOut.days} day${bustOut.days !== 1 ? 's' : ''}${bustOut.showsSince != null ? ` (${bustOut.showsSince} shows)` : ''} since last played`
-          : (song.bustoutNote || null),
-        bustoutDetail: bustOut
-          ? {
-              lastPlayedLabel: bustOut.lastPlayedDate ? formatDate(bustOut.lastPlayedDate.toISOString().slice(0, 10)) : null,
-              lastVenue: bustOut.lastVenue,
-              lastCity: bustOut.lastCity,
-              href: findPreviousShowId(allShows, artist, bustOut.lastPlayedDate)
-                ? `/shows/${findPreviousShowId(allShows, artist, bustOut.lastPlayedDate)}`
-                : bustOut.setlistUrl,
-            }
-          : null,
         duration: song.duration || null,
         tape: song.tape || false,
         manual: !!song.manuallyAdded,
@@ -395,17 +366,12 @@ export default function ShowDetailView({
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }, [show?.setlist]);
 
-  const { sensitivity: bustOutSensitivity } = useBustOutSensitivity(user?.uid);
-  const { bustOuts } = useBustOutAnalysis(show, bustOutSensitivity);
-
   if (!show) return null;
 
-  const sets              = buildSets(show.setlist, bustOuts, allShows, show.artist);
+  const sets              = buildSets(show.setlist);
   const existingSetLabels = getSetLabels(show.setlist);
   const totalSongs        = show.setlist?.length || 0;
   const debuts            = (show.setlist || []).filter(s => s.debut || s.tags?.includes('debut')).length;
-  const bustouts          = sets.flatMap(s => s.tracks).filter(t => t.bustout);
-  const epicOrMajorCount  = bustouts.filter(t => t.bustoutSeverity === 'epic' || t.bustoutSeverity === 'major').length;
   // Whether this show's setlist came from a band source rather than from
   // setlist.fm or the user. An absent `setlistSource` means setlist.fm —
   // every show document written before v5.33.0 has no such field, and the
@@ -712,9 +678,9 @@ export default function ShowDetailView({
                       <span className="font-semibold text-primary">{[show.city, show.state].filter(Boolean).join(', ')}</span>
                     </div>
                   )}
-                  <a href={`/shows?venue=${encodeURIComponent(show.venue)}`} className="text-xs text-amber hover:underline block">
+                  <Link href={`/shows/?venueKey=${encodeURIComponent(venueKeyFor(show.venue, show.city))}`} className="text-xs text-amber hover:underline block">
                     All shows at this venue →
-                  </a>
+                  </Link>
                 </div>
               }
             />
@@ -917,39 +883,7 @@ export default function ShowDetailView({
                   />
                 )}
                 {debuts > 0 && <StatRow label="Debuts" value={`${debuts} song${debuts !== 1 ? 's' : ''}`} tone="brand" />}
-                {bustouts.length > 0 && (
-                  <StatRow
-                    label="Bust-outs"
-                    value={`${bustouts[0].title}${bustouts.length > 1 ? ` (+${bustouts.length - 1})` : ''}`}
-                    tone="amber"
-                  />
-                )}
               </dl>
-            </SidebarCard>
-          )}
-
-          {bustouts.length > 0 && (
-            <SidebarCard className="border-amber/30">
-              <div className="flex items-center gap-2 mb-3">
-                <Flame className="w-4 h-4 text-amber" />
-                <SidebarLabel>
-                  This show featured {bustouts.length} bust-out{bustouts.length !== 1 ? 's' : ''}
-                  {epicOrMajorCount > 0 ? ` (${epicOrMajorCount} major or epic)` : ''}
-                </SidebarLabel>
-              </div>
-              <ul className="space-y-2">
-                {bustouts.map((t, i) => {
-                  const meta = BUSTOUT_SEVERITY_META[t.bustoutSeverity] || BUSTOUT_SEVERITY_META.minor;
-                  return (
-                    <li key={i} className="flex items-center justify-between gap-2 text-[13px]">
-                      <span className="text-primary font-medium truncate">{t.title}</span>
-                      <span className={`shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded ${meta.badgeClass}`}>
-                        {meta.flames}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
             </SidebarCard>
           )}
 

@@ -12,7 +12,7 @@
  *
  * A song object here must be readable by everything that already consumes
  * a stored setlist: lib/songIndex.js, lib/setlistGrouping.js,
- * lib/bustOuts.js, lib/playlistCreator.js, components/shows/SetlistView.jsx,
+ * lib/playlistCreator.js, components/shows/SetlistView.jsx,
  * components/shows/ShowDetailView.jsx and components/runs/RunDetailView.jsx.
  * So every field those already read keeps its exact current meaning:
  *
@@ -64,18 +64,17 @@ const SOUNDCHECK_LABEL = 'Soundcheck';
  * Both sources flag soundcheck performances, and they are genuinely
  * interesting data — but they are not part of the show the user attended,
  * and every existing consumer would treat them as if they were. They would
- * inflate a show's song count, add phantom plays to the personal song index
- * and its gap counts, feed lib/bustOuts.js performances that never happened
- * in front of an audience, and land in generated playlists. 'Soundcheck' is
- * also not in groupSongsBySet's CANONICAL_ORDER, so it would render as an
- * ordinary trailing section with no indication it wasn't part of the set.
+ * inflate a show's song count, add phantom plays to the personal song
+ * index, and land in generated playlists. 'Soundcheck' is also not in
+ * groupSongsBySet's CANONICAL_ORDER, so it would render as an ordinary
+ * trailing section with no indication it wasn't part of the set.
  *
  * Dropping them is the choice that leaves every existing field meaning
  * exactly what it means today. The count is reported on the response as
  * `droppedSoundcheckCount` so the rows are visibly discarded rather than
  * silently lost, and adding them back later is a deliberate act: give
  * SOUNDCHECK_LABEL a place in CANONICAL_ORDER after the encores and teach
- * songIndex/bustOuts/playlistCreator to skip it.
+ * songIndex/playlistCreator to skip it.
  */
 const SOUNDCHECK_POLICY = 'drop';
 
