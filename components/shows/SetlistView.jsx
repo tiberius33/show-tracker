@@ -1,20 +1,19 @@
 // components/shows/SetlistView.jsx
 //
 // Setlist renderer. Takes sets[] where each set has a label + tracks[]. Tracks
-// can be flagged `debut` or `bustout` to render a pill alongside the title.
+// can be flagged `debut` to render a pill alongside the title.
 //
 // Example:
 //   <SetlistView sets={[
 //     { label: 'Set I', tracks: [
 //       { title: 'Frankenstein', duration: '8:14' },
-//       { title: 'Foam', duration: '9:03', bustout: true, bustoutNote: '47 shows' },
+//       { title: 'Foam', duration: '9:03', debut: true },
 //     ]},
 //     { label: 'Encore', tracks: [{ title: 'Tweezer Reprise', duration: '6:55' }] },
 //   ]} />
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 
 // Props:
 //   sets           – array of { label, tracks[] }
@@ -25,12 +24,6 @@ import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 //                    (and its "Seen Nx" pill) render as a link to that href
 //                    instead of calling onSongClick — used to link straight
 //                    to a song's own page rather than opening a modal.
-//
-// A track can carry `bustoutSeverity` ('minor'|'major'|'epic') plus
-// `bustoutNote` ("N days since last played") and `bustoutDetail`
-// ({ lastPlayedLabel, lastVenue, lastCity, href }) — tapping the bust-out
-// badge expands a row with that detail. A track with `bustout: true` but no
-// severity (a manually-tagged one) still renders the plain pill.
 //
 // ── Band-source fields (El Goose, Phish.net) ──────────────────────────
 //
@@ -45,12 +38,10 @@ import { BUSTOUT_SEVERITY_META } from '@/lib/bustOuts';
 // All optional and all absent on setlist.fm-sourced shows, which still get
 // the generic segue indicator off `tape` exactly as before.
 //
-// Footnotes and jam-chart notes expand on TAP, reusing the same
-// expandedKey disclosure the bust-out badge has always used rather than
-// inventing a second pattern. Deliberately not hover-only: on a phone
-// there is no hover, and these notes are most of what makes a band source
-// worth having. One detail row is open at a time, across the whole list,
-// which is the behaviour the bust-out badge already had.
+// Footnotes and jam-chart notes expand on TAP. Deliberately not hover-only:
+// on a phone there is no hover, and these notes are most of what makes a
+// band source worth having. One detail row is open at a time, across the
+// whole list.
 export default function SetlistView({ sets = [], showPlayCounts = false, playCounts = {}, onSongClick, getSongHref }) {
   const [expandedKey, setExpandedKey] = useState(null);
   return (
@@ -67,10 +58,8 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
           <ol className="list-none p-0 m-0">
             {set.tracks.map((t, ti) => {
               const trackKey = `${si}-${ti}`;
-              const meta = t.bustoutSeverity ? BUSTOUT_SEVERITY_META[t.bustoutSeverity] : null;
-              // Three things can expand on one row now, so the key names
-              // which — one open at a time, as before.
-              const expanded = expandedKey === trackKey;
+              // Two things can expand on one row, so the key names which —
+              // one open at a time, across the whole list.
               const footnoteOpen = expandedKey === `${trackKey}:footnote`;
               const jamchartOpen = expandedKey === `${trackKey}:jamchart`;
               const toggle = (key) => setExpandedKey(expandedKey === key ? null : key);
@@ -104,21 +93,6 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                     {t.debut && (
                       <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-brand bg-brand-subtle px-1.5 py-0.5 rounded">
                         debut
-                      </span>
-                    )}
-                    {t.bustout && meta && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setExpandedKey(expanded ? null : trackKey); }}
-                        title={t.bustoutNote ? `${meta.label} · ${t.bustoutNote}` : meta.label}
-                        className={`ml-2 inline-flex items-center gap-1 text-[9px] font-extrabold tracking-[0.1em] uppercase px-1.5 py-0.5 rounded ${meta.badgeClass}`}
-                      >
-                        {meta.flames} {meta.label}
-                      </button>
-                    )}
-                    {t.bustout && !meta && (
-                      <span className="ml-2 inline-block text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#a0680f] bg-amber-subtle px-1.5 py-0.5 rounded">
-                        bust-out{t.bustoutNote ? ` · ${t.bustoutNote}` : ''}
                       </span>
                     )}
                     {t.jamchart && (
@@ -206,33 +180,6 @@ export default function SetlistView({ sets = [], showPlayCounts = false, playCou
                     <span className="text-[11px] text-muted font-medium tracking-wide">
                       {t.transitionMark ? t.transitionMark : '> segue'}
                     </span>
-                  </li>
-                )}
-                {expanded && t.bustoutDetail && (
-                  <li className="grid grid-cols-[28px_1fr] gap-3 px-2.5 pb-2">
-                    <span />
-                    <div className="text-[12px] text-secondary bg-hover rounded-lg px-3 py-2">
-                      {t.bustoutNote && <p className="font-medium text-primary">{t.bustoutNote}</p>}
-                      {(t.bustoutDetail.lastPlayedLabel || t.bustoutDetail.lastVenue) && (
-                        <p>
-                          Last played
-                          {t.bustoutDetail.lastPlayedLabel ? ` ${t.bustoutDetail.lastPlayedLabel}` : ''}
-                          {t.bustoutDetail.lastVenue ? ` at ${t.bustoutDetail.lastVenue}` : ''}
-                          {t.bustoutDetail.lastCity ? `, ${t.bustoutDetail.lastCity}` : ''}
-                        </p>
-                      )}
-                      {t.bustoutDetail.href && (
-                        t.bustoutDetail.href.startsWith('http') ? (
-                          <a href={t.bustoutDetail.href} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline inline-block mt-1">
-                            View that performance →
-                          </a>
-                        ) : (
-                          <Link href={t.bustoutDetail.href} className="text-brand hover:underline inline-block mt-1">
-                            View that performance →
-                          </Link>
-                        )
-                      )}
-                    </div>
                   </li>
                 )}
               </React.Fragment>

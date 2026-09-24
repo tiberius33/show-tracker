@@ -96,8 +96,6 @@ function extractSongs(match) {
         set.song.forEach((song) => {
           const info = (song.info || '').toLowerCase();
           const isDebut = info.includes('debut');
-          const bustoutMatch = !isDebut && info.match(/(\d+)\s*show/i);
-          const isBustout = !!(bustoutMatch && parseInt(bustoutMatch[1]) >= 10);
 
           songs.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
@@ -106,8 +104,6 @@ function extractSongs(match) {
             cover: song.cover ? song.cover.name : null,
             tape: song.tape || false,
             debut: isDebut,
-            bustout: isBustout,
-            bustoutNote: bustoutMatch ? `${bustoutMatch[1]} shows` : '',
           });
         });
       }

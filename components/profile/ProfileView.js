@@ -11,7 +11,6 @@ import { claimHandle, handleFormatError, normalizeHandle, saveDisplayName } from
 import { contentProblem } from '@/lib/contentFilter';
 import BlockedAccountsSection from '@/components/moderation/BlockedAccountsSection';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
-import BustOutSettings from '@/components/profile/BustOutSettings';
 import TourInfoModal from '@/components/TourInfoModal';
 import ArtistAIChat from '@/components/ArtistAIChat';
 
@@ -605,9 +604,6 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
 
       {/* Notification Settings */}
       <NotificationSettings userId={user?.uid} />
-
-      {/* Bust-Out Threshold */}
-      <BustOutSettings userId={user?.uid} />
 
       {/* Public Profile — off by default for every user. */}
       <Card padding="md">
