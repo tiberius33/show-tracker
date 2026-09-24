@@ -19,6 +19,7 @@ import DeleteShowModal from '@/components/shows/DeleteShowModal';
 import { removeFromBucketList } from '@/lib/bucketList';
 import YearInReviewCard from '@/components/yearInReview/YearInReviewCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
+import VenueShowsView from '@/components/shows/VenueShowsView';
 import { showHref } from '@/lib/showRouting';
 import {
   Search, Camera, X, Upload, Send,
@@ -29,6 +30,7 @@ export default function ShowsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const detailShowId = searchParams.get('show');
+  const venueKeyParam = searchParams.get('venueKey');
 
   const {
     shows, isLoading, user, guestMode,
@@ -111,6 +113,29 @@ export default function ShowsPage() {
   // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
   const [filterLabel, setFilterLabel] = useState(null); // { type: 'artist'|'venue', name }
 
+  // The single source of truth for "no filter is active" — used both by the
+  // mount effect below and by any in-page control (the venue page's own
+  // back button) that needs to guarantee an unfiltered list without waiting
+  // on a route change to remount this component.
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterYear('');
+    setFilterDate('');
+    setFilterLabel(null);
+  };
+
+  // Runs once per mount — deliberately not keyed on `searchParams`, so
+  // opening/closing a show detail (?show=) on this same route (no remount)
+  // never touches the filter. The reset half only fires because navigating
+  // here via the "My Shows" nav link (href="/") lands on a *different*
+  // route than /shows/?venue=..., which does remount this component fresh.
+  //
+  // This is the single source of truth for "did I arrive with a filter":
+  // when none of artist/venue/year is present, every filter field is
+  // cleared explicitly — the previous version only ever set these fields
+  // from the URL and never cleared them, so a filter picked up from Top
+  // Venues/Top Artists/a venue link stuck around forever, including after
+  // navigating to the unfiltered My Shows list.
   useEffect(() => {
     const artist = searchParams.get('artist');
     const venue = searchParams.get('venue');
@@ -118,11 +143,16 @@ export default function ShowsPage() {
     if (artist) {
       setSearchTerm(artist);
       setFilterLabel({ type: 'artist', name: artist });
+      setFilterYear(year || '');
+      setFilterDate('');
     } else if (venue) {
       setSearchTerm(venue);
       setFilterLabel({ type: 'venue', name: venue });
+      setFilterYear(year || '');
+      setFilterDate('');
+    } else {
+      clearFilters();
     }
-    if (year) setFilterYear(year);
     if (artist || venue || year) {
       const url = new URL(window.location.href);
       url.searchParams.delete('artist');
@@ -224,6 +254,25 @@ export default function ShowsPage() {
           />
         )}
       </>
+    );
+  }
+
+  // Venue view: when ?venueKey=<key> is present, render the user's shows at
+  // that venue instead of the list. Distinct from the ?artist=/?venue=
+  // params the Top Artists/Top Venues rows use (which just seed the text
+  // filter below) — this is a dedicated page, reached from the venue info
+  // dropdown's "All shows at this venue" link.
+  if (venueKeyParam) {
+    return (
+      <VenueShowsView
+        venueKey={venueKeyParam}
+        shows={shows}
+        friends={friends}
+        runInfoByShowId={runInfoByShowId}
+        tourHrefFor={tourHrefFor}
+        festivalById={festivalById}
+        onBackToMyShows={() => { clearFilters(); router.push('/shows/'); }}
+      />
     );
   }
 
