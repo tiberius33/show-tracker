@@ -4,6 +4,76 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.37.0] — 2026-09-24
+
+### Removed: Bust-out badges
+
+- **The "bust-out" flame badges are gone** — the show detail page, the song
+  page, and the per-user sensitivity setting in Profile. The badge's gap
+  count came from setlist.fm's ~200-most-recent-shows window per artist,
+  which for any band with a real touring history is a small, silently
+  shrinking slice of their catalog: a song that hasn't surfaced in that
+  window looks identical to a song that was never played, so the badge
+  either said nothing about a genuine bust-out or asserted an exact "N shows
+  since last played" figure the window couldn't actually prove. On top of
+  that, the show page and the song page computed it two different ways — one
+  against the *band's* show count, the other against the *user's own* — so
+  the same song could show as a bust-out on one page and not the other, both
+  under the identical badge. Rather than patch a feature whose underlying
+  data can't support what the badge claims, it's removed outright:
+  `lib/bustOuts.js`, `hooks/useBustOutAnalysis.js`,
+  `hooks/useBustOutSensitivity.js`, `components/profile/BustOutSettings.jsx`,
+  and the setlist-import-time `bustout`/`bustoutNote` tagging in
+  `admin-populate-setlist.js`. `get-artist-song-stats.js` stays — it's shared
+  with the Tour Info modal's Songs tab and Wishlist — but no longer computes
+  or returns the per-show `showDates` list that existed solely to feed this.
+
+### Fixed: "All shows at this venue"
+
+- **It's now a real, dedicated page** — a "Your shows at [Venue]" heading
+  with a count, the same venue info dropdown you clicked in from, and your
+  shows at that venue rendered as the standard show card, reused unchanged
+  from My Shows. Previously the link was a plain anchor tag (a full page
+  reload, not an in-app navigation) that dumped you back on the ordinary My
+  Shows list with the venue name typed into the free-text search box — no
+  dropdown, no heading, no count, and matched by a loose substring check
+  instead of the venue-key matching the rest of the app already uses, so a
+  differently-spelled or CSV-imported venue could silently fail to match.
+  Reachable directly at `/shows/?venueKey=<key>`, survives a reload, and has
+  its own back control on both the mobile header and desktop.
+
+### Fixed: My Shows nav didn't clear the venue/artist filter
+
+- **Tapping "My Shows" from a filtered view (via Top Venues, Top Artists, or
+  the venue page above) now actually returns to the full, unfiltered list.**
+  The filter lived in shared app state that a navigation to the bare list
+  never told to reset — the code that seeds the filter from a `?venue=` /
+  `?artist=` / `?year=` link only ever *set* it, with no corresponding
+  "nothing in the URL, so clear it" branch. That's now symmetric: landing on
+  `/` or `/shows/` with none of those params present clears the search term,
+  year, date and the "filtered to X" breadcrumb in one place. The existing
+  filtered entry points (Top Venues, Top Artists, tour/run/festival venue
+  and artist links) are unchanged.
+
+### Also fixed in passing
+
+- `lib/navRoutes.js` was missing a `/shows/:id` entry, which is what its own
+  test (`navRoutes.test.js`) was failing on — a pre-existing gap unrelated to
+  the work above, fixed because it was blocking `npm run test:unit` from
+  running past that file. The app itself never links to `/shows/<id>`
+  (everything goes through `showHref()`'s `?show=` pattern, since a static
+  export can't serve a dynamic route with a runtime id), but a raw
+  `/shows/<id>` URL can still reach the client router directly on native,
+  where there's no Netlify redirect to rewrite it first.
+
+### Known, not fixed here
+
+- `search-setlists.js` and `get-artist-song-stats.js` both fall back to a
+  hardcoded setlist.fm API key when `SETLISTFM_API_KEY` isn't set. Pre-
+  existing, out of scope for this change.
+
+---
+
 ## [5.36.5] — 2026-09-20
 
 The TestFlight build cut from this release is the first to carry 5.36.3,
