@@ -13,6 +13,19 @@ const STREAMING_MENTION = /spotify|apple\s*music/i;
 function ReleaseNotesView() {
   const releases = [
     {
+      version: '5.38.0',
+      date: 'September 25, 2026',
+      title: 'Email Settings You Control',
+      changes: [
+        'New: two email settings in your Profile — one for product news and announcements, one for all emails. Turn off announcements and you’ll still hear about tags, replies and other activity',
+        'Every email from MySetlists now has an unsubscribe link, including invites and tags sent to friends who haven’t joined yet',
+        'Unsubscribe straight from Gmail or Apple Mail with their built-in Unsubscribe button',
+        'Unsubscribe links now ask you to confirm first, so a link-scanning mail filter can’t unsubscribe you by accident',
+        'Unsubscribe links in older emails no longer work. Manage your email settings from your Profile instead',
+        'Fixed: unsubscribing from an invite or a tag a friend sent you could turn off your friend’s emails instead of yours',
+      ]
+    },
+    {
       version: '5.36.2',
       date: 'September 17, 2026',
       title: 'Community Guidelines, Flagging And Blocking',

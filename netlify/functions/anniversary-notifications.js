@@ -20,7 +20,8 @@
 // stored `monthDay` field + collectionGroup query filtered on it if the
 // user base grows enough that a full daily scan gets expensive.
 
-const https = require('https');
+const { sendNotificationEmail } = require('./lib/outgoingEmail');
+const { FOOTER_MARKER } = require('./lib/emailLayout');
 
 function initFirebase() {
   const { getApps, initializeApp, cert } = require('firebase-admin/app');
@@ -32,28 +33,10 @@ function initFirebase() {
   initializeApp({ credential: cert({ privateKey, clientEmail, projectId }), projectId });
 }
 
-function sendEmail({ to, subject, html }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return Promise.resolve(false);
-  const payload = JSON.stringify({ from: 'Phillip <phillip@mysetlists.net>', to, subject, html });
-  return new Promise((resolve) => {
-    const req = https.request({
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-      },
-    }, (res) => {
-      res.on('data', () => {});
-      res.on('end', () => resolve(res.statusCode >= 200 && res.statusCode < 300));
-    });
-    req.on('error', () => resolve(false));
-    req.write(payload);
-    req.end();
-  });
+// Opt-out check, signed unsubscribe footer and List-Unsubscribe headers
+// all live in lib/outgoingEmail.js, shared with every other send path.
+function sendEmail(db, uid, { to, subject, html }) {
+  return sendNotificationEmail({ db, uid, email: to, subject, html, type: 'anniversary' });
 }
 
 function escapeHtml(str) {
@@ -98,6 +81,7 @@ function anniversaryEmailHtml({ artist, venue, city, date, yearsAgo, showUrl }) 
           <p style="color:#9ca3af;font-size:12px;margin:0">
             <a href="https://mysetlists.net" style="color:#9ca3af;text-decoration:none">mysetlists.net</a> &mdash; track every show you've ever been to
           </p>
+          ${FOOTER_MARKER}
         </td></tr>
       </table>
     </td></tr>
@@ -178,9 +162,9 @@ exports.handler = async function () {
       continue;
     }
 
-    if ((method === 'email' || method === 'both') && profile.email && profile.emailOptOut !== true) {
+    if ((method === 'email' || method === 'both') && profile.email) {
       try {
-        await sendEmail({
+        await sendEmail(db, m.uid, {
           to: profile.email,
           subject: `${m.yearsAgo} years ago: You saw ${m.show.artist} at ${m.show.venue}`,
           html: anniversaryEmailHtml({

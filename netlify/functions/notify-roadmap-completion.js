@@ -7,61 +7,22 @@
  * Queries the roadmapItems document + voters sub-collection to gather all
  * contributor emails, then sends each a notification via Resend.
  * Marks each contributor as notified to prevent duplicates.
+ *
+ * Auth header: Authorization: Bearer {idToken}   (admin only, since 5.38 —
+ * it used to answer anyone). Opt-out, the signed unsubscribe footer and
+ * List-Unsubscribe headers come from lib/outgoingEmail.js.
  */
 
-const https = require('https');
+const { getDb, verifyUser, isAdminClaims } = require('./lib/firebaseAdmin');
+const { sendNotificationEmail } = require('./lib/outgoingEmail');
+const { FOOTER_MARKER } = require('./lib/emailLayout');
 
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-function initFirebase() {
-  const { getApps, initializeApp, cert } = require('firebase-admin/app');
-  if (getApps().length > 0) return;
-  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  if (!privateKey || !clientEmail || !projectId) throw new Error('Firebase env vars not configured');
-  initializeApp({ credential: cert({ privateKey, clientEmail, projectId }), projectId });
-}
-
-function sendEmail(apiKey, to, subject, html) {
-  const payload = JSON.stringify({
-    from: 'MySetlists <noreply@mysetlists.net>',
-    to,
-    subject,
-    html,
-  });
-
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve({ success: true, data });
-        } else {
-          reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(payload);
-    req.end();
-  });
-}
 
 function buildEmailHtml(featureTitle, featureDescription) {
   return `
@@ -86,6 +47,7 @@ function buildEmailHtml(featureTitle, featureDescription) {
       You're receiving this because you voted for or submitted this feature on
       <a href="https://mysetlists.net/roadmap" style="color:#6ee7b7;text-decoration:none;">MySetlists Roadmap</a>.
     </p>
+    <div style="text-align:center">${FOOTER_MARKER}</div>
   </div>
 </body>
 </html>`;
@@ -98,6 +60,14 @@ exports.handler = async function(event) {
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
+  }
+
+  const decoded = await verifyUser(event);
+  if (!decoded) {
+    return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Unauthorized' }) };
+  }
+  if (!isAdminClaims(decoded)) {
+    return { statusCode: 403, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Forbidden' }) };
   }
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -118,9 +88,8 @@ exports.handler = async function(event) {
   }
 
   try {
-    initFirebase();
-    const { getFirestore, FieldValue } = require('firebase-admin/firestore');
-    const db = getFirestore();
+    const { FieldValue } = require('firebase-admin/firestore');
+    const db = getDb();
 
     // Get the roadmap item
     const itemRef = db.collection('roadmapItems').doc(roadmapItemId);
@@ -184,24 +153,6 @@ exports.handler = async function(event) {
     // Filter out already-notified
     let toSend = [...emailsToNotify].filter(e => e && !alreadyNotified.has(e));
 
-    // Filter out users who have opted out of emails
-    if (toSend.length > 0) {
-      const optedOutEmails = new Set();
-      // Check in batches of 30 (Firestore 'in' limit)
-      for (let i = 0; i < toSend.length; i += 30) {
-        const batch = toSend.slice(i, i + 30);
-        const snap = await db.collection('userProfiles')
-          .where('email', 'in', batch)
-          .get();
-        for (const profileDoc of snap.docs) {
-          if (profileDoc.data().emailOptOut) {
-            optedOutEmails.add(profileDoc.data().email);
-          }
-        }
-      }
-      toSend = toSend.filter(e => !optedOutEmails.has(e));
-    }
-
     if (toSend.length === 0) {
       return {
         statusCode: 200,
@@ -216,18 +167,19 @@ exports.handler = async function(event) {
     let sent = 0;
     const failures = [];
 
+    let skipped = 0;
+    const skippedEmails = [];
     for (const email of toSend) {
-      try {
-        await sendEmail(apiKey, email, subject, html);
-        sent++;
-      } catch (err) {
-        console.error(`Failed to send to ${email}:`, err.message);
-        failures.push(email);
-      }
+      const status = await sendNotificationEmail({
+        db, email, subject, html, type: 'roadmap_shipped', from: 'MySetlists <noreply@mysetlists.net>',
+      });
+      if (status === 'sent') sent++;
+      else if (status === 'skipped') { skipped++; skippedEmails.push(email); }
+      else failures.push(email);
     }
 
     // Update the roadmap item with notification tracking
-    const allNotified = [...alreadyNotified, ...toSend.filter(e => !failures.includes(e))];
+    const allNotified = [...alreadyNotified, ...toSend.filter(e => !failures.includes(e) && !skippedEmails.includes(e))];
     await itemRef.update({
       notificationsSent: true,
       notificationsSentAt: FieldValue.serverTimestamp(),
@@ -250,6 +202,7 @@ exports.handler = async function(event) {
         success: true,
         emailsSent: sent,
         failures: failures.length,
+        skipped,
         totalRecipients: toSend.length,
       }),
     };

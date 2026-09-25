@@ -23,8 +23,12 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
   const [memberSince, setMemberSince] = useState(null);
 
   // Email opt-out state
+  // Both are opt-OUT flags on the server; the switches below show the
+  // positive ("you get these") so on means on.
   const [emailOptOut, setEmailOptOut] = useState(false);
+  const [announcementsOptOut, setAnnouncementsOptOut] = useState(false);
   const [emailOptOutLoading, setEmailOptOutLoading] = useState(false);
+  const [emailPrefsError, setEmailPrefsError] = useState('');
 
   // Public profile state — off by default for every user, always.
   const [handle, setHandle] = useState(null);
@@ -65,12 +69,27 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
             setMemberSince(profile.data().createdAt.toDate());
           }
           setEmailOptOut(profile.data().emailOptOut || false);
+          setAnnouncementsOptOut(profile.data().announcementsOptOut || false);
           setHandle(profile.data().handle || null);
           setPublicProfile(profile.data().publicProfile || false);
           setShareActivity(profile.data().shareActivity !== false);
         }
       };
       loadProfile();
+
+      // The server's answer wins over the profile doc: it also counts an
+      // address-level unsubscribe from before this account existed.
+      const loadEmailPrefs = async () => {
+        try {
+          const token = await auth.currentUser.getIdToken();
+          const res = await fetch(apiUrl('/api/email-preferences'), { headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) return;
+          const prefs = await res.json();
+          setEmailOptOut(prefs.emailOptOut === true);
+          setAnnouncementsOptOut(prefs.announcementsOptOut === true);
+        } catch { /* keep the profile doc's values */ }
+      };
+      if (auth.currentUser) loadEmailPrefs();
     }
   }, [user]);
 
@@ -168,21 +187,25 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
     setError('');
   };
 
-  const handleEmailOptOutToggle = async () => {
+  // field: 'emailOptOut' | 'announcementsOptOut'; optOut: the new value.
+  const updateEmailPref = async (field, optOut) => {
     if (!user?.uid) return;
     setEmailOptOutLoading(true);
-    const newValue = !emailOptOut;
+    setEmailPrefsError('');
     try {
       const token = await auth.currentUser.getIdToken();
       const res = await fetch(apiUrl('/api/email-preferences'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ emailOptOut: newValue }),
+        body: JSON.stringify({ [field]: optOut }),
       });
       if (!res.ok) throw new Error('Failed to update preferences');
-      setEmailOptOut(newValue);
+      const prefs = await res.json();
+      setEmailOptOut(prefs.emailOptOut === true);
+      setAnnouncementsOptOut(prefs.announcementsOptOut === true);
     } catch (err) {
       console.error('Failed to update email preferences:', err);
+      setEmailPrefsError("Couldn't save that change. Please try again.");
     } finally {
       setEmailOptOutLoading(false);
     }
@@ -727,27 +750,49 @@ export default function ProfileView({ user, shows, userRank, onProfileUpdate, on
           <MailX className="w-5 h-5 text-brand" />
           Email Preferences
         </h3>
-        <div className="flex items-start gap-3">
-          <label className="flex items-start gap-3 cursor-pointer group flex-1">
+        <div className="space-y-4">
+          <label className={`flex items-start gap-3 group ${emailOptOut ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
             <input
               type="checkbox"
-              checked={emailOptOut}
-              onChange={handleEmailOptOutToggle}
+              checked={!emailOptOut && !announcementsOptOut}
+              onChange={(e) => updateEmailPref('announcementsOptOut', !e.target.checked)}
+              disabled={emailOptOutLoading || emailOptOut}
+              className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed"
+            />
+            <div>
+              <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
+                Product news & announcements
+              </span>
+              <p className="text-secondary text-xs mt-0.5">
+                {emailOptOut
+                  ? 'Off because all emails are turned off.'
+                  : 'New features, app releases and other news from MySetlists. Only occasionally.'}
+              </p>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={!emailOptOut}
+              onChange={(e) => updateEmailPref('emailOptOut', !e.target.checked)}
               disabled={emailOptOutLoading}
               className="mt-1 w-4 h-4 rounded border-active bg-hover text-brand focus:ring-brand/50 focus:ring-offset-0 cursor-pointer"
             />
             <div>
               <span className="text-primary text-sm font-medium group-hover:text-brand transition-colors">
-                Unsubscribe from all emails
+                All emails
               </span>
               <p className="text-secondary text-xs mt-0.5">
-                Stop receiving invite notifications, tag alerts, and other emails from MySetlists. Essential account emails (password resets) will still be sent.
+                Tags, invites, replies and other activity emails, plus announcements. Turn this off to stop every email from MySetlists. Essential account emails (password resets) will still be sent.
               </p>
             </div>
           </label>
         </div>
         {emailOptOutLoading && (
           <p className="text-muted text-xs mt-2">Saving...</p>
+        )}
+        {emailPrefsError && (
+          <p className="text-danger text-xs mt-2">{emailPrefsError}</p>
         )}
       </Card>
 

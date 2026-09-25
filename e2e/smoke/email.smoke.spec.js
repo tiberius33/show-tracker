@@ -1,71 +1,87 @@
 // @ts-check
 /**
- * Email smoke tests — validates the send-email Netlify Function is alive
- * and correctly validates its inputs. Does NOT send real emails to real
- * addresses during normal runs (uses a bounce address or checks validation).
+ * Email smoke tests — the send-email and unsubscribe functions are alive
+ * and hold their security properties. Never sends real email during normal
+ * runs.
  *
- * A full delivery test (RESEND_API_KEY must be set) is gated behind
- * TEST_SEND_REAL_EMAIL=true so it only runs when explicitly opted in.
+ * Since 5.38 send-email requires a Firebase ID token (it was an open relay)
+ * and unsubscribe links are signed, so these check:
+ *   - send-email: 401 without a token, CORS only for the site/iOS origins
+ *   - unsubscribe: an old base64-uid link shows the "expired" page and a
+ *     one-click POST with one is refused; a bad token is a 400 page
+ *
+ * A full delivery test is gated behind TEST_SEND_REAL_EMAIL=true.
  */
 const { test, expect } = require('@playwright/test');
+const { getIdToken } = require('../utils/firebaseIdToken');
 
 const BASE = process.env.TEST_BASE_URL || 'https://mysetlists.net';
 const SEND_EMAIL_URL = `${BASE}/.netlify/functions/send-email`;
+const UNSUBSCRIBE_URL = `${BASE}/.netlify/functions/unsubscribe`;
 
 test.describe('Email Smoke Tests', () => {
   // ---------------------------------------------------------------------------
-  // Function health — OPTIONS (CORS preflight) must return 200
+  // send-email: auth + CORS
   // ---------------------------------------------------------------------------
-  test('send-email OPTIONS (CORS preflight) returns 200', async ({
-    request,
-  }) => {
+  test('send-email CORS preflight answers the site origin', async ({ request }) => {
     const res = await request.fetch(SEND_EMAIL_URL, {
       method: 'OPTIONS',
+      headers: { Origin: 'https://mysetlists.net' },
     });
-    expect(res.status()).toBe(200);
+    expect([200, 204]).toContain(res.status());
+    expect(res.headers()['access-control-allow-origin']).toBe('https://mysetlists.net');
   });
 
-  // ---------------------------------------------------------------------------
-  // Input validation — missing fields should return 400, not 500
-  // ---------------------------------------------------------------------------
-  test('send-email with missing fields returns 400', async ({ request }) => {
-    const res = await request.post(SEND_EMAIL_URL, {
-      data: { to: 'nobody@example.com' }, // missing subject + html
-    });
-    // 400 = validation error (expected), 500 = crashed (unexpected)
-    expect([400, 500]).toContain(res.status());
-    if (res.status() === 400) {
-      const body = await res.json();
-      expect(body.error).toBeTruthy();
-    }
-  });
-
-  test('send-email with all empty body returns 400', async ({ request }) => {
-    const res = await request.post(SEND_EMAIL_URL, {
-      data: {},
-    });
-    expect([400]).toContain(res.status());
-  });
-
-  // ---------------------------------------------------------------------------
-  // Unsubscribe endpoint health
-  // ---------------------------------------------------------------------------
-  test('unsubscribe endpoint is reachable', async ({ request }) => {
-    // Some functions handle OPTIONS explicitly (200); others let the runtime
-    // return 405. Both mean the function is deployed and reachable.
-    const res = await request.fetch(`${BASE}/.netlify/functions/unsubscribe`, {
+  test('send-email CORS preflight does not answer other origins', async ({ request }) => {
+    const res = await request.fetch(SEND_EMAIL_URL, {
       method: 'OPTIONS',
+      headers: { Origin: 'https://evil.example' },
     });
-    expect([200, 204, 405]).toContain(res.status());
+    expect(res.headers()['access-control-allow-origin']).toBeUndefined();
   });
 
-  test('unsubscribe with missing token returns an error', async ({ request }) => {
-    const res = await request.post(`${BASE}/.netlify/functions/unsubscribe`, {
-      data: {},
+  test('send-email without a token returns 401 and sends nothing', async ({ request }) => {
+    const res = await request.post(SEND_EMAIL_URL, {
+      data: { to: 'nobody@example.com', subject: 'x', html: '<p>x</p>' },
     });
-    // Any 4xx response confirms the function is live and validating input
-    expect(res.status()).toBeGreaterThanOrEqual(400);
-    expect(res.status()).toBeLessThan(600);
+    expect(res.status()).toBe(401);
+  });
+
+  test('send-email with an empty body and no token is still 401', async ({ request }) => {
+    const res = await request.post(SEND_EMAIL_URL, { data: {} });
+    expect(res.status()).toBe(401);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Unsubscribe endpoint
+  // ---------------------------------------------------------------------------
+  test('unsubscribe with no token shows an error page, not a crash', async ({ request }) => {
+    const res = await request.get(UNSUBSCRIBE_URL);
+    expect(res.status()).toBe(400);
+    expect(await res.text()).toContain('Link not recognised');
+  });
+
+  test('legacy base64-uid unsubscribe link shows the "expired" page', async ({ request }) => {
+    const legacy = Buffer.from('legacyUidForSmokeTest0001').toString('base64url');
+    const res = await request.get(`${BASE}/api/unsubscribe?token=${legacy}`);
+    expect(res.status()).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('This link has expired');
+    expect(html).toContain('/profile/');
+  });
+
+  test('legacy link cannot unsubscribe via one-click POST', async ({ request }) => {
+    const legacy = Buffer.from('legacyUidForSmokeTest0001').toString('base64url');
+    const res = await request.post(`${BASE}/api/unsubscribe?token=${legacy}`, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      data: 'List-Unsubscribe=One-Click',
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test('tampered signed token is rejected', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/unsubscribe?token=eyJ2IjoxfQ.not-a-real-signature`);
+    expect(res.status()).toBe(400);
   });
 
   // ---------------------------------------------------------------------------
@@ -89,15 +105,18 @@ test.describe('Email Smoke Tests', () => {
     );
 
     const testAddress = process.env.TEST_EMAIL;
-    if (!testAddress) {
-      throw new Error('TEST_EMAIL must be set when TEST_SEND_REAL_EMAIL=true');
+    if (!testAddress || !process.env.TEST_PASSWORD) {
+      throw new Error('TEST_EMAIL and TEST_PASSWORD must be set when TEST_SEND_REAL_EMAIL=true');
     }
+    const { idToken } = await getIdToken(request);
 
     const res = await request.post(SEND_EMAIL_URL, {
+      headers: { Authorization: `Bearer ${idToken}` },
       data: {
         to: testAddress,
         subject: `[MySetlists Test] Smoke test — ${new Date().toISOString()}`,
         html: '<p>This is an automated smoke test email. You can safely ignore it.</p>',
+        type: 'smoke_test',
       },
     });
 
