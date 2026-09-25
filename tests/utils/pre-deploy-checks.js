@@ -91,6 +91,24 @@ function checkEnvVars() {
       console.warn(`  ⚠  ${v} not set (optional — some features may be limited)`);
     }
   }
+  // Email (v5.38.0). Warn rather than fail: a missing value doesn't break
+  // the site, it stops email — every send path refuses to go out without
+  // UNSUBSCRIBE_SECRET, and announcements refuse without MAILING_ADDRESS.
+  // Failing the build would block unrelated deploys until both are set.
+  const email = {
+    UNSUBSCRIBE_SECRET: 'no email will be sent — every email needs a signed unsubscribe link',
+    MAILING_ADDRESS: 'announcements cannot be sent — CAN-SPAM requires a physical address',
+  };
+  for (const [v, consequence] of Object.entries(email)) {
+    if (process.env[v]) {
+      pass(v);
+    } else {
+      console.warn(`  ⚠  ${v} not set — ${consequence}. Set it in Netlify → Site settings → Environment variables.`);
+    }
+  }
+  if (process.env.UNSUBSCRIBE_SECRET && process.env.UNSUBSCRIBE_SECRET.length < 32) {
+    console.warn('  ⚠  UNSUBSCRIBE_SECRET is shorter than 32 characters — use a long random string.');
+  }
 }
 
 // ── Check 2: Netlify function files exist ─────────────────────────────────────
@@ -101,6 +119,10 @@ function checkFunctionFiles() {
   const functionsDir = path.join(process.cwd(), 'netlify', 'functions');
   const required = [
     'send-email.js',
+    'unsubscribe.js',
+    'update-email-preferences.js',
+    'admin-send-announcement.js',
+    'admin-list-unsubscribes.js',
     'search-setlists.js',
     'search-artists.js',
     'enrich-artist.js',

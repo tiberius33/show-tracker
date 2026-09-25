@@ -77,6 +77,9 @@ const OWNED_DOCUMENTS = [
   // `fromUid` catches notifications sitting in *other* people's inboxes that
   // are about this user.
   { collection: 'notifications', fields: ['uid', 'fromUid'] },
+
+  // send-email's per-sender hourly counter (v5.38.0).
+  { collection: 'emailRateLimits', fields: ['uid'] },
 ];
 
 /**

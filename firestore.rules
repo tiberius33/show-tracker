@@ -652,6 +652,30 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ── Email: unsubscribes and announcements (v5.38.0) ────────────────
+    // Server-only, admins included: every read and write goes through a
+    // Netlify function with the Admin SDK (unsubscribe, send-email,
+    // update-email-preferences, admin-send-announcement,
+    // admin-list-unsubscribes). emailSuppressions holds the real address
+    // of people who never signed up; unsubscribeEvents is the append-only
+    // log; emailRateLimits is send-email's per-sender counter. No client
+    // has any business touching them, so no client can.
+    match /announcements/{announcementId}/{document=**} {
+      allow read, write: if false;
+    }
+    match /announcements/{announcementId} {
+      allow read, write: if false;
+    }
+    match /emailSuppressions/{emailHash} {
+      allow read, write: if false;
+    }
+    match /unsubscribeEvents/{eventId} {
+      allow read, write: if false;
+    }
+    match /emailRateLimits/{uid} {
+      allow read, write: if false;
+    }
+
     // ── NEW: Year in Review (v5.23.0) ──────────────────────────────────────
     // One doc per user per year (docId `${uid}_${year}`). Owner always
     // reads/writes their own; anyone can read a doc the owner has marked

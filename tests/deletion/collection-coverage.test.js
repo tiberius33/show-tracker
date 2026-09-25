@@ -57,6 +57,9 @@ const NOT_USER_OWNED = {
   roadmapItems: 'Shared roadmap; submitterUid is tombstoned and votes are removed.',
   meetups: 'Shared per-show meetup; the user is removed from attendeeUids and createdBy is tombstoned.',
   reports: 'Moderation records outlive the reporter and the reported. Tombstoned, not deleted.',
+  emailSuppressions: 'Keyed by address, not account: a request not to be emailed. Deleting it on account deletion would start mailing that address again, so it must outlive the account (suppression lists are exactly what data-protection law lets you keep).',
+  unsubscribeEvents: 'Append-only record of opt-out and opt-in requests — the evidence that an unsubscribe was honoured. Like adminAuditLog, it must outlive the user.',
+  announcements: 'Admin-authored announcements. The recipients subcollection is the per-address send record that stops anyone being emailed twice; it is not user content.',
 };
 
 const SEARCH_DIRS = ['lib', 'netlify/functions', 'context', 'hooks'];

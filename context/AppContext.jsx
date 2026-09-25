@@ -1030,9 +1030,8 @@ export function AppProvider({ children }) {
               if (inviterEmail) {
                 const email = friendJoinedEmail({
                   newUserName: currentUser.displayName || 'Your friend',
-                  uid: inviterUid,
                 });
-                sendEmailIfAllowed(inviterUid, { to: inviterEmail, ...email }).catch(() => {});
+                sendEmailIfAllowed({ to: inviterEmail, ...email }, { type: 'friend_joined' }).catch(() => {});
               }
             }
           }
@@ -2405,9 +2404,8 @@ export function AppProvider({ children }) {
                 artist: sanitizedShow.artist,
                 venue: sanitizedShow.venue || '',
                 date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
-                uid: friendUid,
               });
-              const result = await sendEmailIfAllowed(friendUid, { to: friendEmail, ...email });
+              const result = await sendEmailIfAllowed({ to: friendEmail, ...email }, { type: 'tag' });
               console.log('[TagEmail] sendEmailIfAllowed result:', result);
             } else {
               console.warn('[TagEmail] No email found for friend:', friendUid);
@@ -2464,15 +2462,13 @@ export function AppProvider({ children }) {
                 artist: showsData[0].artist,
                 venue: showsData[0].venue,
                 date: showsData[0].date,
-                uid: friendUid,
               })
             : bulkShowTagNotification({
                 taggerName,
                 showsList: showsData,
-                uid: friendUid,
               });
 
-          await sendEmailIfAllowed(friendUid, { to: friendEmail, ...email });
+          await sendEmailIfAllowed({ to: friendEmail, ...email }, { type: 'tag' });
           console.log('[TagEmail] Bulk email sent to', friendEmail, 'for', showsList.length, 'shows');
         } catch (emailErr) {
           console.error('[TagEmail] Failed to send bulk tag notification:', emailErr);
@@ -2632,9 +2628,8 @@ export function AppProvider({ children }) {
             fromName: user.displayName || 'A friend',
             friendName: suggestion.names?.[friendUid] || 'your friend',
             artist, venue, date,
-            uid: friendUid,
           });
-          await sendEmailIfAllowed(friendUid, { to: friendData.friendEmail, ...email });
+          await sendEmailIfAllowed({ to: friendData.friendEmail, ...email }, { type: 'suggestion_nudge' });
           await updateDoc(ref, { emailSentToUid: friendUid, emailSentAt: serverTimestamp() });
         }
       }
@@ -2720,9 +2715,8 @@ export function AppProvider({ children }) {
           artist: tag.showData.artist,
           venue: tag.showData.venue || '',
           date: tag.showData.date ? formatDate(tag.showData.date) : '',
-          uid: tag.fromUid,
         });
-        sendEmailIfAllowed(tag.fromUid || tag.fromEmail, { to: tag.fromEmail, ...email }).catch(() => {});
+        sendEmailIfAllowed({ to: tag.fromEmail, ...email }, { type: 'tag_accepted' }).catch(() => {});
       }
       setPendingTagsForReview(prev => prev.filter(t => t.id !== tag.id));
       const artist = tag.showData?.artist || 'Show';
@@ -2771,9 +2765,8 @@ export function AppProvider({ children }) {
         date: sanitizedShow.date ? formatDate(sanitizedShow.date) : '',
         personalMessage: message || '',
         signupUrl: `https://mysetlists.net?ref=${user.uid}`,
-        uid: user.uid,
       });
-      await sendEmailIfAllowed(toEmail, { to: toEmail, ...email });
+      await sendEmailIfAllowed({ to: toEmail, ...email }, { type: 'tag' });
     } catch (error) {
       console.error('Failed to tag friend by email:', error);
       throw error;
@@ -2827,8 +2820,8 @@ export function AppProvider({ children }) {
         status: 'pending',
         createdAt: serverTimestamp(),
       });
-      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl, uid: user.uid });
-      await sendEmailIfAllowed(toEmail, { to: toEmail, ...email });
+      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl });
+      await sendEmailIfAllowed({ to: toEmail, ...email }, { type: 'invite' });
       loadInviteStats(user.uid);
       return { success: true };
     } catch (err) {
@@ -2847,8 +2840,8 @@ export function AppProvider({ children }) {
     try {
       const inviterDisplayName = user.displayName || 'A friend';
       const inviteUrl = `https://mysetlists.net?ref=${user.uid}`;
-      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl, uid: user.uid });
-      const res = await sendEmailIfAllowed(invite.inviteeEmail, { to: invite.inviteeEmail, ...email });
+      const email = inviteEmail({ inviterName: inviterDisplayName, inviteUrl });
+      const res = await sendEmailIfAllowed({ to: invite.inviteeEmail, ...email }, { type: 'invite' });
       if (res && !res.ok) throw new Error('Email send failed');
       await updateDoc(doc(db, 'invites', invite.id), { lastSentAt: serverTimestamp() });
       setToast(`Invite resent to ${invite.inviteeEmail}`);

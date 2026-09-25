@@ -32,46 +32,41 @@ test.describe('Notifications Integration Tests', () => {
     expect(res.status()).toBe(200);
   });
 
-  test('notify-roadmap-completion POST without auth returns 400 or 401', async ({
+  test('notify-roadmap-completion POST without auth returns 401', async ({
     request,
   }) => {
     const res = await request.post(
       `${BASE}/.netlify/functions/notify-roadmap-completion`,
       {
         data: {
-          itemId: 'test-item-id',
-          itemTitle: 'Test Feature',
+          roadmapItemId: 'test-item-id',
+          featureTitle: 'Test Feature',
         },
       }
     );
-    // Unauthenticated call should be rejected
-    expect([400, 401, 403]).toContain(res.status());
+    // Admin-only since 5.38 — it used to answer anyone.
+    expect(res.status()).toBe(401);
   });
 
   // ---------------------------------------------------------------------------
-  // Email unsubscribe link flow (notification opt-out)
+  // Email unsubscribe link flow (notification opt-out). The signed-token
+  // flows (GET confirmation, one-click) are in email-unsubscribe.integration.
   // ---------------------------------------------------------------------------
-  test('unsubscribe page loads with confirmation message', async ({ page }) => {
-    // The unsubscribe page might require a token query param;
-    // without one it should show an error gracefully, not crash
-    await page.goto('/?unsubscribed=true', { waitUntil: 'load' });
-    await expect(page.locator('body')).not.toContainText('Application error');
+  test('unsubscribe page for an old-style link renders the "expired" page', async ({ page }) => {
+    const legacy = Buffer.from('legacyUidForIntegration01').toString('base64url');
+    await page.goto(`${BASE}/api/unsubscribe?token=${legacy}`, { waitUntil: 'load' });
+    await expect(page.locator('h1')).toHaveText('This link has expired');
+    await expect(page.locator('a[href$="/profile/"]')).toBeVisible();
   });
 
-  test('update-email-preferences POST without auth returns error', async ({
+  test('update-email-preferences POST without auth returns 401', async ({
     request,
   }) => {
     const res = await request.post(
       `${BASE}/.netlify/functions/update-email-preferences`,
-      {
-        data: {
-          userId: 'test-user-id',
-          preferences: { tagNotifications: false },
-        },
-      }
+      { data: { emailOptOut: true } }
     );
-    // Should reject unauthenticated requests
-    expect([400, 401, 403, 404]).toContain(res.status());
+    expect(res.status()).toBe(401);
   });
 
   // ---------------------------------------------------------------------------

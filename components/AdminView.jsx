@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { collection, doc, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, ShieldCheck, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Users, Search, Mail, Sparkles, Send, Eye, TrendingUp, Plus, Upload, Download, Check, RefreshCw, AlertTriangle, Trash2, Calendar, MapPin, Music, MessageSquare, X, Trophy, Database, Wrench, ShieldCheck, Flag, MailX } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import SetlistEditor from '@/components/SetlistEditor';
 import Tip from '@/components/ui/Tip';
@@ -13,13 +13,19 @@ import { formatDate, parseDate, artistColor, avgSongRating, parseCSV, parseImpor
 import { ROADMAP_CATEGORIES, IMPORT_FIELDS } from '@/lib/constants';
 import { apiUrl } from '@/lib/api';
 import ModerationQueue from '@/components/admin/ModerationQueue';
+import AnnouncementsTab from '@/components/admin/AnnouncementsTab';
+import UnsubscribesTab from '@/components/admin/UnsubscribesTab';
+import { sendEmailIfAllowed } from '@/lib/email';
 import { PageHeader, Button } from '@/components/ui';
 import { useDismissable } from '@/context/DismissStackContext';
 
 export default
 function AdminView() {
   const { shows, scanForMissingSetlists, setlistScanning, setlistScanProgress } = useApp();
-  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap' | 'bulkImport' | 'tools' | 'moderation'
+  const [adminTab, setAdminTab] = useState('users'); // 'users' | 'guestTrials' | 'conversions' | 'referrals' | 'roadmap' | 'bulkImport' | 'tools' | 'moderation' | 'announcements' | 'unsubscribes'
+  // Set when an announcement's unsubscribe count is clicked, so the
+  // Unsubscribes tab opens filtered to that announcement.
+  const [unsubscribeSourceFilter, setUnsubscribeSourceFilter] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -291,16 +297,12 @@ function AdminView() {
     setEmailSending(true);
     setEmailStatus(null);
     try {
-      const res = await fetch(apiUrl('/.netlify/functions/send-email'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: selectedUser.email,
-          subject: emailSubject.trim(),
-          html: emailBody.trim().replace(/\n/g, '<br />')
-        })
-      });
-      if (res.ok) {
+      const res = await sendEmailIfAllowed({
+        to: selectedUser.email,
+        subject: emailSubject.trim(),
+        html: emailBody.trim().replace(/\n/g, '<br />'),
+      }, { type: 'admin_message' });
+      if (res?.ok) {
         setEmailStatus('success');
         setEmailSubject('');
         setEmailBody('');
@@ -358,15 +360,11 @@ function AdminView() {
         // Optional email notification (fire and forget)
         const linkedFeedback = feedbackItems.find(f => f.id === item.sourceFeedbackId);
         if (linkedFeedback?.submitterEmail) {
-          fetch(apiUrl('/.netlify/functions/send-email'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: linkedFeedback.submitterEmail,
-              subject: 'Your feature idea is on the MySetlists roadmap!',
-              html: `<p>Hey ${linkedFeedback.submitterName || 'there'}!</p><p>Great news — your feature idea <strong>"${item.title}"</strong> has been added to the <a href="https://mysetlists.net/roadmap">public roadmap</a>!</p><p>Head over and see how the community votes on it. Thanks for helping make MySetlists better!</p>`,
-            }),
-          }).catch(() => {});
+          sendEmailIfAllowed({
+            to: linkedFeedback.submitterEmail,
+            subject: 'Your feature idea is on the MySetlists roadmap!',
+            html: `<p>Hey ${linkedFeedback.submitterName || 'there'}!</p><p>Great news — your feature idea <strong>"${item.title}"</strong> has been added to the <a href="https://mysetlists.net/roadmap">public roadmap</a>!</p><p>Head over and see how the community votes on it. Thanks for helping make MySetlists better!</p>`,
+          }, { type: 'roadmap_published' }).catch(() => {});
         }
       }
       setRoadmapItems(prev => prev.map(i =>
@@ -397,9 +395,10 @@ function AdminView() {
   const sendCompletionNotifications = async (item) => {
     setNotifyingItem(item.id);
     try {
+      const idToken = await auth.currentUser.getIdToken();
       const res = await fetch(apiUrl('/.netlify/functions/notify-roadmap-completion'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({
           roadmapItemId: item.id,
           featureTitle: item.title,
@@ -1676,6 +1675,28 @@ function AdminView() {
               Moderation
             </button>
             <button
+              onClick={() => setAdminTab('announcements')}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'announcements'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              Announcements
+            </button>
+            <button
+              onClick={() => { setUnsubscribeSourceFilter(''); setAdminTab('unsubscribes'); }}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                adminTab === 'unsubscribes'
+                  ? 'bg-brand-subtle text-brand border border-brand/30'
+                  : 'bg-hover text-secondary hover:bg-hover border border-subtle'
+              }`}
+            >
+              <MailX className="w-4 h-4" />
+              Unsubscribes
+            </button>
+            <button
               onClick={() => setAdminTab('guestTrials')}
               className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 adminTab === 'guestTrials'
@@ -1758,6 +1779,14 @@ function AdminView() {
 
           {/* Moderation Tab */}
           {adminTab === 'moderation' && <ModerationQueue />}
+
+          {/* Announcements + Unsubscribes (v5.38.0) */}
+          {adminTab === 'announcements' && (
+            <AnnouncementsTab onViewUnsubscribes={(announcementId) => { setUnsubscribeSourceFilter(`announcement:${announcementId}`); setAdminTab('unsubscribes'); }} />
+          )}
+          {adminTab === 'unsubscribes' && (
+            <UnsubscribesTab initialSource={unsubscribeSourceFilter} />
+          )}
 
           {/* Users Tab */}
           {adminTab === 'users' && (
