@@ -21,9 +21,12 @@ import YearInReviewCard from '@/components/yearInReview/YearInReviewCard';
 import ShowDetailView from '@/components/shows/ShowDetailView';
 import VenueShowsView from '@/components/shows/VenueShowsView';
 import { showHref } from '@/lib/showRouting';
+import { getSavedSearches } from '@/lib/savedSearches';
+import { filterShows } from '@/lib/advancedSearch';
 import {
   Search, Camera, X, Upload, Send,
   Bell, ChevronRight, ChevronLeft, Crown, Calendar, MapPin, Check, Tag, Sparkles, CheckSquare, Square, ArrowLeft,
+  Bookmark,
 } from 'lucide-react';
 
 export default function ShowsPage() {
@@ -61,6 +64,16 @@ export default function ShowsPage() {
   const [selectedShowIds, setSelectedShowIds] = useState(new Set());
   const [showsTab, setShowsTab] = useState('timeline'); // 'timeline' | 'artist'
   const [bulkTagShows, setBulkTagShows] = useState(null); // array of shows for bulk tag modal
+
+  // Saved searches from Advanced Search (lib/savedSearches.js), surfaced
+  // here as quick-filter toggles next to Sort — see toggleSavedSearch below.
+  const [savedSearches, setSavedSearches] = useState([]);
+  const [activeSavedSearch, setActiveSavedSearch] = useState(null); // { name, filters } | null
+
+  useEffect(() => {
+    if (!user) return;
+    setSavedSearches(getSavedSearches(user.uid));
+  }, [user]);
 
   const detailShow = useMemo(() =>
     detailShowId ? shows.find(s => s.id === detailShowId) : null,
@@ -109,6 +122,33 @@ export default function ShowsPage() {
   };
   const festivalById = useMemo(() => new Map((festivals || []).map(f => [f.id, f])), [festivals]);
 
+  // A saved search's filters can include a tour/festival, which (like
+  // AdvancedSearchView) need to be resolved to show-id sets before
+  // lib/advancedSearch.js's filterShows can match on them.
+  const activeTourShowIds = useMemo(() => {
+    const key = activeSavedSearch?.filters?.tourKey;
+    if (!key || !tourIndex[key]) return null;
+    return new Set(tourIndex[key].stops.map(s => s.showId));
+  }, [activeSavedSearch, tourIndex]);
+  const activeFestivalShowIds = useMemo(() => {
+    const key = activeSavedSearch?.filters?.festivalKey;
+    if (!key) return null;
+    return new Set(shows.filter(s => s.festivalId === key).map(s => s.id));
+  }, [activeSavedSearch, shows]);
+  const savedSearchShows = useMemo(() => {
+    if (!activeSavedSearch) return null;
+    return filterShows(shows, activeSavedSearch.filters, {
+      tourShowIds: activeTourShowIds,
+      festivalShowIds: activeFestivalShowIds,
+    })
+      .map(r => r.show)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [activeSavedSearch, shows, activeTourShowIds, activeFestivalShowIds]);
+  // What the list actually renders — the saved search's richer filter when
+  // one is active, otherwise the simple searchTerm/year/date filter from
+  // context. Kept as one name so the render below never has to choose.
+  const displayedShows = activeSavedSearch ? (savedSearchShows || []) : sortedFilteredShows;
+
   // Arriving from a Top Artists / Top Venues row: seed the filter from the
   // URL once, then drop it from the URL so refreshing doesn't re-trigger it.
   const [filterLabel, setFilterLabel] = useState(null); // { type: 'artist'|'venue', name }
@@ -122,6 +162,18 @@ export default function ShowsPage() {
     setFilterYear('');
     setFilterDate('');
     setFilterLabel(null);
+  };
+
+  // Applying a saved search replaces the simple text/year/date filter
+  // (they're separate filtering systems — see displayedShows above), and
+  // clicking the same one again turns it back off.
+  const toggleSavedSearch = (s) => {
+    if (activeSavedSearch?.name === s.name) {
+      setActiveSavedSearch(null);
+    } else {
+      clearFilters();
+      setActiveSavedSearch(s);
+    }
   };
 
   // Runs once per mount — deliberately not keyed on `searchParams`, so
@@ -178,7 +230,7 @@ export default function ShowsPage() {
   };
 
   const selectAllShows = () => {
-    setSelectedShowIds(new Set(sortedFilteredShows.map(s => s.id)));
+    setSelectedShowIds(new Set(displayedShows.map(s => s.id)));
   };
 
   const openBulkTagModal = () => {
@@ -348,20 +400,24 @@ export default function ShowsPage() {
             </Link>
           )}
           <PageHeader
-            eyebrow={filterLabel ? (filterLabel.type === 'artist' ? 'Top Artists' : 'Top Venues') : 'Library'}
-            title={filterLabel
-              ? (filterLabel.type === 'artist'
-                  ? `Your${filterYear ? ` ${filterYear}` : ''} shows seeing ${filterLabel.name}`
-                  : `Your${filterYear ? ` ${filterYear}` : ''} shows at ${filterLabel.name}`)
-              : 'My Shows'}
-            subtitle={filterLabel
-              ? `${sortedFilteredShows.length} show${sortedFilteredShows.length !== 1 ? 's' : ''}`
-              : (shows.length > 0
-                ? `${shows.length} shows · ${summaryStats.uniqueArtists} artists · ${summaryStats.uniqueVenues} venues`
-                : 'Your concert journey starts here')}
+            eyebrow={activeSavedSearch ? 'Saved Search' : filterLabel ? (filterLabel.type === 'artist' ? 'Top Artists' : 'Top Venues') : 'Library'}
+            title={activeSavedSearch
+              ? `"${activeSavedSearch.name}"`
+              : filterLabel
+                ? (filterLabel.type === 'artist'
+                    ? `Your${filterYear ? ` ${filterYear}` : ''} shows seeing ${filterLabel.name}`
+                    : `Your${filterYear ? ` ${filterYear}` : ''} shows at ${filterLabel.name}`)
+                : 'My Shows'}
+            subtitle={activeSavedSearch
+              ? `${displayedShows.length} show${displayedShows.length !== 1 ? 's' : ''}`
+              : filterLabel
+                ? `${sortedFilteredShows.length} show${sortedFilteredShows.length !== 1 ? 's' : ''}`
+                : (shows.length > 0
+                  ? `${shows.length} shows · ${summaryStats.uniqueArtists} artists · ${summaryStats.uniqueVenues} venues`
+                  : 'Your concert journey starts here')}
             actions={
               <>
-                {!guestMode && !filterLabel && (
+                {!guestMode && !filterLabel && !activeSavedSearch && (
                   <Button variant="secondary" icon={Send} onClick={() => navigateTo('invite')}>Invite Friends</Button>
                 )}
                 <Button variant="secondary" icon={Camera} onClick={() => navigateTo('scan-import')}>Scan / Import</Button>
@@ -370,7 +426,7 @@ export default function ShowsPage() {
             }
           />
 
-          {!filterLabel && !guestMode && <YearInReviewCard shows={shows} user={user} />}
+          {!filterLabel && !activeSavedSearch && !guestMode && <YearInReviewCard shows={shows} user={user} />}
 
           {/* Friend request / show tag notification banner */}
           {!guestMode && pendingNotificationCount > 0 && (
@@ -406,8 +462,10 @@ export default function ShowsPage() {
             </div>
           )}
 
-          {/* View tabs — Timeline (card grid) vs By Artist (table) */}
-          {shows.length > 0 && (
+          {/* View tabs — Timeline (card grid) vs By Artist (table). Hidden
+              while a saved search is active: it has its own single-list
+              display below, like Advanced Search's own results. */}
+          {shows.length > 0 && !activeSavedSearch && (
             <div className="flex items-center gap-1 border-b border-subtle mb-6">
               {[
                 { id: 'timeline', label: 'Timeline', count: sortedFilteredShows.length },
@@ -480,12 +538,12 @@ export default function ShowsPage() {
               </div>
 
               {/* Clear filters */}
-              {(filterYear || filterDate || searchTerm) && (
+              {(filterYear || filterDate || searchTerm || activeSavedSearch) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   icon={X}
-                  onClick={() => { setFilterYear(''); setFilterDate(''); setSearchTerm(''); setFilterLabel(null); }}
+                  onClick={() => { setFilterYear(''); setFilterDate(''); setSearchTerm(''); setFilterLabel(null); setActiveSavedSearch(null); }}
                   className="text-danger hover:bg-danger/10"
                 >
                   Clear
@@ -497,29 +555,57 @@ export default function ShowsPage() {
               </Link>
             </div>
 
-            {/* Sort buttons */}
-            {shows.length > 1 && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-subtle">
-                <span className="text-sm font-medium text-secondary">Sort:</span>
-                {['artist', 'rating'].map(opt => (
-                  <Button
-                    key={opt}
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSortBy(opt)}
-                    className={sortBy === opt
-                      ? 'bg-brand-subtle text-brand border border-brand/30'
-                      : 'text-secondary border border-subtle'}
-                  >
-                    {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                  </Button>
-                ))}
+            {/* Sort buttons, plus any saved searches from Advanced Search as
+                quick-filter toggles — a saved search replaces sortBy's
+                artist/rating ordering with its own filtered, date-sorted
+                list (see displayedShows above), so the two button groups
+                are visually separated rather than implying they combine. */}
+            {(shows.length > 1 || savedSearches.length > 0) && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-subtle flex-wrap">
+                {shows.length > 1 && (
+                  <>
+                    <span className="text-sm font-medium text-secondary">Sort:</span>
+                    {['artist', 'rating'].map(opt => (
+                      <Button
+                        key={opt}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSortBy(opt)}
+                        className={sortBy === opt
+                          ? 'bg-brand-subtle text-brand border border-brand/30'
+                          : 'text-secondary border border-subtle'}
+                      >
+                        {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                      </Button>
+                    ))}
+                  </>
+                )}
+                {savedSearches.length > 0 && (
+                  <>
+                    {shows.length > 1 && <span className="w-px h-4 bg-subtle mx-1" aria-hidden="true" />}
+                    <span className="text-sm font-medium text-secondary">Saved:</span>
+                    {savedSearches.map(s => (
+                      <Button
+                        key={s.name}
+                        size="sm"
+                        variant="ghost"
+                        icon={Bookmark}
+                        onClick={() => toggleSavedSearch(s)}
+                        className={activeSavedSearch?.name === s.name
+                          ? 'bg-brand-subtle text-brand border border-brand/30'
+                          : 'text-secondary border border-subtle'}
+                      >
+                        {s.name}
+                      </Button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </Card>
 
           {/* Empty state */}
-          {sortedFilteredShows.length === 0 && !showForm && (
+          {displayedShows.length === 0 && !showForm && (
             <div className="text-center py-12 md:py-16">
               <div className="w-24 h-24 bg-gradient-to-br from-brand/20 to-amber/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-brand/30">
                 <Sparkles className="w-12 h-12 text-brand" />
@@ -601,10 +687,12 @@ export default function ShowsPage() {
             />
           )}
 
-          {/* Timeline: show list */}
-          {showsTab === 'timeline' && sortedFilteredShows.length > 0 && (
+          {/* Timeline: show list. Always the timeline shape while a saved
+              search is active — see the tab switcher above, hidden in that
+              state for the same reason. */}
+          {(showsTab === 'timeline' || activeSavedSearch) && displayedShows.length > 0 && (
             <div className="space-y-3 mb-8">
-              {sortedFilteredShows.map(show => (
+              {displayedShows.map(show => (
                 <ShowCard
                   key={show.id}
                   show={show}
@@ -620,7 +708,7 @@ export default function ShowsPage() {
           )}
 
           {/* Artist groups table */}
-          {showsTab === 'artist' && sortedFilteredShows.length > 0 && (
+          {showsTab === 'artist' && !activeSavedSearch && sortedFilteredShows.length > 0 && (
             <Card variant="elevated" padding="none" className="shadow-xl overflow-hidden">
               <table className="w-full">
                 <thead>
