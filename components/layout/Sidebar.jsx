@@ -150,7 +150,7 @@ export default function Sidebar({
               <div>
                 <Wordmark size={16} inverse />
                 <div className="text-[10px] text-on-dark-muted tracking-[0.08em] uppercase mt-0.5">
-                  Your Show History
+                  Track All Your Shows
                 </div>
               </div>
             </Link>

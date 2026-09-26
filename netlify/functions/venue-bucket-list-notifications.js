@@ -100,7 +100,7 @@ function matchEmailHtml({ artist, venue, city, date, ticketUrl, venueUrl }) {
         </td></tr>
         <tr><td style="padding:16px 32px 24px;text-align:center;border-top:1px solid #e5e7eb;background:#f9fafb">
           <p style="color:#9ca3af;font-size:12px;margin:0">
-            <a href="https://mysetlists.net" style="color:#9ca3af;text-decoration:none">mysetlists.net</a> &mdash; track every show you've ever been to
+            <a href="https://mysetlists.net" style="color:#9ca3af;text-decoration:none">mysetlists.net</a> &mdash; track all your shows
           </p>
           ${FOOTER_MARKER}
         </td></tr>

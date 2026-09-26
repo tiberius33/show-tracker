@@ -15,7 +15,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata = {
   title: {
-    default: 'MySetlists | Your Show History',
+    default: 'MySetlists | Track All Your Shows',
     template: '%s — MySetlists',
   },
   description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
@@ -23,13 +23,13 @@ export const metadata = {
   openGraph: {
     type: 'website',
     url: 'https://mysetlists.net/',
-    title: 'MySetlists | Your Show History',
+    title: 'MySetlists | Track All Your Shows',
     description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
     images: ['/og-image.svg'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MySetlists | Your Show History',
+    title: 'MySetlists | Track All Your Shows',
     description: 'Track every show you\'ve attended, rate setlists, and share your concert history with friends.',
     images: ['/og-image.svg'],
   },

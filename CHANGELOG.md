@@ -4,6 +4,29 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.38.2] — 2026-09-26
+
+### Changed: Tagline
+
+- **"Your Show History" is now "Track All Your Shows."** Updated everywhere
+  it appeared as the standalone tagline: the sidebar/drawer lockup under the
+  wordmark, `public/logo.svg` (embedded live in every transactional and
+  announcement email via `netlify/functions/lib/emailLayout.js`'s
+  `LOGO_URL`), the PWA manifest's app name, and the page `<title>`/Open
+  Graph/Twitter metadata in `app/layout.jsx`. Left alone: body copy that
+  happens to use the words "show history" in a sentence rather than as the
+  tagline (the landing page, How to Use), and the historical changelog
+  entry recording when the browser tab title was first set to the old
+  wording — that's a record of the past, not a live string.
+- **"track every show you've ever been to" is now "track all your
+  shows"** in the transactional-email footer. Fixed in the one shared
+  place (`emailLayout.js`'s `wrapEmail()`, used by the unsubscribe page,
+  the admin announcement sender, and others) plus two functions that build
+  their own email HTML independently rather than going through it
+  (`venue-bucket-list-notifications.js`, `anniversary-notifications.js`).
+
+---
+
 ## [5.38.1] — 2026-09-26
 
 ### Changed: Back to the green color scheme
