@@ -52,7 +52,7 @@ function wrapEmail(content) {
         <!-- Footer -->
         <tr><td style="padding:16px 32px 24px;text-align:center;border-top:1px solid #e5e7eb;background:#f9fafb">
           <p style="color:#9ca3af;font-size:12px;margin:0">
-            <a href="${APP_URL}" style="color:#9ca3af;text-decoration:none">my<span style="color:${ORANGE}">setlists</span>.net</a> &mdash; track every show you've ever been to
+            <a href="${APP_URL}" style="color:#9ca3af;text-decoration:none">my<span style="color:${ORANGE}">setlists</span>.net</a> &mdash; track all your shows
           </p>
           ${FOOTER_MARKER}
         </td></tr>

@@ -93,7 +93,7 @@ Text 3XL: 30px (1.875rem)
 **Components:**
 - Green location pin icon with white horizontal lines (represents setlists)
 - "mysetlists" wordmark: "my" in gray, "setlists" in orange, ".net" in gray
-- Tagline: "Your Show History" in gray
+- Tagline: "Track All Your Shows" in gray
 
 **Files:**
 - SVG logo: High quality, scalable
