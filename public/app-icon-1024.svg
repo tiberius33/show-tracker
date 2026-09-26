@@ -25,9 +25,9 @@
   </defs>
 
   <!-- Guitar pick / setlist mark, same silhouette as components/brand/Pick.jsx,
-       scaled up 33% and re-centered on the canvas so the glyph reads larger
-       at home-screen size while staying inside the maskable-icon safe margin. -->
-  <g transform="translate(512 512) scale(1.3333) translate(-512 -512)">
+       scaled up and re-centered on the canvas so the green dominates over the
+       dark background while staying inside the maskable-icon safe margin. -->
+  <g transform="translate(512 512) scale(1.75) translate(-512 -512)">
     <g filter="url(#pickShadow)">
       <path d="M512 247c-93 0-180 54-180 153 0 132 144 300 180 327 36-27 180-195 180-327 0-99-87-153-180-153Z"
             fill="url(#pickMain)"/>
