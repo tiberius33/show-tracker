@@ -295,7 +295,7 @@ function TicketScanner({ onImport, importedIds, existingShows }) {
                 </Button>
               </div>
             ) : (
-              <label className="inline-flex items-center justify-center gap-2 text-[15px] font-bold px-[18px] py-2.5 rounded-full cursor-pointer whitespace-nowrap select-none transition-all duration-150 bg-brand text-[#2a2a4e] hover:bg-[#e6c200] shadow-[0_1px_2px_rgba(255,215,0,0.25)] hover:shadow-[0_4px_12px_rgba(255,215,0,0.3)] hover:-translate-y-0.5 active:translate-y-0">
+              <label className="inline-flex items-center justify-center gap-2 text-[15px] font-bold px-[18px] py-2.5 rounded-full cursor-pointer whitespace-nowrap select-none transition-all duration-150 bg-brand text-[#2a2a4e] hover:bg-[#059669] shadow-[0_1px_2px_rgba(16,185,129,0.25)] hover:shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 active:translate-y-0">
                 <Camera size={16} strokeWidth={2.4} />
                 {files.length > 0 ? 'Add More Images' : 'Select Images'}
                 <input

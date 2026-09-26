@@ -35,7 +35,7 @@ const PAGE_HEADERS = {
 };
 
 function page(title, bodyHtml, { tone = 'ok' } = {}) {
-  const accent = tone === 'error' ? '#ef6b6b' : '#ffd700';
+  const accent = tone === 'error' ? '#ef6b6b' : '#34D399';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,7 +65,7 @@ function page(title, bodyHtml, { tone = 'ok' } = {}) {
       box-shadow: 0 12px 40px rgba(0,0,0,0.35);
     }
     .brand { font-weight: 800; font-size: 18px; letter-spacing: -0.02em; margin: 0 0 24px; color: #fff; }
-    .brand span { color: #ffd700; }
+    .brand span { color: #34D399; }
     h1 { color: ${accent}; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 12px; }
     p { color: #b8b8d0; font-size: 15px; line-height: 1.6; margin: 0 0 20px; }
     .email { color: #fff; font-weight: 600; word-break: break-all; }
@@ -76,10 +76,10 @@ function page(title, bodyHtml, { tone = 'ok' } = {}) {
       font: 700 16px/1.2 'Plus Jakarta Sans', -apple-system, sans-serif;
       text-decoration: none; -webkit-appearance: none; appearance: none;
     }
-    .primary { background: #ffd700; color: #2a2a4e; }
-    .primary:active { background: #e6c200; }
+    .primary { background: #34D399; color: #2a2a4e; }
+    .primary:active { background: #059669; }
     .secondary { background: transparent; color: #f1f1f7; border: 1px solid rgba(255,255,255,0.22); }
-    a { color: #ffd700; font-weight: 600; text-decoration: none; }
+    a { color: #34D399; font-weight: 600; text-decoration: none; }
     a:hover { text-decoration: underline; }
     .links { margin-top: 20px; font-size: 14px; color: #8e8eab; }
   </style>

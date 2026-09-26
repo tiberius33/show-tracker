@@ -83,7 +83,7 @@ test('GET page uses the current theme and is phone-safe', async () => {
   setup();
   const res = await unsubscribe(get(sign({ kind: 'uid', id: ALICE.uid, scope: 'all', source: 'notification:tag' })));
   assert.match(res.body, /#2a2a4e/);
-  assert.match(res.body, /#ffd700/);
+  assert.match(res.body, /#34D399/);
   assert.match(res.body, /Plus Jakarta Sans/);
   assert.match(res.body, /safe-area-inset-bottom/);
   assert.match(res.body, /viewport-fit=cover/);

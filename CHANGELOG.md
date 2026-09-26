@@ -4,6 +4,44 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.38.1] — 2026-09-26
+
+### Changed: Back to the green color scheme
+
+- **The brand color is green again, not gold.** At some point the app's
+  accent color was recolored gold while the underlying tokens stayed named
+  `--green-primary` / `--green-light` / `--green-subtle` — a rename that
+  only ever touched the values, never the names. That's restored here,
+  using the exact green (`#10b981` / `#10d98a`, Tailwind's emerald) still
+  sitting untouched in `public/app-icon-1024.svg`, which had been orphaned
+  since the gold rebrand and never actually shipped anywhere.
+- Every place that read `--green-primary`/`--green-light`/`--green-subtle`
+  (buttons, links, badges, borders, focus rings, the landing page's own
+  duplicate token set in `components/LandingPage.css`) picks this up
+  automatically. A handful of spots had hardcoded the gold independently of
+  the tokens — mainly button hover/shadow states
+  (`components/ui/Button.jsx`, `Sidebar.jsx`'s "Create account" CTA,
+  `TicketScanner.jsx`, `ArtistPicker.jsx`) and the unsubscribe-page email
+  template (`netlify/functions/unsubscribe.js`, which now matches the
+  green `lib/emailTemplates.js` had been using the whole time and never
+  needed touching) — those are fixed individually.
+- The logo (favicon, `public/logo.svg`, the sidebar/header `<Pick>` mark)
+  is recolored to match — same shape, same everywhere-else usage, just
+  green instead of gold.
+- The app icon and PWA icons (`public/icon-192.png`, `icon-512.png`, and
+  the iOS `App Icon.png`) are regenerated in the same green, matching the
+  live logo's teardrop shape — the compiled icon had actually drifted to a
+  different silhouette entirely along the way, not just a different color.
+- Not touched: the separate amber accent (`--amber`, used for "setlists"
+  in the wordmark, debut badges, etc.) — that was never part of the green
+  rename and stays as its own thing. `public/og-image.svg` (the social
+  share preview) already carries its own green, from a still-earlier design
+  generation with a different logomark and a slightly different shade —
+  left alone since it was never gold to begin with, flagged here as a
+  known minor inconsistency rather than silently fixed.
+
+---
+
 ## [5.37.0] — 2026-09-24
 
 ### Removed: Bust-out badges
