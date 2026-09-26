@@ -25,27 +25,29 @@
   </defs>
 
   <!-- Guitar pick / setlist mark, same silhouette as components/brand/Pick.jsx,
-       scaled up and re-centered for a 1024x1024 canvas with a maskable-icon
-       safe margin. -->
-  <g filter="url(#pickShadow)">
-    <path d="M512 247c-93 0-180 54-180 153 0 132 144 300 180 327 36-27 180-195 180-327 0-99-87-153-180-153Z"
-          fill="url(#pickMain)"/>
-    <path d="M512 247c-56 0-108 21-142 60-22 25-38 55-38 93 0 86 65 190 150 275-46-78-84-165-84-240 0-84 47-150 114-188Z"
-          fill="url(#pickLeft)" opacity="0.55"/>
-    <path d="M512 247c68 0 128 32 158 87-24-40-78-80-158-87Z"
-          fill="url(#pickHighlight)" opacity="0.7"/>
-  </g>
+       scaled up and re-centered on the canvas so the green dominates over the
+       dark background while staying inside the maskable-icon safe margin. -->
+  <g transform="translate(512 512) scale(1.75) translate(-512 -512)">
+    <g filter="url(#pickShadow)">
+      <path d="M512 247c-93 0-180 54-180 153 0 132 144 300 180 327 36-27 180-195 180-327 0-99-87-153-180-153Z"
+            fill="url(#pickMain)"/>
+      <path d="M512 247c-56 0-108 21-142 60-22 25-38 55-38 93 0 86 65 190 150 275-46-78-84-165-84-240 0-84 47-150 114-188Z"
+            fill="url(#pickLeft)" opacity="0.55"/>
+      <path d="M512 247c68 0 128 32 158 87-24-40-78-80-158-87Z"
+            fill="url(#pickHighlight)" opacity="0.7"/>
+    </g>
 
-  <!-- Setlist lines — a converging fan, each shorter than the last, to stay
-       inside the pin's taper without needing exact bezier math. -->
-  <g clip-path="url(#pickClip)">
-    <path d="M372 424 Q 512 450 652 412" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="9" stroke-linecap="round"/>
-    <circle cx="372" cy="424" r="13" fill="rgba(255,255,255,0.9)"/>
-    <path d="M388 478 Q 512 508 636 466" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="9" stroke-linecap="round"/>
-    <circle cx="388" cy="478" r="13" fill="rgba(255,255,255,0.8)"/>
-    <path d="M410 532 Q 512 564 614 518" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="9" stroke-linecap="round"/>
-    <circle cx="410" cy="532" r="13" fill="rgba(255,255,255,0.7)"/>
-    <path d="M440 584 Q 512 612 584 568" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="9" stroke-linecap="round"/>
-    <circle cx="440" cy="584" r="13" fill="rgba(255,255,255,0.6)"/>
+    <!-- Setlist lines — a converging fan, each shorter than the last, to stay
+         inside the pin's taper without needing exact bezier math. -->
+    <g clip-path="url(#pickClip)">
+      <path d="M372 424 Q 512 450 652 412" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="372" cy="424" r="13" fill="rgba(255,255,255,0.9)"/>
+      <path d="M388 478 Q 512 508 636 466" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="388" cy="478" r="13" fill="rgba(255,255,255,0.8)"/>
+      <path d="M410 532 Q 512 564 614 518" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="410" cy="532" r="13" fill="rgba(255,255,255,0.7)"/>
+      <path d="M440 584 Q 512 612 584 568" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="440" cy="584" r="13" fill="rgba(255,255,255,0.6)"/>
+    </g>
   </g>
 </svg>
