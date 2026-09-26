@@ -5,9 +5,9 @@
 /* ── MySetlists Concert Venue Theme ────────────────── */
 :root {
   /* Core brand */
-  --green-primary: #ffd700;
-  --green-light: #ffe45c;
-  --green-subtle: rgba(255, 215, 0, 0.12);
+  --green-primary: #10b981;
+  --green-light: #10d98a;
+  --green-subtle: rgba(16, 185, 129, 0.12);
   --amber: #ffb700;
   --amber-light: #ffc94d;
   --amber-subtle: rgba(255, 183, 0, 0.12);
@@ -25,8 +25,8 @@
   --text-on-dark: #f5f5f5;
   --text-on-dark-muted: #b0b0b0;
   /* Borders */
-  --border-subtle: rgba(255, 215, 0, 0.15);
-  --border-active: rgba(255, 215, 0, 0.4);
+  --border-subtle: rgba(16, 185, 129, 0.15);
+  --border-active: rgba(16, 185, 129, 0.4);
   /* Semantic */
   --success: #4bc86a;
   --danger: #e05555;

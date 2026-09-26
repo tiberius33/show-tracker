@@ -15,7 +15,7 @@ export default function Pick({ size = 32, className = '' }) {
       role="img"
       aria-label="MySetlists"
     >
-      {/* Pick body — brand gold gradient, matches --green-primary / --green-light */}
+      {/* Pick body — brand green gradient, matches --green-primary / --green-light */}
       {/*
         KNOWN ISSUE: this gradient id is a fixed string, so two <Pick>s on one
         page both declare `mys-pick-g` and every reference resolves to
@@ -34,8 +34,8 @@ export default function Pick({ size = 32, className = '' }) {
       */}
       <defs>
         <linearGradient id="mys-pick-g" x1="20" y1="4" x2="20" y2="36" gradientUnits="userSpaceOnUse">
-          <stop stopColor="var(--green-light, #ffe45c)" />
-          <stop offset="1" stopColor="var(--green-primary, #ffd700)" />
+          <stop stopColor="var(--green-light, #10d98a)" />
+          <stop offset="1" stopColor="var(--green-primary, #10b981)" />
         </linearGradient>
       </defs>
       <path

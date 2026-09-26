@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <!-- Solid background (App Store requires no transparency) -->
-  <rect width="1024" height="1024" rx="0" fill="#0f172a"/>
+  <rect width="1024" height="1024" fill="#1f1f3a"/>
 
   <defs>
     <linearGradient id="pickMain" x1="20%" y1="0%" x2="80%" y2="100%">
@@ -16,32 +16,36 @@
       <stop offset="0%" style="stop-color:#6ee7b7;stop-opacity:1"/>
       <stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>
     </linearGradient>
-    <filter id="pickShadow">
-      <feDropShadow dx="4" dy="8" stdDeviation="12" flood-color="rgba(5,150,105,0.5)"/>
+    <filter id="pickShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="10" stdDeviation="24" flood-color="#059669" flood-opacity="0.55"/>
     </filter>
     <clipPath id="pickClip">
-      <path d="M 512 80 C 730 80, 900 211, 900 392 C 900 573, 775 703, 512 1033 C 249 703, 124 573, 124 392 C 124 211, 294 80, 512 80 Z"/>
+      <path d="M512 247c-93 0-180 54-180 153 0 132 144 300 180 327 36-27 180-195 180-327 0-99-87-153-180-153Z"/>
     </clipPath>
   </defs>
 
-  <!-- Guitar pick shape - centered and scaled to fill 1024x1024 -->
-  <g>
-    <path d="M 512 80 C 730 80, 900 211, 900 392 C 900 573, 775 703, 512 1033 C 249 703, 124 573, 124 392 C 124 211, 294 80, 512 80 Z"
-          fill="url(#pickMain)" filter="url(#pickShadow)"/>
-    <path d="M 512 80 C 387 80, 262 161, 181 274 C 137 336, 124 367, 124 392 C 124 573, 249 703, 512 1033 C 406 865, 325 721, 281 597 C 231 454, 231 317, 281 205 C 331 98, 418 96, 512 80 Z"
-          fill="url(#pickLeft)" opacity="0.7"/>
-    <path d="M 512 80 C 699 80, 856 192, 893 348 C 843 248, 731 111, 512 80 Z"
-          fill="url(#pickHighlight)" opacity="0.6"/>
+  <!-- Guitar pick / setlist mark, same silhouette as components/brand/Pick.jsx,
+       scaled up and re-centered for a 1024x1024 canvas with a maskable-icon
+       safe margin. -->
+  <g filter="url(#pickShadow)">
+    <path d="M512 247c-93 0-180 54-180 153 0 132 144 300 180 327 36-27 180-195 180-327 0-99-87-153-180-153Z"
+          fill="url(#pickMain)"/>
+    <path d="M512 247c-56 0-108 21-142 60-22 25-38 55-38 93 0 86 65 190 150 275-46-78-84-165-84-240 0-84 47-150 114-188Z"
+          fill="url(#pickLeft)" opacity="0.55"/>
+    <path d="M512 247c68 0 128 32 158 87-24-40-78-80-158-87Z"
+          fill="url(#pickHighlight)" opacity="0.7"/>
+  </g>
 
-    <g clip-path="url(#pickClip)">
-      <path d="M 231 276 Q 456 338, 731 238" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="11" stroke-linecap="round"/>
-      <circle cx="231" cy="276" r="18" fill="rgba(255,255,255,0.85)"/>
-      <path d="M 187 400 Q 468 487, 793 350" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="11" stroke-linecap="round"/>
-      <circle cx="187" cy="400" r="18" fill="rgba(255,255,255,0.8)"/>
-      <path d="M 156 537 Q 456 649, 837 487" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="11" stroke-linecap="round"/>
-      <circle cx="156" cy="537" r="18" fill="rgba(255,255,255,0.75)"/>
-      <path d="M 143 674 Q 431 812, 837 649" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="11" stroke-linecap="round"/>
-      <circle cx="143" cy="674" r="18" fill="rgba(255,255,255,0.65)"/>
-    </g>
+  <!-- Setlist lines — a converging fan, each shorter than the last, to stay
+       inside the pin's taper without needing exact bezier math. -->
+  <g clip-path="url(#pickClip)">
+    <path d="M372 424 Q 512 450 652 412" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="372" cy="424" r="13" fill="rgba(255,255,255,0.9)"/>
+    <path d="M388 478 Q 512 508 636 466" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="388" cy="478" r="13" fill="rgba(255,255,255,0.8)"/>
+    <path d="M410 532 Q 512 564 614 518" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="410" cy="532" r="13" fill="rgba(255,255,255,0.7)"/>
+    <path d="M440 584 Q 512 612 584 568" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="440" cy="584" r="13" fill="rgba(255,255,255,0.6)"/>
   </g>
 </svg>
