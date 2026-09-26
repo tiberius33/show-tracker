@@ -4,6 +4,31 @@ All notable changes to mysetlists.net are documented here.
 
 ---
 
+## [5.39.0] — 2026-09-26
+
+### New: Saved searches, on My Shows
+
+- **A search you save in Advanced Search now shows up on My Shows too**, as
+  a toggle button next to the Sort row (Sort: Artist / Rating · Saved: your
+  search names). Tapping one filters the list right there using that
+  search's full criteria (artist, venue, date range, tour, festival,
+  rating, friend, notes, setlist song) — not just the simple text/year
+  filter the page already had — and tapping it again turns it back off.
+  Previously a saved search only did anything from the Advanced Search
+  page itself.
+- Applying a saved search clears the simple search/year/date filter (and
+  vice versa) — they're two different filtering systems under the hood
+  (`lib/advancedSearch.js` vs. the context's plain text match), so mixing
+  them silently would produce results neither system actually asked for.
+  The "By artist" table view and the Timeline/By-artist tab switcher are
+  hidden while a saved search is active, the same way Advanced Search's
+  own results are a single list rather than tabs.
+- "Clear" now also turns off an active saved search, and "Select shows" /
+  "Select All" now selects what's actually on screen rather than
+  whatever the plain filter would have shown underneath it.
+
+---
+
 ## [5.38.2] — 2026-09-26
 
 ### Changed: Tagline
